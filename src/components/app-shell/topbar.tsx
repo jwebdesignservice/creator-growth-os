@@ -1,7 +1,10 @@
 "use client";
 
-import { Search, Bell, Mail, CalendarDays, ChevronDown } from "lucide-react";
+import { Search, Bell, Mail, CalendarDays } from "lucide-react";
+import { ProfileMenu } from "./profile-menu";
 import { cn } from "@/lib/cn";
+
+export { Avatar } from "./avatar";
 
 type Props = {
   user: {
@@ -47,25 +50,8 @@ export function Topbar({ user }: Props) {
           </IconButton>
         </div>
 
-        {/* Profile chip */}
-        <button
-          type="button"
-          className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full hover:bg-cream-200 transition-colors"
-        >
-          <Avatar name={user.name} src={user.avatar_url ?? undefined} size={32} />
-          <div className="text-left leading-tight">
-            <div className="text-[13.5px] font-semibold text-ink-900">
-              {user.name}
-            </div>
-            {user.plan && (
-              <div className="text-[11px] text-ink-500 capitalize flex items-center gap-1">
-                <span className="inline-block size-[5px] rounded-full bg-rose-500" />
-                {user.plan} Plan
-              </div>
-            )}
-          </div>
-          <ChevronDown className="size-4 text-ink-500" strokeWidth={2} />
-        </button>
+        {/* Profile chip with dropdown */}
+        <ProfileMenu user={user} />
       </div>
     </header>
   );
@@ -90,46 +76,3 @@ function IconButton({
   );
 }
 
-export function Avatar({
-  name,
-  src,
-  size = 36,
-}: {
-  name: string;
-  src?: string;
-  size?: number;
-}) {
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <img
-        src={src}
-        alt={name}
-        width={size}
-        height={size}
-        className="rounded-full object-cover bg-cream-200"
-        style={{ width: size, height: size }}
-      />
-    );
-  }
-  return (
-    <div
-      className="rounded-full bg-rose-200 text-rose-700 font-semibold inline-flex items-center justify-center"
-      style={{
-        width: size,
-        height: size,
-        fontSize: Math.round(size * 0.38),
-      }}
-    >
-      {initials || "?"}
-    </div>
-  );
-}

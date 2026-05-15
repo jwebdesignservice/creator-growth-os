@@ -24,10 +24,17 @@ export default async function AppLayout({
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "full_name, display_name, email, phone, avatar_url, category, plan",
+      "full_name, display_name, email, phone, avatar_url, category, plan, onboarded",
     )
     .eq("id", user.id)
     .maybeSingle();
+
+  // If the user hasn't gone through onboarding yet, push them through it.
+  // Only enforce when the profile row already exists (i.e. schema is applied);
+  // otherwise let them through so the smoke test keeps working.
+  if (profile && profile.onboarded === false) {
+    redirect("/onboarding");
+  }
 
   const fallbackName =
     (user.user_metadata?.full_name as string | undefined) ||
