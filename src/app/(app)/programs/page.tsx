@@ -9,6 +9,7 @@ import { FeaturedProgram } from "@/components/programs/featured-program";
 import { ProgramsGrid } from "@/components/programs/programs-grid";
 import type { ProgramRow } from "@/components/programs/program-card";
 import { LearningPath } from "@/components/programs/learning-path";
+import { getProgressForPrograms } from "@/lib/programs/queries";
 
 export const metadata = { title: "Programs · Creator Growth OS" };
 
@@ -20,29 +21,48 @@ export default async function ProgramsPage() {
   const { data: dbPrograms } = await supabase
     .from("programs")
     .select(
-      "slug, title, description, plan_access, category_access, total_lessons, total_tasks, estimated_days",
+      "id, slug, title, description, plan_access, category_access, total_lessons, total_tasks, estimated_days",
     )
     .eq("published", true)
     .order("sort_order", { ascending: true });
 
+  // Pull real per-program progress in one round-trip.
+  const progressMap = dbPrograms?.length
+    ? await getProgressForPrograms(dbPrograms.map((p) => p.id))
+    : new Map();
+
   const programs: ProgramRow[] = dbPrograms?.length
-    ? dbPrograms.map((p, i): ProgramRow => ({
-        slug: p.slug,
-        title: p.title,
-        description: p.description ?? "",
-        status:
-          p.plan_access === "pro"
+    ? dbPrograms.map((p, i): ProgramRow => {
+        const prog = progressMap.get(p.id);
+        const real = prog && prog.lessonsTotal > 0;
+        // Compute status from real progress when present; otherwise fall
+        // back to a friendly visual default so the demo stays alive.
+        const status: ProgramRow["status"] =
+          p.plan_access === "pro" && ctx.plan !== "pro"
             ? "pro_only"
-            : i === 2
-              ? "not_started"
-              : "in_progress",
-        progress: i === 0 ? 68 : i === 1 ? 42 : 0,
-        category_label: deriveCategoryLabel(p.category_access),
-        total_lessons: p.total_lessons ?? undefined,
-        total_tasks: p.total_tasks ?? undefined,
-        estimated_days: p.estimated_days ?? undefined,
-        cover_hue: i % 3 === 0 ? "rose" : i % 3 === 1 ? "cream" : "warm",
-      }))
+            : real && prog!.percent === 100
+              ? "completed"
+              : real && prog!.percent > 0
+                ? "in_progress"
+                : real
+                  ? "not_started"
+                  : i === 2
+                    ? "not_started"
+                    : "in_progress";
+        const progress = real ? prog!.percent : i === 0 ? 68 : i === 1 ? 42 : 0;
+        return {
+          slug: p.slug,
+          title: p.title,
+          description: p.description ?? "",
+          status,
+          progress,
+          category_label: deriveCategoryLabel(p.category_access),
+          total_lessons: p.total_lessons ?? undefined,
+          total_tasks: p.total_tasks ?? undefined,
+          estimated_days: p.estimated_days ?? undefined,
+          cover_hue: i % 3 === 0 ? "rose" : i % 3 === 1 ? "cream" : "warm",
+        };
+      })
     : FALLBACK;
 
   const featured = programs.find((p) => p.status === "in_progress") ?? programs[0];

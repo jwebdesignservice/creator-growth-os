@@ -20,11 +20,12 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/app-shell/avatar";
 import { ProgramDetailRail } from "@/components/programs/program-detail-rail";
-import {
-  CurriculumAccordion,
-  type Module,
-} from "@/components/programs/curriculum-accordion";
+import { CurriculumAccordion } from "@/components/programs/curriculum-accordion";
 import { DetailTabs } from "@/components/programs/detail-tabs";
+import {
+  getCurriculumForProgram,
+  getProgramProgress,
+} from "@/lib/programs/queries";
 
 type Params = Promise<{ slug: string }>;
 
@@ -71,9 +72,36 @@ export default async function ProgramDetailPage({
 
   if (!program) notFound();
 
-  // For the detail page demo, render a curriculum from mocks until admin
-  // populates the lessons table. Future: read from public.lessons.
-  const modules: Module[] = MOCK_MODULES;
+  // Read curriculum + progress from DB; both gracefully fall back when
+  // the lessons table hasn't been seeded yet.
+  const [modules, progress] = await Promise.all([
+    getCurriculumForProgram(slug, ctx.plan),
+    getProgramProgress(slug),
+  ]);
+
+  // Effective progress %: use computed value when lessons are seeded;
+  // otherwise show a friendly nonzero value so the UI demo stays alive.
+  const effectivePercent =
+    progress.lessonsTotal > 0 ? progress.percent : 62;
+  const effectiveCompleted =
+    progress.lessonsTotal > 0 ? progress.lessonsCompleted : 20;
+  const effectiveTotal =
+    progress.lessonsTotal > 0
+      ? progress.lessonsTotal
+      : (program.total_lessons ?? 32);
+  const nextLessonInfo = progress.nextLesson
+    ? {
+        title: progress.nextLesson.title,
+        moduleLabel: progress.nextLesson.moduleLabel,
+        duration: progress.nextLesson.duration,
+        href: `/tutorials/${progress.nextLesson.slug}`,
+      }
+    : {
+        title: "Brand Values & Positioning",
+        moduleLabel: "Lesson 1.3",
+        duration: "09:15",
+        href: "/tutorials/brand-values-positioning",
+      };
 
   return (
     <PageShell
@@ -83,9 +111,9 @@ export default async function ProgramDetailPage({
           avatarUrl={ctx.railProfile.avatar_url}
           plan={ctx.plan}
           progress={{
-            percent: 62,
-            lessonsCompleted: 20,
-            lessonsTotal: 32,
+            percent: effectivePercent,
+            lessonsCompleted: effectiveCompleted,
+            lessonsTotal: effectiveTotal,
             streakDays: 6,
           }}
           coach={{
@@ -93,12 +121,7 @@ export default async function ProgramDetailPage({
             role: "Growth Coach",
             blurb: "Brand strategist helping creators build influence, trust & income.",
           }}
-          nextLesson={{
-            title: "Brand Values & Positioning",
-            moduleLabel: "Lesson 1.3",
-            duration: "09:15",
-            href: "/tutorials/brand-values-positioning",
-          }}
+          nextLesson={nextLessonInfo}
         />
       }
     >
@@ -116,10 +139,10 @@ export default async function ProgramDetailPage({
         <ProgramHero
           title={program.title}
           description={program.description ?? ""}
-          totalLessons={program.total_lessons ?? 32}
+          totalLessons={effectiveTotal}
           totalTasks={program.total_tasks ?? 18}
           estimatedDays={program.estimated_days ?? 42}
-          progress={62}
+          progress={effectivePercent}
         />
 
         {/* Tabs + content */}
@@ -449,63 +472,3 @@ function TasksPanel() {
   );
 }
 
-const MOCK_MODULES: Module[] = [
-  {
-    number: 1,
-    title: "Foundation: Know Your Brand",
-    lessons: [
-      { slug: "defining-niche-sweet-spot", title: "Defining Your Niche & Sweet Spot", duration: "08:12", status: "completed" },
-      { slug: "your-story-differentiator", title: "Your Story, Your Differentiator", duration: "10:34", status: "completed" },
-      { slug: "brand-values-positioning", title: "Brand Values & Positioning", duration: "09:15", status: "current" },
-      { slug: "ideal-audience-deep-dive", title: "Ideal Audience Deep Dive", duration: "07:50", status: "todo" },
-    ],
-  },
-  {
-    number: 2,
-    title: "Content That Connects",
-    lessons: [
-      { slug: "content-pillars-that-work", title: "Content Pillars That Work", duration: "15:30", status: "todo" },
-      { slug: "hooks-that-stop-the-scroll", title: "Hooks That Stop the Scroll", duration: "11:20", status: "todo" },
-      { slug: "story-formats", title: "Story Formats That Convert", duration: "12:05", status: "todo" },
-      { slug: "captions-that-convert", title: "Engaging Captions That Convert", duration: "08:40", status: "todo" },
-      { slug: "thumbnails-covers", title: "Thumbnails & Covers", duration: "06:55", status: "todo" },
-      { slug: "first-3-seconds", title: "The First 3 Seconds", duration: "09:30", status: "todo" },
-    ],
-  },
-  {
-    number: 3,
-    title: "Consistency & Audience Growth",
-    lessons: [
-      { slug: "weekly-content-system", title: "Your Weekly Content System", duration: "14:10", status: "todo" },
-      { slug: "batch-record-week", title: "Batch Record a Whole Week", duration: "12:20", status: "todo" },
-      { slug: "platform-performance", title: "How To Read Platform Performance", duration: "13:45", status: "todo" },
-      { slug: "engagement-loop", title: "The Daily Engagement Loop", duration: "09:50", status: "todo" },
-      { slug: "trends-without-losing-self", title: "Riding Trends Without Losing Yourself", duration: "11:00", status: "todo" },
-      { slug: "audience-feedback", title: "Audience Feedback Loops", duration: "08:15", status: "todo" },
-    ],
-  },
-  {
-    number: 4,
-    title: "Monetization & Brand Deals",
-    lessons: [
-      { slug: "monetization-readiness", title: "Monetization Readiness Score", duration: "10:00", status: "todo" },
-      { slug: "media-kit", title: "Build a Media Kit That Wins", duration: "13:40", status: "todo" },
-      { slug: "outreach-templates", title: "Brand Outreach Templates", duration: "11:30", status: "todo" },
-      { slug: "rates-pricing", title: "Rates, Pricing & Negotiation", duration: "12:15", status: "todo" },
-      { slug: "your-first-deal", title: "Your First Paid Brand Deal", duration: "10:45", status: "todo" },
-      { slug: "deals-pipeline", title: "Running a Brand Deals Pipeline", duration: "09:20", status: "todo" },
-    ],
-  },
-  {
-    number: 5,
-    title: "Scaling, Systems & Advanced Strategies",
-    bonus: true,
-    pro_only: true,
-    lessons: [
-      { slug: "team-systems", title: "Hiring Your First Editor", duration: "12:10", status: "locked" },
-      { slug: "automation", title: "Automating Scheduling & Replies", duration: "09:50", status: "locked" },
-      { slug: "products-services", title: "Launching Products & Services", duration: "14:30", status: "locked" },
-      { slug: "agency-track", title: "The Agency Track for Creators", duration: "11:25", status: "locked" },
-    ],
-  },
-];
