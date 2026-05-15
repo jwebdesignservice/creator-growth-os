@@ -25,7 +25,7 @@ export type OnboardingDraft = {
   // Step 2 — Platform
   primary_platform: PrimaryPlatform | null;
   content_frequency: string | null; // just_starting | 1-2/week | 3-5/week | daily
-  platform_focus: string | null; // grow_followers | improve_consistency | build_authority | monetize
+  bottleneck: string | null; // no_ideas | inconsistent | low_reach | no_monetization
 
   // Step 3 — Goals
   main_goal: PrimaryGoal | null;
@@ -43,7 +43,7 @@ export const EMPTY_DRAFT: OnboardingDraft = {
   follower_base: null,
   primary_platform: null,
   content_frequency: null,
-  platform_focus: null,
+  bottleneck: null,
   main_goal: null,
   weekly_pace: null,
   top_value_priorities: [],
@@ -64,7 +64,7 @@ export function isStepComplete(
     case "stage":
       return Boolean(d.stage && d.follower_base);
     case "platform":
-      return Boolean(d.primary_platform && d.content_frequency && d.platform_focus);
+      return Boolean(d.primary_platform && d.content_frequency && d.bottleneck);
     case "goals":
       return Boolean(d.main_goal && d.weekly_pace);
     case "content":

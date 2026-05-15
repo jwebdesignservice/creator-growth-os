@@ -17,7 +17,7 @@ export function Pill({ icon, label, selected, onToggle }: Props) {
       onClick={onToggle}
       aria-pressed={selected}
       className={cn(
-        "relative inline-flex items-center gap-2 px-4 h-12 rounded-[12px] border-2 text-[13.5px] font-medium transition-colors",
+        "relative inline-flex items-center gap-2 pl-4 pr-7 min-h-12 py-2 rounded-[12px] border-2 text-[13.5px] font-medium leading-snug transition-colors cursor-pointer text-left w-full",
         selected
           ? "border-rose-500 bg-rose-50/70 text-ink-900"
           : "border-ink-100 bg-white text-ink-700 hover:border-ink-200 hover:bg-cream-100/50",
@@ -33,9 +33,9 @@ export function Pill({ icon, label, selected, onToggle }: Props) {
           {icon}
         </span>
       )}
-      <span>{label}</span>
+      <span className="flex-1 min-w-0">{label}</span>
       {selected && (
-        <span className="ml-1 inline-flex items-center justify-center size-4 rounded-full bg-rose-500 text-white">
+        <span className="absolute top-1.5 right-1.5 inline-flex items-center justify-center size-4 rounded-full bg-rose-500 text-white">
           <Check className="size-2.5" strokeWidth={3} />
         </span>
       )}

@@ -35,7 +35,7 @@ export function PerformanceOverview({
         </button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-6 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-center">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {metrics.map((m) => (
             <MetricTile key={m.label} metric={m} />

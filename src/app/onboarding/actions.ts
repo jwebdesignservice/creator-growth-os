@@ -51,7 +51,7 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
   if (!draft.stage || !draft.follower_base) {
     return { ok: false, error: "Stage and follower base are required." };
   }
-  if (!draft.primary_platform || !draft.content_frequency || !draft.platform_focus) {
+  if (!draft.primary_platform || !draft.content_frequency || !draft.bottleneck) {
     return { ok: false, error: "Platform answers are incomplete." };
   }
   if (!draft.main_goal || !draft.weekly_pace) {
@@ -71,7 +71,7 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
       follower_base: draft.follower_base,
       primary_platform: draft.primary_platform,
       content_frequency: draft.content_frequency,
-      platform_focus: draft.platform_focus,
+      bottleneck: draft.bottleneck,
       main_goal: draft.main_goal,
       weekly_pace: draft.weekly_pace,
       top_value_priorities: draft.top_value_priorities,

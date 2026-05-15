@@ -32,7 +32,7 @@ export function SelectionCard({
       onClick={onToggle}
       aria-pressed={selected}
       className={cn(
-        "relative w-full text-left rounded-[16px] border-2 transition-colors group",
+        "relative w-full text-left rounded-[16px] border-2 transition-colors group cursor-pointer",
         size === "default" ? "p-5" : "p-3.5",
         selected
           ? "border-rose-500 bg-rose-50/70"

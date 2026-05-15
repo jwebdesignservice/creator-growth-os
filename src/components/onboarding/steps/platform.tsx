@@ -4,10 +4,10 @@ import {
   Sprout,
   CalendarPlus,
   Flame,
-  Users,
-  Clock,
-  Crown,
-  Wallet,
+  Lightbulb,
+  CalendarX,
+  Eye,
+  DollarSign,
   CalendarRange,
   Heart,
   ArrowRight,
@@ -69,11 +69,11 @@ const RHYTHMS = [
   { value: "daily", label: "Daily", icon: Flame },
 ];
 
-const FOCUSES = [
-  { value: "grow_followers", label: "Grow followers", icon: Users },
-  { value: "improve_consistency", label: "Improve consistency", icon: Clock },
-  { value: "build_authority", label: "Build authority", icon: Crown },
-  { value: "monetize", label: "Monetize", icon: Wallet },
+const BOTTLENECKS = [
+  { value: "no_ideas", label: "No clear ideas", icon: Lightbulb },
+  { value: "inconsistent", label: "Inconsistent posting", icon: CalendarX },
+  { value: "low_reach", label: "Low reach & visibility", icon: Eye },
+  { value: "no_monetization", label: "Not monetizing yet", icon: DollarSign },
 ];
 
 type Props = {
@@ -138,23 +138,23 @@ export function PlatformStep({ draft, onChange }: Props) {
 
         <section>
           <div className="text-[13px] font-semibold text-ink-900 mb-3">
-            3. What best describes your focus on this platform?
+            3. What&apos;s your biggest bottleneck right now?
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {FOCUSES.map((f) => (
+            {BOTTLENECKS.map((b) => (
               <Pill
-                key={f.value}
-                icon={<f.icon className="size-4" strokeWidth={1.8} />}
-                label={f.label}
-                selected={draft.platform_focus === f.value}
-                onToggle={() => onChange({ platform_focus: f.value })}
+                key={b.value}
+                icon={<b.icon className="size-4" strokeWidth={1.8} />}
+                label={b.label}
+                selected={draft.bottleneck === b.value}
+                onToggle={() => onChange({ bottleneck: b.value })}
               />
             ))}
           </div>
         </section>
 
         <InfoBanner>
-          You can change your platform focus later in settings.
+          We&apos;ll prioritize your weekly plan around the bottleneck you pick.
         </InfoBanner>
       </div>
 
