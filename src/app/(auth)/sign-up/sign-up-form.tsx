@@ -15,7 +15,6 @@ import { TextInput } from "@/components/ui/text-input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { OAuthButtons } from "@/components/ui/oauth-buttons";
 import { signUpWithPassword } from "../actions";
 
 const FOLLOWER_RANGES = [
@@ -146,14 +145,6 @@ export function SignUpForm() {
         {pending ? "Creating account…" : "Create Account & Start Free Trial"}
         {!pending && <ArrowRight className="size-4" strokeWidth={2} />}
       </button>
-
-      <div className="flex items-center gap-4 text-[12px] text-ink-500">
-        <div className="h-px flex-1 bg-ink-100" />
-        or continue with
-        <div className="h-px flex-1 bg-ink-100" />
-      </div>
-
-      <OAuthButtons redirectTo="/onboarding" />
     </form>
   );
 }

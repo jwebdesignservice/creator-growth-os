@@ -6,7 +6,6 @@ import { Mail, ArrowRight } from "lucide-react";
 import { TextInput } from "@/components/ui/text-input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { OAuthButtons } from "@/components/ui/oauth-buttons";
 import { signInWithPassword } from "../actions";
 
 export function SignInForm() {
@@ -58,14 +57,6 @@ export function SignInForm() {
         {pending ? "Signing in…" : "Log In"}
         {!pending && <ArrowRight className="size-4" strokeWidth={2} />}
       </button>
-
-      <div className="flex items-center gap-4 text-[12px] text-ink-500">
-        <div className="h-px flex-1 bg-ink-100" />
-        or continue with
-        <div className="h-px flex-1 bg-ink-100" />
-      </div>
-
-      <OAuthButtons redirectTo="/dashboard" />
     </form>
   );
 }
