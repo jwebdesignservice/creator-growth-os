@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { PageShell } from "@/components/app-shell/page-shell";
+import { RightRail } from "@/components/app-shell/right-rail";
+import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { DashboardHero } from "@/components/dashboard/hero";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import {
@@ -18,19 +21,10 @@ import { PerformanceOverview } from "@/components/dashboard/performance-overview
 export const metadata = { title: "Dashboard · Creator Growth OS" };
 
 export default async function DashboardPage() {
+  const ctx = await getShellContext();
+  if (!ctx) redirect("/sign-in");
+  const { user, profile } = ctx;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/sign-in");
-
-  // Profile (graceful fallback if schema not yet applied)
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, display_name, onboarded")
-    .eq("id", user.id)
-    .maybeSingle();
 
   const firstName =
     (profile?.display_name ?? profile?.full_name ?? user.email?.split("@")[0] ?? "Creator")
@@ -60,6 +54,7 @@ export default async function DashboardPage() {
     : FALLBACK_PROGRAMS;
 
   return (
+    <PageShell rail={<RightRail profile={ctx.railProfile} />}>
     <div className="space-y-6 lg:space-y-7 max-w-[1240px] mx-auto">
       <DashboardHero firstName={firstName} />
 
@@ -118,6 +113,7 @@ export default async function DashboardPage() {
         ]}
       />
     </div>
+    </PageShell>
   );
 }
 

@@ -1,4 +1,5 @@
 import { Construction } from "lucide-react";
+import { PageShell } from "@/components/app-shell/page-shell";
 
 type Props = {
   title: string;
@@ -8,6 +9,7 @@ type Props = {
 
 export function PageStub({ title, description, nextStep }: Props) {
   return (
+    <PageShell>
     <div className="max-w-[1240px] mx-auto">
       <header className="mb-6">
         <h1 className="font-display text-[40px] text-ink-900 leading-none mb-2">
@@ -29,5 +31,6 @@ export function PageStub({ title, description, nextStep }: Props) {
         </p>
       </div>
     </div>
+    </PageShell>
   );
 }
