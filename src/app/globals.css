@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+:root {
+  /* Cream + rose palette extracted from Creator Growth OS design comps */
+  --cream-50: #FDFBF8;
+  --cream-100: #FAF6F2;
+  --cream-200: #F4ECE3;
+  --cream-300: #E9DDCF;
+
+  --rose-50: #FCEFEC;
+  --rose-100: #F7E1DC;
+  --rose-200: #F0CFC8;
+  --rose-300: #E0A89E;
+  --rose-400: #D08171;
+  --rose-500: #C26174;
+  --rose-600: #B9485C;
+  --rose-700: #97384A;
+
+  --ink-50: #F7F5F2;
+  --ink-100: #ECE8E3;
+  --ink-200: #DDD7D0;
+  --ink-300: #C2BAB0;
+  --ink-400: #9B928A;
+  --ink-500: #756E66;
+  --ink-700: #3A3631;
+  --ink-900: #1A1816;
+
+  --gold-400: #D9B66B;
+  --gold-500: #C9A14A;
+
+  --success: #3DA862;
+  --success-bg: #E2F2E8;
+
+  --background: var(--cream-100);
+  --foreground: var(--ink-900);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-cream-50: var(--cream-50);
+  --color-cream-100: var(--cream-100);
+  --color-cream-200: var(--cream-200);
+  --color-cream-300: var(--cream-300);
+
+  --color-rose-50: var(--rose-50);
+  --color-rose-100: var(--rose-100);
+  --color-rose-200: var(--rose-200);
+  --color-rose-300: var(--rose-300);
+  --color-rose-400: var(--rose-400);
+  --color-rose-500: var(--rose-500);
+  --color-rose-600: var(--rose-600);
+  --color-rose-700: var(--rose-700);
+
+  --color-ink-50: var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-700: var(--ink-700);
+  --color-ink-900: var(--ink-900);
+
+  --color-gold-400: var(--gold-400);
+  --color-gold-500: var(--gold-500);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+
+  --font-sans: var(--font-sans-body);
+  --font-serif: var(--font-serif-display);
+  --font-script: var(--font-script);
+
+  --radius-card: 16px;
+  --radius-card-sm: 12px;
+  --radius-pill: 999px;
+
+  --shadow-soft: 0 1px 2px rgba(26, 24, 22, 0.04), 0 6px 16px rgba(26, 24, 22, 0.05);
+  --shadow-card: 0 1px 0 rgba(26, 24, 22, 0.03), 0 8px 24px rgba(26, 24, 22, 0.06);
+}
+
+* {
+  border-color: var(--ink-200);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans-body), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-serif-display), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.font-script {
+  font-family: var(--font-script), cursive;
+}
+
+/* Card primitive */
+.card {
+  background: white;
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.card-flat {
+  background: white;
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-card);
+}
+
+.card-cream {
+  background: var(--cream-200);
+  border: 1px solid var(--cream-300);
+  border-radius: var(--radius-card);
+}
+
+/* Pill chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.chip-rose {
+  background: var(--rose-100);
+  color: var(--rose-700);
+}
+
+.chip-gold {
+  background: #F6ECD3;
+  color: #8A6A1F;
+}
+
+.chip-success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-200);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

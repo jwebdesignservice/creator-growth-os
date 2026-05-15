@@ -1,0 +1,135 @@
+"use client";
+
+import { Search, Bell, Mail, CalendarDays, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/cn";
+
+type Props = {
+  user: {
+    name: string;
+    avatar_url?: string | null;
+    plan?: string;
+  };
+};
+
+export function Topbar({ user }: Props) {
+  return (
+    <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100">
+      <div className="flex items-center gap-4 h-[68px] px-6 lg:px-8">
+        {/* Search */}
+        <div className="flex-1 max-w-[520px]">
+          <div className="relative">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 size-[16px] text-ink-400"
+              strokeWidth={2}
+            />
+            <input
+              type="search"
+              placeholder="Search programs, tutorials, topics..."
+              className="w-full h-11 pl-11 pr-4 rounded-[14px] bg-white border border-ink-100 placeholder:text-ink-400 text-[13.5px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Icon actions */}
+        <div className="flex items-center gap-2">
+          <IconButton aria-label="Notifications">
+            <Bell className="size-[18px] text-ink-700" strokeWidth={1.8} />
+            <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-600 ring-2 ring-cream-100" />
+            <span className="sr-only">3 new</span>
+          </IconButton>
+          <IconButton aria-label="Messages">
+            <Mail className="size-[18px] text-ink-700" strokeWidth={1.8} />
+          </IconButton>
+          <IconButton aria-label="Calendar">
+            <CalendarDays className="size-[18px] text-ink-700" strokeWidth={1.8} />
+          </IconButton>
+        </div>
+
+        {/* Profile chip */}
+        <button
+          type="button"
+          className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full hover:bg-cream-200 transition-colors"
+        >
+          <Avatar name={user.name} src={user.avatar_url ?? undefined} size={32} />
+          <div className="text-left leading-tight">
+            <div className="text-[13.5px] font-semibold text-ink-900">
+              {user.name}
+            </div>
+            {user.plan && (
+              <div className="text-[11px] text-ink-500 capitalize flex items-center gap-1">
+                <span className="inline-block size-[5px] rounded-full bg-rose-500" />
+                {user.plan} Plan
+              </div>
+            )}
+          </div>
+          <ChevronDown className="size-4 text-ink-500" strokeWidth={2} />
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function IconButton({
+  children,
+  className,
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors",
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function Avatar({
+  name,
+  src,
+  size = 36,
+}: {
+  name: string;
+  src?: string;
+  size?: number;
+}) {
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={src}
+        alt={name}
+        width={size}
+        height={size}
+        className="rounded-full object-cover bg-cream-200"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <div
+      className="rounded-full bg-rose-200 text-rose-700 font-semibold inline-flex items-center justify-center"
+      style={{
+        width: size,
+        height: size,
+        fontSize: Math.round(size * 0.38),
+      }}
+    >
+      {initials || "?"}
+    </div>
+  );
+}
