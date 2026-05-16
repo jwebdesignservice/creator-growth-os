@@ -14,6 +14,7 @@ import {
   CreditCard,
   Settings,
   Sparkles,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
@@ -42,7 +43,7 @@ const SECONDARY: NavItem[] = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar({ plan = "free" }: { plan?: "free" | "basic" | "pro" }) {
+export function Sidebar({ plan = "free", isAdmin = false }: { plan?: "free" | "basic" | "pro"; isAdmin?: boolean }) {
   const pathname = usePathname();
   return (
     <aside className="hidden lg:flex flex-col w-[252px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
@@ -76,6 +77,25 @@ export function Sidebar({ plan = "free" }: { plan?: "free" | "basic" | "pro" }) 
             <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
           ))}
         </ul>
+
+        {isAdmin && (
+          <>
+            <div className="my-4 h-px bg-ink-100 mx-3" />
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[14px] font-medium transition-colors"
+            >
+              <ShieldCheck
+                className="size-[18px] text-rose-300"
+                strokeWidth={1.8}
+              />
+              <span className="flex-1">Admin Console</span>
+              <span className="text-[9.5px] font-semibold tracking-wider text-rose-300 uppercase">
+                Admin
+              </span>
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Upgrade card — hidden for Pro users */}

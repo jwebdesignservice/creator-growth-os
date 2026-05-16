@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
+import { getAdminContext } from "@/lib/admin/is-admin";
 
 export default async function AppLayout({
   children,
@@ -16,9 +17,11 @@ export default async function AppLayout({
     redirect("/onboarding");
   }
 
+  const { isAdmin } = await getAdminContext();
+
   return (
     <div className="flex min-h-screen bg-cream-100 text-ink-900">
-      <Sidebar plan={ctx.plan} />
+      <Sidebar plan={ctx.plan} isAdmin={isAdmin} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar user={ctx.topUser} unreadNotificationCount={ctx.unreadNotificationCount} />
         {children}
