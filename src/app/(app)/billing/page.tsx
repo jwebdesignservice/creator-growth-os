@@ -1,13 +1,12 @@
-import { PageStub } from "@/components/page-stub";
+import { redirect } from "next/navigation";
+import { getShellContext } from "@/lib/app-shell/get-shell-context";
+import { BillingPageClient } from "./billing-panel";
 
 export const metadata = { title: "Billing · Creator Growth OS" };
 
-export default function BillingPage() {
-  return (
-    <PageStub
-      title="Billing"
-      description="Manage your plan, payments and invoices in one place."
-      nextStep="Current plan card, payment method, plan comparison and upgrade flow (Free / Basic 999 NOK / Pro 1499 NOK), billing history with paid invoices, and Stripe checkout integration."
-    />
-  );
+export default async function BillingPage() {
+  const ctx = await getShellContext();
+  if (!ctx) redirect("/sign-in");
+
+  return <BillingPageClient plan={ctx.plan} />;
 }

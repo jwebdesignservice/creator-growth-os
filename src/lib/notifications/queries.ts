@@ -61,7 +61,7 @@ export async function getUserNotifications(
 
   const { data, error } = await query;
   if (error) {
-    console.error("[notifications] getUserNotifications error:", error.message);
+    console.warn("[notifications] getUserNotifications:", error.message);
     return [];
   }
 
@@ -84,7 +84,7 @@ export async function getUnreadCount(userId: string): Promise<number> {
     .or("expires_at.is.null,expires_at.gt." + new Date().toISOString());
 
   if (error) {
-    console.error("[notifications] getUnreadCount error:", error.message);
+    console.warn("[notifications] getUnreadCount:", error.message);
     return 0;
   }
   return count ?? 0;
@@ -113,7 +113,7 @@ export async function getNotificationSummaries(
     .limit(limit);
 
   if (error) {
-    console.error("[notifications] getNotificationSummaries error:", error.message);
+    console.warn("[notifications] getNotificationSummaries:", error.message);
     return [];
   }
   return (data ?? []) as NotificationSummary[];
@@ -137,7 +137,8 @@ export async function getNotificationPreferences(
     .maybeSingle();
 
   if (error) {
-    console.error("[notifications] getNotificationPreferences error:", error.message);
+    // Table may not exist yet (pre-migration) — fall through to defaults
+    console.warn("[notifications] getNotificationPreferences:", error.message);
   }
 
   if (data) return data as NotificationPreferences;
