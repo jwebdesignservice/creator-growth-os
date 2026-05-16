@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageShell } from "@/components/app-shell/page-shell";
-import { RightRail } from "@/components/app-shell/right-rail";
+import { RightRail, MobileRail } from "@/components/app-shell/right-rail";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { DashboardHero } from "@/components/dashboard/hero";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
@@ -30,13 +30,36 @@ export default async function DashboardPage() {
     (profile?.display_name ?? profile?.full_name ?? user.email?.split("@")[0] ?? "Creator")
       .split(" ")[0];
 
-  // Programs — read from DB if available, otherwise show the seeded mock
-  const { data: dbPrograms } = await supabase
-    .from("programs")
-    .select("slug, title, description, plan_access")
-    .eq("published", true)
-    .order("sort_order", { ascending: true })
-    .limit(4);
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  // Run all independent data queries in parallel
+  const [
+    { data: dbPrograms },
+    { data: profileRow },
+    { data: todayMissions },
+  ] = await Promise.all([
+    supabase
+      .from("programs")
+      .select("slug, title, description, plan_access")
+      .eq("published", true)
+      .order("sort_order", { ascending: true })
+      .limit(4),
+    supabase
+      .from("profiles")
+      .select("daily_streak")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("missions")
+      .select("status")
+      .eq("user_id", user.id)
+      .eq("due_date", todayIso),
+  ]);
+
+  const dailyStreak = profileRow?.daily_streak ?? 0;
+  const tasksTotal = todayMissions?.length ?? 0;
+  const tasksCompleted =
+    todayMissions?.filter((m) => m.status === "completed").length ?? 0;
 
   const programs: ProgramCard[] = dbPrograms?.length
     ? dbPrograms.map((p, i) => ({
@@ -55,24 +78,27 @@ export default async function DashboardPage() {
 
   return (
     <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-    <div className="space-y-6 lg:space-y-7 max-w-[1240px] mx-auto">
+    <div className="space-y-[var(--mobile-section-gap)] lg:space-y-[var(--space-section-gap)] max-w-[var(--container-dashboard)] mx-auto">
       <DashboardHero firstName={firstName} />
 
       <KpiCards
         kpi={{
-          program_progress: 68,
-          daily_streak: 12,
-          videos_watched: 48,
-          weekly_progress: 72,
-          weekly_progress_delta: 18,
-          tasks_completed: 26,
-          tasks_total: 36,
+          program_progress: 0,
+          daily_streak: dailyStreak,
+          videos_watched: 0,
+          weekly_progress: 0,
+          weekly_progress_delta: 0,
+          tasks_completed: tasksCompleted,
+          tasks_total: tasksTotal,
         }}
       />
 
+      {/* Right-rail cards inlined on mobile/tablet (hidden on xl where the desktop rail renders) */}
+      <MobileRail profile={ctx.railProfile} />
+
       <ProgramsRow programs={programs} />
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-[var(--space-grid-gap)]">
         <ContinueLearning lessons={MOCK_LESSONS} />
         <TodaysPlan tasks={MOCK_TASKS} />
         <UpcomingContent days={WEEK_DAYS} items={UPCOMING_ITEMS} />

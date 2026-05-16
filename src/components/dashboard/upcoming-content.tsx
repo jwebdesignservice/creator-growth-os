@@ -24,7 +24,7 @@ export function UpcomingContent({
   items: UpcomingItem[];
 }) {
   return (
-    <div className="card p-5 flex flex-col">
+    <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
       <header className="flex items-center justify-between mb-4">
         <h3 className="font-display text-[19px] text-ink-900">
           Upcoming Content
@@ -56,9 +56,9 @@ export function UpcomingContent({
         {items.map((item) => (
           <li
             key={item.id}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] hover:bg-cream-100"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-button-sm)] hover:bg-cream-100"
           >
-            <div className="size-8 rounded-[8px] bg-cream-100 flex items-center justify-center">
+            <div className="size-[var(--icon-container-md)] rounded-[var(--radius-icon-sm)] bg-cream-100 flex items-center justify-center">
               <PlatformIcon platform={item.platform} />
             </div>
             <div className="flex-1 min-w-0">

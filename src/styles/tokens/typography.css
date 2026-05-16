@@ -1,0 +1,80 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER TYPOGRAPHY TOKENS
+   Fluid text scale via clamp(min, preferred, max).
+   All sizes designed to preserve the current approved UI exactly.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Font families ─────────────────────────────────────────────────────── */
+  --font-heading: var(--font-serif-display), Georgia, serif;
+  --font-body:    var(--font-sans-body), system-ui, -apple-system, sans-serif;
+  --font-button:  var(--font-sans-body), system-ui, sans-serif;
+  --font-label:   var(--font-sans-body), system-ui, sans-serif;
+  --font-input:   var(--font-sans-body), system-ui, sans-serif;
+  --font-mono:    ui-monospace, "Menlo", "Cascadia Code", monospace;
+
+  /* ── Weights ───────────────────────────────────────────────────────────── */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* Semantic weight aliases */
+  --weight-heading: var(--weight-semibold);
+  --weight-body:    var(--weight-regular);
+  --weight-button:  var(--weight-semibold);
+  --weight-label:   var(--weight-semibold);
+  --weight-nav:     var(--weight-medium);
+
+  /* ── Line heights ──────────────────────────────────────────────────────── */
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  /* Semantic aliases */
+  --leading-heading: var(--leading-tight);
+  --leading-body:    var(--leading-normal);
+  --leading-compact: var(--leading-snug);
+  --leading-ui:      var(--leading-snug);   /* buttons, badges, nav items */
+
+  /* ── Letter spacing ────────────────────────────────────────────────────── */
+  --tracking-tight:   -0.02em;
+  --tracking-heading: -0.01em;   /* Cormorant Garamond reads best slightly tight */
+  --tracking-normal:  0;
+  --tracking-body:    0;
+  --tracking-wide:    0.04em;
+  --tracking-wider:   0.08em;
+  --tracking-widest:  0.12em;
+  --tracking-label:   0.08em;    /* caps labels, table headers */
+  --tracking-caps:    0.12em;
+
+  /* ── Fluid heading scale ───────────────────────────────────────────────── */
+  /* Preserved to match current UI — DO NOT change without design approval   */
+  --text-h1: clamp(2rem,     3.5vw,  3.25rem);    /* 32px → 52px  */
+  --text-h2: clamp(1.625rem, 2.8vw,  2.625rem);   /* 26px → 42px  */
+  --text-h3: clamp(1.375rem, 2.2vw,  2rem);       /* 22px → 32px  */
+  --text-h4: clamp(1.125rem, 1.8vw,  1.5rem);     /* 18px → 24px  */
+  --text-h5: clamp(1rem,     1.4vw,  1.25rem);    /* 16px → 20px  */
+  --text-h6: clamp(0.9375rem,1.2vw,  1.125rem);   /* 15px → 18px  */
+
+  /* Page title — used on all app pages (Billing, Settings, Notifications…)  */
+  --text-page-title: clamp(1.375rem, 2.5vw, 1.875rem);  /* 22px → 30px */
+
+  /* ── Fluid body scale ──────────────────────────────────────────────────── */
+  --text-body-lg: clamp(1rem,     1.3vw, 1.125rem);   /* 16px → 18px */
+  --text-body:    clamp(0.875rem, 1.1vw, 1rem);        /* 14px → 16px */
+  --text-body-sm: clamp(0.8125rem,1vw,   0.9375rem);  /* 13px → 15px */
+  --text-small:   clamp(0.75rem,  0.9vw, 0.875rem);   /* 12px → 14px */
+  --text-tiny:    clamp(0.6875rem,0.8vw, 0.75rem);    /* 11px → 12px */
+
+  /* ── UI element scale ──────────────────────────────────────────────────── */
+  --text-label:      clamp(0.6875rem, 0.9vw, 0.75rem);   /* 11px → 12px, caps labels */
+  --text-button:     clamp(0.8125rem, 1vw,   0.9375rem); /* 13px → 15px */
+  --text-input:      clamp(0.8125rem, 1vw,   0.9375rem); /* 13px → 15px */
+  --text-nav:        clamp(0.8125rem, 1vw,   0.9375rem); /* sidebar/nav items        */
+  --text-badge:      clamp(0.625rem,  0.8vw, 0.75rem);   /* 10px → 12px             */
+  --text-card-title: clamp(0.875rem,  1.1vw, 1.0625rem); /* 14px → 17px             */
+  --text-table:      0.8125rem;   /* 13px — fixed, tables need predictable rhythm    */
+  --text-mono:       0.8125rem;   /* 13px — invoice IDs, codes                       */
+}

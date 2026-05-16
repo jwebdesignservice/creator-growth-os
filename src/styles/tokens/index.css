@@ -1,0 +1,39 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER DESIGN TOKEN SYSTEM — Creator Growth OS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   This is the single source of truth for all design values.
+   Import order is intentional — later files may reference variables from
+   earlier files via var().
+
+   Structure:
+   1. colors.css      — Semantic color aliases (surfaces, text, borders, brand)
+   2. typography.css  — Fluid type scale (families, weights, sizes)
+   3. spacing.css     — Primitive scale + semantic spacing
+   4. radius.css      — Border radius scale + component aliases
+   5. shadows.css     — Elevation scale + component aliases
+   6. containers.css  — Page max-widths, sidebar/topbar/rail dimensions
+   7. icons.css       — Icon sizes + icon container sizes
+   8. components.css  — Component tokens (cards, buttons, inputs, badges…)
+   9. layout.css      — Reusable grid/flex template tokens
+
+   Usage:
+   - In Tailwind arbitrary values:  p-[var(--space-card-padding)]
+   - In CSS:                        padding: var(--space-card-padding);
+   - Globally via globals.css:      @import "../styles/tokens/index.css";
+
+   Evolution rules:
+   - Add tokens when a value is reusable across ≥2 components
+   - Remove tokens that are unused or duplicate
+   - Never hardcode hex/px values in component files when a token exists
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import "./colors.css";
+@import "./typography.css";
+@import "./spacing.css";
+@import "./radius.css";
+@import "./shadows.css";
+@import "./containers.css";
+@import "./icons.css";
+@import "./components.css";
+@import "./layout.css";

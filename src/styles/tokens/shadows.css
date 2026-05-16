@@ -1,0 +1,45 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER SHADOW / ELEVATION TOKENS
+   Soft, layered shadows that match the premium UI aesthetic.
+   NOTE: --shadow-soft and --shadow-card exist in globals.css @theme inline.
+   New tokens here extend the scale upward and add semantic aliases.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Elevation scale ───────────────────────────────────────────────────── */
+  --shadow-none: none;
+
+  --shadow-xs:
+    0 1px 2px rgba(26, 24, 22, 0.03);
+
+  --shadow-sm:
+    0 1px 2px rgba(26, 24, 22, 0.03),
+    0 4px 12px rgba(26, 24, 22, 0.04);
+
+  /* --shadow-soft (globals.css): 0 1px 2px ... 0 6px 16px ... */
+  /* --shadow-card (globals.css): 0 1px 0  ... 0 8px 24px ... */
+
+  --shadow-md:
+    0 2px 6px  rgba(26, 24, 22, 0.04),
+    0 8px 24px rgba(26, 24, 22, 0.06);
+
+  --shadow-lg:
+    0 4px 10px  rgba(26, 24, 22, 0.05),
+    0 16px 48px rgba(26, 24, 22, 0.08);
+
+  --shadow-xl:
+    0 8px 20px  rgba(26, 24, 22, 0.07),
+    0 32px 64px rgba(26, 24, 22, 0.10);
+
+  /* ── Semantic aliases ──────────────────────────────────────────────────── */
+  --shadow-card-hover: var(--shadow-md);     /* card on hover            */
+  --shadow-popover:    var(--shadow-lg);     /* dropdowns, popovers      */
+  --shadow-modal:      var(--shadow-xl);     /* dialogs, modals          */
+  --shadow-topbar:     0 1px 0 var(--color-border); /* subtle underline  */
+
+  /* ── Focus rings ───────────────────────────────────────────────────────── */
+  --shadow-focus-brand:
+    0 0 0 3px rgba(184, 72, 92, 0.18);   /* rose focus ring            */
+  --shadow-focus-neutral:
+    0 0 0 3px rgba(90, 80, 75, 0.15);    /* neutral focus ring         */
+}

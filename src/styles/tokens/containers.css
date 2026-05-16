@@ -1,0 +1,45 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER CONTAINER / LAYOUT DIMENSION TOKENS
+   Controls page max-widths, sidebar dimensions, topbar height,
+   and panel widths across the entire app shell.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Page containers ───────────────────────────────────────────────────── */
+  --container-page:       min(100%, 96rem);    /* 1536px — widest allowed    */
+  --container-dashboard:  min(100%, 84rem);    /* 1344px — main app canvas   */
+  --container-admin:      min(100%, 92rem);    /* 1472px — CMS pages         */
+  --container-content:    min(100%, 68.75rem); /* 1100px — content-heavy pages (billing, settings) */
+  --container-narrow:     min(100%, 52rem);    /*  832px — settings sections, focused views */
+  --container-form:       min(100%, 40rem);    /*  640px — single-column forms */
+  --container-auth:       min(100%, 28rem);    /*  448px — login / sign-up    */
+
+  /* ── App shell ─────────────────────────────────────────────────────────── */
+  --sidebar-width:         clamp(14rem, 16vw, 17.5rem);  /* 224px → 280px   */
+  --sidebar-width-compact: 5rem;                          /* icon-only mode   */
+  --topbar-height:         clamp(3.75rem, 5vw, 4.5rem);  /* 60px → 72px     */
+  --right-rail-width:      clamp(18rem, 22vw, 22rem);    /* 288px → 352px   */
+  --right-rail-width-sm:   clamp(16rem, 20vw, 20rem);    /* narrower rail    */
+
+  /* ── Mobile app shell ──────────────────────────────────────────────────── */
+  /* Used below `lg` (1024px) when the desktop sidebar/rail are hidden and    */
+  /* the bottom-nav + drawer take over as the primary navigation system.      */
+  --mobile-topbar-height:        3.5rem;     /* 56px — compact mobile header  */
+  --mobile-bottomnav-height:     4.25rem;    /* 68px — visual bar height      */
+  --mobile-bottomnav-lift:       0.875rem;   /* center item elevation above bar */
+  --mobile-content-x:            clamp(1rem, 4vw, 1.25rem);  /* 16–20px         */
+  --mobile-content-y:            1rem;        /* 16px vertical content padding  */
+  --mobile-section-gap:          1rem;        /* 16px between mobile sections   */
+  --mobile-grid-gap:             0.75rem;     /* 12px between mobile cards      */
+  --mobile-drawer-width:         min(86vw, 19rem); /* 304px max drawer width    */
+  --mobile-safe-bottom:          env(safe-area-inset-bottom, 0px);
+  --mobile-bottomnav-safe-pad:   calc(var(--mobile-bottomnav-height) + var(--mobile-safe-bottom) + 0.75rem);
+
+  /* ── Breakpoints (reference only — use Tailwind sm/md/lg/xl in classes) ─ */
+  /* These mirror Tailwind v3 defaults and the Webflow breakpoint spec       */
+  /* Base / Desktop:        ≥ 1280px (Tailwind xl)                          */
+  /* Laptop:                ≥ 1024px (Tailwind lg)                          */
+  /* Tablet:                ≥  768px (Tailwind md)                          */
+  /* Mobile Landscape:      ≥  640px (Tailwind sm)                          */
+  /* Mobile Portrait:       <  640px (default / no prefix)                  */
+}

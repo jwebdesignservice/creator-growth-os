@@ -48,6 +48,20 @@ export const getShellContext = cache(async () => {
     // notifications table may not exist yet (pre-migration); safe to ignore
   }
 
+  // Real per-platform follower counts from social_accounts.
+  // Platforms not yet connected render as undefined (shown as — in the UI).
+  const { data: socialRows } = await supabase
+    .from("social_accounts")
+    .select("platform, follower_count")
+    .eq("user_id", user.id);
+
+  const socials: { instagram?: number; tiktok?: number; youtube?: number } = {};
+  for (const row of socialRows ?? []) {
+    if (row.platform === "instagram") socials.instagram = row.follower_count;
+    else if (row.platform === "tiktok") socials.tiktok = row.follower_count;
+    else if (row.platform === "youtube") socials.youtube = row.follower_count;
+  }
+
   const topUser = {
     name,
     avatar_url: profile?.avatar_url ?? null,
@@ -64,11 +78,7 @@ export const getShellContext = cache(async () => {
     category_label: categoryMeta.label,
     category_description: categoryMeta.focus,
     profile_completion: computeProfileCompletion(profile),
-    socials: {
-      instagram: 52300,
-      tiktok: 28700,
-      youtube: 12100,
-    },
+    socials,
   };
 
   return { user, profile, name, plan, unreadNotificationCount, topUser, railProfile };

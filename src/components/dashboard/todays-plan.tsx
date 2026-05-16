@@ -16,7 +16,7 @@ export function TodaysPlan({ tasks: initialTasks }: { tasks: TodayTask[] }) {
   const completed = tasks.filter((t) => t.completed).length;
 
   return (
-    <div className="card p-5 flex flex-col">
+    <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
       <header className="flex items-center justify-between mb-4">
         <h3 className="font-display text-[19px] text-ink-900">Today&apos;s Plan</h3>
         <span className="chip chip-rose">{tasks.length} tasks</span>

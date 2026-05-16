@@ -1,0 +1,74 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER COLOR TOKENS
+   Semantic aliases layered on the primitive palette defined in globals.css.
+   Reference primitives via var() — never hardcode hex here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
+  --color-bg:              var(--cream-100);   /* App body background          */
+  --color-page:            var(--cream-50);    /* Lighter per-page backgrounds */
+  --color-surface:         #ffffff;            /* Cards, panels, inputs        */
+  --color-surface-soft:    var(--cream-50);    /* Inset / inner surfaces       */
+  --color-surface-muted:   var(--cream-200);   /* Hover states, muted fills    */
+  --color-surface-strong:  var(--cream-300);   /* Dividers, strong mutes       */
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --color-text-primary:    var(--ink-900);
+  --color-text-secondary:  var(--ink-700);
+  --color-text-muted:      var(--ink-500);
+  --color-text-subtle:     var(--ink-400);
+  --color-text-placeholder:var(--ink-300);
+  --color-text-inverse:    #ffffff;
+  --color-text-brand:      var(--rose-600);
+
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  --color-border:          var(--ink-100);
+  --color-border-strong:   var(--ink-200);
+  --color-border-muted:    rgba(26,24,22, 0.05);
+  --color-border-brand:    var(--rose-300);
+  --color-border-input:    var(--ink-200);
+
+  /* ── Brand ─────────────────────────────────────────────────────────────── */
+  --color-brand:           var(--rose-600);
+  --color-brand-hover:     var(--rose-700);
+  --color-brand-active:    var(--rose-700);
+  --color-brand-soft:      var(--rose-100);
+  --color-brand-softer:    var(--rose-50);
+  --color-brand-text:      var(--rose-700);
+
+  /* ── State: Success ────────────────────────────────────────────────────── */
+  --color-state-success:    var(--success);
+  --color-state-success-bg: var(--success-bg);
+
+  /* ── State: Warning ────────────────────────────────────────────────────── */
+  --color-state-warning:    var(--gold-500);
+  --color-state-warning-bg: #F6ECD3;
+  --color-state-warning-text: #7A5A1A;
+
+  /* ── State: Danger ─────────────────────────────────────────────────────── */
+  --color-state-danger:    var(--rose-600);
+  --color-state-danger-bg: var(--rose-50);
+
+  /* ── State: Disabled ───────────────────────────────────────────────────── */
+  --color-state-disabled:    var(--ink-300);
+  --color-state-disabled-bg: var(--ink-50);
+
+  /* ── Premium / Pro ─────────────────────────────────────────────────────── */
+  --color-pro:      var(--gold-500);
+  --color-pro-bg:   #F6ECD3;
+  --color-pro-text: #7A5A1A;
+
+  /* ── Table ─────────────────────────────────────────────────────────────── */
+  --color-table-header-bg: var(--cream-50);
+  --color-table-row-hover: var(--cream-50);
+  --color-table-border:    var(--ink-100);
+  --color-table-divider:   rgba(26,24,22, 0.05);
+
+  /* ── Shell ─────────────────────────────────────────────────────────────── */
+  --color-sidebar-bg:              var(--cream-100);
+  --color-sidebar-item-active-bg:  var(--rose-100);
+  --color-sidebar-item-active-text:var(--rose-700);
+  --color-topbar-bg:               var(--cream-50);
+  --color-topbar-border:           var(--ink-100);
+}

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
+import { MobileSearch } from "@/components/app-shell/mobile-search";
+import { BottomNav } from "@/components/app-shell/bottom-nav";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getAdminContext } from "@/lib/admin/is-admin";
 
@@ -21,11 +23,18 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen bg-cream-100 text-ink-900">
-      <Sidebar isAdmin={isAdmin} />
+      <Sidebar plan={ctx.plan} isAdmin={isAdmin} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar user={ctx.topUser} unreadNotificationCount={ctx.unreadNotificationCount} />
+        <Topbar
+          user={ctx.topUser}
+          unreadNotificationCount={ctx.unreadNotificationCount}
+          plan={ctx.plan}
+          isAdmin={isAdmin}
+        />
+        <MobileSearch />
         {children}
       </div>
+      <BottomNav />
     </div>
   );
 }

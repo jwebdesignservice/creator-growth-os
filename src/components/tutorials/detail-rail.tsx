@@ -9,7 +9,7 @@ type Props = {
   email: string;
   phone: string | null;
   avatarUrl: string | null;
-  socials: { instagram: number; tiktok: number; youtube: number };
+  socials: { instagram?: number; tiktok?: number; youtube?: number };
   tutorialsProgress: {
     percent: number;
     watched: number;
@@ -227,7 +227,7 @@ function SocialMini({
   label,
 }: {
   icon: React.ReactNode;
-  value: number;
+  value: number | undefined;
   label: string;
 }) {
   return (
@@ -236,7 +236,7 @@ function SocialMini({
         {icon}
       </div>
       <div className="mt-1 text-[13px] font-semibold text-ink-900">
-        {formatCompact(value)}
+        {value !== undefined ? formatCompact(value) : "—"}
       </div>
       <div className="text-[10px] text-ink-500">{label}</div>
     </div>
