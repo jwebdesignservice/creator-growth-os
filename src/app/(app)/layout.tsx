@@ -23,7 +23,7 @@ export default async function AppLayout({
     <div className="flex min-h-screen bg-cream-100 text-ink-900">
       <Sidebar isAdmin={isAdmin} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar user={ctx.topUser} />
+        <Topbar user={ctx.topUser} unreadNotificationCount={ctx.unreadNotificationCount} />
         {children}
       </div>
     </div>

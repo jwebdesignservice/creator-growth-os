@@ -1,7 +1,8 @@
 "use client";
 
-import { Search, Bell, Mail, CalendarDays } from "lucide-react";
+import { Search, Mail, CalendarDays } from "lucide-react";
 import { ProfileMenu } from "./profile-menu";
+import { NotifDropdown } from "./notifications-dropdown";
 import { cn } from "@/lib/cn";
 
 export { Avatar } from "./avatar";
@@ -12,9 +13,10 @@ type Props = {
     avatar_url?: string | null;
     plan?: string;
   };
+  unreadNotificationCount?: number;
 };
 
-export function Topbar({ user }: Props) {
+export function Topbar({ user, unreadNotificationCount = 0 }: Props) {
   return (
     <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100">
       <div className="flex items-center gap-4 h-[68px] px-6 lg:px-8">
@@ -37,11 +39,7 @@ export function Topbar({ user }: Props) {
 
         {/* Icon actions */}
         <div className="flex items-center gap-2">
-          <IconButton aria-label="Notifications">
-            <Bell className="size-[18px] text-ink-700" strokeWidth={1.8} />
-            <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-600 ring-2 ring-cream-100" />
-            <span className="sr-only">3 new</span>
-          </IconButton>
+          <NotifDropdown initialUnreadCount={unreadNotificationCount} />
           <IconButton aria-label="Messages">
             <Mail className="size-[18px] text-ink-700" strokeWidth={1.8} />
           </IconButton>

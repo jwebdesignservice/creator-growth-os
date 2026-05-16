@@ -34,10 +34,25 @@ export const getShellContext = cache(async () => {
   const categoryMeta =
     CATEGORIES.find((c) => c.key === categoryKey) ?? CATEGORIES[1];
 
+  // Lightweight unread count for the bell badge — one cheap COUNT query.
+  // Defaults to 0 on error so a missing notifications table never breaks the shell.
+  let unreadNotificationCount = 0;
+  try {
+    const { count } = await supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "unread");
+    unreadNotificationCount = count ?? 0;
+  } catch {
+    // notifications table may not exist yet (pre-migration); safe to ignore
+  }
+
   const topUser = {
     name,
     avatar_url: profile?.avatar_url ?? null,
     plan,
+    unreadNotificationCount,
   };
 
   const railProfile = {
@@ -56,7 +71,7 @@ export const getShellContext = cache(async () => {
     },
   };
 
-  return { user, profile, name, plan, topUser, railProfile };
+  return { user, profile, name, plan, unreadNotificationCount, topUser, railProfile };
 });
 
 function computeProfileCompletion(
