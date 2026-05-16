@@ -1,0 +1,29 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER ICON TOKENS
+   Icon sizes and icon-container sizes.
+   Used for sidebar icons, nav icons, notification icons, card icons,
+   metric icons, button icons, and decorative icons.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Icon sizes (inline SVG / lucide-react size prop) ──────────────────── */
+  --icon-2xs:  0.625rem;   /* 10px — micro indicators                       */
+  --icon-xs:   0.75rem;    /* 12px — badge dots, inline text icons           */
+  --icon-sm:   0.875rem;   /* 14px — button icons, dense UI                 */
+  --icon-md:   1rem;       /* 16px — default icon size                      */
+  --icon-lg:   1.25rem;    /* 20px — card accent icons                      */
+  --icon-xl:   1.5rem;     /* 24px — section icons, notification icons      */
+  --icon-2xl:  2rem;       /* 32px — hero icons, empty states               */
+  --icon-3xl:  3rem;       /* 48px — decorative / illustration              */
+
+  /* ── Icon container sizes ──────────────────────────────────────────────── */
+  /* Square containers that hold icons with a background fill               */
+  --icon-container-2xs: 1.25rem;   /* 20px */
+  --icon-container-xs:  1.5rem;    /* 24px */
+  --icon-container-sm:  1.75rem;   /* 28px */
+  --icon-container-md:  2rem;      /* 32px — standard icon bubble           */
+  --icon-container-lg:  2.5rem;    /* 40px — notification / card icon       */
+  --icon-container-xl:  3rem;      /* 48px — stat cards, feature icons      */
+  --icon-container-2xl: 3.5rem;    /* 56px — hero / empty state icons       */
+  --icon-container-3xl: 4rem;      /* 64px — onboarding illustrations       */
+}

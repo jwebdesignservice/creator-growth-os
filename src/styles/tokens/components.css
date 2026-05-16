@@ -1,0 +1,108 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER COMPONENT TOKENS
+   All component-level design values. These reference spacing, radius,
+   color, and shadow tokens — never hardcode values here directly.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Cards ─────────────────────────────────────────────────────────────── */
+  --card-bg:       var(--color-surface);
+  --card-padding:  var(--space-card-padding);
+  --card-padding-sm: var(--space-card-padding-sm);
+  --card-radius:   var(--radius-card);
+  --card-radius-sm:var(--radius-card-sm);
+  --card-border:   1px solid var(--color-border);
+  --card-shadow:   var(--shadow-soft);       /* from globals.css */
+  --card-gap:      var(--space-card-gap);
+
+  /* ── Buttons ───────────────────────────────────────────────────────────── */
+  --btn-height-sm: 2.25rem;    /* h-9  — 36px  */
+  --btn-height-md: 2.75rem;    /* h-11 — 44px  */
+  --btn-height-lg: 3rem;       /* h-12 — 48px  */
+  --btn-height-touch: 2.75rem; /* minimum comfortable touch target           */
+
+  --btn-padding-x-sm: var(--space-btn-x-sm);
+  --btn-padding-x-md: var(--space-btn-x-md);
+  --btn-padding-x-lg: var(--space-btn-x-lg);
+
+  --btn-radius:    var(--radius-button);
+  --btn-radius-sm: var(--radius-button-sm);
+  --btn-font-size: var(--text-button);
+  --btn-font-weight: var(--weight-button);
+  --btn-gap:       0.5rem;     /* gap between icon and label                 */
+
+  /* Primary button colors */
+  --btn-primary-bg:    var(--color-brand);
+  --btn-primary-hover: var(--color-brand-hover);
+  --btn-primary-text:  var(--color-text-inverse);
+
+  /* Outline button */
+  --btn-outline-bg:    var(--color-surface);
+  --btn-outline-border:var(--color-border-strong);
+  --btn-outline-text:  var(--color-text-primary);
+
+  /* ── Inputs ────────────────────────────────────────────────────────────── */
+  --input-height:    2.75rem;   /* h-11 — 44px                              */
+  --input-height-sm: 2rem;      /* h-8  — 32px (compact)                    */
+  --input-padding-x: var(--space-input-x);
+  --input-padding-y: var(--space-input-y);
+  --input-radius:    var(--radius-input);
+  --input-border:    1px solid var(--color-border-input);
+  --input-bg:        var(--color-surface);
+  --input-font-size: var(--text-input);
+  --input-focus-ring:var(--shadow-focus-brand);
+
+  /* ── Badges / pills ────────────────────────────────────────────────────── */
+  --badge-padding-x:   0.625rem;  /* 10px */
+  --badge-padding-y:   0.25rem;   /*  4px */
+  --badge-height:      1.5rem;    /* 24px */
+  --badge-height-sm:   1.25rem;   /* 20px */
+  --badge-radius:      var(--radius-badge);
+  --badge-font-size:   var(--text-badge);
+  --badge-font-weight: var(--weight-semibold);
+
+  /* ── Tables ────────────────────────────────────────────────────────────── */
+  --table-cell-x:    var(--space-table-cell-x);
+  --table-cell-y:    var(--space-table-cell-y);
+  --table-border:    1px solid var(--color-table-border);
+  --table-divider:   1px solid var(--color-table-divider);
+  --table-header-bg: var(--color-table-header-bg);
+  --table-font-size: var(--text-table);
+  --table-min-width: 36rem;    /* prevents layout break before scroll kicks in */
+
+  /* ── Sidebar ───────────────────────────────────────────────────────────── */
+  --sidebar-width:      var(--sidebar-width);    /* from containers.css      */
+  --sidebar-padding-x:  var(--space-sidebar-x);
+  --sidebar-padding-y:  var(--space-sidebar-y);
+  --sidebar-item-height:2.75rem;   /* 44px — comfortable touch target        */
+  --sidebar-item-radius:var(--radius-sidebar-item);
+  --sidebar-item-gap:   var(--space-sidebar-gap);
+  --sidebar-font-size:  var(--text-nav);
+
+  /* ── Topbar ────────────────────────────────────────────────────────────── */
+  --topbar-height:     var(--topbar-height);     /* from containers.css      */
+  --topbar-padding-x:  var(--space-topbar-x);
+  --topbar-gap:        0.75rem;
+  --topbar-search-width: clamp(12rem, 20vw, 18rem);
+  --topbar-border:     var(--shadow-topbar);
+
+  /* ── Popovers / dropdowns ──────────────────────────────────────────────── */
+  --popover-padding-x: var(--space-dropdown-x);
+  --popover-padding-y: var(--space-dropdown-y);
+  --popover-radius:    var(--radius-popover);
+  --popover-shadow:    var(--shadow-popover);
+  --popover-border:    1px solid var(--color-border);
+  --dropdown-gap:      0.25rem;
+
+  /* ── Modals ────────────────────────────────────────────────────────────── */
+  --modal-padding-x:  var(--space-modal-x);
+  --modal-padding-y:  var(--space-modal-y);
+  --modal-radius:     var(--radius-modal);
+  --modal-shadow:     var(--shadow-modal);
+
+  /* ── Chip (already in globals.css as .chip class — tokens here for ref) ── */
+  --chip-padding-x:   0.625rem;
+  --chip-padding-y:   0.25rem;
+  --chip-font-size:   0.75rem;     /* 12px */
+  --chip-radius:      var(--radius-chip);
+}

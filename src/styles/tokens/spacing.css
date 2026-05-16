@@ -1,0 +1,82 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER SPACING TOKENS
+   Primitive scale + fluid semantic aliases.
+   Use semantic tokens in components; use the primitive scale only when
+   no semantic token fits the context.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Primitive scale (rem) ─────────────────────────────────────────────── */
+  --space-px:  0.0625rem;   /*  1px */
+  --space-0-5: 0.125rem;    /*  2px */
+  --space-1:   0.25rem;     /*  4px */
+  --space-1-5: 0.375rem;    /*  6px */
+  --space-2:   0.5rem;      /*  8px */
+  --space-2-5: 0.625rem;    /* 10px */
+  --space-3:   0.75rem;     /* 12px */
+  --space-3-5: 0.875rem;    /* 14px */
+  --space-4:   1rem;        /* 16px */
+  --space-5:   1.25rem;     /* 20px */
+  --space-6:   1.5rem;      /* 24px */
+  --space-7:   1.75rem;     /* 28px */
+  --space-8:   2rem;        /* 32px */
+  --space-10:  2.5rem;      /* 40px */
+  --space-12:  3rem;        /* 48px */
+  --space-14:  3.5rem;      /* 56px */
+  --space-16:  4rem;        /* 64px */
+  --space-20:  5rem;        /* 80px */
+  --space-24:  6rem;        /* 96px */
+
+  /* ── Fluid page & shell ────────────────────────────────────────────────── */
+  --space-page-x:   clamp(1.25rem, 3vw,   2rem);       /* Horizontal page padding  */
+  --space-page-y:   clamp(1.25rem, 2.5vw, 2rem);       /* Vertical page padding    */
+  --space-dash-x:   clamp(1.5rem,  3.5vw, 2.5rem);     /* Dashboard canvas padding */
+  --space-dash-y:   clamp(1.5rem,  3vw,   2.5rem);
+
+  /* ── Section rhythm ────────────────────────────────────────────────────── */
+  --space-section-gap:    clamp(1.25rem, 2.5vw, 1.75rem);  /* Between page sections    */
+  --space-section-header: clamp(1rem,    2vw,   1.5rem);   /* Below a section heading  */
+  --space-section-stack:  clamp(1.5rem,  3vw,   2.5rem);   /* Stacked section blocks   */
+
+  /* ── Cards ─────────────────────────────────────────────────────────────── */
+  --space-card-padding:    clamp(1.25rem, 2.5vw, 1.75rem); /* Standard card padding    */
+  --space-card-padding-sm: clamp(1rem,    2vw,   1.375rem);/* Compact card padding     */
+  --space-card-gap:        clamp(0.75rem, 1.5vw, 1.25rem); /* Between card child elems */
+
+  /* ── Grids ─────────────────────────────────────────────────────────────── */
+  --space-grid-gap:    clamp(1rem,    2vw,   1.5rem);   /* Between grid cells       */
+  --space-grid-gap-sm: clamp(0.75rem, 1.5vw, 1rem);    /* Tight grid gap           */
+
+  /* ── Lists & stacks ────────────────────────────────────────────────────── */
+  --space-stack-xs: clamp(0.25rem,  0.5vw, 0.375rem);  /* Icon-list tight items    */
+  --space-stack-sm: clamp(0.375rem, 0.75vw,0.625rem);  /* Tight list items         */
+  --space-stack-md: clamp(0.625rem, 1.2vw, 0.875rem);  /* Normal list items        */
+  --space-stack-lg: clamp(0.875rem, 1.5vw, 1.25rem);   /* Loose list items         */
+
+  /* ── Forms ─────────────────────────────────────────────────────────────── */
+  --space-form-gap:     clamp(0.875rem, 1.5vw, 1.25rem);
+  --space-form-row-gap: clamp(0.75rem,  1.2vw, 1rem);
+  --space-input-x:      clamp(0.75rem,  1.2vw, 1rem);
+  --space-input-y:      clamp(0.625rem, 1vw,   0.875rem);
+
+  /* ── Buttons ───────────────────────────────────────────────────────────── */
+  --space-btn-x-sm: 0.875rem;   /* h-9  buttons  */
+  --space-btn-x-md: 1.25rem;    /* h-11 buttons  */
+  --space-btn-x-lg: 1.5rem;     /* h-12 buttons  */
+
+  /* ── Table ─────────────────────────────────────────────────────────────── */
+  --space-table-cell-x: clamp(1rem,    2.5vw, 1.5rem);
+  --space-table-cell-y: clamp(0.875rem,1.5vw, 1.125rem);
+
+  /* ── Shell ─────────────────────────────────────────────────────────────── */
+  --space-sidebar-x:   1.25rem;
+  --space-sidebar-y:   1.5rem;
+  --space-sidebar-gap: 0.25rem;  /* Between nav items */
+  --space-topbar-x:    clamp(1rem, 2vw, 1.5rem);
+
+  /* ── Dropdowns / modals ─────────────────────────────────────────────────── */
+  --space-dropdown-x: 1rem;
+  --space-dropdown-y: 0.75rem;
+  --space-modal-x:    clamp(1.5rem, 3vw, 2rem);
+  --space-modal-y:    clamp(1.5rem, 3vw, 2rem);
+}

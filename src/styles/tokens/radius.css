@@ -1,0 +1,56 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER BORDER RADIUS TOKENS
+   Primitive scale + semantic component aliases.
+   Preserves the current soft, rounded UI exactly.
+   NOTE: --radius-card (16px), --radius-card-sm (12px), --radius-pill (999px)
+   are already defined in globals.css @theme inline and referenced here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Primitive scale ───────────────────────────────────────────────────── */
+  --radius-2xs:  0.25rem;    /*  4px */
+  --radius-xs:   0.375rem;   /*  6px */
+  --radius-sm:   0.5rem;     /*  8px */
+  --radius-md:   0.75rem;    /* 12px */
+  --radius-lg:   1rem;       /* 16px */
+  --radius-xl:   1.25rem;    /* 20px */
+  --radius-2xl:  1.5rem;     /* 24px */
+  --radius-3xl:  2rem;       /* 32px */
+  --radius-full: 999rem;
+
+  /* ── Component aliases ─────────────────────────────────────────────────── */
+  /* Cards — matches globals.css @theme values */
+  --radius-card:     var(--radius-lg);    /* 16px — standard card    */
+  --radius-card-sm:  var(--radius-md);    /* 12px — compact card     */
+  --radius-card-lg:  var(--radius-xl);    /* 20px — featured card    */
+
+  /* Interactive elements */
+  --radius-button:   0.75rem;    /* 12px — standard button  */
+  --radius-button-sm:0.625rem;   /* 10px — small button     */
+  --radius-input:    var(--radius-md);    /* 12px — form inputs      */
+  --radius-select:   var(--radius-md);    /* 12px — select elements  */
+  --radius-textarea: var(--radius-md);    /* 12px — textareas        */
+  --radius-checkbox: var(--radius-xs);    /*  6px — checkboxes       */
+
+  /* Overlays */
+  --radius-modal:    var(--radius-xl);    /* 20px — modal dialogs    */
+  --radius-popover:  var(--radius-lg);    /* 16px — popovers         */
+  --radius-dropdown: var(--radius-lg);    /* 16px — dropdown panels  */
+  --radius-tooltip:  var(--radius-sm);    /*  8px — tooltips         */
+
+  /* Pills & badges */
+  --radius-badge:    var(--radius-full);
+  --radius-pill:     var(--radius-full);
+  --radius-chip:     var(--radius-full);
+  --radius-tag:      var(--radius-xs);    /* slightly rounded tags   */
+
+  /* Shell */
+  --radius-sidebar-item: var(--radius-md);  /* 12px — sidebar nav items */
+  --radius-topbar-btn:   var(--radius-full);/* circular topbar actions  */
+
+  /* Icons */
+  --radius-icon-sm:  var(--radius-sm);    /*  8px — small icon boxes */
+  --radius-icon-md:  var(--radius-md);    /* 12px — standard icons   */
+  --radius-icon-lg:  var(--radius-lg);    /* 16px — large icon boxes */
+  --radius-avatar:   var(--radius-full);  /* always circular         */
+}

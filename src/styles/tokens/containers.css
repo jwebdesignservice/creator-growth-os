@@ -1,0 +1,31 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTER CONTAINER / LAYOUT DIMENSION TOKENS
+   Controls page max-widths, sidebar dimensions, topbar height,
+   and panel widths across the entire app shell.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* ── Page containers ───────────────────────────────────────────────────── */
+  --container-page:       min(100%, 96rem);    /* 1536px — widest allowed    */
+  --container-dashboard:  min(100%, 84rem);    /* 1344px — main app canvas   */
+  --container-admin:      min(100%, 92rem);    /* 1472px — CMS pages         */
+  --container-content:    min(100%, 68.75rem); /* 1100px — content-heavy pages (billing, settings) */
+  --container-narrow:     min(100%, 52rem);    /*  832px — settings sections, focused views */
+  --container-form:       min(100%, 40rem);    /*  640px — single-column forms */
+  --container-auth:       min(100%, 28rem);    /*  448px — login / sign-up    */
+
+  /* ── App shell ─────────────────────────────────────────────────────────── */
+  --sidebar-width:         clamp(14rem, 16vw, 17.5rem);  /* 224px → 280px   */
+  --sidebar-width-compact: 5rem;                          /* icon-only mode   */
+  --topbar-height:         clamp(3.75rem, 5vw, 4.5rem);  /* 60px → 72px     */
+  --right-rail-width:      clamp(18rem, 22vw, 22rem);    /* 288px → 352px   */
+  --right-rail-width-sm:   clamp(16rem, 20vw, 20rem);    /* narrower rail    */
+
+  /* ── Breakpoints (reference only — use Tailwind sm/md/lg/xl in classes) ─ */
+  /* These mirror Tailwind v3 defaults and the Webflow breakpoint spec       */
+  /* Base / Desktop:        ≥ 1280px (Tailwind xl)                          */
+  /* Laptop:                ≥ 1024px (Tailwind lg)                          */
+  /* Tablet:                ≥  768px (Tailwind md)                          */
+  /* Mobile Landscape:      ≥  640px (Tailwind sm)                          */
+  /* Mobile Portrait:       <  640px (default / no prefix)                  */
+}
