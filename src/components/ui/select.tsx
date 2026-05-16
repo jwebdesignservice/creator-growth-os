@@ -36,7 +36,6 @@ export const Select = forwardRef<HTMLSelectElement, Props>(function Select(
         <select
           ref={ref}
           id={inputId}
-          defaultValue=""
           className={cn(
             "w-full h-11 rounded-[12px] bg-white border border-ink-200 text-ink-900",
             "text-[14px] appearance-none cursor-pointer",

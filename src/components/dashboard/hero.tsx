@@ -22,8 +22,8 @@ export function DashboardHero({ firstName, coachName = "Sophie" }: Props) {
             into impact and income.
           </h1>
           <p className="text-ink-500 text-[14.5px] max-w-md mb-7 leading-relaxed">
-            Follow your personalized plan, stay consistent, and grow your brand
-            with confidence.
+            Your daily missions are live. Execute your plan, stay consistent,
+            and turn your audience into a real business.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -31,7 +31,7 @@ export function DashboardHero({ firstName, coachName = "Sophie" }: Props) {
               className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-medium shadow-sm transition-colors"
             >
               <Play className="size-4" fill="currentColor" />
-              Continue Learning
+              Continue Your Program
             </Link>
             <Link
               href="/billing"
