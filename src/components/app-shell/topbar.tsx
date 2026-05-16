@@ -20,6 +20,7 @@ type Props = {
   unreadNotificationCount?: number;
   plan?: "free" | "basic" | "pro";
   isAdmin?: boolean;
+  isDev?: boolean;
 };
 
 export function Topbar({
@@ -27,6 +28,7 @@ export function Topbar({
   unreadNotificationCount = 0,
   plan = "free",
   isAdmin = false,
+  isDev = false,
 }: Props) {
   return (
     <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100">
@@ -38,7 +40,7 @@ export function Topbar({
           paddingInline: "var(--mobile-content-x)",
         }}
       >
-        <MobileDrawer plan={plan} isAdmin={isAdmin} />
+        <MobileDrawer plan={plan} isAdmin={isAdmin} isDev={isDev} />
 
         <Link
           href="/dashboard"

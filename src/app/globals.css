@@ -6,6 +6,10 @@
    ─────────────────────────────────────────────────────────────────────────── */
 @import "../styles/tokens/index.css";
 
+/* Dev Dashboard theme — scoped via the `.dev-theme` class on /dev routes.
+   Does not affect the main creator app. */
+@import "../styles/tokens/dev-dashboard.css";
+
 /* ─── PRIMITIVE COLOR PALETTE ───────────────────────────────────────────────
    Raw color values. Referenced by semantic tokens in tokens/colors.css.
    Never use these directly in components — use the semantic aliases.

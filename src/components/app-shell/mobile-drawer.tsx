@@ -18,6 +18,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  Terminal,
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
@@ -46,9 +47,10 @@ const SECONDARY: Item[] = [
 type Props = {
   plan?: "free" | "basic" | "pro";
   isAdmin?: boolean;
+  isDev?: boolean;
 };
 
-export function MobileDrawer({ plan = "free", isAdmin = false }: Props) {
+export function MobileDrawer({ plan = "free", isAdmin = false, isDev = false }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -137,6 +139,7 @@ export function MobileDrawer({ plan = "free", isAdmin = false }: Props) {
                     key={item.href}
                     item={item}
                     active={isActive(pathname, item.href)}
+                    onSelect={() => setOpen(false)}
                   />
                 ))}
               </ul>
@@ -149,25 +152,41 @@ export function MobileDrawer({ plan = "free", isAdmin = false }: Props) {
                     key={item.href}
                     item={item}
                     active={isActive(pathname, item.href)}
+                    onSelect={() => setOpen(false)}
                   />
                 ))}
               </ul>
 
+              {(isAdmin || isDev) && (
+                <div className="my-4 h-px bg-ink-100 mx-3" />
+              )}
+
               {isAdmin && (
-                <>
-                  <div className="my-4 h-px bg-ink-100 mx-3" />
-                  <Link
-                    href="/admin"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-[12px] bg-ink-900 text-cream-100 text-[14px] font-medium"
-                  >
-                    <ShieldCheck className="size-[18px] text-rose-300" strokeWidth={1.8} />
-                    <span className="flex-1">Admin Console</span>
-                    <span className="text-[9.5px] font-semibold tracking-wider text-rose-300 uppercase">
-                      Admin
-                    </span>
-                  </Link>
-                </>
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-[12px] bg-ink-900 text-cream-100 text-[14px] font-medium"
+                >
+                  <ShieldCheck className="size-[18px] text-rose-300" strokeWidth={1.8} />
+                  <span className="flex-1">Admin Console</span>
+                  <span className="text-[9.5px] font-semibold tracking-wider text-rose-300 uppercase">
+                    Admin
+                  </span>
+                </Link>
+              )}
+
+              {isDev && (
+                <Link
+                  href="/dev"
+                  onClick={() => setOpen(false)}
+                  className="mt-2 flex items-center gap-3 px-3 py-3 rounded-[12px] bg-[#0A0F1F] text-cream-100 text-[14px] font-medium ring-1 ring-[rgba(59,130,246,0.32)]"
+                >
+                  <Terminal className="size-[18px] text-[#7AA9FF]" strokeWidth={1.8} />
+                  <span className="flex-1">Dev Console</span>
+                  <span className="text-[9.5px] font-semibold tracking-wider text-[#7AA9FF] uppercase">
+                    Dev
+                  </span>
+                </Link>
               )}
             </nav>
 
@@ -198,12 +217,21 @@ export function MobileDrawer({ plan = "free", isAdmin = false }: Props) {
   );
 }
 
-function DrawerLink({ item, active }: { item: Item; active: boolean }) {
+function DrawerLink({
+  item,
+  active,
+  onSelect,
+}: {
+  item: Item;
+  active: boolean;
+  onSelect?: () => void;
+}) {
   const Icon = item.icon;
   return (
     <li>
       <Link
         href={item.href}
+        onClick={onSelect}
         className={cn(
           "flex items-center gap-3 px-3 py-3 rounded-[12px] text-[14.5px] font-medium transition-colors",
           active

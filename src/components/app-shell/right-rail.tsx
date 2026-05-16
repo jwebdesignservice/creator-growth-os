@@ -32,25 +32,6 @@ export function RightRail({ profile }: { profile: Profile }) {
   return (
     <aside className="hidden xl:flex flex-col w-[var(--right-rail-width)] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
       <div className="p-[var(--space-card-padding-sm)] space-y-[var(--space-grid-gap-sm)]">
-        {/* Header — quick profile chip */}
-        <div className="flex items-center justify-between pb-2">
-          <div className="flex items-center gap-3">
-            <Avatar name={profile.name} src={profile.avatar_url ?? undefined} size={40} />
-            <div>
-              <div className="text-[14px] font-semibold text-ink-900">
-                {profile.name}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="size-7 rounded-full hover:bg-cream-200 inline-flex items-center justify-center"
-            aria-label="Open profile menu"
-          >
-            <Pencil className="size-3.5 text-ink-500" strokeWidth={2} />
-          </button>
-        </div>
-
         {/* Profile card */}
         <ProfileCard profile={profile} />
 
