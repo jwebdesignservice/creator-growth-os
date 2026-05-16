@@ -4,8 +4,10 @@ import {
   TrendingUp,
   CheckCircle2,
   ArrowUp,
+  ChevronRight,
 } from "lucide-react";
 import { Donut } from "./donut";
+import { cn } from "@/lib/cn";
 
 type Kpi = {
   program_progress: number;
@@ -19,7 +21,7 @@ type Kpi = {
 
 export function KpiCards({ kpi }: { kpi: Kpi }) {
   return (
-    <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-[var(--mobile-grid-gap)] sm:gap-[var(--space-grid-gap-sm)]">
       {/* Program progress */}
       <KpiCard
         media={
@@ -60,7 +62,16 @@ export function KpiCards({ kpi }: { kpi: Kpi }) {
         }
       />
 
+      {/* Tasks Completed — full-width on mobile (image shows this card spanning
+          both columns with a trailing chevron). Reverts to one slot from md+. */}
       <KpiCard
+        className="col-span-2 md:col-span-1"
+        trailing={
+          <ChevronRight
+            className="size-4 text-ink-300 shrink-0 md:hidden"
+            strokeWidth={2}
+          />
+        }
         media={<IconBubble><CheckCircle2 className="size-5 text-rose-600" strokeWidth={1.8} /></IconBubble>}
         label="Tasks Completed"
         primary={String(kpi.tasks_completed)}
@@ -72,7 +83,7 @@ export function KpiCards({ kpi }: { kpi: Kpi }) {
 
 function IconBubble({ children }: { children: React.ReactNode }) {
   return (
-    <div className="size-12 rounded-full bg-rose-100/70 flex items-center justify-center">
+    <div className="size-[var(--icon-container-xl)] rounded-full bg-rose-100/70 flex items-center justify-center">
       {children}
     </div>
   );
@@ -83,16 +94,20 @@ function KpiCard({
   label,
   primary,
   sub,
+  className,
+  trailing,
 }: {
   media: React.ReactNode;
   label: string;
   primary: string;
   sub: React.ReactNode;
+  className?: string;
+  trailing?: React.ReactNode;
 }) {
   return (
-    <div className="card p-4 flex items-center gap-3.5">
+    <div className={cn("card p-[var(--space-card-padding-sm)] flex items-center gap-3.5", className)}>
       <div className="shrink-0">{media}</div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="text-[12px] text-ink-500 font-medium leading-tight mb-1">
           {label}
         </div>
@@ -101,6 +116,7 @@ function KpiCard({
         </div>
         <div className="text-[11.5px] text-ink-500">{sub}</div>
       </div>
+      {trailing}
     </div>
   );
 }

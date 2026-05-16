@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageShell } from "@/components/app-shell/page-shell";
-import { RightRail } from "@/components/app-shell/right-rail";
+import { RightRail, MobileRail } from "@/components/app-shell/right-rail";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { DashboardHero } from "@/components/dashboard/hero";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
@@ -78,7 +78,7 @@ export default async function DashboardPage() {
 
   return (
     <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-    <div className="space-y-6 lg:space-y-7 max-w-[1240px] mx-auto">
+    <div className="space-y-[var(--mobile-section-gap)] lg:space-y-[var(--space-section-gap)] max-w-[var(--container-dashboard)] mx-auto">
       <DashboardHero firstName={firstName} />
 
       <KpiCards
@@ -93,9 +93,12 @@ export default async function DashboardPage() {
         }}
       />
 
+      {/* Right-rail cards inlined on mobile/tablet (hidden on xl where the desktop rail renders) */}
+      <MobileRail profile={ctx.railProfile} />
+
       <ProgramsRow programs={programs} />
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-[var(--space-grid-gap)]">
         <ContinueLearning lessons={MOCK_LESSONS} />
         <TodaysPlan tasks={MOCK_TASKS} />
         <UpcomingContent days={WEEK_DAYS} items={UPCOMING_ITEMS} />

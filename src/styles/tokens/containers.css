@@ -21,6 +21,20 @@
   --right-rail-width:      clamp(18rem, 22vw, 22rem);    /* 288px → 352px   */
   --right-rail-width-sm:   clamp(16rem, 20vw, 20rem);    /* narrower rail    */
 
+  /* ── Mobile app shell ──────────────────────────────────────────────────── */
+  /* Used below `lg` (1024px) when the desktop sidebar/rail are hidden and    */
+  /* the bottom-nav + drawer take over as the primary navigation system.      */
+  --mobile-topbar-height:        3.5rem;     /* 56px — compact mobile header  */
+  --mobile-bottomnav-height:     4.25rem;    /* 68px — visual bar height      */
+  --mobile-bottomnav-lift:       0.875rem;   /* center item elevation above bar */
+  --mobile-content-x:            clamp(1rem, 4vw, 1.25rem);  /* 16–20px         */
+  --mobile-content-y:            1rem;        /* 16px vertical content padding  */
+  --mobile-section-gap:          1rem;        /* 16px between mobile sections   */
+  --mobile-grid-gap:             0.75rem;     /* 12px between mobile cards      */
+  --mobile-drawer-width:         min(86vw, 19rem); /* 304px max drawer width    */
+  --mobile-safe-bottom:          env(safe-area-inset-bottom, 0px);
+  --mobile-bottomnav-safe-pad:   calc(var(--mobile-bottomnav-height) + var(--mobile-safe-bottom) + 0.75rem);
+
   /* ── Breakpoints (reference only — use Tailwind sm/md/lg/xl in classes) ─ */
   /* These mirror Tailwind v3 defaults and the Webflow breakpoint spec       */
   /* Base / Desktop:        ≥ 1280px (Tailwind xl)                          */

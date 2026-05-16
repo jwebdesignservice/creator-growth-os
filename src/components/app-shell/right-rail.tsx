@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Crown,
   Check,
+  ChevronRight,
 } from "lucide-react";
 import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
 import { Avatar } from "./topbar";
@@ -29,8 +30,8 @@ type Profile = {
 
 export function RightRail({ profile }: { profile: Profile }) {
   return (
-    <aside className="hidden xl:flex flex-col w-[336px] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
-      <div className="p-5 space-y-4">
+    <aside className="hidden xl:flex flex-col w-[var(--right-rail-width)] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
+      <div className="p-[var(--space-card-padding-sm)] space-y-[var(--space-grid-gap-sm)]">
         {/* Header — quick profile chip */}
         <div className="flex items-center justify-between pb-2">
           <div className="flex items-center gap-3">
@@ -74,7 +75,7 @@ export function RightRail({ profile }: { profile: Profile }) {
 
 function ProfileCard({ profile }: { profile: Profile }) {
   return (
-    <div className="card p-5 relative">
+    <div className="card p-[var(--space-card-padding-sm)] relative">
       <button
         type="button"
         className="absolute top-3 right-3 size-7 rounded-full bg-cream-100 hover:bg-cream-200 inline-flex items-center justify-center"
@@ -157,7 +158,7 @@ function SocialStat({
 
 function CompletionCard({ percent }: { percent: number }) {
   return (
-    <div className="card p-4">
+    <div className="card p-[var(--space-card-padding-sm)]">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[13.5px] font-semibold text-ink-900">
           Profile Completion
@@ -184,7 +185,7 @@ function CompletionCard({ percent }: { percent: number }) {
 
 function CoachCard() {
   return (
-    <div className="card p-4">
+    <div className="card p-[var(--space-card-padding-sm)]">
       <div className="flex items-start gap-3">
         <Avatar name="Sophie M" size={40} />
         <div className="flex-1 min-w-0">
@@ -212,7 +213,7 @@ function CategoryCard({
   description: string;
 }) {
   return (
-    <div className="card p-4">
+    <div className="card p-[var(--space-card-padding-sm)]">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[13.5px] font-semibold text-ink-900">
           Your Category
@@ -237,7 +238,7 @@ function PlanCard({ plan }: { plan: "free" | "basic" | "pro" }) {
   const isBasic = plan === "basic";
   const isPro = plan === "pro";
   return (
-    <div className="card p-4">
+    <div className="card p-[var(--space-card-padding-sm)]">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[13.5px] font-semibold text-ink-900">Your Plan</div>
         <span className="chip chip-rose capitalize">{plan}</span>
@@ -300,6 +301,124 @@ function formatCompact(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
   return n.toString();
+}
+
+/**
+ * Mobile inline rail — renders the priority right-rail cards as a stacked
+ * column inside the main content flow on screens below `xl`, where the
+ * desktop right rail is hidden. Hidden on `xl` to avoid duplication.
+ *
+ * Order mirrors the approved mobile reference exactly:
+ *   1. Profile Completion
+ *   2. Message from your coach
+ *   3. Your Category
+ *   4. Your Social Snapshot
+ */
+export function MobileRail({ profile }: { profile: Profile }) {
+  return (
+    <div className="xl:hidden space-y-[var(--mobile-grid-gap)]">
+      <CompletionCard percent={profile.profile_completion} />
+      <CoachCard />
+      <CategoryCardMobile
+        label={profile.category_label}
+        description={profile.category_description}
+      />
+      <SocialSnapshotCard socials={profile.socials} />
+    </div>
+  );
+}
+
+function CategoryCardMobile({
+  label,
+  description,
+}: {
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="card p-[var(--space-card-padding-sm)] flex items-start gap-3">
+      <div className="size-10 rounded-full bg-rose-100 inline-flex items-center justify-center shrink-0">
+        <Crown className="size-[18px] text-rose-600" strokeWidth={1.8} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <div className="text-[14px] font-semibold text-ink-900">
+            Your Category
+          </div>
+          <span className="chip chip-rose">
+            <Crown className="size-3" strokeWidth={2} />
+            {label}
+          </span>
+        </div>
+        <p className="text-[12.5px] text-ink-500 leading-snug">
+          You&apos;re in the {label} category. {description}
+        </p>
+      </div>
+      <ChevronRight className="size-4 text-ink-300 mt-1 shrink-0" strokeWidth={2} />
+    </div>
+  );
+}
+
+function SocialSnapshotCard({
+  socials,
+}: {
+  socials: Profile["socials"];
+}) {
+  return (
+    <div className="card p-[var(--space-card-padding-sm)]">
+      <div className="text-[14px] font-semibold text-ink-900 mb-3">
+        Your Social Snapshot
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <SocialBlock
+          icon={<InstagramIcon className="text-rose-600" size={18} />}
+          bg="bg-rose-100"
+          value={socials.instagram}
+          label="Followers"
+        />
+        <SocialBlock
+          icon={<TiktokIcon className="text-ink-900" size={18} />}
+          bg="bg-ink-100"
+          value={socials.tiktok}
+          label="Followers"
+        />
+        <SocialBlock
+          icon={<YoutubeIcon className="text-rose-600" size={18} />}
+          bg="bg-rose-100"
+          value={socials.youtube}
+          label="Subscribers"
+        />
+      </div>
+    </div>
+  );
+}
+
+function SocialBlock({
+  icon,
+  bg,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  bg: string;
+  value?: number;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 min-w-0">
+      <div className={cn("size-9 rounded-[10px] inline-flex items-center justify-center shrink-0", bg)}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-[15px] font-semibold text-ink-900 leading-none">
+          {value ? formatCompact(value) : "0"}
+        </div>
+        <div className="text-[11px] text-ink-500 leading-tight mt-0.5">
+          {label}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export { Send };

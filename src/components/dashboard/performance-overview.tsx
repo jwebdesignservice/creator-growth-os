@@ -24,7 +24,7 @@ export function PerformanceOverview({
   platformMix: PlatformSlice[];
 }) {
   return (
-    <section className="card p-6">
+    <section className="card p-[var(--space-card-padding)]">
       <header className="flex items-center justify-between mb-5">
         <h3 className="font-display text-[20px] text-ink-900">
           Performance Overview
@@ -35,8 +35,8 @@ export function PerformanceOverview({
         </button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-center">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,280px)] gap-[var(--space-grid-gap)] items-center">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-[var(--space-grid-gap-sm)]">
           {metrics.map((m) => (
             <MetricTile key={m.label} metric={m} />
           ))}

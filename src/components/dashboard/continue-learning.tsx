@@ -11,7 +11,7 @@ export type Lesson = {
 
 export function ContinueLearning({ lessons }: { lessons: Lesson[] }) {
   return (
-    <div className="card p-5 flex flex-col">
+    <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
       <header className="flex items-center justify-between mb-4">
         <h3 className="font-display text-[19px] text-ink-900">
           Continue Learning
@@ -30,7 +30,7 @@ export function ContinueLearning({ lessons }: { lessons: Lesson[] }) {
               href={`/tutorials/${l.slug}`}
               className="flex items-center gap-3 group"
             >
-              <div className="size-12 rounded-[10px] bg-cream-200 flex items-center justify-center shrink-0 group-hover:bg-cream-300 transition-colors">
+              <div className="size-[var(--icon-container-xl)] rounded-[var(--radius-button-sm)] bg-cream-200 flex items-center justify-center shrink-0 group-hover:bg-cream-300 transition-colors">
                 <Play
                   className="size-4 text-rose-600 ml-0.5"
                   fill="currentColor"

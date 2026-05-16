@@ -74,8 +74,14 @@ export function NotifDropdown({ initialUnreadCount = 0 }: { initialUnreadCount?:
   const [isPending, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
 
-  // Keep badge in sync if the server re-renders with a new count (e.g. after navigation)
-  useEffect(() => { setUnread(initialUnreadCount); }, [initialUnreadCount]);
+  // Keep badge in sync if the server re-renders with a new count (e.g. after
+  // navigation). Adjusted during render rather than via useEffect to avoid the
+  // cascading re-render and the react-hooks/set-state-in-effect lint rule.
+  const [prevInitial, setPrevInitial] = useState(initialUnreadCount);
+  if (initialUnreadCount !== prevInitial) {
+    setPrevInitial(initialUnreadCount);
+    setUnread(initialUnreadCount);
+  }
 
   // Close on click-outside
   useEffect(() => {

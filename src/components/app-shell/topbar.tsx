@@ -1,8 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Search, Mail, CalendarDays } from "lucide-react";
 import { ProfileMenu } from "./profile-menu";
 import { NotifDropdown } from "./notifications-dropdown";
+import { MobileDrawer } from "./mobile-drawer";
+import { Avatar } from "./avatar";
+import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/cn";
 
 export { Avatar } from "./avatar";
@@ -14,12 +18,50 @@ type Props = {
     plan?: string;
   };
   unreadNotificationCount?: number;
+  plan?: "free" | "basic" | "pro";
+  isAdmin?: boolean;
 };
 
-export function Topbar({ user, unreadNotificationCount = 0 }: Props) {
+export function Topbar({
+  user,
+  unreadNotificationCount = 0,
+  plan = "free",
+  isAdmin = false,
+}: Props) {
   return (
     <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100">
-      <div className="flex items-center gap-4 h-[68px] px-6 lg:px-8">
+      {/* ── Mobile bar (< lg) ────────────────────────────────────────────── */}
+      <div
+        className="lg:hidden flex items-center gap-2"
+        style={{
+          height: "var(--mobile-topbar-height)",
+          paddingInline: "var(--mobile-content-x)",
+        }}
+      >
+        <MobileDrawer plan={plan} isAdmin={isAdmin} />
+
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 min-w-0 flex-1 -ml-0.5"
+        >
+          <BrandMark size={28} />
+          <span className="text-[15px] font-semibold text-ink-900 leading-none truncate">
+            Creator Growth OS
+          </span>
+        </Link>
+
+        <div className="flex items-center gap-1.5">
+          <NotifDropdown initialUnreadCount={unreadNotificationCount} />
+          <Avatar
+            name={user.name}
+            src={user.avatar_url ?? undefined}
+            size={36}
+          />
+        </div>
+      </div>
+
+      {/* ── Desktop bar (lg+) ────────────────────────────────────────────── */}
+      <div className="hidden lg:flex items-center gap-4 h-[var(--topbar-height)] px-6 lg:px-8">
         {/* Search */}
         <div className="flex-1 max-w-[520px]">
           <div className="relative">
@@ -73,4 +115,3 @@ function IconButton({
     </button>
   );
 }
-

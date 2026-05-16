@@ -68,8 +68,6 @@ export function MultiDonut({
   const circumference = 2 * Math.PI * radius;
   const total = slices.reduce((sum, s) => sum + s.value, 0) || 1;
 
-  let acc = 0;
-
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
@@ -84,8 +82,12 @@ export function MultiDonut({
           const portion = slice.value / total;
           const dash = portion * circumference;
           const gap = circumference - dash;
-          const offset = -acc * circumference;
-          acc += portion;
+          // Start fraction = sum of all earlier slice portions. Computed
+          // immutably per iteration to satisfy react-hooks/immutability.
+          const startFraction = slices
+            .slice(0, i)
+            .reduce((sum, s) => sum + s.value / total, 0);
+          const offset = -startFraction * circumference;
           return (
             <circle
               key={i}

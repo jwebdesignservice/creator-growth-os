@@ -13,7 +13,7 @@ export type ProgramCard = {
 export function ProgramsRow({ programs }: { programs: ProgramCard[] }) {
   return (
     <section>
-      <header className="flex items-center justify-between mb-4">
+      <header className="flex items-center justify-between mb-[var(--space-grid-gap-sm)]">
         <h2 className="font-display text-[22px] text-ink-900">Your Programs</h2>
         <Link
           href="/programs"
@@ -23,7 +23,7 @@ export function ProgramsRow({ programs }: { programs: ProgramCard[] }) {
         </Link>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-[var(--space-grid-gap-sm)]">
         {programs.map((p) => (
           <ProgramItem key={p.slug} program={p} />
         ))}
@@ -69,7 +69,7 @@ function ProgramItem({ program }: { program: ProgramCard }) {
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-[var(--space-card-padding-sm)]">
         <div className="text-[14px] font-semibold text-ink-900 mb-1 leading-snug">
           {program.title}
         </div>
