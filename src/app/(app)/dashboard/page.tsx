@@ -30,13 +30,36 @@ export default async function DashboardPage() {
     (profile?.display_name ?? profile?.full_name ?? user.email?.split("@")[0] ?? "Creator")
       .split(" ")[0];
 
-  // Programs — read from DB if available, otherwise show the seeded mock
-  const { data: dbPrograms } = await supabase
-    .from("programs")
-    .select("slug, title, description, plan_access")
-    .eq("published", true)
-    .order("sort_order", { ascending: true })
-    .limit(4);
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  // Run all independent data queries in parallel
+  const [
+    { data: dbPrograms },
+    { data: profileRow },
+    { data: todayMissions },
+  ] = await Promise.all([
+    supabase
+      .from("programs")
+      .select("slug, title, description, plan_access")
+      .eq("published", true)
+      .order("sort_order", { ascending: true })
+      .limit(4),
+    supabase
+      .from("profiles")
+      .select("daily_streak")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("missions")
+      .select("status")
+      .eq("user_id", user.id)
+      .eq("due_date", todayIso),
+  ]);
+
+  const dailyStreak = profileRow?.daily_streak ?? 0;
+  const tasksTotal = todayMissions?.length ?? 0;
+  const tasksCompleted =
+    todayMissions?.filter((m) => m.status === "completed").length ?? 0;
 
   const programs: ProgramCard[] = dbPrograms?.length
     ? dbPrograms.map((p, i) => ({
@@ -60,13 +83,13 @@ export default async function DashboardPage() {
 
       <KpiCards
         kpi={{
-          program_progress: 68,
-          daily_streak: 12,
-          videos_watched: 48,
-          weekly_progress: 72,
-          weekly_progress_delta: 18,
-          tasks_completed: 26,
-          tasks_total: 36,
+          program_progress: 0,
+          daily_streak: dailyStreak,
+          videos_watched: 0,
+          weekly_progress: 0,
+          weekly_progress_delta: 0,
+          tasks_completed: tasksCompleted,
+          tasks_total: tasksTotal,
         }}
       />
 

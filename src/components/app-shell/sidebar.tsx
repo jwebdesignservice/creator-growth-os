@@ -31,7 +31,7 @@ const PRIMARY: NavItem[] = [
   { label: "Programs", href: "/programs", icon: GraduationCap },
   { label: "Tutorials", href: "/tutorials", icon: PlayCircle },
   { label: "Posting Plans", href: "/posting", icon: CalendarDays },
-  { label: "Tasks", href: "/missions", icon: CheckSquare, badge: 6 },
+  { label: "Tasks", href: "/missions", icon: CheckSquare },
   { label: "Performance", href: "/performance", icon: BarChart3 },
   { label: "Community", href: "/community", icon: Users },
 ];
@@ -42,7 +42,7 @@ const SECONDARY: NavItem[] = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ plan = "free" }: { plan?: "free" | "basic" | "pro" }) {
   const pathname = usePathname();
   return (
     <aside className="hidden lg:flex flex-col w-[252px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
@@ -78,10 +78,12 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Upgrade card */}
-      <div className="p-4">
-        <UpgradeCard />
-      </div>
+      {/* Upgrade card — hidden for Pro users */}
+      {plan !== "pro" && (
+        <div className="p-4">
+          <UpgradeCard />
+        </div>
+      )}
     </aside>
   );
 }
