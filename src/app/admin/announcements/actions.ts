@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminClient } from "@/lib/admin/require-admin";
+import { notifyAnnouncement } from "@/lib/notifications/service";
 
 type Result = { ok: true } | { ok: false; error: string };
+
+type PlanFilter = "free" | "basic" | "pro";
+type CategoryFilter = "starter" | "growth" | "monetization" | "scale";
 
 export async function createAnnouncement(
   _prev: Result,
@@ -19,15 +23,31 @@ export async function createAnnouncement(
 
   if (!title) return { ok: false, error: "Title is required." };
 
+  const planAudience: PlanFilter | null =
+    audiencePlan && audiencePlan !== "all"
+      ? (audiencePlan as PlanFilter)
+      : null;
+  const categoryAudience: CategoryFilter | null =
+    audienceCategory && audienceCategory !== "all"
+      ? (audienceCategory as CategoryFilter)
+      : null;
+
   const { error } = await ctx.supabase.from("announcements").insert({
     title,
     body,
-    audience_category:
-      audienceCategory && audienceCategory !== "all" ? audienceCategory : null,
-    audience_plan: audiencePlan && audiencePlan !== "all" ? audiencePlan : null,
+    audience_category: categoryAudience,
+    audience_plan: planAudience,
     published_at: new Date().toISOString(),
   });
   if (error) return { ok: false, error: error.message };
+
+  await notifyAnnouncement(
+    { title, body: body ?? "" },
+    {
+      ...(planAudience ? { plan: planAudience } : {}),
+      ...(categoryAudience ? { category: categoryAudience } : {}),
+    },
+  );
 
   revalidatePath("/admin/announcements");
   return { ok: true };
