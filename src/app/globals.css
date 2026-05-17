@@ -6,6 +6,10 @@
    ─────────────────────────────────────────────────────────────────────────── */
 @import "../styles/tokens/index.css";
 
+/* Dev Dashboard theme — scoped via the `.dev-theme` class on /dev routes.
+   Does not affect the main creator app. */
+@import "../styles/tokens/dev-dashboard.css";
+
 /* ─── PRIMITIVE COLOR PALETTE ───────────────────────────────────────────────
    Raw color values. Referenced by semantic tokens in tokens/colors.css.
    Never use these directly in components — use the semantic aliases.
@@ -134,6 +138,12 @@ body {
   font-family: var(--font-body);
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
+}
+
+/* Guard against accidental horizontal overflow from any descendant. Applied
+   to body only (not html) so `position: sticky` on the topbar keeps working. */
+body {
+  overflow-x: hidden;
 }
 
 .font-display {

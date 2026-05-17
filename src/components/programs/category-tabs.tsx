@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Crown } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -8,16 +7,16 @@ type Filter =
   | "all"
   | "starter"
   | "growth"
-  | "authority"
   | "monetization"
+  | "scale"
   | "pro";
 
 const TABS: { key: Filter; label: string; pro?: boolean }[] = [
   { key: "all", label: "All Programs" },
   { key: "starter", label: "Starter Creator" },
   { key: "growth", label: "Growth Creator" },
-  { key: "authority", label: "Authority Creator" },
   { key: "monetization", label: "Monetization Creator" },
+  { key: "scale", label: "Scale Creator" },
   { key: "pro", label: "Pro Only", pro: true },
 ];
 

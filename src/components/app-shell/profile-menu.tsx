@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
-  UserCircle2,
   Settings,
   CreditCard,
   LogOut,
@@ -95,21 +94,15 @@ export function ProfileMenu({ user }: Props) {
 
           {/* Links */}
           <MenuLink
-            href="/profile"
-            icon={<UserCircle2 className="size-4" strokeWidth={1.8} />}
-            label="View profile"
+            href="/settings"
+            icon={<Settings className="size-4" strokeWidth={1.8} />}
+            label="Settings"
             onClick={() => setOpen(false)}
           />
           <MenuLink
             href="/billing"
             icon={<CreditCard className="size-4" strokeWidth={1.8} />}
             label="Billing"
-            onClick={() => setOpen(false)}
-          />
-          <MenuLink
-            href="/settings"
-            icon={<Settings className="size-4" strokeWidth={1.8} />}
-            label="Settings"
             onClick={() => setOpen(false)}
           />
 

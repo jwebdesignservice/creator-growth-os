@@ -49,7 +49,7 @@ export function PerformanceEntryForm({
   const errMessage = state.ok ? null : state.error;
 
   return (
-    <section className="card overflow-hidden">
+    <section id="performance-entry-form" className="card overflow-hidden scroll-mt-24">
       <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-ink-100 bg-cream-100/50">
         <div className="flex items-center gap-2">
           <Link

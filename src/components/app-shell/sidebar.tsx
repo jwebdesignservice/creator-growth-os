@@ -10,11 +10,11 @@ import {
   CheckSquare,
   BarChart3,
   Users,
-  UserCircle2,
   CreditCard,
   Settings,
   Sparkles,
   ShieldCheck,
+  Terminal,
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
@@ -38,12 +38,19 @@ const PRIMARY: NavItem[] = [
 ];
 
 const SECONDARY: NavItem[] = [
-  { label: "Profile", href: "/profile", icon: UserCircle2 },
   { label: "Billing", href: "/billing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar({ plan = "free", isAdmin = false }: { plan?: "free" | "basic" | "pro"; isAdmin?: boolean }) {
+export function Sidebar({
+  plan = "free",
+  isAdmin = false,
+  isDev = false,
+}: {
+  plan?: "free" | "basic" | "pro";
+  isAdmin?: boolean;
+  isDev?: boolean;
+}) {
   const pathname = usePathname();
   return (
     <aside className="hidden lg:flex flex-col w-[252px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
@@ -78,23 +85,40 @@ export function Sidebar({ plan = "free", isAdmin = false }: { plan?: "free" | "b
           ))}
         </ul>
 
+        {(isAdmin || isDev) && (
+          <div className="my-4 h-px bg-ink-100 mx-3" />
+        )}
+
         {isAdmin && (
-          <>
-            <div className="my-4 h-px bg-ink-100 mx-3" />
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[14px] font-medium transition-colors"
-            >
-              <ShieldCheck
-                className="size-[18px] text-rose-300"
-                strokeWidth={1.8}
-              />
-              <span className="flex-1">Admin Console</span>
-              <span className="text-[9.5px] font-semibold tracking-wider text-rose-300 uppercase">
-                Admin
-              </span>
-            </Link>
-          </>
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[14px] font-medium transition-colors"
+          >
+            <ShieldCheck
+              className="size-[18px] text-rose-300"
+              strokeWidth={1.8}
+            />
+            <span className="flex-1">Admin Console</span>
+            <span className="text-[9.5px] font-semibold tracking-wider text-rose-300 uppercase">
+              Admin
+            </span>
+          </Link>
+        )}
+
+        {isDev && (
+          <Link
+            href="/dev"
+            className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[14px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
+          >
+            <Terminal
+              className="size-[18px] text-[#7AA9FF]"
+              strokeWidth={1.8}
+            />
+            <span className="flex-1">Dev Console</span>
+            <span className="text-[9.5px] font-semibold tracking-wider text-[#7AA9FF] uppercase">
+              Dev
+            </span>
+          </Link>
         )}
       </nav>
 

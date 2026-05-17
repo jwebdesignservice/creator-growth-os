@@ -7,7 +7,7 @@ import {
   GraduationCap,
   CheckSquare,
   Users,
-  UserCircle2,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -25,7 +25,7 @@ const ITEMS: NavItem[] = [
   { label: "Programs",  href: "/programs",  icon: GraduationCap },
   { label: "Tasks",     href: "/missions",  icon: CheckSquare, center: true },
   { label: "Community", href: "/community", icon: Users },
-  { label: "Profile",   href: "/profile",   icon: UserCircle2 },
+  { label: "Settings",  href: "/settings",  icon: Settings },
 ];
 
 export function BottomNav() {

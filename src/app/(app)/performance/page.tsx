@@ -11,6 +11,7 @@ import {
   addWeeks,
 } from "@/lib/performance/queries";
 import { PerformanceKpiTiles } from "@/components/performance/kpi-tiles";
+import { ConnectSocialCard } from "@/components/performance/connect-social-card";
 import { PerformanceEntryForm } from "@/components/performance/entry-form";
 import { TrendChart } from "@/components/performance/trend-chart";
 import { BestPostsJournal } from "@/components/performance/journal";
@@ -97,6 +98,9 @@ export default async function PerformancePage({
 
         {/* KPI tiles */}
         <PerformanceKpiTiles tiles={tiles} plan={ctx.plan} />
+
+        {/* Connect Social Accounts — frontend-only placeholder card */}
+        <ConnectSocialCard />
 
         {/* Weekly entry form */}
         <PerformanceEntryForm

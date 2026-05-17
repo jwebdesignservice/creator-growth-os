@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,11 +14,11 @@ import {
   CheckSquare,
   BarChart3,
   Users,
-  UserCircle2,
   CreditCard,
   Settings,
   ShieldCheck,
   Sparkles,
+  Terminal,
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
@@ -25,8 +26,8 @@ import { cn } from "@/lib/cn";
 
 type Item = { label: string; href: string; icon: LucideIcon };
 
-// Mirrors PRIMARY/SECONDARY in sidebar.tsx — kept in sync intentionally so the
-// mobile drawer offers the full nav while the bottom-nav only surfaces top 5.
+// Kept in sync with sidebar.tsx — the drawer offers the full nav while
+// bottom-nav only surfaces the top 5.
 const PRIMARY: Item[] = [
   { label: "Dashboard",     href: "/dashboard",   icon: LayoutGrid },
   { label: "Programs",      href: "/programs",    icon: GraduationCap },
@@ -38,7 +39,6 @@ const PRIMARY: Item[] = [
 ];
 
 const SECONDARY: Item[] = [
-  { label: "Profile",  href: "/profile",  icon: UserCircle2 },
   { label: "Billing",  href: "/billing",  icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
@@ -46,14 +46,20 @@ const SECONDARY: Item[] = [
 type Props = {
   plan?: "free" | "basic" | "pro";
   isAdmin?: boolean;
+  isDev?: boolean;
 };
 
-export function MobileDrawer({ plan = "free", isAdmin = false }: Props) {
+export function MobileDrawer({ plan = "free", isAdmin = false, isDev = false }: Props) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  // Close on route change — adjusting state during render (React-recommended
-  // pattern over a useEffect that would re-render twice on each navigation).
+  // Defer portal mount until after hydration so document.body exists.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close on route change — adjust state during render (recommended pattern).
   const [prevPath, setPrevPath] = useState(pathname);
   if (pathname !== prevPath) {
     setPrevPath(pathname);
@@ -75,91 +81,106 @@ export function MobileDrawer({ plan = "free", isAdmin = false }: Props) {
     };
   }, [open]);
 
+  const close = () => setOpen(false);
+
   return (
     <>
+      {/* Hamburger trigger — stays inside the mobile topbar */}
       <button
         type="button"
         aria-label="Open navigation menu"
         aria-expanded={open}
+        aria-controls="mobile-drawer-panel"
         onClick={() => setOpen(true)}
-        className="lg:hidden inline-flex items-center justify-center size-10 -ml-1.5 rounded-full text-ink-900 hover:bg-cream-200 transition-colors"
+        className="lg:hidden inline-flex items-center justify-center size-11 -ml-1.5 rounded-full text-ink-900 hover:bg-cream-200 active:bg-cream-300 transition-colors"
       >
         <Menu className="size-[22px]" strokeWidth={1.8} />
       </button>
 
-      {open && (
-        <div
-          className="lg:hidden fixed inset-0 z-50"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Navigation"
-        >
-          {/* Overlay */}
-          <button
-            type="button"
-            aria-label="Close navigation"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm animate-in fade-in duration-150"
-          />
+      {/* Portal to <body> escapes the topbar's `backdrop-filter` containing block, which would otherwise scope `position: fixed` to the 56px topbar frame. */}
+      {mounted &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              aria-hidden
+              onClick={close}
+              className={cn(
+                "lg:hidden fixed inset-0 z-40 bg-ink-900/55 transition-opacity duration-300 ease-out",
+                open
+                  ? "opacity-100 backdrop-blur-[6px] pointer-events-auto"
+                  : "opacity-0 pointer-events-none",
+              )}
+            />
 
-          {/* Panel */}
-          <aside
-            className="absolute inset-y-0 left-0 flex flex-col bg-cream-100 border-r border-ink-100 shadow-xl animate-in slide-in-from-left duration-200"
-            style={{ width: "var(--mobile-drawer-width)" }}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
-              <Link
-                href="/dashboard"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5"
-              >
-                <BrandMark size={32} />
-                <span className="text-[14px] font-semibold text-ink-900 leading-tight">
-                  Creator Growth OS
-                </span>
-              </Link>
-              <button
-                type="button"
-                aria-label="Close navigation"
-                onClick={() => setOpen(false)}
-                className="inline-flex items-center justify-center size-9 rounded-full hover:bg-cream-200 transition-colors"
-              >
-                <X className="size-[18px] text-ink-700" strokeWidth={1.8} />
-              </button>
-            </div>
+            {/* Panel */}
+            <aside
+              id="mobile-drawer-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
+              aria-hidden={!open}
+              className={cn(
+                "lg:hidden fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-cream-100 border-r border-ink-100 shadow-2xl will-change-transform transition-transform duration-300 ease-out",
+                open ? "translate-x-0" : "-translate-x-full pointer-events-none",
+              )}
+              style={{ width: "var(--mobile-drawer-width)" }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-ink-100 shrink-0">
+                <Link
+                  href="/dashboard"
+                  onClick={close}
+                  className="flex items-center gap-2.5 min-w-0"
+                >
+                  <BrandMark size={32} />
+                  <span className="text-[14px] font-semibold text-ink-900 leading-tight truncate">
+                    Creator Growth OS
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  aria-label="Close navigation"
+                  onClick={close}
+                  className="inline-flex items-center justify-center size-10 rounded-full text-ink-700 hover:bg-cream-200 active:bg-cream-300 transition-colors shrink-0"
+                >
+                  <X className="size-[18px]" strokeWidth={1.8} />
+                </button>
+              </div>
 
-            {/* Nav */}
-            <nav className="flex-1 px-3 py-3 overflow-y-auto">
-              <ul className="space-y-1">
-                {PRIMARY.map((item) => (
-                  <DrawerLink
-                    key={item.href}
-                    item={item}
-                    active={isActive(pathname, item.href)}
-                  />
-                ))}
-              </ul>
+              {/* Scrollable nav body */}
+              <nav className="flex-1 min-h-0 px-3 py-3 overflow-y-auto overscroll-contain">
+                <ul className="space-y-1">
+                  {PRIMARY.map((item) => (
+                    <DrawerLink
+                      key={item.href}
+                      item={item}
+                      active={isActive(pathname, item.href)}
+                      onSelect={close}
+                    />
+                  ))}
+                </ul>
 
-              <div className="my-4 h-px bg-ink-100 mx-3" />
+                <div className="my-4 h-px bg-ink-100 mx-3" />
 
-              <ul className="space-y-1">
-                {SECONDARY.map((item) => (
-                  <DrawerLink
-                    key={item.href}
-                    item={item}
-                    active={isActive(pathname, item.href)}
-                  />
-                ))}
-              </ul>
+                <ul className="space-y-1">
+                  {SECONDARY.map((item) => (
+                    <DrawerLink
+                      key={item.href}
+                      item={item}
+                      active={isActive(pathname, item.href)}
+                      onSelect={close}
+                    />
+                  ))}
+                </ul>
 
-              {isAdmin && (
-                <>
-                  <div className="my-4 h-px bg-ink-100 mx-3" />
+                {(isAdmin || isDev) && <div className="my-4 h-px bg-ink-100 mx-3" />}
+
+                {isAdmin && (
                   <Link
                     href="/admin"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-[12px] bg-ink-900 text-cream-100 text-[14px] font-medium"
+                    onClick={close}
+                    className="flex items-center gap-3 px-3 py-3 rounded-[12px] bg-ink-900 text-cream-100 text-[14px] font-medium min-h-[48px] active:opacity-90 transition-opacity"
                   >
                     <ShieldCheck className="size-[18px] text-rose-300" strokeWidth={1.8} />
                     <span className="flex-1">Admin Console</span>
@@ -167,56 +188,80 @@ export function MobileDrawer({ plan = "free", isAdmin = false }: Props) {
                       Admin
                     </span>
                   </Link>
-                </>
-              )}
-            </nav>
+                )}
 
-            {plan !== "pro" && (
-              <div className="p-4">
-                <div className="rounded-[16px] border border-rose-200 bg-rose-50/60 p-4 text-center">
-                  <div className="flex items-center justify-center gap-1.5 text-rose-700 text-[13px] font-semibold mb-1">
-                    <Sparkles className="size-4" strokeWidth={2} />
-                    Upgrade to Pro
-                  </div>
-                  <p className="text-[11.5px] text-ink-500 leading-snug mb-3">
-                    Unlock all programs, premium resources and 1-to-1 coaching.
-                  </p>
+                {isDev && (
                   <Link
-                    href="/billing?upgrade=pro"
-                    onClick={() => setOpen(false)}
-                    className="block w-full h-9 leading-9 text-[12.5px] font-medium bg-white border border-rose-200 text-rose-700 rounded-[10px]"
+                    href="/dev"
+                    onClick={close}
+                    className="mt-2 flex items-center gap-3 px-3 py-3 rounded-[12px] bg-[#0A0F1F] text-cream-100 text-[14px] font-medium min-h-[48px] ring-1 ring-[rgba(59,130,246,0.32)] active:opacity-90 transition-opacity"
                   >
-                    Upgrade now
+                    <Terminal className="size-[18px] text-[#7AA9FF]" strokeWidth={1.8} />
+                    <span className="flex-1">Dev Console</span>
+                    <span className="text-[9.5px] font-semibold tracking-wider text-[#7AA9FF] uppercase">
+                      Dev
+                    </span>
                   </Link>
+                )}
+              </nav>
+
+              {/* Upgrade footer — pinned to the bottom of the panel */}
+              {plan !== "pro" && (
+                <div className="p-4 border-t border-ink-100 shrink-0">
+                  <div className="rounded-[16px] border border-rose-200 bg-rose-50/60 p-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-rose-700 text-[13px] font-semibold mb-1">
+                      <Sparkles className="size-4" strokeWidth={2} />
+                      Upgrade to Pro
+                    </div>
+                    <p className="text-[11.5px] text-ink-500 leading-snug mb-3">
+                      Unlock all programs, premium resources and 1-to-1 coaching.
+                    </p>
+                    <Link
+                      href="/billing?upgrade=pro"
+                      onClick={close}
+                      className="block w-full h-11 leading-[44px] text-[13px] font-semibold bg-white border border-rose-200 text-rose-700 rounded-[10px] hover:bg-rose-100 active:bg-rose-100 transition-colors"
+                    >
+                      Upgrade now
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            )}
-          </aside>
-        </div>
-      )}
+              )}
+            </aside>
+          </>,
+          document.body,
+        )}
     </>
   );
 }
 
-function DrawerLink({ item, active }: { item: Item; active: boolean }) {
+function DrawerLink({
+  item,
+  active,
+  onSelect,
+}: {
+  item: Item;
+  active: boolean;
+  onSelect?: () => void;
+}) {
   const Icon = item.icon;
   return (
     <li>
       <Link
         href={item.href}
+        onClick={onSelect}
+        aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 px-3 py-3 rounded-[12px] text-[14.5px] font-medium transition-colors",
+          "flex items-center gap-3 px-3 py-3 rounded-[12px] text-[14.5px] font-medium transition-colors min-h-[48px]",
           active
             ? "bg-rose-100 text-rose-700"
-            : "text-ink-700 hover:bg-cream-200",
+            : "text-ink-700 hover:bg-cream-200 active:bg-cream-300",
         )}
-        aria-current={active ? "page" : undefined}
       >
         <Icon
-          className={cn("size-[19px] shrink-0", active ? "text-rose-600" : "text-ink-500")}
-          strokeWidth={1.8}
+          className={cn("size-[20px] shrink-0", active ? "text-rose-600" : "text-ink-500")}
+          strokeWidth={active ? 2 : 1.8}
         />
-        <span className="flex-1">{item.label}</span>
+        <span className="flex-1 leading-tight">{item.label}</span>
       </Link>
     </li>
   );

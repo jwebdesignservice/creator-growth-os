@@ -1,0 +1,116 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEV DASHBOARD TOKENS
+   Dark navy / blue technical console theme.
+   Only loaded inside the /dev route — does not affect the main creator app.
+   Shared spacing / radius / typography tokens continue to come from the
+   MASTER token system; this file only defines the surface + accent palette.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dev-theme {
+  /* ── Surfaces ────────────────────────────────────────────────────────── */
+  --dev-bg:           #0A0F1F;   /* page background                          */
+  --dev-sidebar-bg:   #070B17;   /* sidebar (slightly darker)                */
+  --dev-topbar-bg:    #0A0F1F;   /* topbar — matches page bg                 */
+  --dev-surface:      #111729;   /* card background                          */
+  --dev-surface-soft: #161D33;   /* hover / nested surface                   */
+  --dev-surface-elev: #1B243E;   /* elevated surface (popover, donut center) */
+
+  /* ── Borders ─────────────────────────────────────────────────────────────
+     Opacity-based so they sit ON the surface rather than fight it. The
+     previous solid-hex borders read as too literal at scale; rgba lets the
+     border breathe with the underlying surface for a premium feel.        */
+  --dev-border:        rgba(255, 255, 255, 0.06);
+  --dev-border-soft:   rgba(255, 255, 255, 0.035);
+  --dev-border-strong: rgba(255, 255, 255, 0.12);
+
+  /* ── Text ────────────────────────────────────────────────────────────── */
+  --dev-text-primary:   #E6ECF7;
+  --dev-text-secondary: #A8B3C9;
+  --dev-text-muted:     #6B7693;
+  --dev-text-faint:     #4A5470;
+
+  /* ── Accent (blue / cyan) ──────────────────────────────────────────────
+     Matured from neon blue to a calmer enterprise blue. Same hue family,
+     lower saturation, so it still reads as the system's primary accent.   */
+  --dev-accent:         #4F8DE0;
+  --dev-accent-hover:   #3D75C2;
+  --dev-accent-soft:    rgba(79, 141, 224, 0.12);
+  --dev-accent-softer:  rgba(79, 141, 224, 0.06);
+  --dev-accent-border:  rgba(79, 141, 224, 0.26);
+  --dev-accent-text:    #85AAEB;
+  --dev-accent-glow:    rgba(79, 141, 224, 0.20);
+
+  /* ── Status — toned from neon to enterprise (meaning unchanged) ─────── */
+  --dev-success:        #3CB371;
+  --dev-success-soft:   rgba(60, 179, 113, 0.12);
+  --dev-success-border: rgba(60, 179, 113, 0.26);
+  --dev-success-text:   #5DC58F;
+
+  --dev-warning:        #E39A2D;
+  --dev-warning-soft:   rgba(227, 154, 45, 0.12);
+  --dev-warning-border: rgba(227, 154, 45, 0.26);
+  --dev-warning-text:   #E5B655;
+
+  --dev-danger:         #DC5757;
+  --dev-danger-soft:    rgba(220, 87, 87, 0.12);
+  --dev-danger-border:  rgba(220, 87, 87, 0.26);
+  --dev-danger-text:    #E78686;
+
+  --dev-info:           var(--dev-accent);
+  --dev-info-soft:      var(--dev-accent-soft);
+  --dev-info-text:      var(--dev-accent-text);
+
+  /* ── Chart palette (for status icon tiles + donut segments) ──────────
+     Slightly desaturated across the board so chart fills and icon-tile
+     borders feel integrated rather than pasted on top.                  */
+  --dev-chart-blue:   #4F8DE0;
+  --dev-chart-purple: #9163E0;
+  --dev-chart-green:  #3CB371;
+  --dev-chart-amber:  #E39A2D;
+  --dev-chart-cyan:   #1FA9C2;
+  --dev-chart-rose:   #DD5670;
+  --dev-chart-pink:   #D85893;
+  --dev-chart-violet: #7A5BD9;
+  --dev-chart-red:    #DC5757;
+
+  /* ── Shell ───────────────────────────────────────────────────────────── */
+  --dev-sidebar-width: 252px;
+  --dev-topbar-height: 64px;
+
+  /* ── Shadows / elevation ────────────────────────────────────────────────
+     A subtle inset highlight + a layered drop shadow give cards a sense
+     of depth without heavy glow. The inset reads as a hairline rim-light
+     on the top edge — what premium dark UIs use for "lifted" surfaces.    */
+  --dev-shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.20),
+    0 10px 28px rgba(0, 0, 0, 0.32);
+  --dev-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.28);
+
+  /* Override globals so default text inside the dev theme is light. */
+  background: var(--dev-bg);
+  color: var(--dev-text-primary);
+}
+
+/* Card primitive scoped to the dev theme */
+.dev-theme .dev-card {
+  background:    var(--dev-surface);
+  border:        1px solid var(--dev-border);
+  border-radius: 14px;
+  box-shadow:    var(--dev-shadow-card);
+}
+
+/* Neutralize the cream-theme `* { border-color: var(--ink-200) }` default
+   inside the dev theme so any stray Tailwind `border` utility (without an
+   explicit color) reads as a soft dark-theme border instead of warm beige.
+   :where() has zero specificity, so explicit Tailwind colors still win. */
+.dev-theme :where(*) {
+  border-color: var(--dev-border);
+}
+
+/* Tighten letter-spacing on small uppercase labels inside the dev theme —
+   a one-line typography refinement that improves rhythm on metadata rows
+   without touching any component. */
+.dev-theme .uppercase {
+  letter-spacing: 0.06em;
+}

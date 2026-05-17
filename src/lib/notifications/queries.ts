@@ -11,7 +11,6 @@ import type {
   NotificationPreferences,
   NotificationSummary,
   NotificationWithGroup,
-  DEFAULT_PREFERENCES,
 } from "./types";
 import { DEFAULT_PREFERENCES as DEFAULTS } from "./types";
 
