@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 const DEV_ALLOWLIST: ReadonlyArray<string> = [
   "deividas1.no@gmail.com",
   "hei@bwstudio.no",
+  "jackwilson9090@gmail.com",
 ];
 
 export function isDevEmail(email: string | null | undefined): boolean {
