@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { notifyTaskCompleted } from "@/lib/notifications/service";
 
 /**
  * Toggle mission completion. Returns an empty object so the client can
@@ -17,6 +18,13 @@ export async function toggleMissionComplete(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
+  const { data: existing } = await supabase
+    .from("missions")
+    .select("title, status")
+    .eq("id", missionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("missions")
     .update({
@@ -27,6 +35,10 @@ export async function toggleMissionComplete(
     .eq("user_id", user.id);
 
   if (error) return { ok: false, error: error.message };
+
+  if (completed && existing && existing.status !== "completed") {
+    await notifyTaskCompleted(user.id, existing.title);
+  }
 
   revalidatePath("/missions");
   revalidatePath("/dashboard");

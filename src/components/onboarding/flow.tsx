@@ -62,10 +62,8 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
         return;
       }
       setStep("complete");
-      // Refresh server data so the layout knows the user is now onboarded
-      router.refresh();
     });
-  }, [draft, router]);
+  }, [draft]);
 
   const canAdvance =
     step === "complete" ? true : isStepComplete(step, draft);
