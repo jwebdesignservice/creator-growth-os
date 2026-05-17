@@ -96,7 +96,17 @@ interface Props {
 export function NotificationsPageClient({ notifications, preferences, unreadCount }: Props) {
   return (
     <PageShell rail={<NotificationsRail initialPrefs={preferences} initialUnread={unreadCount} />}>
-      <NotificationsMain initialItems={notifications} />
+      <div className="w-full max-w-[1180px]">
+        <NotificationsMain initialItems={notifications} />
+
+        {/* Inline rail content for <xl viewers — desktop rail is `hidden xl:flex`. */}
+        <div className="xl:hidden mt-8 space-y-4">
+          <SummaryCard unreadCount={unreadCount} />
+          <QuickActionsCard />
+          <PreferencesCard initialPrefs={preferences} />
+          <HelpCard />
+        </div>
+      </div>
     </PageShell>
   );
 }
@@ -153,7 +163,7 @@ function NotificationsMain({ initialItems }: { initialItems: NotificationWithGro
   const allCaughtUp = activeFilter === "all" && unreadCount === 0;
 
   return (
-    <div className="max-w-[820px]">
+    <div>
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-display text-[28px] text-ink-900 leading-tight">Notifications</h1>
@@ -204,7 +214,7 @@ function NotificationsMain({ initialItems }: { initialItems: NotificationWithGro
           )}
           <button
             type="button"
-            className="size-9 rounded-[10px] bg-white border border-ink-100 hover:bg-cream-100 flex items-center justify-center transition-colors"
+            className="size-10 rounded-[10px] bg-white border border-ink-100 hover:bg-cream-100 flex items-center justify-center transition-colors"
             aria-label="Filter options"
           >
             <SlidersHorizontal className="size-4 text-ink-500" strokeWidth={2} />
@@ -214,7 +224,7 @@ function NotificationsMain({ initialItems }: { initialItems: NotificationWithGro
 
       {/* All-caught-up state */}
       {allCaughtUp && (
-        <div className="card p-14 flex flex-col items-center text-center mb-6">
+        <div className="card p-12 sm:p-14 flex flex-col items-center text-center mb-6">
           <div className="size-14 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
             <Check className="size-6 text-emerald-600" strokeWidth={2.5} />
           </div>
@@ -248,7 +258,7 @@ function NotificationsMain({ initialItems }: { initialItems: NotificationWithGro
           })}
 
           {filtered.length === 0 && (
-            <div className="card p-14 flex flex-col items-center text-center">
+            <div className="card p-12 sm:p-14 flex flex-col items-center text-center">
               <div className="size-12 rounded-full bg-cream-200 flex items-center justify-center mb-3">
                 <Bell className="size-5 text-ink-400" strokeWidth={1.5} />
               </div>

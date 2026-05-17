@@ -14,13 +14,13 @@ type Props = {
 
 export function FeaturedProgram(p: Props) {
   return (
-    <section className="rounded-[24px] bg-cream-200 overflow-hidden relative">
-      <div className="grid lg:grid-cols-[1fr_360px] gap-6 p-8 lg:p-10">
+    <section className="rounded-[20px] sm:rounded-[24px] bg-cream-200 overflow-hidden relative">
+      <div className="grid 2xl:grid-cols-[1fr_360px] gap-6 p-5 sm:p-7 lg:p-9 2xl:p-10">
         <div className="max-w-xl relative z-10">
           <span className="chip chip-rose mb-4">
             <span aria-hidden>✦</span> Featured Program
           </span>
-          <h2 className="font-display text-3xl lg:text-[36px] leading-tight text-ink-900 mb-3">
+          <h2 className="font-display text-[22px] sm:text-[26px] lg:text-[30px] 2xl:text-[36px] leading-tight text-ink-900 mb-3">
             {p.title}
           </h2>
           <p className="text-ink-500 text-[14px] max-w-md mb-5 leading-relaxed">
@@ -63,7 +63,7 @@ export function FeaturedProgram(p: Props) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
             <Link
               href={`/programs/${p.slug}`}
               className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-medium shadow-sm transition-colors"
@@ -81,7 +81,7 @@ export function FeaturedProgram(p: Props) {
         </div>
 
         {/* Decorative right column — content notebook motif */}
-        <div className="relative hidden lg:block">
+        <div className="relative hidden 2xl:block">
           <div className="absolute right-0 top-0 w-80 h-80 rounded-full bg-rose-100/70 -translate-y-8 translate-x-12 blur-2xl" />
           <NotebookIllustration />
         </div>

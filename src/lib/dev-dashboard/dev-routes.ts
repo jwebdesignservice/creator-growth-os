@@ -6,21 +6,28 @@ import {
   ShieldCheck,
   Database,
   Bell,
-  CreditCard,
   Gauge,
-  ClipboardCheck,
-  FileText,
   ScrollText,
   Rocket,
   Settings2,
   Flag,
   ListChecks,
+  Headset,
 } from "lucide-react";
 import type { DevRoute } from "./types";
 
 /**
  * Canonical list of dev-console routes. Used by the sidebar, the mobile
  * nav (if/when added), placeholder pages, and any breadcrumb logic.
+ *
+ * Three earlier stubs were removed after a daily-usage review:
+ *   • Billing       — failed Stripe webhooks already surface on /dev/errors
+ *                     (Source = Payments); MRR lives on the Overview tile.
+ *                     A dedicated Billing console added no daily value.
+ *   • CMS Monitor   — the product isn't CMS-heavy. Admin announcements +
+ *                     missions don't need their own dev monitoring page.
+ *   • Data Integrity — fully overlapping with Database (schema /
+ *                     constraints / consistency hooks all belong there).
  */
 export const DEV_ROUTES: DevRoute[] = [
   {
@@ -66,28 +73,10 @@ export const DEV_ROUTES: DevRoute[] = [
     description: "Outbound notification delivery health",
   },
   {
-    label: "Billing",
-    href: "/dev/billing",
-    icon: CreditCard,
-    description: "Stripe webhooks, subscriptions, and revenue",
-  },
-  {
     label: "Performance",
     href: "/dev/performance",
     icon: Gauge,
     description: "Response times, throughput, and resource use",
-  },
-  {
-    label: "Data Integrity",
-    href: "/dev/data-integrity",
-    icon: ClipboardCheck,
-    description: "Schema, constraints, and consistency checks",
-  },
-  {
-    label: "CMS Monitor",
-    href: "/dev/cms-monitor",
-    icon: FileText,
-    description: "Content publishing and CMS-side health",
   },
   {
     label: "Logs",
@@ -118,6 +107,12 @@ export const DEV_ROUTES: DevRoute[] = [
     href: "/dev/qa-checklist",
     icon: ListChecks,
     description: "Pre-release verification checklist",
+  },
+  {
+    label: "Support",
+    href: "/dev/support",
+    icon: Headset,
+    description: "Client support tickets, escalations, and SLA workflows",
   },
 ];
 

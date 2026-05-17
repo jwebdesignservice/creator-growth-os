@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/server";
 import { FeaturedProgram } from "@/components/programs/featured-program";
 import { ProgramsGrid } from "@/components/programs/programs-grid";
 import type { ProgramRow } from "@/components/programs/program-card";
-import { LearningPath } from "@/components/programs/learning-path";
 import { getProgressForPrograms } from "@/lib/programs/queries";
 
 export const metadata = { title: "Programs · Creator Growth OS" };
@@ -71,14 +70,14 @@ export default async function ProgramsPage() {
 
   return (
     <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-      <div className="space-y-7 max-w-[1240px] mx-auto">
+      <div className="space-y-6 sm:space-y-7 max-w-[1240px] mx-auto">
         {/* Header */}
         <header>
           <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
             <Sparkles className="size-4" strokeWidth={2} />
             Welcome back, {firstName}!
           </div>
-          <h1 className="font-display text-[40px] text-ink-900 leading-tight mb-1">
+          <h1 className="font-display text-[28px] sm:text-[34px] lg:text-[40px] text-ink-900 leading-tight mb-1">
             Influencer Programs
           </h1>
           <p className="text-ink-500 text-[14px]">
@@ -110,9 +109,6 @@ export default async function ProgramsPage() {
           <CreatorDrills />
           <UpgradeAccent />
         </div>
-
-        {/* Learning Path */}
-        <LearningPath currentStep={2} />
       </div>
     </PageShell>
   );
@@ -159,8 +155,9 @@ function RecommendedForYou({ programs }: { programs: ProgramRow[] }) {
                 <div className="text-[13.5px] font-medium text-ink-900 truncate">
                   {p.title}
                 </div>
-                <div className="text-[11.5px] text-ink-500">
-                  {p.category_label} · {p.total_lessons} Lessons
+                <div className="text-[11.5px] text-ink-500 truncate">
+                  {p.category_label ?? "Creator program"}
+                  {typeof p.total_lessons === "number" && ` · ${p.total_lessons} Lessons`}
                 </div>
               </div>
               <ChevronRight className="size-4 text-ink-400" strokeWidth={2} />

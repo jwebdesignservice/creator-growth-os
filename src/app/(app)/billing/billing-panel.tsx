@@ -80,7 +80,7 @@ const INCLUDED_FEATURES: { icon: React.ReactNode; label: string }[] = [
 export function BillingPageClient({ plan }: { plan: "free" | "basic" | "pro" }) {
   return (
     <PageShell>
-      <div className="w-full max-w-[var(--container-content)] space-y-[var(--space-section-gap)]">
+      <div className="w-full max-w-[var(--container-dashboard)] space-y-[var(--space-section-gap)]">
 
         {/* ── Page header ─────────────────────────────────────────────── */}
         <div>
@@ -93,13 +93,13 @@ export function BillingPageClient({ plan }: { plan: "free" | "basic" | "pro" }) 
         </div>
 
         {/* ── Row 1: Current Plan + Plan Picker ───────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-[var(--space-grid-gap)]">
+        <div className="grid grid-cols-1 xl:grid-cols-[20rem_1fr] xl:items-start gap-[var(--space-grid-gap)]">
           <CurrentPlanCard plan={plan} />
           <PlanPickerCard currentPlan={plan} />
         </div>
 
         {/* ── Row 2: 4 info cards ─────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-[var(--space-grid-gap)]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--space-grid-gap)]">
           <PaymentMethodCard />
           <BillingSummaryCard plan={plan} />
           <WhatsIncludedCard plan={plan} />
@@ -170,8 +170,8 @@ function CurrentPlanCard({ plan }: { plan: "free" | "basic" | "pro" }) {
         </DetailRow>
       </div>
 
-      {/* Actions — pushed to bottom via mt-auto */}
-      <div className="mt-auto space-y-3">
+      {/* Actions — natural placement below details (card hugs content at xl+ via items-start) */}
+      <div className="space-y-3">
         {!isPro && (
           <Button className="w-full" size="md">
             Upgrade to Pro
@@ -237,23 +237,30 @@ function PlanCard({
   return (
     <div
       className={cn(
-        "rounded-[14px] p-[var(--space-stack-lg)] flex flex-col border transition-all",
+        "relative rounded-[14px] p-[var(--space-stack-lg)] flex flex-col border transition-all",
         isCurrent
-          ? "border-rose-300 bg-white shadow-sm"
+          ? "border-rose-300 bg-cream-50/60 shadow-sm"
           : isPro
-          ? "border-rose-500 bg-white shadow-md"
+          ? "border-2 border-rose-500 bg-white shadow-card ring-4 ring-rose-100"
           : "border-ink-100 bg-white",
       )}
     >
+      {/* Floating "Most Popular" badge — overlaps card top edge for premium lift */}
+      {isPro && !isCurrent && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center h-6 px-3 rounded-full bg-rose-600 text-[10.5px] font-bold tracking-wide uppercase text-white shadow-sm whitespace-nowrap">
+          Most Popular
+        </span>
+      )}
+
       {/* Header */}
       <div className="mb-[var(--space-stack-md)]">
         <div className="flex items-center justify-between gap-1 mb-1 flex-wrap">
           <span className="text-[var(--text-body-sm)] font-bold text-ink-900">
             {info.label}
           </span>
-          {isPro && (
-            <span className="inline-flex items-center h-5 px-2 rounded-full bg-rose-600 text-[10px] font-bold text-white shrink-0">
-              Most Popular
+          {isCurrent && (
+            <span className="inline-flex items-center h-5 px-2 rounded-full bg-rose-100 text-[10px] font-bold text-rose-700 shrink-0">
+              Current
             </span>
           )}
         </div>
@@ -453,17 +460,17 @@ function NeedHelpCard() {
         <p className="text-[12.5px] text-ink-500 leading-snug mb-4 max-w-[10rem]">
           We&apos;re here to help with any billing questions.
         </p>
-        <button
-          type="button"
-          className="w-full h-11 sm:h-9 rounded-[10px] border border-rose-300 text-[12.5px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+        <Link
+          href="/support"
+          className="w-full h-11 sm:h-9 inline-flex items-center justify-center rounded-[10px] border border-rose-300 text-[12.5px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
         >
           Contact Support
-        </button>
+        </Link>
       </div>
 
       <div className="pt-4 border-t border-ink-100 flex justify-center">
         <Link
-          href="#"
+          href="/support"
           className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
         >
           View Help Center <ArrowRight className="size-3.5" strokeWidth={2.5} />
@@ -487,12 +494,45 @@ function RecentInvoicesCard() {
           href="#"
           className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors shrink-0"
         >
-          View All Invoices <ArrowRight className="size-3.5" strokeWidth={2.5} />
+          View All <ArrowRight className="size-3.5" strokeWidth={2.5} />
         </Link>
       </div>
 
-      {/* Horizontal scroll wrapper prevents layout break on mobile */}
-      <div className="overflow-x-auto">
+      {/* Mobile (<sm): stacked invoice cards */}
+      <div className="sm:hidden divide-y divide-ink-50">
+        {MOCK_INVOICES.map((inv) => (
+          <div key={inv.id} className="p-4 hover:bg-cream-50 transition-colors">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-semibold text-ink-900 truncate">
+                  {inv.description}
+                </div>
+                <div className="text-[12px] text-ink-500 mt-0.5">
+                  {inv.date} · <span className="font-mono">{inv.id}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Download invoice"
+                className="size-10 rounded-[10px] hover:bg-cream-200 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:outline-none shrink-0"
+              >
+                <Download className="size-4 text-ink-500" strokeWidth={2} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-3">
+              <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-emerald-100 text-[12px] font-semibold text-emerald-700">
+                {inv.status}
+              </span>
+              <span className="text-[14px] font-semibold text-ink-900 tabular-nums">
+                {inv.amount} kr
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tablet+ (sm+): table layout. Horizontal scroll wrapper kept as a safety net. */}
+      <div className="hidden sm:block overflow-x-auto">
         <div className="min-w-[var(--table-min-width)]">
           {/* Table head */}
           <div className="grid grid-cols-[1fr_1.1fr_2fr_0.9fr_0.9fr_2.5rem] gap-3 px-[var(--space-table-cell-x)] py-3 bg-cream-50 border-b border-ink-100">
@@ -521,7 +561,7 @@ function RecentInvoicesCard() {
                     {inv.status}
                   </span>
                 </span>
-                <span className="text-[var(--text-table)] font-semibold text-ink-900 whitespace-nowrap">
+                <span className="text-[var(--text-table)] font-semibold text-ink-900 whitespace-nowrap tabular-nums">
                   {inv.amount} kr
                 </span>
                 <button

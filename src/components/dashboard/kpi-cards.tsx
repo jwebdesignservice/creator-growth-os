@@ -21,7 +21,7 @@ type Kpi = {
 
 export function KpiCards({ kpi }: { kpi: Kpi }) {
   return (
-    <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-[var(--mobile-grid-gap)] sm:gap-[var(--space-grid-gap-sm)]">
+    <section className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-[var(--mobile-grid-gap)] sm:gap-[var(--space-grid-gap-sm)]">
       {/* Program progress */}
       <KpiCard
         media={

@@ -54,11 +54,17 @@ export function Topbar({
 
         <div className="flex items-center gap-1.5">
           <NotifDropdown initialUnreadCount={unreadNotificationCount} />
-          <Avatar
-            name={user.name}
-            src={user.avatar_url ?? undefined}
-            size={36}
-          />
+          <Link
+            href="/settings"
+            aria-label="Account settings"
+            className="inline-flex items-center justify-center p-1 rounded-full hover:bg-cream-200 active:bg-cream-300 transition-colors"
+          >
+            <Avatar
+              name={user.name}
+              src={user.avatar_url ?? undefined}
+              size={36}
+            />
+          </Link>
         </div>
       </div>
 

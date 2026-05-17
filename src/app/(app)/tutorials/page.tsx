@@ -42,14 +42,14 @@ export default async function TutorialsPage() {
 
   return (
     <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-      <div className="space-y-7 max-w-[1240px] mx-auto">
+      <div className="space-y-6 sm:space-y-7 max-w-[1240px] mx-auto">
         {/* Header */}
         <header>
           <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
             <Sparkles className="size-4" strokeWidth={2} />
             Welcome back, {firstName}!
           </div>
-          <h1 className="font-display text-[40px] text-ink-900 leading-tight mb-1">
+          <h1 className="font-display text-[28px] sm:text-[34px] lg:text-[40px] text-ink-900 leading-tight mb-1">
             Tutorials
           </h1>
           <p className="text-ink-500 text-[14px]">
@@ -149,11 +149,11 @@ function RecommendedNext({ items }: { items: TutorialRow[] }) {
 function ThisWeeksDrill({ drill }: { drill: TutorialRow }) {
   return (
     <div className="rounded-[16px] bg-cream-200 border border-cream-300 p-5 flex flex-col">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <h3 className="font-display text-[19px] text-ink-900">
           This Week&apos;s Creator Drill
         </h3>
-        <span className="chip chip-rose inline-flex items-center gap-1">
+        <span className="chip chip-rose inline-flex items-center gap-1 shrink-0">
           <Flame className="size-3" strokeWidth={2} fill="currentColor" />
           2 day streak
         </span>

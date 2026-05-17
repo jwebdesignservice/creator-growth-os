@@ -15,7 +15,7 @@ export const metadata = { title: "Overview · Dev Dashboard" };
 
 export default function DevOverviewPage() {
   return (
-    <div className="space-y-5">
+    <div className="space-y-[var(--mobile-section-gap)] sm:space-y-5">
       <DevPageHeader
         title="Overview"
         subtitle="Real-time system health and key metrics"
@@ -37,24 +37,28 @@ export default function DevOverviewPage() {
       <MetricCards />
 
       {/* 3–5. Critical Alerts + Errors (24h) + Top Error */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[var(--mobile-grid-gap)] sm:gap-4">
         <CriticalAlertsCard />
         <ErrorsCard />
         <TopErrorCard />
       </section>
 
-      {/* 6–9. Usage Overview (wide) + DB + Deployment + QA */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4">
-        <div className="xl:col-span-5">
+      {/* 6–9. Usage Overview (wide) + DB + Deployment + QA.
+            12-col grid at md+ so Usage can take the full row at tablet
+            (md:col-span-6) and shrink to ~42% at xl. The three small cards
+            arrange as 2 + 2 + 3 cols within the same row at xl, and as a
+            single 3-up row at md (each col-span-2). */}
+      <section className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-[var(--mobile-grid-gap)] sm:gap-4">
+        <div className="md:col-span-6 xl:col-span-5">
           <UsageOverviewCard />
         </div>
-        <div className="xl:col-span-2">
+        <div className="md:col-span-2 xl:col-span-2">
           <DatabaseHealthCard />
         </div>
-        <div className="xl:col-span-2">
+        <div className="md:col-span-2 xl:col-span-2">
           <DeploymentStatusCard />
         </div>
-        <div className="xl:col-span-3">
+        <div className="md:col-span-2 xl:col-span-3">
           <QaReadinessCard />
         </div>
       </section>

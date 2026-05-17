@@ -1,13 +1,12 @@
-import { PageStub } from "@/components/page-stub";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Profile · Creator Growth OS" };
+/**
+ * /profile is deprecated — the single user destination is /settings.
+ * This server component issues a hard redirect so any old bookmarks,
+ * external links, or topbar menu entries still resolve correctly.
+ */
+export const metadata = { title: "User Settings · Creator Growth OS" };
 
 export default function ProfilePage() {
-  return (
-    <PageStub
-      title="User Settings"
-      description="Manage your profile, account and preferences."
-      nextStep="Profile settings (name, email, phone, avatar, follower base, category), personal brand info (content pillars, preferred platforms, bio), security (password, 2FA, sessions) and notification preferences."
-    />
-  );
+  redirect("/settings");
 }

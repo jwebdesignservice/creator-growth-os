@@ -10,7 +10,6 @@ import {
   CheckSquare,
   BarChart3,
   Users,
-  UserCircle2,
   CreditCard,
   Settings,
   Sparkles,
@@ -39,7 +38,6 @@ const PRIMARY: NavItem[] = [
 ];
 
 const SECONDARY: NavItem[] = [
-  { label: "Profile", href: "/profile", icon: UserCircle2 },
   { label: "Billing", href: "/billing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

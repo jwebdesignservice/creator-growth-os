@@ -93,15 +93,20 @@ export function SettingsPageClient({
         />
       }
     >
-      <div className="max-w-[740px] space-y-6">
+      <div className="max-w-[var(--container-content)] space-y-5 sm:space-y-6">
         {/* Page header */}
         <div>
-          <h1 className="font-display text-[28px] text-ink-900 leading-tight">
+          <h1 className="font-display text-[26px] sm:text-[28px] text-ink-900 leading-tight">
             User Settings
           </h1>
           <p className="text-[14px] text-ink-500 mt-1">
             Manage your profile, account, and preferences.
           </p>
+        </div>
+
+        {/* Inline profile completion — rail shows this on xl+, so only render here below xl. */}
+        <div className="xl:hidden">
+          <CompletionCard completion={completion} />
         </div>
 
         <ProfileSettingsCard profile={profile} />
@@ -155,14 +160,14 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
   }
 
   return (
-    <div className="card p-6">
+    <div className="card p-5 sm:p-6">
       <h2 className="font-display text-[18px] text-ink-900 mb-5">
         Profile Settings
       </h2>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col sm:flex-row gap-6">
         {/* Avatar */}
-        <div className="flex flex-col items-center shrink-0 w-[130px]">
+        <div className="flex flex-col items-center shrink-0 w-full sm:w-[130px]">
           <div className="relative">
             <div className="size-[100px] rounded-full overflow-hidden border-[3px] border-white shadow-md">
               {profile?.avatar_url ? (
@@ -193,7 +198,7 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
 
         {/* Form */}
         <div className="flex-1 min-w-0">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Full Name"
               name="full_name"
@@ -234,7 +239,7 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
           </div>
 
           {/* Creator Category + Username row */}
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             <div>
               <Select
                 label="Creator Category"
@@ -268,21 +273,21 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
                   href={`https://${handleLink}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] text-rose-600 hover:text-rose-700 transition-colors"
+                  className="mt-1.5 inline-flex items-center gap-1 max-w-full text-[11.5px] text-rose-600 hover:text-rose-700 transition-colors"
                 >
-                  {handleLink}
-                  <ExternalLink className="size-3" strokeWidth={2} />
+                  <span className="truncate">{handleLink}</span>
+                  <ExternalLink className="size-3 shrink-0" strokeWidth={2} />
                 </a>
               )}
             </div>
           </div>
 
           {/* Save */}
-          <div className="flex justify-end mt-5">
+          <div className="flex mt-5 sm:justify-end">
             <Button
               size="sm"
               onClick={handleSave}
-              className={cn("transition-all", saved && "bg-emerald-600 hover:bg-emerald-600")}
+              className={cn("w-full sm:w-auto h-11 sm:h-9 transition-all", saved && "bg-emerald-600 hover:bg-emerald-600")}
             >
               {saved ? (
                 <><Check className="size-3.5" strokeWidth={2.5} /> Saved</>
@@ -367,12 +372,12 @@ function CreatorInfoCard({
   }
 
   return (
-    <div className="card p-6">
+    <div className="card p-5 sm:p-6">
       <h2 className="font-display text-[18px] text-ink-900 mb-5">
         Personal Brand / Creator Info
       </h2>
 
-      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
         {/* Left column */}
         <div className="space-y-5">
           {/* Content Pillars */}
@@ -448,7 +453,7 @@ function CreatorInfoCard({
             <label className="block text-[13px] font-semibold text-ink-700 mb-2">
               Preferred Platforms
             </label>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {PLATFORMS.map(({ key, label, Icon, color, bg }) => {
                 const active = activePlats.includes(key);
                 return (
@@ -489,11 +494,11 @@ function CreatorInfoCard({
       </div>
 
       {/* Save */}
-      <div className="flex justify-end mt-5 pt-5 border-t border-ink-100">
+      <div className="flex mt-5 pt-5 border-t border-ink-100 sm:justify-end">
         <Button
           size="sm"
           onClick={handleSave}
-          className={cn("transition-all", saved && "bg-emerald-600 hover:bg-emerald-600")}
+          className={cn("w-full sm:w-auto h-11 sm:h-9 transition-all", saved && "bg-emerald-600 hover:bg-emerald-600")}
         >
           {saved ? (
             <><Check className="size-3.5" strokeWidth={2.5} /> Saved</>
@@ -675,6 +680,48 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Profile Completion (shared by rail + inline mobile/tablet)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CompletionCard({
+  completion,
+}: {
+  completion: { percent: number; items: { label: string; done: boolean }[] };
+}) {
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-[13px] font-semibold text-ink-900">Profile Completion</h3>
+        <span className="text-[13px] font-bold text-rose-600">{completion.percent}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-cream-200 overflow-hidden mb-2">
+        <div
+          className="h-full rounded-full bg-rose-500 transition-all duration-500"
+          style={{ width: `${completion.percent}%` }}
+        />
+      </div>
+      <p className="text-[12px] text-ink-500 mb-3">
+        {completion.percent >= 80 ? "Great progress! Keep it up." : "Complete your profile to get better results."}
+      </p>
+      <div className="space-y-2">
+        {completion.items.map(({ label, done }) => (
+          <div key={label} className="flex items-center gap-2">
+            {done ? (
+              <CheckCircle2 className="size-4 text-emerald-500 shrink-0" strokeWidth={2} />
+            ) : (
+              <Circle className="size-4 text-ink-300 shrink-0" strokeWidth={1.5} />
+            )}
+            <span className={cn("text-[12.5px]", done ? "text-ink-700" : "text-ink-400")}>
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Right rail
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -766,35 +813,7 @@ function SettingsRail({
         </div>
 
         {/* Profile Completion */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-[13px] font-semibold text-ink-900">Profile Completion</h3>
-            <span className="text-[13px] font-bold text-rose-600">{completion.percent}%</span>
-          </div>
-          <div className="h-2 rounded-full bg-cream-200 overflow-hidden mb-2">
-            <div
-              className="h-full rounded-full bg-rose-500 transition-all duration-500"
-              style={{ width: `${completion.percent}%` }}
-            />
-          </div>
-          <p className="text-[12px] text-ink-500 mb-3">
-            {completion.percent >= 80 ? "Great progress! Keep it up." : "Complete your profile to get better results."}
-          </p>
-          <div className="space-y-2">
-            {completion.items.map(({ label, done }) => (
-              <div key={label} className="flex items-center gap-2">
-                {done ? (
-                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" strokeWidth={2} />
-                ) : (
-                  <Circle className="size-4 text-ink-300 shrink-0" strokeWidth={1.5} />
-                )}
-                <span className={cn("text-[12.5px]", done ? "text-ink-700" : "text-ink-400")}>
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CompletionCard completion={completion} />
 
         {/* Current Category */}
         <div className="card p-4">

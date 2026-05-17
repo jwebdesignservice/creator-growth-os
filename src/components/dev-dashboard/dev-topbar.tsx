@@ -4,12 +4,16 @@ import {
   Menu,
   ChevronDown,
   Search,
-  Bell,
   CircleDot,
 } from "lucide-react";
-import { DEV_ENV, DEV_NOTIFICATION_COUNT, DEV_USER } from "@/lib/dev-dashboard/mock-data";
+import { DEV_ENV, DEV_USER } from "@/lib/dev-dashboard/mock-data";
 
-export function DevTopbar() {
+/**
+ * Topbar accepts a `notifications` slot so a server-rendered async
+ * component (the bell trigger that fetches the badge count + recent
+ * items) can be composed into this otherwise-client component.
+ */
+export function DevTopbar({ notifications }: { notifications?: React.ReactNode }) {
   return (
     <header className="sticky top-0 z-30 bg-[var(--dev-topbar-bg)]/95 backdrop-blur border-b border-[var(--dev-border)]">
       <div className="flex items-center gap-3 h-[var(--dev-topbar-height)] px-4 lg:px-6">
@@ -53,14 +57,7 @@ export function DevTopbar() {
           <IconButton aria-label="Search">
             <Search className="size-[17px] text-[var(--dev-text-secondary)]" strokeWidth={1.8} />
           </IconButton>
-          <IconButton aria-label="Notifications" className="relative">
-            <Bell className="size-[17px] text-[var(--dev-text-secondary)]" strokeWidth={1.8} />
-            {DEV_NOTIFICATION_COUNT > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-[var(--dev-accent)] text-white text-[10px] font-semibold ring-2 ring-[var(--dev-topbar-bg)]">
-                {DEV_NOTIFICATION_COUNT > 99 ? "99+" : DEV_NOTIFICATION_COUNT}
-              </span>
-            )}
-          </IconButton>
+          {notifications}
 
           {/* User chip */}
           <div className="ml-2 flex items-center gap-2.5 pl-3 border-l border-[var(--dev-border)]">

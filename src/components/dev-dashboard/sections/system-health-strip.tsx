@@ -19,20 +19,17 @@ export function SystemHealthStrip() {
   const pulse = [40, 42, 40, 44, 42, 41, 43, 41, 44, 42, 42];
 
   return (
-    <section
-      className="grid gap-3"
-      style={{ gridTemplateColumns: "minmax(260px, 320px) minmax(0, 1fr)" }}
-    >
+    <section className="grid grid-cols-1 gap-[var(--mobile-grid-gap)] sm:gap-3 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
       {/* Overall status */}
-      <div className="dev-card p-4 flex flex-col justify-between min-h-[140px]">
-        <div className="flex items-start justify-between">
-          <div>
+      <div className="dev-card p-4 flex flex-col justify-between gap-3 min-h-[140px]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <div className="text-[11.5px] text-[var(--dev-text-muted)] mb-1">Overall Status</div>
             <div className="text-[22px] font-semibold text-[var(--dev-success-text)] leading-tight">
               {overallOk ? "Operational" : "Degraded"}
             </div>
           </div>
-          <div className="size-9 rounded-full bg-[var(--dev-success-soft)] border border-[var(--dev-success-border)] inline-flex items-center justify-center">
+          <div className="size-9 shrink-0 rounded-full bg-[var(--dev-success-soft)] border border-[var(--dev-success-border)] inline-flex items-center justify-center">
             <CircleCheck className="size-5 text-[var(--dev-success-text)]" strokeWidth={2} />
           </div>
         </div>
@@ -52,27 +49,29 @@ export function SystemHealthStrip() {
         </svg>
       </div>
 
-      {/* Service tiles */}
+      {/* Service tiles — auto-fit grid. Tile min-width is tuned so it lays out:
+            2-col at very small mobile (≥360px), 3 at sm, 4 at md, up to 7 at lg+.
+            min-h-0 lets the row collapse cleanly when the outer grid stacks. */}
       <div
-        className="grid gap-3 min-w-0"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 8.75rem), 1fr))" }}
+        className="grid gap-[var(--mobile-grid-gap)] sm:gap-3 min-w-0"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 8rem), 1fr))" }}
       >
         {SYSTEM_SERVICES.map((s) => {
           const Icon = s.icon;
           return (
             <div
               key={s.key}
-              className="dev-card p-3 flex flex-col items-center text-center min-h-[140px] justify-between"
+              className="dev-card p-3 flex flex-col items-center text-center min-h-[132px] gap-2 justify-between"
             >
               <div
                 className={
-                  "size-10 rounded-[10px] inline-flex items-center justify-center border " + TONE_BG[s.tone]
+                  "size-9 rounded-[10px] inline-flex items-center justify-center border shrink-0 " + TONE_BG[s.tone]
                 }
               >
-                <Icon className="size-5" strokeWidth={1.8} />
+                <Icon className="size-[18px]" strokeWidth={1.8} />
               </div>
-              <div className="space-y-0.5">
-                <div className="text-[12.5px] font-semibold text-[var(--dev-text-primary)] leading-tight">
+              <div className="space-y-0.5 min-w-0 w-full">
+                <div className="text-[12.5px] font-semibold text-[var(--dev-text-primary)] leading-tight truncate">
                   {s.label}
                 </div>
                 <div className="text-[11px] text-[var(--dev-success-text)]">
