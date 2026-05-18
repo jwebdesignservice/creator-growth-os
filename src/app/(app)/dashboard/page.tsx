@@ -23,6 +23,7 @@ import {
   type UpcomingItem,
 } from "@/components/dashboard/upcoming-content";
 import { PerformanceOverview } from "@/components/dashboard/performance-overview";
+import { getProgressForPrograms } from "@/lib/programs/queries";
 
 export const metadata = { title: "Dashboard · Creator Growth OS" };
 
@@ -99,19 +100,34 @@ export default async function DashboardPage() {
   const tasksCompleted =
     todayMissions?.filter((m) => m.status === "completed").length ?? 0;
 
+  // Compute real per-program progress for the user. We do this in a
+  // separate round-trip on top of the parallel reads above so the
+  // dashboard card percentages reflect actual lesson_progress, not the
+  // mock 68/42 numbers we used to render.
+  const progressMap = dbPrograms?.length
+    ? await getProgressForPrograms(dbPrograms.map((p) => p.id))
+    : new Map();
+
   const programs: ProgramCard[] = dbPrograms?.length
-    ? dbPrograms.map((p, i): ProgramCard => ({
-        slug: p.slug,
-        title: p.title,
-        subtitle: p.description ?? "",
-        status:
-          p.plan_access === "pro"
-            ? "pro_only"
-            : i === 2
-              ? "not_started"
-              : "in_progress",
-        progress: i === 0 ? 68 : i === 1 ? 42 : 0,
-      }))
+    ? dbPrograms.map((p): ProgramCard => {
+        const prog = progressMap.get(p.id);
+        const percent = prog?.percent ?? 0;
+        const isProLocked = p.plan_access === "pro" && ctx.plan !== "pro";
+        const status: ProgramCard["status"] = isProLocked
+          ? "pro_only"
+          : percent >= 100
+            ? "completed"
+            : percent > 0
+              ? "in_progress"
+              : "not_started";
+        return {
+          slug: p.slug,
+          title: p.title,
+          subtitle: p.description ?? "",
+          status,
+          progress: percent,
+        };
+      })
     : FALLBACK_PROGRAMS;
 
   // ── Today's tasks (DB-backed) ─────────────────────────────────────────
