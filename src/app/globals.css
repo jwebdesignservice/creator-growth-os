@@ -177,6 +177,33 @@ body {
   border-radius: var(--card-radius);
 }
 
+/* ─── INPUT PRIMITIVE ───────────────────────────────────────────────────── */
+.input {
+  width:         100%;
+  min-height:    2.75rem;
+  padding:       0 0.875rem;
+  border:        1px solid var(--ink-200, #e5e2db);
+  background:    white;
+  border-radius: 10px;
+  font-size:     13.5px;
+  color:         var(--ink-900);
+  transition:    border-color 120ms ease;
+}
+.input:focus {
+  outline:       none;
+  border-color:  var(--rose-400, #f87171);
+}
+textarea.input {
+  padding-top:    0.625rem;
+  padding-bottom: 0.625rem;
+  min-height:     6rem;
+  resize:         vertical;
+}
+select.input {
+  padding-right:  2rem;
+  appearance:     auto;
+}
+
 /* ─── CHIP / BADGE PRIMITIVES ───────────────────────────────────────────────
    Base chip class. Extend with modifier classes (chip-rose, chip-gold…).
    ─────────────────────────────────────────────────────────────────────────── */

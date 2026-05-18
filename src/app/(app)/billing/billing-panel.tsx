@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useTransition } from "react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import type { InvoiceRow, SubscriptionRow } from "@/lib/billing/queries";
 import {
   Crown,
   Calendar,
@@ -59,12 +61,6 @@ const PLAN_INFO = {
   },
 } as const;
 
-const MOCK_INVOICES = [
-  { date: "May 15, 2025", id: "INV-2025-0515", description: "Basic Plan – Monthly", status: "Paid", amount: 999 },
-  { date: "Apr 15, 2025", id: "INV-2025-0415", description: "Basic Plan – Monthly", status: "Paid", amount: 999 },
-  { date: "Mar 15, 2025", id: "INV-2025-0315", description: "Basic Plan – Monthly", status: "Paid", amount: 999 },
-];
-
 const INCLUDED_FEATURES: { icon: React.ReactNode; label: string }[] = [
   { icon: <Mail      className="size-[1.125rem] text-rose-600" strokeWidth={1.8} />, label: "Access to all core courses and tutorials"       },
   { icon: <BarChart2 className="size-[1.125rem] text-rose-600" strokeWidth={1.8} />, label: "Advanced analytics & performance insights"       },
@@ -77,7 +73,17 @@ const INCLUDED_FEATURES: { icon: React.ReactNode; label: string }[] = [
 // Root export
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function BillingPageClient({ plan }: { plan: "free" | "basic" | "pro" }) {
+export function BillingPageClient({
+  plan,
+  subscription,
+  invoices,
+  stripeReady,
+}: {
+  plan: "free" | "basic" | "pro";
+  subscription: SubscriptionRow | null;
+  invoices: InvoiceRow[];
+  stripeReady: boolean;
+}) {
   return (
     <PageShell>
       <div className="w-full max-w-[var(--container-dashboard)] space-y-[var(--space-section-gap)]">
@@ -90,36 +96,128 @@ export function BillingPageClient({ plan }: { plan: "free" | "basic" | "pro" }) 
           <p className="text-[var(--text-body-sm)] text-ink-500 mt-1">
             Manage your subscription, payment methods, and invoices.
           </p>
+          {!stripeReady && (
+            <p className="mt-3 text-[12.5px] text-amber-700 bg-amber-50 border border-amber-200 rounded-[10px] px-3 py-2 inline-block">
+              Stripe is not yet configured — checkout & invoices will activate once env vars are set.
+            </p>
+          )}
         </div>
 
         {/* ── Row 1: Current Plan + Plan Picker ───────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-[20rem_1fr] xl:items-start gap-[var(--space-grid-gap)]">
-          <CurrentPlanCard plan={plan} />
-          <PlanPickerCard currentPlan={plan} />
+          <CurrentPlanCard
+            plan={plan}
+            subscription={subscription}
+            stripeReady={stripeReady}
+          />
+          <PlanPickerCard currentPlan={plan} stripeReady={stripeReady} />
         </div>
 
         {/* ── Row 2: 4 info cards ─────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--space-grid-gap)]">
-          <PaymentMethodCard />
-          <BillingSummaryCard plan={plan} />
+          <PaymentMethodCard
+            hasSubscription={Boolean(subscription?.stripe_subscription_id)}
+            stripeReady={stripeReady}
+          />
+          <BillingSummaryCard plan={plan} subscription={subscription} />
           <WhatsIncludedCard plan={plan} />
           <NeedHelpCard />
         </div>
 
         {/* ── Row 3: Invoices ─────────────────────────────────────────── */}
-        <RecentInvoicesCard />
+        <RecentInvoicesCard invoices={invoices} />
       </div>
     </PageShell>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Action hooks (checkout / portal)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function useCheckout() {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const start = (plan: "basic" | "pro") => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.url) {
+        setError(body.error ?? "Could not start checkout.");
+        return;
+      }
+      window.location.href = body.url;
+    });
+  };
+
+  return { start, pending, error };
+}
+
+function usePortal() {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const open = () => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.url) {
+        setError(body.error ?? "Could not open billing portal.");
+        return;
+      }
+      window.location.href = body.url;
+    });
+  };
+
+  return { open, pending, error };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. Current Plan
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CurrentPlanCard({ plan }: { plan: "free" | "basic" | "pro" }) {
+function CurrentPlanCard({
+  plan,
+  subscription,
+  stripeReady,
+}: {
+  plan: "free" | "basic" | "pro";
+  subscription: SubscriptionRow | null;
+  stripeReady: boolean;
+}) {
   const info  = PLAN_INFO[plan];
   const isPro = plan === "pro";
+  const { start: startCheckout, pending } = useCheckout();
+  const nextPaymentDate = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+  const statusLabel =
+    subscription?.status === "active"
+      ? "Active"
+      : subscription?.status === "trialing"
+        ? "Trial"
+        : subscription?.status === "past_due"
+          ? "Past due"
+          : subscription?.status === "canceled"
+            ? "Cancelled"
+            : "Active";
+  const statusColor =
+    subscription?.status === "past_due"
+      ? "bg-amber-100 text-amber-700"
+      : subscription?.status === "canceled"
+        ? "bg-ink-100 text-ink-600"
+        : "bg-emerald-100 text-emerald-700";
 
   return (
     <div className="card p-[var(--space-card-padding)] flex flex-col">
@@ -149,23 +247,22 @@ function CurrentPlanCard({ plan }: { plan: "free" | "basic" | "pro" }) {
       {/* Details grid */}
       <div className="space-y-[var(--space-stack-md)] mb-[var(--space-grid-gap)]">
         <DetailRow label="Status">
-          <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-emerald-100 text-[12px] font-semibold text-emerald-700">
-            Active
+          <span className={cn("inline-flex items-center h-6 px-2.5 rounded-full text-[12px] font-semibold", statusColor)}>
+            {statusLabel}
           </span>
         </DetailRow>
         <DetailRow label="Next payment">
           <span className="inline-flex items-center gap-1.5 text-[var(--text-small)] text-ink-700">
             <Calendar className="size-3.5 text-ink-400 shrink-0" strokeWidth={2} />
-            June 15, 2025
+            {nextPaymentDate}
           </span>
         </DetailRow>
         <DetailRow label="Billing cycle">
           <span className="text-[var(--text-small)] text-ink-700">Monthly</span>
         </DetailRow>
-        <DetailRow label="Payment method">
-          <span className="inline-flex items-center gap-1.5 text-[var(--text-small)] text-ink-700">
-            <MastercardIcon />
-            •••• 4242
+        <DetailRow label="Plan">
+          <span className="text-[var(--text-small)] text-ink-700 capitalize">
+            {plan}
           </span>
         </DetailRow>
       </div>
@@ -173,8 +270,13 @@ function CurrentPlanCard({ plan }: { plan: "free" | "basic" | "pro" }) {
       {/* Actions — natural placement below details (card hugs content at xl+ via items-start) */}
       <div className="space-y-3">
         {!isPro && (
-          <Button className="w-full" size="md">
-            Upgrade to Pro
+          <Button
+            className="w-full"
+            size="md"
+            disabled={!stripeReady || pending}
+            onClick={() => startCheckout("pro")}
+          >
+            {pending ? "Redirecting…" : "Upgrade to Pro"}
           </Button>
         )}
         <div className="flex items-center justify-center">
@@ -203,7 +305,13 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 // 2. Plan Picker
 // ─────────────────────────────────────────────────────────────────────────────
 
-function PlanPickerCard({ currentPlan }: { currentPlan: "free" | "basic" | "pro" }) {
+function PlanPickerCard({
+  currentPlan,
+  stripeReady,
+}: {
+  currentPlan: "free" | "basic" | "pro";
+  stripeReady: boolean;
+}) {
   return (
     <div id="plans" className="card p-[var(--space-card-padding)]">
       {/* Header */}
@@ -216,7 +324,12 @@ function PlanPickerCard({ currentPlan }: { currentPlan: "free" | "basic" | "pro"
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-[var(--space-grid-gap-sm)]">
         {(["free", "basic", "pro"] as const).map((key) => (
-          <PlanCard key={key} planKey={key} currentPlan={currentPlan} />
+          <PlanCard
+            key={key}
+            planKey={key}
+            currentPlan={currentPlan}
+            stripeReady={stripeReady}
+          />
         ))}
       </div>
     </div>
@@ -226,13 +339,17 @@ function PlanPickerCard({ currentPlan }: { currentPlan: "free" | "basic" | "pro"
 function PlanCard({
   planKey,
   currentPlan,
+  stripeReady,
 }: {
   planKey: "free" | "basic" | "pro";
   currentPlan: "free" | "basic" | "pro";
+  stripeReady: boolean;
 }) {
   const info      = PLAN_INFO[planKey];
   const isCurrent = planKey === currentPlan;
   const isPro     = planKey === "pro";
+  const isFree    = planKey === "free";
+  const { start: startCheckout, pending } = useCheckout();
 
   return (
     <div
@@ -285,13 +402,24 @@ function PlanCard({
           >
             Current Plan
           </button>
-        ) : isPro ? (
-          <Button size="sm" className="w-full min-h-[2.75rem] sm:min-h-0">
-            Upgrade to Pro
+        ) : isFree ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled
+            className="w-full min-h-[2.75rem] sm:min-h-0 opacity-60 cursor-default"
+          >
+            Free Forever
           </Button>
         ) : (
-          <Button size="sm" variant="outline" className="w-full min-h-[2.75rem] sm:min-h-0">
-            Get Started
+          <Button
+            size="sm"
+            variant={isPro ? "primary" : "outline"}
+            className="w-full min-h-[2.75rem] sm:min-h-0"
+            disabled={!stripeReady || pending}
+            onClick={() => startCheckout(planKey as "basic" | "pro")}
+          >
+            {pending ? "Redirecting…" : isPro ? "Upgrade to Pro" : "Get Basic"}
           </Button>
         )}
       </div>
@@ -321,7 +449,14 @@ function PlanCard({
 // 3. Payment Method
 // ─────────────────────────────────────────────────────────────────────────────
 
-function PaymentMethodCard() {
+function PaymentMethodCard({
+  hasSubscription,
+  stripeReady,
+}: {
+  hasSubscription: boolean;
+  stripeReady: boolean;
+}) {
+  const { open, pending } = usePortal();
   return (
     <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
       <h3 className="text-[13px] font-semibold text-ink-900 mb-4">Payment Method</h3>
@@ -332,12 +467,15 @@ function PaymentMethodCard() {
         </div>
         <div className="min-w-0">
           <div className="text-[13px] font-semibold text-ink-900 leading-snug">
-            Mastercard ending in 4242
+            {hasSubscription
+              ? "Managed in Stripe"
+              : "No payment method yet"}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-[12px] text-ink-500">Expires 04/28</span>
-            <span className="inline-flex items-center h-5 px-1.5 rounded-full bg-ink-100 text-[10.5px] font-semibold text-ink-600">
-              Default
+            <span className="text-[12px] text-ink-500">
+              {hasSubscription
+                ? "Open the portal to update card details."
+                : "Upgrade to add a payment method."}
             </span>
           </div>
         </div>
@@ -345,9 +483,11 @@ function PaymentMethodCard() {
 
       <button
         type="button"
-        className="w-full h-11 sm:h-9 rounded-[10px] border border-ink-200 text-[12.5px] font-semibold text-rose-600 hover:bg-cream-100 transition-colors mt-auto"
+        disabled={!stripeReady || !hasSubscription || pending}
+        onClick={open}
+        className="w-full h-11 sm:h-9 rounded-[10px] border border-ink-200 text-[12.5px] font-semibold text-rose-600 hover:bg-cream-100 transition-colors mt-auto disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Update Payment Method
+        {pending ? "Opening…" : "Update Payment Method"}
       </button>
     </div>
   );
@@ -357,21 +497,41 @@ function PaymentMethodCard() {
 // 4. Billing Summary
 // ─────────────────────────────────────────────────────────────────────────────
 
-function BillingSummaryCard({ plan }: { plan: "free" | "basic" | "pro" }) {
+function BillingSummaryCard({
+  plan,
+  subscription,
+}: {
+  plan: "free" | "basic" | "pro";
+  subscription: SubscriptionRow | null;
+}) {
   const info = PLAN_INFO[plan];
+  const nextDate = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+  const cancelling = subscription?.cancel_at_period_end ?? false;
 
   return (
     <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
       <h3 className="text-[13px] font-semibold text-ink-900 mb-4">Billing Summary</h3>
 
       <div className="space-y-3 flex-1">
-        <SummaryRow label="Next payment date" value="June 15, 2025" />
-        <SummaryRow label="Amount due"         value={`${info.price} kr`} />
-        <SummaryRow label="Billing cycle"      value="Monthly" />
+        <SummaryRow label="Next payment date" value={nextDate} />
+        <SummaryRow label="Amount due" value={`${info.price} kr`} />
+        <SummaryRow label="Billing cycle" value="Monthly" />
         <SummaryRow label="Account status">
-          <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-emerald-100 text-[12px] font-semibold text-emerald-700">
-            In Good Standing
-          </span>
+          {cancelling ? (
+            <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-amber-100 text-[12px] font-semibold text-amber-700">
+              Cancels at period end
+            </span>
+          ) : (
+            <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-emerald-100 text-[12px] font-semibold text-emerald-700">
+              In Good Standing
+            </span>
+          )}
         </SummaryRow>
       </div>
 
@@ -484,93 +644,128 @@ function NeedHelpCard() {
 // 7. Recent Invoices
 // ─────────────────────────────────────────────────────────────────────────────
 
-function RecentInvoicesCard() {
+function RecentInvoicesCard({ invoices }: { invoices: InvoiceRow[] }) {
+  if (invoices.length === 0) {
+    return (
+      <div className="card p-[var(--space-card-padding)] text-center">
+        <h3 className="text-[13px] font-semibold text-ink-900 mb-2">
+          Recent Invoices
+        </h3>
+        <p className="text-[12.5px] text-ink-500">
+          No invoices yet. They&apos;ll appear here after your first payment.
+        </p>
+      </div>
+    );
+  }
+
+  const formatAmount = (a: number, c: string) =>
+    `${(a / 100).toFixed(0)} ${c.toUpperCase()}`;
+
   return (
     <div className="card overflow-hidden">
-      {/* Card header */}
       <div className="flex items-center justify-between gap-4 px-[var(--space-table-cell-x)] py-4 border-b border-ink-100">
         <h3 className="text-[13px] font-semibold text-ink-900">Recent Invoices</h3>
-        <Link
-          href="#"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors shrink-0"
-        >
-          View All <ArrowRight className="size-3.5" strokeWidth={2.5} />
-        </Link>
       </div>
 
       {/* Mobile (<sm): stacked invoice cards */}
       <div className="sm:hidden divide-y divide-ink-50">
-        {MOCK_INVOICES.map((inv) => (
+        {invoices.map((inv) => (
           <div key={inv.id} className="p-4 hover:bg-cream-50 transition-colors">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-semibold text-ink-900 truncate">
-                  {inv.description}
+                  {inv.description ?? "Subscription payment"}
                 </div>
                 <div className="text-[12px] text-ink-500 mt-0.5">
-                  {inv.date} · <span className="font-mono">{inv.id}</span>
+                  {new Date(inv.paid_at ?? inv.created_at).toLocaleDateString()} ·{" "}
+                  <span className="font-mono">{inv.number ?? "—"}</span>
                 </div>
               </div>
-              <button
-                type="button"
-                aria-label="Download invoice"
-                className="size-10 rounded-[10px] hover:bg-cream-200 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:outline-none shrink-0"
-              >
-                <Download className="size-4 text-ink-500" strokeWidth={2} />
-              </button>
+              {inv.invoice_pdf && (
+                <a
+                  href={inv.invoice_pdf}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Download invoice"
+                  className="size-10 rounded-[10px] hover:bg-cream-200 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:outline-none shrink-0"
+                >
+                  <Download className="size-4 text-ink-500" strokeWidth={2} />
+                </a>
+              )}
             </div>
             <div className="flex items-center justify-between gap-3 mt-3">
-              <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-emerald-100 text-[12px] font-semibold text-emerald-700">
+              <span
+                className={cn(
+                  "inline-flex items-center h-6 px-2.5 rounded-full text-[12px] font-semibold capitalize",
+                  inv.status === "paid"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-amber-100 text-amber-700",
+                )}
+              >
                 {inv.status}
               </span>
               <span className="text-[14px] font-semibold text-ink-900 tabular-nums">
-                {inv.amount} kr
+                {formatAmount(inv.amount_paid, inv.currency)}
               </span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Tablet+ (sm+): table layout. Horizontal scroll wrapper kept as a safety net. */}
+      {/* Tablet+ */}
       <div className="hidden sm:block overflow-x-auto">
         <div className="min-w-[var(--table-min-width)]">
-          {/* Table head */}
           <div className="grid grid-cols-[1fr_1.1fr_2fr_0.9fr_0.9fr_2.5rem] gap-3 px-[var(--space-table-cell-x)] py-3 bg-cream-50 border-b border-ink-100">
             {["Date", "Invoice #", "Description", "Status", "Amount", ""].map((h, i) => (
-              <span
-                key={i}
-                className="text-[11px] font-semibold text-ink-500 uppercase tracking-wide"
-              >
+              <span key={i} className="text-[11px] font-semibold text-ink-500 uppercase tracking-wide">
                 {h}
               </span>
             ))}
           </div>
 
-          {/* Rows */}
           <div className="divide-y divide-ink-50">
-            {MOCK_INVOICES.map((inv) => (
+            {invoices.map((inv) => (
               <div
                 key={inv.id}
                 className="grid grid-cols-[1fr_1.1fr_2fr_0.9fr_0.9fr_2.5rem] gap-3 px-[var(--space-table-cell-x)] py-[var(--space-table-cell-y)] hover:bg-cream-50 transition-colors items-center"
               >
-                <span className="text-[var(--text-table)] text-ink-700 whitespace-nowrap">{inv.date}</span>
-                <span className="text-[var(--text-mono)] text-ink-700 font-mono whitespace-nowrap">{inv.id}</span>
-                <span className="text-[var(--text-table)] text-ink-700 truncate">{inv.description}</span>
+                <span className="text-[var(--text-table)] text-ink-700 whitespace-nowrap">
+                  {new Date(inv.paid_at ?? inv.created_at).toLocaleDateString()}
+                </span>
+                <span className="text-[var(--text-mono)] text-ink-700 font-mono whitespace-nowrap">
+                  {inv.number ?? "—"}
+                </span>
+                <span className="text-[var(--text-table)] text-ink-700 truncate">
+                  {inv.description ?? "Subscription payment"}
+                </span>
                 <span>
-                  <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-emerald-100 text-[12px] font-semibold text-emerald-700">
+                  <span
+                    className={cn(
+                      "inline-flex items-center h-6 px-2.5 rounded-full text-[12px] font-semibold capitalize",
+                      inv.status === "paid"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700",
+                    )}
+                  >
                     {inv.status}
                   </span>
                 </span>
                 <span className="text-[var(--text-table)] font-semibold text-ink-900 whitespace-nowrap tabular-nums">
-                  {inv.amount} kr
+                  {formatAmount(inv.amount_paid, inv.currency)}
                 </span>
-                <button
-                  type="button"
-                  aria-label="Download invoice"
-                  className="size-9 sm:size-8 rounded-[8px] hover:bg-cream-200 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:outline-none"
-                >
-                  <Download className="size-4 text-ink-500" strokeWidth={2} />
-                </button>
+                {inv.invoice_pdf ? (
+                  <a
+                    href={inv.invoice_pdf}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Download invoice"
+                    className="size-9 sm:size-8 rounded-[8px] hover:bg-cream-200 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:outline-none"
+                  >
+                    <Download className="size-4 text-ink-500" strokeWidth={2} />
+                  </a>
+                ) : (
+                  <span />
+                )}
               </div>
             ))}
           </div>

@@ -86,10 +86,34 @@ export async function requestPasswordReset(
   if (!email) return { error: "Enter your email." };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${appUrl}/auth/callback?type=recovery&next=/reset-password`,
+  });
   if (error) return { error: error.message };
 
   return { success: "Check your inbox for a reset link." };
+}
+
+export async function updatePassword(
+  _prev: FormResult,
+  formData: FormData,
+): Promise<FormResult> {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+  if (password !== confirm) {
+    return { error: "Passwords do not match." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  return { success: "Password updated. You can now sign in." };
 }
 
 export async function resendVerificationEmail(

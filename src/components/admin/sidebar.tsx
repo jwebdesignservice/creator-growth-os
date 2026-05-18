@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ExternalLink,
   GraduationCap,
+  PlayCircle,
   CalendarDays,
   BarChart3,
   type LucideIcon,
@@ -28,6 +29,7 @@ const MAIN: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Missions", href: "/admin/missions", icon: CheckSquare },
+  { label: "Lessons", href: "/admin/lessons", icon: PlayCircle },
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
 ];
 
