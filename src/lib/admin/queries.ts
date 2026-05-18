@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export type AdminStats = {
   totalUsers: number;
@@ -19,7 +19,7 @@ export type AdminStats = {
 };
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
   // Count total users (profiles)
   const { count: totalUsers } = await supabase
@@ -96,7 +96,7 @@ export async function getUsersList({
   page = 0,
   pageSize = 25,
 }: UsersListParams = {}): Promise<{ rows: AdminUserRow[]; total: number }> {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
   let query = supabase
     .from("profiles")
@@ -122,7 +122,7 @@ export async function getUsersList({
 }
 
 export async function getUserDetail(userId: string) {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -166,7 +166,7 @@ export async function getUserDetail(userId: string) {
 }
 
 export async function getMissionTemplates() {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from("mission_templates")
     .select("id, title, description, mission_type, category, plan_access, points, created_at")
@@ -175,7 +175,7 @@ export async function getMissionTemplates() {
 }
 
 export async function getAnnouncements() {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from("announcements")
     .select("id, title, body, audience_plan, audience_category, published_at")
