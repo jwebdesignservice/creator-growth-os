@@ -17,7 +17,7 @@
   /* ── App shell ─────────────────────────────────────────────────────────── */
   --sidebar-width:         clamp(14rem, 16vw, 17.5rem);  /* 224px → 280px   */
   --sidebar-width-compact: 5rem;                          /* icon-only mode   */
-  --topbar-height:         4.5rem;                       /* 72px — stable    */
+  --topbar-height:         5.5rem;                       /* 88px — more breathing room */
   --right-rail-width:      clamp(18rem, 22vw, 22rem);    /* 288px → 352px   */
   --right-rail-width-sm:   clamp(16rem, 20vw, 20rem);    /* narrower rail    */
 
