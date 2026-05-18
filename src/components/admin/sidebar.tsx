@@ -28,16 +28,15 @@ type NavItem = {
 const MAIN: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Missions", href: "/admin/missions", icon: CheckSquare },
+  { label: "Programs", href: "/admin/programs", icon: GraduationCap },
   { label: "Lessons", href: "/admin/lessons", icon: PlayCircle },
+  { label: "Missions", href: "/admin/missions", icon: CheckSquare },
+  { label: "Posting Plans", href: "/admin/posting", icon: CalendarDays },
+  { label: "Performance", href: "/admin/performance", icon: BarChart3 },
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
 ];
 
-const SOON: NavItem[] = [
-  { label: "Programs", href: "/admin", icon: GraduationCap, comingSoon: true },
-  { label: "Posting Plans", href: "/admin", icon: CalendarDays, comingSoon: true },
-  { label: "Performance", href: "/admin", icon: BarChart3, comingSoon: true },
-];
+const SOON: NavItem[] = [];
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -66,14 +65,18 @@ export function AdminSidebar() {
           ))}
         </ul>
 
-        <div className="mt-6 mb-2 px-3 text-[10px] uppercase tracking-[0.14em] text-cream-100/40 font-semibold">
-          Coming Soon
-        </div>
-        <ul className="space-y-1">
-          {SOON.map((item) => (
-            <NavLink key={item.label} item={item} active={false} />
-          ))}
-        </ul>
+        {SOON.length > 0 && (
+          <>
+            <div className="mt-6 mb-2 px-3 text-[10px] uppercase tracking-[0.14em] text-cream-100/40 font-semibold">
+              Coming Soon
+            </div>
+            <ul className="space-y-1">
+              {SOON.map((item) => (
+                <NavLink key={item.label} item={item} active={false} />
+              ))}
+            </ul>
+          </>
+        )}
       </nav>
 
       {/* Footer */}
