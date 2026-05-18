@@ -10,6 +10,7 @@ import {
   listBrandDeals,
   listRevenueEntries,
   getReadinessSnapshot,
+  computeRevenueTotals,
 } from "@/lib/monetization/queries";
 import { ReadinessScore } from "@/components/monetization/readiness-score";
 import { MediaKitBuilder } from "@/components/monetization/media-kit-builder";
@@ -68,7 +69,10 @@ export default async function MonetizationPage() {
 
         <DealTracker deals={deals} />
 
-        <RevenueTracker entries={revenue} />
+        <RevenueTracker
+          entries={revenue}
+          totals={computeRevenueTotals(revenue)}
+        />
       </div>
     </PageShell>
   );
