@@ -16,11 +16,28 @@ import { FeaturedTutorial } from "@/components/tutorials/featured";
 
 export const metadata = { title: "Tutorials · Creator Growth OS" };
 
-export default async function TutorialsPage() {
+type SearchParams = Promise<{ q?: string }>;
+
+export default async function TutorialsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
-  const tutorials = await getAllTutorials();
+  const { q = "" } = await searchParams;
+  const query = q.trim().toLowerCase();
+
+  const all = await getAllTutorials();
+  const tutorials = query
+    ? all.filter(
+        (t) =>
+          t.title.toLowerCase().includes(query) ||
+          (t.description ?? "").toLowerCase().includes(query) ||
+          (t.programTitle ?? "").toLowerCase().includes(query),
+      )
+    : all;
 
   // Featured = first non-completed lesson the user can access, else first
   const featured =
