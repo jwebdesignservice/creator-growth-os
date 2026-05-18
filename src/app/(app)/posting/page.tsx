@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Plus } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { PostingKpiTiles } from "@/components/posting/kpi-tiles";
@@ -7,6 +6,7 @@ import { ActivePlanCard } from "@/components/posting/active-plan-card";
 import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
 import { PostingRail } from "@/components/posting/rail";
 import { PostingTabs } from "@/components/posting/tabs";
+import { PostingActions } from "@/components/posting/posting-actions";
 import {
   getActivePlan,
   getPlannedItems,
@@ -99,13 +99,7 @@ export default async function PostingPage() {
               Plan smarter. Post consistently. Grow faster.
             </p>
           </div>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors cursor-pointer shadow-sm"
-          >
-            <Plus className="size-4" strokeWidth={2.5} />
-            Create New Plan
-          </button>
+          <PostingActions activePlanId={activePlan?.id ?? null} />
         </header>
 
         {/* Tabs */}
