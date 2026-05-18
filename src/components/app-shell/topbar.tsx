@@ -12,6 +12,7 @@ export { Avatar } from "./avatar";
 
 type Props = {
   user: {
+    id?: string;
     name: string;
     avatar_url?: string | null;
     plan?: string;
@@ -52,7 +53,7 @@ export function Topbar({
         </Link>
 
         <div className="flex items-center gap-1.5">
-          <NotifDropdown initialUnreadCount={unreadNotificationCount} />
+          <NotifDropdown initialUnreadCount={unreadNotificationCount} userId={user.id} />
           <Link
             href="/settings"
             aria-label="Account settings"
@@ -89,7 +90,7 @@ export function Topbar({
 
         {/* Icon actions */}
         <div className="flex items-center gap-2">
-          <NotifDropdown initialUnreadCount={unreadNotificationCount} />
+          <NotifDropdown initialUnreadCount={unreadNotificationCount} userId={user.id} />
           <Link
             href="/support"
             aria-label="Messages"
