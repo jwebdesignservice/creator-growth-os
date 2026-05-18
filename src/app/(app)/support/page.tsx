@@ -7,7 +7,7 @@ import type { SupportStepKey } from "./types";
 export const metadata = { title: "Support · Creator Growth OS" };
 
 type PageProps = {
-  searchParams: Promise<{ step?: string | string[] }>;
+  searchParams: Promise<{ step?: string | string[]; topic?: string | string[] }>;
 };
 
 function parseStep(v: string | string[] | undefined): SupportStepKey {
@@ -16,12 +16,30 @@ function parseStep(v: string | string[] | undefined): SupportStepKey {
   return "topic";
 }
 
+const VALID_TOPIC_KEYS = new Set([
+  "billing",
+  "technical",
+  "account",
+  "content",
+  "posting",
+  "community",
+  "coaching",
+  "feature",
+]);
+
+function parseTopic(v: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(v) ? v[0] : v;
+  if (raw && VALID_TOPIC_KEYS.has(raw)) return raw;
+  return undefined;
+}
+
 export default async function SupportPage({ searchParams }: PageProps) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
   const params = await searchParams;
   const initialStep = parseStep(params.step);
+  const initialTopic = parseTopic(params.topic);
 
   const [recentTickets, helpArticles] = await Promise.all([
     getMyRecentTickets(3),
@@ -31,6 +49,7 @@ export default async function SupportPage({ searchParams }: PageProps) {
   return (
     <SupportPageClient
       initialStep={initialStep}
+      initialTopic={initialTopic}
       recentTickets={recentTickets}
       helpArticles={helpArticles}
     />

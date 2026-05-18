@@ -30,10 +30,16 @@ type Props = {
   missions: Mission[];
   /** Server action that toggles completion. Return value is ignored. */
   onToggle: (id: string, completed: boolean) => Promise<unknown>;
+  /** Initial active tab — usually wired from the URL ?tab= query. */
+  defaultTab?: Tab;
 };
 
-export function MissionsBoard({ missions, onToggle }: Props) {
-  const [tab, setTab] = useState<Tab>("today");
+export function MissionsBoard({
+  missions,
+  onToggle,
+  defaultTab = "today",
+}: Props) {
+  const [tab, setTab] = useState<Tab>(defaultTab);
   const [typeFilter, setTypeFilter] = useState<MissionType | "all">("all");
   const [filterOpen, setFilterOpen] = useState(false);
 
