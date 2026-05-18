@@ -17,7 +17,7 @@ export const getShellContext = cache(async () => {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "full_name, display_name, email, phone, avatar_url, category, plan, onboarded",
+      "full_name, display_name, email, phone, avatar_url, category, plan, onboarded, primary_platform, follower_base, main_goal, niche, bottleneck",
     )
     .eq("id", user.id)
     .maybeSingle();
