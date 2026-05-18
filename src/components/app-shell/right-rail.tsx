@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Pencil,
   Send,
@@ -9,7 +10,6 @@ import {
 } from "lucide-react";
 import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
 import { Avatar } from "./topbar";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 type Profile = {
@@ -57,13 +57,13 @@ export function RightRail({ profile }: { profile: Profile }) {
 function ProfileCard({ profile }: { profile: Profile }) {
   return (
     <div className="card p-[var(--space-card-padding-sm)] relative">
-      <button
-        type="button"
+      <Link
+        href="/settings"
         className="absolute top-3 right-3 size-7 rounded-full bg-cream-100 hover:bg-cream-200 inline-flex items-center justify-center"
         aria-label="Edit profile"
       >
         <Pencil className="size-3.5 text-ink-500" strokeWidth={2} />
-      </button>
+      </Link>
       <div className="flex items-start gap-3">
         <Avatar
           name={profile.name}
@@ -157,9 +157,9 @@ function CompletionCard({ percent }: { percent: number }) {
       <p className="mt-3 text-[12px] text-ink-500 leading-snug">
         Complete your profile to get better recommendations and results.
       </p>
-      <button className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
+      <Link href="/settings" className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
         Complete now <ArrowRight className="size-3.5" strokeWidth={2} />
-      </button>
+      </Link>
     </div>
   );
 }
@@ -177,9 +177,9 @@ function CoachCard() {
           <p className="text-[12.5px] text-ink-700 leading-snug">
             You&apos;re doing amazing! Consistency is your superpower. Keep showing up and your audience will too.
           </p>
-          <button className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
+          <Link href="/support" className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
             Book 1:1 Coaching Call <ArrowRight className="size-3.5" strokeWidth={2} />
-          </button>
+          </Link>
         </div>
       </div>
     </div>
@@ -207,9 +207,9 @@ function CategoryCard({
       <p className="text-[12px] text-ink-500 leading-snug">
         You&apos;re in the {label} category. {description}
       </p>
-      <button className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
+      <Link href="/help" className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
         Learn more about categories <ArrowRight className="size-3.5" strokeWidth={2} />
-      </button>
+      </Link>
     </div>
   );
 }
@@ -232,9 +232,12 @@ function PlanCard({ plan }: { plan: "free" | "basic" | "pro" }) {
             : "You're on the Free plan. Upgrade to unlock the full creator path."}
       </p>
       {!isPro && (
-        <Button size="sm" className="w-full mb-3">
+        <Link
+          href="/billing?upgrade=pro"
+          className="w-full mb-3 inline-flex items-center justify-center gap-2 h-9 px-3 text-[13px] rounded-[10px] font-medium bg-rose-600 text-white hover:bg-rose-700 transition-colors"
+        >
           Upgrade Plan
-        </Button>
+        </Link>
       )}
 
       <PlanRow label="Free" price="0 kr/mnd" active={isFree} />

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronDown, Sparkles, ArrowRight } from "lucide-react";
 import { MissionCard, type Mission, type MissionType } from "./mission-card";
@@ -286,13 +287,13 @@ function ChallengeBanner() {
               />
             ))}
           </div>
-          <button
-            type="button"
+          <Link
+            href="/missions"
             className="inline-flex items-center gap-2 h-11 px-6 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium cursor-pointer transition-colors"
           >
             Continue Challenge
             <ArrowRight className="size-4" strokeWidth={2} />
-          </button>
+          </Link>
         </div>
         <div className="hidden lg:flex items-center justify-center">
           <div className="w-32 h-32 rounded-full bg-rose-100/60 flex items-center justify-center">

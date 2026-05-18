@@ -123,6 +123,7 @@ export default async function PostingPage() {
             description={planForUI.description}
             progress={planForUI.progress}
             weekLabel={`Week of ${planForUI.week_start}`}
+            planId={activePlan?.id}
           />
         </section>
 

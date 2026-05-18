@@ -400,7 +400,7 @@ function TemplatesDownloads() {
           <span className="text-rose-500">📚</span>
           Templates &amp; Downloads
         </h3>
-        <Link href="#" className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
+        <Link href="/tutorials" className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
           View all
         </Link>
       </div>

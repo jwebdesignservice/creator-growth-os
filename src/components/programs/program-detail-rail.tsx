@@ -126,13 +126,13 @@ export function ProgramDetailRail({
               </p>
             </div>
           </div>
-          <button
-            type="button"
+          <Link
+            href="/support?topic=coaching"
             className="w-full inline-flex items-center justify-center gap-1.5 h-10 rounded-[10px] bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-[13px] font-medium transition-colors cursor-pointer"
           >
             <MessageSquare className="size-3.5" strokeWidth={2} />
             Message Coach
-          </button>
+          </Link>
         </section>
 
         {/* Your Plan */}

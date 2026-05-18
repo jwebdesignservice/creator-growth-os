@@ -42,7 +42,7 @@ export function PlannedPostsTable({ items }: Props) {
       <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
         <h3 className="font-display text-[20px] text-ink-900">Planned Posts</h3>
         <Link
-          href="#"
+          href="/posting"
           className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
         >
           View Calendar
@@ -115,7 +115,7 @@ export function PlannedPostsTable({ items }: Props) {
 
       <footer className="border-t border-ink-100 px-5 py-3 flex items-center justify-center">
         <Link
-          href="#"
+          href="/posting"
           className="inline-flex items-center gap-1.5 text-[13px] font-medium text-rose-600 hover:text-rose-700"
         >
           View All Posts
