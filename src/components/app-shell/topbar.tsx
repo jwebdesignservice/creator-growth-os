@@ -7,7 +7,6 @@ import { NotifDropdown } from "./notifications-dropdown";
 import { MobileDrawer } from "./mobile-drawer";
 import { Avatar } from "./avatar";
 import { BrandMark } from "@/components/brand-mark";
-import { cn } from "@/lib/cn";
 
 export { Avatar } from "./avatar";
 
@@ -90,12 +89,20 @@ export function Topbar({
         {/* Icon actions */}
         <div className="flex items-center gap-2">
           <NotifDropdown initialUnreadCount={unreadNotificationCount} />
-          <IconButton aria-label="Messages">
+          <Link
+            href="/support"
+            aria-label="Messages"
+            className="relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors"
+          >
             <Mail className="size-[18px] text-ink-700" strokeWidth={1.8} />
-          </IconButton>
-          <IconButton aria-label="Calendar">
+          </Link>
+          <Link
+            href="/posting"
+            aria-label="Calendar"
+            className="relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors"
+          >
             <CalendarDays className="size-[18px] text-ink-700" strokeWidth={1.8} />
-          </IconButton>
+          </Link>
         </div>
 
         {/* Profile chip with dropdown */}
@@ -105,21 +112,3 @@ export function Topbar({
   );
 }
 
-function IconButton({
-  children,
-  className,
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        "relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors",
-        className,
-      )}
-      {...rest}
-    >
-      {children}
-    </button>
-  );
-}
