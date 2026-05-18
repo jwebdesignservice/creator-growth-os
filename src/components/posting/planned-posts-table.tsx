@@ -5,12 +5,12 @@ import {
   Plus,
   Video,
   Sparkles,
-  MoreHorizontal,
   ArrowRight,
 } from "lucide-react";
 import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
 import type { PostingItem, PlatformKey } from "@/lib/posting/queries";
+import { ItemActionsMenu } from "./item-actions-menu";
 
 type Props = {
   items: PostingItem[];
@@ -101,13 +101,10 @@ export function PlannedPostsTable({ items }: Props) {
                     </span>
                   </td>
                   <td className="py-3 px-5 text-right">
-                    <button
-                      type="button"
-                      className="size-8 rounded-full hover:bg-cream-200 inline-flex items-center justify-center text-ink-500 cursor-pointer"
-                      aria-label="Item actions"
-                    >
-                      <MoreHorizontal className="size-4" strokeWidth={2} />
-                    </button>
+                    <ItemActionsMenu
+                      itemId={item.id}
+                      currentStatus={item.status}
+                    />
                   </td>
                 </tr>
               ))}
