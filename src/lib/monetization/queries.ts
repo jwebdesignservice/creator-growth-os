@@ -106,6 +106,26 @@ export async function listRevenueEntries(
   return (data as RevenueEntry[] | null) ?? [];
 }
 
+export type RevenueTotals = {
+  total: number;
+  last30Total: number;
+};
+
+export function computeRevenueTotals(
+  entries: ReadonlyArray<RevenueEntry>,
+): RevenueTotals {
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  let total = 0;
+  let last30Total = 0;
+  for (const e of entries) {
+    total += e.amount;
+    if (new Date(e.received_on).getTime() > cutoff) {
+      last30Total += e.amount;
+    }
+  }
+  return { total, last30Total };
+}
+
 export type ReadinessSnapshot = {
   score: number;
   hasMediaKit: boolean;

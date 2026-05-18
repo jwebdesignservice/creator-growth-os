@@ -2,22 +2,21 @@
 
 import { useState, useTransition } from "react";
 import { Plus, Trash2, TrendingUp } from "lucide-react";
-import type { RevenueEntry } from "@/lib/monetization/queries";
+import type { RevenueEntry, RevenueTotals } from "@/lib/monetization/queries";
 import {
   createRevenueEntry,
   deleteRevenueEntry,
 } from "@/app/(app)/monetization/actions";
 
-export function RevenueTracker({ entries }: { entries: RevenueEntry[] }) {
+export function RevenueTracker({
+  entries,
+  totals,
+}: {
+  entries: RevenueEntry[];
+  totals: RevenueTotals;
+}) {
   const [open, setOpen] = useState(false);
-
-  const total = entries.reduce((sum, e) => sum + e.amount, 0);
-  const last30 = entries.filter(
-    (e) =>
-      new Date(e.received_on).getTime() >
-      Date.now() - 30 * 24 * 60 * 60 * 1000,
-  );
-  const last30Total = last30.reduce((sum, e) => sum + e.amount, 0);
+  const { total, last30Total } = totals;
 
   return (
     <div className="card p-[var(--space-card-padding)]">
