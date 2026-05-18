@@ -44,6 +44,7 @@ export async function getAllTutorials(): Promise<TutorialRow[]> {
     .select(
       "id, slug, title, description, duration_seconds, difficulty, content_type, plan_access, module_number, module_title, sort_order, category, programs(slug, title, sort_order, category_access)",
     )
+    .eq("published", true)
     .order("sort_order", { ascending: true });
 
   if (!lessons || lessons.length === 0) return [];
