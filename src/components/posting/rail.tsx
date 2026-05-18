@@ -128,7 +128,7 @@ export function PostingRail({
             )}
           </ul>
           <Link
-            href="/posting"
+            href="/posting?view=calendar"
             className="mt-3 inline-flex w-full items-center justify-center gap-1.5 h-9 rounded-[10px] bg-cream-100 hover:bg-cream-200 text-ink-700 text-[12.5px] font-medium border border-ink-100 transition-colors"
           >
             View All

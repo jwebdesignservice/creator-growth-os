@@ -16,7 +16,7 @@ export function ActivePlanCard({
   description,
   progress,
   weekLabel,
-  href = "/posting",
+  href = "/posting?view=calendar",
   planId,
 }: Props) {
   return (
