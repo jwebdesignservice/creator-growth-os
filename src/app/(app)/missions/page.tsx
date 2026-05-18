@@ -10,9 +10,25 @@ import { toggleMissionComplete } from "./actions";
 
 export const metadata = { title: "Today's Missions · Creator Growth OS" };
 
-export default async function MissionsPage() {
+type SearchParams = Promise<{ tab?: string }>;
+
+export default async function MissionsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
+
+  const { tab: tabParam } = await searchParams;
+  const initialTab: "today" | "week" | "all" | "completed" =
+    tabParam === "this-week" || tabParam === "week"
+      ? "week"
+      : tabParam === "all"
+        ? "all"
+        : tabParam === "completed"
+          ? "completed"
+          : "today";
 
   const supabase = await createClient();
 
@@ -134,6 +150,7 @@ export default async function MissionsPage() {
           <MissionsBoard
             missions={missions}
             onToggle={toggleMissionComplete}
+            defaultTab={initialTab}
           />
         ) : (
           <MissionsEmptyState />

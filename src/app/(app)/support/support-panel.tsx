@@ -82,12 +82,14 @@ function stepStates(active: SupportStepKey): StepperStep[] {
 
 type Props = {
   initialStep:  SupportStepKey;
+  initialTopic?: string;
   recentTickets: DbSupportTicket[];
   helpArticles:  DbHelpArticle[];
 };
 
 export function SupportPageClient({
   initialStep,
+  initialTopic,
   recentTickets,
   helpArticles,
 }: Props) {
@@ -96,8 +98,11 @@ export function SupportPageClient({
   const [, startTransition] = useTransition();
 
   // Form state — seeded from the draft so the layout feels alive on first
-  // load. Once a real ticket is submitted we reset on the success screen.
-  const [selectedTopic, setSelectedTopic] = useState<string>(SUPPORT_FORM_DRAFT.selectedTopic);
+  // load. Topic can also be deep-linked via /support?topic=<key>. Once a
+  // real ticket is submitted we reset on the success screen.
+  const [selectedTopic, setSelectedTopic] = useState<string>(
+    initialTopic ?? SUPPORT_FORM_DRAFT.selectedTopic,
+  );
   const [subject,       setSubject]       = useState(SUPPORT_FORM_DRAFT.subject);
   const [pageAffected,  setPageAffected]  = useState(SUPPORT_FORM_DRAFT.pageAffected);
   const [priority,      setPriority]      = useState<string>(SUPPORT_FORM_DRAFT.priority);
