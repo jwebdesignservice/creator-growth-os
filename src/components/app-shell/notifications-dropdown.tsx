@@ -104,11 +104,21 @@ export function NotifDropdown({
   // arrives, bump the unread badge and briefly pulse the bell. If the
   // dropdown is currently open we also append the new item so the
   // user sees it land without a refresh.
+  //
+  // The topic includes a per-mount nonce. Supabase JS v2 deduplicates
+  // channels by topic name; in React StrictMode dev the effect runs
+  // twice and the second mount would otherwise be handed the still-
+  // subscribed channel from the first mount — which crashes when we
+  // call `.on()` ("cannot add postgres_changes callbacks after subscribe()").
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
+    const nonce =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
     const channel = supabase
-      .channel(`notifications:user:${userId}`)
+      .channel(`notifications:user:${userId}:${nonce}`)
       .on(
         "postgres_changes",
         {
