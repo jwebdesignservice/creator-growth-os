@@ -7,6 +7,7 @@ import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
 import { PostingRail } from "@/components/posting/rail";
 import { PostingTabs } from "@/components/posting/tabs";
 import { PostingActions } from "@/components/posting/posting-actions";
+import { ContentCalendar } from "@/components/posting/content-calendar";
 import {
   getActivePlan,
   getPlannedItems,
@@ -17,17 +18,30 @@ import {
 
 export const metadata = { title: "Posting Plans · Creator Growth OS" };
 
-export default async function PostingPage() {
+type SearchParams = Promise<{ view?: string }>;
+
+export default async function PostingPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
+
+  const { view } = await searchParams;
+  const activeTab: "my_plans" | "calendar" =
+    view === "calendar" ? "calendar" : "my_plans";
 
   const [activePlan, pillars] = await Promise.all([
     getActivePlan(),
     getUserPillars(),
   ]);
 
+  // Calendar needs the FULL week's items, not just the top 4 the
+  // table previews. Pull a bigger window when we know we'll need it.
+  const itemLimit = activeTab === "calendar" ? 50 : 4;
   const [items, weekly] = await Promise.all([
-    getPlannedItems(activePlan?.id ?? null, 4),
+    getPlannedItems(activePlan?.id ?? null, itemLimit),
     getWeeklyStats(activePlan?.id ?? null),
   ]);
 
@@ -103,7 +117,7 @@ export default async function PostingPage() {
         </header>
 
         {/* Tabs */}
-        <PostingTabs />
+        <PostingTabs active={activeTab} />
 
         {/* KPI tiles */}
         <PostingKpiTiles
@@ -113,22 +127,31 @@ export default async function PostingPage() {
           engagementGoal={8}
         />
 
-        {/* Current Plan section */}
-        <section className="space-y-3">
-          <h2 className="text-[16px] font-semibold text-ink-900">
-            Current Plan
-          </h2>
-          <ActivePlanCard
-            title={planForUI.title}
-            description={planForUI.description}
-            progress={planForUI.progress}
-            weekLabel={`Week of ${planForUI.week_start}`}
-            planId={activePlan?.id}
-          />
-        </section>
+        {activeTab === "my_plans" ? (
+          <>
+            {/* Current Plan section */}
+            <section className="space-y-3">
+              <h2 className="text-[16px] font-semibold text-ink-900">
+                Current Plan
+              </h2>
+              <ActivePlanCard
+                title={planForUI.title}
+                description={planForUI.description}
+                progress={planForUI.progress}
+                weekLabel={`Week of ${planForUI.week_start}`}
+                planId={activePlan?.id}
+              />
+            </section>
 
-        {/* Planned Posts table */}
-        <PlannedPostsTable items={itemsForUI} />
+            {/* Planned Posts table */}
+            <PlannedPostsTable items={itemsForUI} />
+          </>
+        ) : (
+          <ContentCalendar
+            items={itemsForUI}
+            weekStart={activePlan?.week_start ?? null}
+          />
+        )}
       </div>
     </PageShell>
   );
