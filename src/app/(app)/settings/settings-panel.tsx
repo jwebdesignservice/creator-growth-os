@@ -135,6 +135,7 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
   const [phone,        setPhone]        = useState(profile?.phone         ?? "");
   const [followerBase, setFollowerBase] = useState(profile?.follower_base ?? "");
   const [saved,        setSaved]        = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
   const [, startTransition]            = useTransition();
 
   const handle    = profile?.display_name ?? "";
@@ -150,11 +151,14 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
     "Starter Creator";
 
   function handleSave() {
+    setError(null);
     startTransition(async () => {
       const result = await saveProfileSettings({ full_name: fullName, phone, follower_base: followerBase });
       if (result.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
+      } else {
+        setError(result.error ?? "Save failed.");
       }
     });
   }
@@ -283,7 +287,10 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
           </div>
 
           {/* Save */}
-          <div className="flex mt-5 sm:justify-end">
+          <div className="flex items-center justify-between gap-3 mt-5 flex-wrap sm:flex-nowrap">
+            <div className="text-[12.5px] text-rose-700 flex-1 min-w-0">
+              {error ?? ""}
+            </div>
             <Button
               size="sm"
               onClick={handleSave}
