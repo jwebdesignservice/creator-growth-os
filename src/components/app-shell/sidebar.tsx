@@ -15,6 +15,8 @@ import {
   Sparkles,
   ShieldCheck,
   Terminal,
+  UserCircle2,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
@@ -34,10 +36,12 @@ const PRIMARY: NavItem[] = [
   { label: "Posting Plans", href: "/posting", icon: CalendarDays },
   { label: "Tasks", href: "/missions", icon: CheckSquare },
   { label: "Performance", href: "/performance", icon: BarChart3 },
+  { label: "Monetization", href: "/monetization", icon: Wallet },
   { label: "Community", href: "/community", icon: Users },
 ];
 
 const SECONDARY: NavItem[] = [
+  { label: "Profile", href: "/profile", icon: UserCircle2 },
   { label: "Billing", href: "/billing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

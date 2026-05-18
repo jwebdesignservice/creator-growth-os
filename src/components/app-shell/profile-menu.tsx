@@ -7,6 +7,8 @@ import {
   Settings,
   CreditCard,
   LogOut,
+  UserCircle2,
+  LifeBuoy,
 } from "lucide-react";
 import { Avatar } from "./avatar";
 import { signOut } from "@/app/(auth)/actions";
@@ -94,6 +96,12 @@ export function ProfileMenu({ user }: Props) {
 
           {/* Links */}
           <MenuLink
+            href="/profile"
+            icon={<UserCircle2 className="size-4" strokeWidth={1.8} />}
+            label="Profile"
+            onClick={() => setOpen(false)}
+          />
+          <MenuLink
             href="/settings"
             icon={<Settings className="size-4" strokeWidth={1.8} />}
             label="Settings"
@@ -103,6 +111,12 @@ export function ProfileMenu({ user }: Props) {
             href="/billing"
             icon={<CreditCard className="size-4" strokeWidth={1.8} />}
             label="Billing"
+            onClick={() => setOpen(false)}
+          />
+          <MenuLink
+            href="/help"
+            icon={<LifeBuoy className="size-4" strokeWidth={1.8} />}
+            label="Help & Support"
             onClick={() => setOpen(false)}
           />
 
