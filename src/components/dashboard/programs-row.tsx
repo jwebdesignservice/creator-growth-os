@@ -6,7 +6,7 @@ export type ProgramCard = {
   slug: string;
   title: string;
   subtitle: string;
-  status: "in_progress" | "not_started" | "pro_only";
+  status: "in_progress" | "not_started" | "completed" | "pro_only";
   progress?: number; // 0-100
 };
 
@@ -51,14 +51,22 @@ function ProgramItem({ program }: { program: ProgramCard }) {
         <span
           className={cn(
             "absolute top-3 left-3 chip text-[10.5px]",
-            isPro ? "chip-rose" : program.status === "in_progress" ? "chip-rose" : "chip-gold",
+            isPro
+              ? "chip-rose"
+              : program.status === "completed"
+                ? "chip-success"
+                : program.status === "in_progress"
+                  ? "chip-rose"
+                  : "chip-gold",
           )}
         >
           {isPro
             ? "PRO ONLY"
-            : program.status === "in_progress"
-              ? "IN PROGRESS"
-              : "NOT STARTED"}
+            : program.status === "completed"
+              ? "COMPLETED"
+              : program.status === "in_progress"
+                ? "IN PROGRESS"
+                : "NOT STARTED"}
         </span>
         {isPro && (
           <div className="absolute inset-0 flex items-center justify-center">

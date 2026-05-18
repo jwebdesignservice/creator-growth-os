@@ -16,20 +16,60 @@ export default async function MissionsPage() {
 
   const supabase = await createClient();
 
-  // Pull this user's missions if any exist; otherwise render the seeded
-  // mock so the page is meaningful before an admin assigns missions.
   const today = new Date();
   const todayIso = today.toISOString().slice(0, 10);
-  const { data: dbMissions } = await supabase
-    .from("missions")
-    .select("id, title, description, status, completed_at, due_date, template_id")
-    .eq("user_id", ctx.user.id)
-    .gte("due_date", todayIso)
-    .order("created_at", { ascending: true })
-    .limit(20);
 
-  const missions: Mission[] = dbMissions?.length
-    ? dbMissions.map((m): Mission => ({
+  // Past 7 days for streak / activity rail (Mon → today)
+  const weekStart = new Date(today);
+  weekStart.setDate(weekStart.getDate() - 6);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekStartIso = weekStart.toISOString();
+
+  const [
+    { data: dbMissions },
+    { data: weekProfile },
+    { data: completedThisWeek },
+  ] = await Promise.all([
+    supabase
+      .from("missions")
+      .select("id, title, description, status, completed_at, due_date, template_id")
+      .eq("user_id", ctx.user.id)
+      .gte("due_date", todayIso)
+      .order("created_at", { ascending: true })
+      .limit(20),
+    supabase
+      .from("profiles")
+      .select("daily_streak")
+      .eq("id", ctx.user.id)
+      .maybeSingle(),
+    supabase
+      .from("missions")
+      .select("completed_at")
+      .eq("user_id", ctx.user.id)
+      .eq("status", "completed")
+      .gte("completed_at", weekStartIso)
+      .order("completed_at", { ascending: true }),
+  ]);
+
+  // Build the 7-day rail data from completedThisWeek
+  const dayBuckets: number[] = [0, 0, 0, 0, 0, 0, 0];
+  for (const row of completedThisWeek ?? []) {
+    if (!row.completed_at) continue;
+    const day = new Date(row.completed_at);
+    const dayStart = new Date(day);
+    dayStart.setHours(0, 0, 0, 0);
+    const idx = Math.floor(
+      (dayStart.getTime() - weekStart.getTime()) / 86400000,
+    );
+    if (idx >= 0 && idx < 7) dayBuckets[idx] += 1;
+  }
+  const weekChecks = dayBuckets.map((n) => n > 0);
+  const activityCounts = dayBuckets;
+  const dailyStreak = weekProfile?.daily_streak ?? 0;
+
+  const hasRealMissions = (dbMissions?.length ?? 0) > 0;
+  const missions: Mission[] = hasRealMissions
+    ? dbMissions!.map((m): Mission => ({
         id: m.id,
         title: m.title,
         description: m.description ?? "",
@@ -47,7 +87,7 @@ export default async function MissionsPage() {
             })
           : null,
       }))
-    : FALLBACK_MISSIONS;
+    : [];
 
   const firstName = ctx.name.split(" ")[0];
   const formattedDate = today.toLocaleDateString(undefined, {
@@ -64,9 +104,9 @@ export default async function MissionsPage() {
           userName={ctx.name}
           avatarUrl={ctx.railProfile.avatar_url}
           plan={ctx.plan}
-          streak={12}
-          weekChecks={[true, true, true, true, false, false, false]}
-          activityCounts={[3, 4, 6, 2, 0, 0, 0]}
+          streak={dailyStreak}
+          weekChecks={weekChecks}
+          activityCounts={activityCounts}
           focusLine="Lock in 1 posting mission and 1 engagement mission to keep your streak alive."
           upNext={UP_NEXT}
         />
@@ -90,91 +130,54 @@ export default async function MissionsPage() {
           </div>
         </header>
 
-        <MissionsBoard
-          missions={missions}
-          onToggle={toggleMissionComplete}
-        />
+        {hasRealMissions ? (
+          <MissionsBoard
+            missions={missions}
+            onToggle={toggleMissionComplete}
+          />
+        ) : (
+          <MissionsEmptyState />
+        )}
       </div>
     </PageShell>
   );
 }
 
-// ----------------------------------------------------------------------
-// Fallback content used until admin assigns real missions via templates.
-// ----------------------------------------------------------------------
+function MissionsEmptyState() {
+  return (
+    <section className="card p-10 text-center">
+      <div className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-4 mx-auto">
+        <Sparkles className="size-6" strokeWidth={1.8} />
+      </div>
+      <h2 className="font-display text-[22px] text-ink-900 mb-2">
+        No missions for today
+      </h2>
+      <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-6">
+        Your coach will assign daily missions tailored to your goals. While
+        you wait, head into a Program lesson or build out this week&apos;s
+        posting plan.
+      </p>
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <a
+          href="/programs"
+          className="inline-flex items-center justify-center h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold"
+        >
+          Continue a program
+        </a>
+        <a
+          href="/posting"
+          className="inline-flex items-center justify-center h-10 px-4 rounded-[10px] border border-ink-200 hover:bg-cream-100 text-ink-900 text-[13px] font-semibold"
+        >
+          Plan this week&apos;s posts
+        </a>
+      </div>
+    </section>
+  );
+}
 
-const FALLBACK_MISSIONS: Mission[] = [
-  {
-    id: "m1",
-    title: "Post 1 short-form video",
-    description:
-      "Pick a hook, film 30 seconds, post to your primary platform. Aim for a strong first 3 seconds.",
-    type: "posting",
-    difficulty: "medium",
-    minutes: 25,
-    points: 25,
-    linked: { label: "Hooks That Stop the Scroll", href: "/tutorials" },
-    completed: false,
-  },
-  {
-    id: "m2",
-    title: "Write 10 hooks for next week",
-    description:
-      "Use the 4 hook angles from your last lesson — curiosity, contrast, promise, problem.",
-    type: "strategy",
-    difficulty: "medium",
-    minutes: 20,
-    points: 20,
-    linked: { label: "Content That Connects", href: "/programs" },
-    completed: false,
-  },
-  {
-    id: "m3",
-    title: "Reply to DMs and 10 comments",
-    description:
-      "Spend 15 minutes engaging with your audience — reply with intention, not emojis.",
-    type: "engagement",
-    difficulty: "easy",
-    minutes: 15,
-    points: 10,
-    completed: true,
-    completed_at: "10:18 AM",
-  },
-  {
-    id: "m4",
-    title: "Comment on 5 creators in your niche",
-    description:
-      "Add real value — share a related experience or ask a thoughtful question.",
-    type: "engagement",
-    difficulty: "easy",
-    minutes: 10,
-    points: 10,
-    completed: false,
-  },
-  {
-    id: "m5",
-    title: "Review yesterday's post analytics",
-    description:
-      "Open insights, identify your best post, capture the hook that worked and why.",
-    type: "performance",
-    difficulty: "easy",
-    minutes: 10,
-    points: 10,
-    completed: true,
-    completed_at: "9:42 AM",
-  },
-  {
-    id: "m6",
-    title: "Record 3 practice intros",
-    description:
-      "Out loud, no filming. Practice your 5-second intro until it feels natural.",
-    type: "confidence",
-    difficulty: "easy",
-    minutes: 10,
-    points: 10,
-    completed: false,
-  },
-];
+// ----------------------------------------------------------------------
+// Static content
+// ----------------------------------------------------------------------
 
 const UP_NEXT = [
   { title: "Plan tomorrow's posting", type: "Strategy" },

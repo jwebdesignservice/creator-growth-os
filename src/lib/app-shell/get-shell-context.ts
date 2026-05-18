@@ -92,17 +92,32 @@ function computeProfileCompletion(
         avatar_url: string | null;
         category: string | null;
         plan: string | null;
+        niche?: string | null;
+        primary_platform?: string | null;
+        follower_base?: string | null;
+        main_goal?: string | null;
+        bottleneck?: string | null;
+        onboarded?: boolean | null;
       }
     | null
     | undefined,
 ) {
-  if (!profile) return 25;
-  const checks = [
+  if (!profile) return 0;
+
+  // Mix of profile basics (left rail facts) + creator brand info (set
+  // during onboarding). Onboarded users land near 80%; filling in
+  // optional phone + avatar gets them to 100%.
+  const checks: boolean[] = [
     !!profile.full_name,
-    !!profile.phone,
     !!profile.avatar_url,
+    !!profile.phone,
     !!profile.category,
-    !!profile.plan,
+    !!profile.onboarded,
+    !!profile.primary_platform,
+    !!profile.follower_base,
+    !!profile.main_goal,
+    !!profile.niche,
+    !!profile.bottleneck,
   ];
   const done = checks.filter(Boolean).length;
   return Math.round((done / checks.length) * 100);
