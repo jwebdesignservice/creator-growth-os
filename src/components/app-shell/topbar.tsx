@@ -69,7 +69,7 @@ export function Topbar({
       </div>
 
       {/* ── Desktop bar (lg+) ────────────────────────────────────────────── */}
-      <div className="hidden lg:flex items-center gap-4 h-[var(--topbar-height)] px-6 lg:px-8">
+      <div className="hidden lg:flex items-center gap-4 min-h-[var(--topbar-height)] py-4 px-6 lg:px-8">
         {/* Search */}
         <div className="flex-1 max-w-[520px]">
           <div className="relative">
