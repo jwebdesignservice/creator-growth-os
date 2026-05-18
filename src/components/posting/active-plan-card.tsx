@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CalendarDays, MoreHorizontal } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import { PlanActionsMenu } from "./plan-actions-menu";
 
 type Props = {
   title: string;
@@ -7,6 +8,7 @@ type Props = {
   progress: number;
   weekLabel: string;
   href?: string;
+  planId?: string;
 };
 
 export function ActivePlanCard({
@@ -14,7 +16,8 @@ export function ActivePlanCard({
   description,
   progress,
   weekLabel,
-  href = "#",
+  href = "/posting",
+  planId,
 }: Props) {
   return (
     <section className="card overflow-hidden">
@@ -70,13 +73,7 @@ export function ActivePlanCard({
         </div>
 
         <div className="flex items-center gap-2 self-start">
-          <button
-            type="button"
-            className="size-10 rounded-[12px] border border-ink-200 bg-white hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 cursor-pointer"
-            aria-label="Plan actions"
-          >
-            <MoreHorizontal className="size-4" strokeWidth={2} />
-          </button>
+          {planId && <PlanActionsMenu planId={planId} />}
           <Link
             href={href}
             className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-white border border-ink-200 hover:bg-cream-100 text-ink-900 text-[13.5px] font-medium transition-colors"

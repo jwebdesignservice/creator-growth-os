@@ -29,10 +29,9 @@ export function PerformanceOverview({
         <h3 className="font-display text-[20px] text-ink-900">
           Performance Overview
         </h3>
-        <button className="inline-flex items-center gap-1.5 px-3 h-9 rounded-[10px] bg-cream-100 border border-ink-100 text-[12.5px] font-medium text-ink-700 hover:bg-cream-200">
+        <span className="inline-flex items-center gap-1.5 px-3 h-9 rounded-[10px] bg-cream-100 border border-ink-100 text-[12.5px] font-medium text-ink-700">
           This Week
-          <ChevronDown className="size-3.5 text-ink-500" strokeWidth={2} />
-        </button>
+        </span>
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,280px)] gap-[var(--space-grid-gap)] items-center">
