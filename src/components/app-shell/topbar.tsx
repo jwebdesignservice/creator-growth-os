@@ -71,17 +71,18 @@ export function Topbar({
       <div className="hidden lg:flex items-center gap-4 min-h-[var(--topbar-height)] py-4 px-6 lg:px-8">
         {/* Search */}
         <div className="flex-1 max-w-[520px]">
-          <div className="relative">
+          <form action="/tutorials" className="relative">
             <Search
               className="absolute left-4 top-1/2 -translate-y-1/2 size-[16px] text-ink-400"
               strokeWidth={2}
             />
             <input
               type="search"
+              name="q"
               placeholder="Search programs, tutorials, topics..."
               className="w-full h-11 pl-11 pr-4 rounded-[14px] bg-white border border-ink-100 placeholder:text-ink-400 text-[13.5px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
             />
-          </div>
+          </form>
         </div>
 
         <div className="flex-1" />

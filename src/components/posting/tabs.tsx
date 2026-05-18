@@ -1,44 +1,53 @@
-"use client";
-
-import { useState } from "react";
 import { cn } from "@/lib/cn";
 
 const TABS = [
-  { key: "my_plans", label: "My Plans" },
-  { key: "calendar", label: "Content Calendar" },
-  { key: "templates", label: "Templates" },
-  { key: "best_times", label: "Best Times" },
-  { key: "analytics", label: "Analytics" },
+  { key: "my_plans", label: "My Plans", ready: true },
+  { key: "calendar", label: "Content Calendar", ready: false },
+  { key: "templates", label: "Templates", ready: false },
+  { key: "best_times", label: "Best Times", ready: false },
+  { key: "analytics", label: "Analytics", ready: false },
 ] as const;
 
-type TabKey = (typeof TABS)[number]["key"];
-
-type Props = {
-  defaultTab?: TabKey;
-};
-
-export function PostingTabs({ defaultTab = "my_plans" }: Props) {
-  const [tab, setTab] = useState<TabKey>(defaultTab);
-
+/**
+ * Posting page sub-tabs.
+ *
+ * Right now only "My Plans" is functional. The remaining tabs are
+ * reserved for future surfaces (calendar grid, plan templates, optimal
+ * post times, plan-level analytics). Until those views exist we keep
+ * the row visible (signals the roadmap) but render the unbuilt entries
+ * as disabled "Soon" chips so users can't click into a dead view.
+ */
+export function PostingTabs() {
   return (
     <div className="border-b border-ink-100">
       <ul className="flex items-center gap-1 flex-wrap">
         {TABS.map((t) => {
-          const active = tab === t.key;
+          if (t.ready) {
+            return (
+              <li key={t.key}>
+                <span
+                  className={cn(
+                    "h-11 px-4 inline-flex items-center text-[13.5px] font-medium border-b-2 -mb-px",
+                    "text-rose-700 border-rose-500",
+                  )}
+                >
+                  {t.label}
+                </span>
+              </li>
+            );
+          }
           return (
             <li key={t.key}>
-              <button
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={cn(
-                  "h-11 px-4 inline-flex items-center text-[13.5px] font-medium border-b-2 -mb-px cursor-pointer transition-colors",
-                  active
-                    ? "text-rose-700 border-rose-500"
-                    : "text-ink-500 hover:text-ink-900 border-transparent",
-                )}
+              <span
+                aria-disabled
+                title="Coming soon"
+                className="h-11 px-4 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-ink-400 border-b-2 -mb-px border-transparent cursor-not-allowed"
               >
                 {t.label}
-              </button>
+                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-cream-200 text-ink-500">
+                  Soon
+                </span>
+              </span>
             </li>
           );
         })}
