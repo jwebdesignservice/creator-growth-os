@@ -14,6 +14,7 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { Bell, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { createClient } from "@/lib/supabase/client";
 import {
   getDropdownNotifications,
   markAllNotificationsRead,
@@ -67,11 +68,18 @@ type DropdownItem = {
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function NotifDropdown({ initialUnreadCount = 0 }: { initialUnreadCount?: number }) {
+export function NotifDropdown({
+  initialUnreadCount = 0,
+  userId,
+}: {
+  initialUnreadCount?: number;
+  userId?: string;
+}) {
   const [open, setOpen]           = useState(false);
   const [unreadCount, setUnread]  = useState(initialUnreadCount);
   const [items, setItems]         = useState<DropdownItem[] | null>(null); // null = not yet loaded
   const [isPending, startTransition] = useTransition();
+  const [pulse, setPulse]         = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   // Keep badge in sync if the server re-renders with a new count (e.g. after
@@ -91,6 +99,50 @@ export function NotifDropdown({ initialUnreadCount = 0 }: { initialUnreadCount?:
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Real-time: subscribe to new notifications for this user. When one
+  // arrives, bump the unread badge and briefly pulse the bell. If the
+  // dropdown is currently open we also append the new item so the
+  // user sees it land without a refresh.
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`notifications:user:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            title: string;
+            category: NotificationCategory;
+            type: NotificationType;
+            status: string;
+            created_at: string;
+            action_url: string | null;
+          };
+          setUnread((c) => c + 1);
+          setPulse(true);
+          setTimeout(() => setPulse(false), 1200);
+          setItems((prev) =>
+            prev === null
+              ? prev
+              : [{ ...row, live: true }, ...prev].slice(0, 5),
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   function handleOpen() {
     const next = !open;
@@ -127,11 +179,20 @@ export function NotifDropdown({ initialUnreadCount = 0 }: { initialUnreadCount?:
         className={cn(
           "relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors",
           open && "bg-cream-200 border-rose-200",
+          pulse && "brand-pulse",
         )}
       >
         <Bell className="size-[18px] text-ink-700" strokeWidth={1.8} />
         {unreadCount > 0 && (
-          <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-600 ring-2 ring-cream-100" />
+          <>
+            <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-600 ring-2 ring-cream-100" />
+            {pulse && (
+              <span
+                aria-hidden
+                className="absolute top-2 right-2 size-2 rounded-full bg-rose-500 animate-ping"
+              />
+            )}
+          </>
         )}
         <span className="sr-only">{unreadCount} notifications</span>
       </button>

@@ -63,6 +63,7 @@ export const getShellContext = cache(async () => {
   }
 
   const topUser = {
+    id: user.id,
     name,
     avatar_url: profile?.avatar_url ?? null,
     plan,
