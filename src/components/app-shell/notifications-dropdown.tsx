@@ -105,20 +105,26 @@ export function NotifDropdown({
   // dropdown is currently open we also append the new item so the
   // user sees it land without a refresh.
   //
-  // The topic includes a per-mount nonce. Supabase JS v2 deduplicates
-  // channels by topic name; in React StrictMode dev the effect runs
-  // twice and the second mount would otherwise be handed the still-
-  // subscribed channel from the first mount — which crashes when we
-  // call `.on()` ("cannot add postgres_changes callbacks after subscribe()").
+  // Channel name carries a per-mount suffix so a remount (page nav,
+  // Fast Refresh) never collides with a stale subscription still
+  // tearing down — that collision was throwing inside the topbar and
+  // bubbling up as a 500 on /posting and other shell pages. The
+  // `cancelled` flag guards the INSERT callback so a late event
+  // arriving after unmount can't call setState on a dead component.
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
-    const nonce =
+
+    const suffix =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2);
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const channelName = `notifications:user:${userId}:${suffix}`;
+
+    let cancelled = false;
+
     const channel = supabase
-      .channel(`notifications:user:${userId}:${nonce}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -128,6 +134,7 @@ export function NotifDropdown({
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          if (cancelled) return;
           const row = payload.new as {
             id: string;
             title: string;
@@ -150,7 +157,14 @@ export function NotifDropdown({
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      try {
+        supabase.removeChannel(channel);
+      } catch {
+        // Channel may already be torn down (HMR, double-invoke in
+        // StrictMode, or socket in a transient state). Swallow so the
+        // unmount path can't throw and crash the surrounding tree.
+      }
     };
   }, [userId]);
 
