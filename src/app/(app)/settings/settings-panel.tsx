@@ -31,6 +31,7 @@ import {
   ArrowRight,
   ExternalLink,
   Info,
+  LifeBuoy,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -577,29 +578,67 @@ function SecurityCard({ profile }: { profile: ProfileRow }) {
         </span>
       ),
     },
+    // ── My Support Tickets ────────────────────────────────────────────
+    // The only row in this card that's an actual navigation today — the
+    // others are visual placeholders waiting on a real backend. We still
+    // render it inside Security because the user-facing mental model is
+    // "things tied to my account" and tickets live there.
+    {
+      icon: <LifeBuoy className="size-4 text-ink-500" strokeWidth={1.8} />,
+      label: "My Support Tickets",
+      href:  "/support/tickets",
+      action: (
+        <span className="text-[13px] font-semibold text-rose-600 group-hover:text-rose-700 transition-colors">
+          View tickets
+        </span>
+      ),
+    },
   ];
 
   return (
     <div className="card p-5">
       <h2 className="font-display text-[17px] text-ink-900 mb-4">Security</h2>
       <div className="divide-y divide-ink-100">
-        {rows.map(({ icon, label, action }) => (
-          <div
-            key={label}
-            className="flex items-center justify-between py-3.5 cursor-pointer group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-8 rounded-[10px] bg-cream-100 flex items-center justify-center shrink-0">
-                {icon}
+        {rows.map(({ icon, label, action, href }) => {
+          // Inner content is identical for both the static and navigable
+          // variants — we just swap the outer wrapper so rows with an href
+          // are real <Link>s (keyboard-focusable, right-clickable, etc.)
+          // while the placeholder rows stay as plain divs.
+          const inner = (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="size-8 rounded-[10px] bg-cream-100 flex items-center justify-center shrink-0">
+                  {icon}
+                </div>
+                <span className="text-[13.5px] font-medium text-ink-800">{label}</span>
               </div>
-              <span className="text-[13.5px] font-medium text-ink-800">{label}</span>
+              <div className="flex items-center gap-2">
+                {action}
+                <ArrowRight className="size-4 text-ink-300 group-hover:text-ink-500 transition-colors" strokeWidth={2} />
+              </div>
+            </>
+          );
+
+          const baseClasses =
+            "flex items-center justify-between py-3.5 cursor-pointer group";
+
+          return href ? (
+            <Link
+              key={label}
+              href={href}
+              className={cn(
+                baseClasses,
+                "rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200",
+              )}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={label} className={baseClasses}>
+              {inner}
             </div>
-            <div className="flex items-center gap-2">
-              {action}
-              <ArrowRight className="size-4 text-ink-300 group-hover:text-ink-500 transition-colors" strokeWidth={2} />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
