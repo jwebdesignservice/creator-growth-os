@@ -31,6 +31,7 @@ import {
   ArrowRight,
   ExternalLink,
   Info,
+  LifeBuoy,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ interface Props {
   socialAccounts: SocialAccount[];
   pillars:        string[];
   preferences:    NotificationPreferences;
+  firstName?:     string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,6 +76,7 @@ export function SettingsPageClient({
   socialAccounts,
   pillars: initialPillars,
   preferences,
+  firstName,
 }: Props) {
   const instagram = socialAccounts.find((a) => a.platform === "instagram");
   const tiktok    = socialAccounts.find((a) => a.platform === "tiktok");
@@ -96,6 +99,11 @@ export function SettingsPageClient({
       <div className="max-w-[var(--container-content)] space-y-5 sm:space-y-6">
         {/* Page header */}
         <div>
+          {firstName && (
+            <div className="text-rose-600 font-medium text-[13.5px] flex items-center gap-2 mb-2">
+              Welcome back, {firstName}! <span aria-hidden>👋</span>
+            </div>
+          )}
           <h1 className="font-display text-[26px] sm:text-[28px] text-ink-900 leading-tight">
             User Settings
           </h1>
@@ -186,16 +194,26 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
             </div>
             <button
               type="button"
-              className="absolute bottom-0 right-0 size-7 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-white flex items-center justify-center transition-colors shadow-sm"
-              aria-label="Edit photo"
+              disabled
+              aria-disabled="true"
+              aria-label="Edit photo — coming soon"
+              title="Photo upload is coming soon."
+              className="absolute bottom-0 right-0 size-7 rounded-full bg-rose-300 border-2 border-white flex items-center justify-center shadow-sm cursor-not-allowed"
             >
-              <Pencil className="size-3 text-white" strokeWidth={2.5} />
+              <Pencil className="size-3 text-white" strokeWidth={2.5} aria-hidden />
             </button>
           </div>
-          <span className="mt-2.5 text-[12.5px] font-medium text-rose-600 cursor-pointer hover:text-rose-700">
+          <span
+            aria-disabled="true"
+            title="Photo upload is coming soon."
+            className="mt-2.5 text-[12.5px] font-medium text-ink-400 cursor-not-allowed select-none"
+          >
             Edit photo
           </span>
-          <span className="text-[11px] text-ink-400 text-center mt-0.5 leading-snug">
+          <span className="inline-flex items-center px-1.5 h-[18px] mt-1 rounded-full text-[10px] font-semibold bg-cream-200 text-ink-500 border border-ink-200 uppercase tracking-wider">
+            Coming soon
+          </span>
+          <span className="text-[11px] text-ink-400 text-center mt-1 leading-snug">
             JPG, PNG or WebP. Max 5MB.
           </span>
         </div>
@@ -560,29 +578,67 @@ function SecurityCard({ profile }: { profile: ProfileRow }) {
         </span>
       ),
     },
+    // ── My Support Tickets ────────────────────────────────────────────
+    // The only row in this card that's an actual navigation today — the
+    // others are visual placeholders waiting on a real backend. We still
+    // render it inside Security because the user-facing mental model is
+    // "things tied to my account" and tickets live there.
+    {
+      icon: <LifeBuoy className="size-4 text-ink-500" strokeWidth={1.8} />,
+      label: "My Support Tickets",
+      href:  "/support/tickets",
+      action: (
+        <span className="text-[13px] font-semibold text-rose-600 group-hover:text-rose-700 transition-colors">
+          View tickets
+        </span>
+      ),
+    },
   ];
 
   return (
     <div className="card p-5">
       <h2 className="font-display text-[17px] text-ink-900 mb-4">Security</h2>
       <div className="divide-y divide-ink-100">
-        {rows.map(({ icon, label, action }) => (
-          <div
-            key={label}
-            className="flex items-center justify-between py-3.5 cursor-pointer group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-8 rounded-[10px] bg-cream-100 flex items-center justify-center shrink-0">
-                {icon}
+        {rows.map(({ icon, label, action, href }) => {
+          // Inner content is identical for both the static and navigable
+          // variants — we just swap the outer wrapper so rows with an href
+          // are real <Link>s (keyboard-focusable, right-clickable, etc.)
+          // while the placeholder rows stay as plain divs.
+          const inner = (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="size-8 rounded-[10px] bg-cream-100 flex items-center justify-center shrink-0">
+                  {icon}
+                </div>
+                <span className="text-[13.5px] font-medium text-ink-800">{label}</span>
               </div>
-              <span className="text-[13.5px] font-medium text-ink-800">{label}</span>
+              <div className="flex items-center gap-2">
+                {action}
+                <ArrowRight className="size-4 text-ink-300 group-hover:text-ink-500 transition-colors" strokeWidth={2} />
+              </div>
+            </>
+          );
+
+          const baseClasses =
+            "flex items-center justify-between py-3.5 cursor-pointer group";
+
+          return href ? (
+            <Link
+              key={label}
+              href={href}
+              className={cn(
+                baseClasses,
+                "rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200",
+              )}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={label} className={baseClasses}>
+              {inner}
             </div>
-            <div className="flex items-center gap-2">
-              {action}
-              <ArrowRight className="size-4 text-ink-300 group-hover:text-ink-500 transition-colors" strokeWidth={2} />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -774,13 +830,13 @@ function SettingsRail({
               )}
             </div>
           </div>
-          <button
-            type="button"
-            className="w-full h-9 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors flex items-center justify-center gap-1.5"
+          <Link
+            href="/profile"
+            className="w-full h-9 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
           >
             View Public Profile
-            <ExternalLink className="size-3.5" strokeWidth={2} />
-          </button>
+            <ExternalLink className="size-3.5" strokeWidth={2} aria-hidden />
+          </Link>
         </div>
 
         {/* Social & Audience Snapshot */}

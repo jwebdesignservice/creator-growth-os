@@ -69,9 +69,18 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
     step === "complete" ? true : isStepComplete(step, draft);
 
   return (
-    <div className="min-h-screen bg-rose-100/40 px-4 py-8 lg:py-10">
-      <div className="max-w-[1240px] mx-auto bg-white rounded-[28px] border border-ink-100 shadow-card overflow-hidden">
-        <div className="p-6 lg:p-10 space-y-8">
+    <div
+      className="min-h-screen px-4 py-8 sm:py-10 lg:py-14 bg-cream-100"
+      style={{
+        // Premium soft creator-warmth gradient — matches the dashboard hero
+        // tones without being loud. Single inline declaration so we don't
+        // touch the global token system.
+        backgroundImage:
+          "radial-gradient(60% 60% at 50% 0%, rgba(244, 213, 209, 0.7) 0%, rgba(244, 213, 209, 0) 60%), linear-gradient(180deg, var(--cream-50) 0%, var(--cream-100) 100%)",
+      }}
+    >
+      <div className="max-w-[1240px] mx-auto bg-white rounded-[20px] sm:rounded-[28px] border border-ink-100 shadow-card overflow-hidden">
+        <div className="p-5 sm:p-6 lg:p-10 space-y-6 sm:space-y-8">
           <StepHeader current={step} />
 
           {step === "stage" && <StageStep draft={draft} onChange={onChange} />}

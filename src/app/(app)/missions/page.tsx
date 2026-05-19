@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Sparkles, CalendarDays } from "lucide-react";
+import { Sparkles, CalendarDays, GraduationCap, CalendarRange } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { MissionsRail } from "@/components/missions/rail";
 import { MissionsBoard } from "@/components/missions/missions-board";
@@ -162,31 +163,33 @@ export default async function MissionsPage({
 
 function MissionsEmptyState() {
   return (
-    <section className="card p-10 text-center">
+    <section className="card p-8 sm:p-10 text-center">
       <div className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-4 mx-auto">
-        <Sparkles className="size-6" strokeWidth={1.8} />
+        <Sparkles className="size-6" strokeWidth={1.8} aria-hidden />
       </div>
-      <h2 className="font-display text-[22px] text-ink-900 mb-2">
+      <h2 className="font-display text-[20px] sm:text-[22px] text-ink-900 mb-2">
         No missions for today
       </h2>
-      <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-6">
+      <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-6 leading-relaxed">
         Your coach will assign daily missions tailored to your goals. While
         you wait, head into a Program lesson or build out this week&apos;s
         posting plan.
       </p>
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        <a
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 max-w-sm mx-auto sm:max-w-none">
+        <Link
           href="/programs"
-          className="inline-flex items-center justify-center h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold"
+          className="inline-flex items-center justify-center gap-1.5 h-11 sm:h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
         >
+          <GraduationCap className="size-4" strokeWidth={2} aria-hidden />
           Continue a program
-        </a>
-        <a
+        </Link>
+        <Link
           href="/posting"
-          className="inline-flex items-center justify-center h-10 px-4 rounded-[10px] border border-ink-200 hover:bg-cream-100 text-ink-900 text-[13px] font-semibold"
+          className="inline-flex items-center justify-center gap-1.5 h-11 sm:h-10 px-4 rounded-[10px] border border-ink-200 bg-white hover:bg-cream-100 text-ink-900 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
         >
+          <CalendarRange className="size-4 text-ink-500" strokeWidth={2} aria-hidden />
           Plan this week&apos;s posts
-        </a>
+        </Link>
       </div>
     </section>
   );

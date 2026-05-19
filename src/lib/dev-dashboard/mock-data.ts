@@ -39,6 +39,10 @@ import {
   Inbox,
   MessageCircle,
   Star,
+  ServerCog,
+  HardDriveDownload,
+  ShieldQuestion,
+  ListTree,
 } from "lucide-react";
 import type {
   ActiveIncident,
@@ -117,6 +121,17 @@ import type {
   SupportTicketDetails,
   SupportTimelineEvent,
   SupportTicketDetailBundle,
+  DatabaseMetricCard,
+  DatabaseFiltersState,
+  DbQueryPerfChart,
+  DbTableActivityRow,
+  DbSlowQueryRow,
+  DbRlsPolicyRow,
+  DbMigrationStatus,
+  DbStorageBucketRow,
+  DbRpcRow,
+  DbIntegrityWarning,
+  DbEventRow,
 } from "./types";
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -2300,3 +2315,266 @@ export function getSupportTicketDetail(ticketId: string): SupportTicketDetailBun
     summary: { ...SUPPORT_TICKET_DETAIL_SUP_10482.summary, id },
   };
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   DATABASE PAGE (/dev/database)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Top metric strip (6 tiles) ──────────────────────────────────────────── */
+export const DATABASE_METRIC_CARDS: DatabaseMetricCard[] = [
+  {
+    key: "db-status",
+    label: "Database Status",
+    value: "Healthy",
+    tone: "green",
+    icon: Database,
+    statusLabel: "Operational",
+    note: "All connections stable",
+    series: [99.9, 99.9, 100, 99.8, 99.9, 100, 100, 99.9, 100, 100, 100, 100],
+  },
+  {
+    key: "active-connections",
+    label: "Active Connections",
+    value: "42",
+    tone: "blue",
+    icon: Activity,
+    delta: "+6",
+    deltaDirection: "up",
+    deltaIsGood: true,
+    baseline: "vs previous hour",
+    series: [28, 30, 32, 34, 33, 35, 36, 36, 38, 40, 41, 42],
+  },
+  {
+    key: "slow-queries",
+    label: "Slow Queries",
+    value: "12",
+    tone: "amber",
+    icon: Timer,
+    delta: "+2",
+    deltaDirection: "up",
+    deltaIsGood: false,
+    baseline: "vs previous 24h",
+    series: [6, 7, 8, 7, 9, 9, 10, 10, 11, 11, 12, 12],
+  },
+  {
+    key: "failed-queries",
+    label: "Failed Queries",
+    value: "4",
+    tone: "green",
+    icon: AlertOctagon,
+    delta: "-3",
+    deltaDirection: "down",
+    deltaIsGood: true,
+    baseline: "vs previous 24h",
+    series: [8, 7, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4],
+  },
+  {
+    key: "rls-denials",
+    label: "RLS Denials",
+    value: "28",
+    tone: "orange",
+    icon: ShieldX,
+    delta: "+8",
+    deltaDirection: "up",
+    deltaIsGood: false,
+    baseline: "vs previous 24h",
+    series: [12, 14, 16, 17, 18, 20, 22, 23, 24, 26, 27, 28],
+  },
+  {
+    key: "avg-query-time",
+    label: "Avg Query Time",
+    value: "84ms",
+    tone: "green",
+    icon: Gauge,
+    delta: "-12ms",
+    deltaDirection: "down",
+    deltaIsGood: true,
+    baseline: "vs previous 24h",
+    series: [102, 99, 96, 94, 92, 91, 90, 89, 87, 86, 85, 84],
+  },
+];
+
+/* ── Filter row defaults ─────────────────────────────────────────────────── */
+export const DATABASE_FILTERS_DEFAULTS: DatabaseFiltersState = {
+  table:       "All tables",
+  queryType:   "All query types",
+  status:      "All statuses",
+  environment: "Production",
+  timeframe:   "Last 24 hours",
+};
+
+/* ── Query Performance Over Time (24 hourly points × 3 series) ──────────── */
+export const DB_QUERY_PERF_CHART: DbQueryPerfChart = {
+  xLabels: ["12 AM", "4 AM", "8 AM", "12 PM", "4 PM", "8 PM", "12 AM"],
+  yLabels: ["0", "300", "600", "900", "1.2K"],
+  yMax: 1200,
+  series: [
+    {
+      key: "avg",
+      label: "Avg Query Time (ms)",
+      color: "var(--dev-chart-blue)",
+      values: [
+        88, 86, 84, 82, 80, 82, 86, 92, 102, 110, 118, 122, 124, 120, 116,
+        112, 106, 102, 98, 96, 92, 88, 86, 84, 84,
+      ],
+    },
+    {
+      key: "p95",
+      label: "p95 Query Time (ms)",
+      color: "var(--dev-chart-violet)",
+      values: [
+        260, 250, 240, 230, 230, 240, 280, 320, 380, 460, 540, 620, 720, 700,
+        660, 600, 540, 480, 420, 380, 340, 310, 290, 280, 270,
+      ],
+    },
+    {
+      key: "failed",
+      label: "Failed Queries",
+      color: "var(--dev-chart-amber)",
+      values: [
+        1, 1, 1, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1,
+        1, 1,
+      ],
+    },
+  ],
+};
+
+/* ── Table Activity ──────────────────────────────────────────────────────── */
+export const DB_TABLE_ACTIVITY: DbTableActivityRow[] = [
+  { table: "profiles",         reads: 24812, writes: 1204, rowCount: 24918,  status: "Healthy"       },
+  { table: "subscriptions",    reads: 8420,  writes: 382,  rowCount: 7848,   status: "Healthy"       },
+  { table: "notifications",    reads: 18214, writes: 2184, rowCount: 102884, status: "High activity" },
+  { table: "programs",         reads: 6928,  writes: 124,  rowCount: 148,    status: "Healthy"       },
+  { table: "tutorials",        reads: 9112,  writes: 218,  rowCount: 420,    status: "Healthy"       },
+  { table: "support_tickets",  reads: 3812,  writes: 248,  rowCount: 248,    status: "Healthy"       },
+];
+
+/* ── Slowest Queries ─────────────────────────────────────────────────────── */
+export const DB_SLOW_QUERIES: DbSlowQueryRow[] = [
+  { key: "q-notif",   query: "SELECT * FROM notifications WHERE user_id…",  p95Ms: 1240 },
+  { key: "q-events",  query: "SELECT * FROM analytics_events…",             p95Ms: 985  },
+  { key: "q-support", query: "SELECT * FROM support_tickets…",              p95Ms: 742  },
+  { key: "q-posting", query: "SELECT * FROM posting_plans…",                p95Ms: 512  },
+  { key: "q-subs",    query: "SELECT * FROM subscriptions…",                p95Ms: 412  },
+];
+
+/* ── RLS / Policy Monitor ────────────────────────────────────────────────── */
+export const DB_RLS_POLICIES: DbRlsPolicyRow[] = [
+  { key: "rls-profiles",        label: "profiles SELECT policy",       status: "Healthy"    },
+  { key: "rls-subs-insert",     label: "subscriptions INSERT policy",  status: "Warning"    },
+  { key: "rls-support-select",  label: "support_tickets SELECT policy",status: "Healthy"    },
+  { key: "rls-admin-cms",       label: "admin CMS policies",           status: "Review"     },
+  { key: "rls-dev-dashboard",   label: "dev dashboard policies",       status: "Restricted" },
+];
+
+/* ── Migration Status ────────────────────────────────────────────────────── */
+export const DB_MIGRATION_STATUS: DbMigrationStatus = {
+  latestMigration: "20260518_add_support_tickets",
+  status: "Applied",
+  lastRun: "28m ago",
+  pendingCount: 0,
+  failedCount: 0,
+};
+
+/* ── Storage Bucket Status ───────────────────────────────────────────────── */
+export const DB_STORAGE_BUCKETS: DbStorageBucketRow[] = [
+  { bucket: "avatars",              status: "Healthy", size: "1.8GB", usagePercent: 18 },
+  { bucket: "support-attachments",  status: "Healthy", size: "420MB", usagePercent: 8  },
+  { bucket: "tutorial-media",       status: "Warning", size: "8.4GB", usagePercent: 84 },
+  { bucket: "program-assets",       status: "Healthy", size: "2.1GB", usagePercent: 21 },
+];
+
+/* ── RPC / Functions Health ──────────────────────────────────────────────── */
+export const DB_RPC_HEALTH: DbRpcRow[] = [
+  { fn: "get_user_dashboard",       status: "Healthy", avgMs: 82  },
+  { fn: "mark_notification_read",   status: "Healthy", avgMs: 41  },
+  { fn: "create_support_ticket",    status: "Healthy", avgMs: 124 },
+  { fn: "sync_subscription_status", status: "Warning", avgMs: 318 },
+  { fn: "calculate_user_progress",  status: "Healthy", avgMs: 96  },
+];
+
+/* ── Database Integrity Warnings ────────────────────────────────────────── */
+export const DB_INTEGRITY_WARNINGS: DbIntegrityWarning[] = [
+  { id: "iw-1", message: "9 Pro users missing subscription row",        tone: "danger"  },
+  { id: "iw-2", message: "28 billing sync mismatches",                  tone: "warning" },
+  { id: "iw-3", message: "14 notifications without action route",       tone: "warning" },
+  { id: "iw-4", message: "6 users without onboarding category",         tone: "info"    },
+  { id: "iw-5", message: "3 duplicate social account records",          tone: "warning" },
+];
+
+/* ── Recent Database Events table ───────────────────────────────────────── */
+export const RECENT_DB_EVENTS: DbEventRow[] = [
+  {
+    id: "dbe-1",
+    time: "10:41:58",
+    event: "query_completed",
+    source: "profiles",
+    type: "SELECT",
+    duration: "82ms",
+    statusLabel: "Success",
+    statusKind: "success",
+    details: "user profile fetch",
+  },
+  {
+    id: "dbe-2",
+    time: "10:41:32",
+    event: "rls_denied",
+    source: "subscriptions",
+    type: "SELECT",
+    duration: "18ms",
+    statusLabel: "Warning",
+    statusKind: "warning",
+    details: "policy denied request",
+  },
+  {
+    id: "dbe-3",
+    time: "10:40:11",
+    event: "insert_completed",
+    source: "support_tickets",
+    type: "INSERT",
+    duration: "124ms",
+    statusLabel: "Success",
+    statusKind: "success",
+    details: "new ticket created",
+  },
+  {
+    id: "dbe-4",
+    time: "10:39:47",
+    event: "slow_query",
+    source: "notifications",
+    type: "SELECT",
+    duration: "1.24s",
+    statusLabel: "Warning",
+    statusKind: "warning",
+    details: "unread notification query",
+  },
+  {
+    id: "dbe-5",
+    time: "10:38:10",
+    event: "rpc_completed",
+    source: "mark_notification_read",
+    type: "RPC",
+    duration: "41ms",
+    statusLabel: "Success",
+    statusKind: "success",
+    details: "notification updated",
+  },
+  {
+    id: "dbe-6",
+    time: "10:36:54",
+    event: "storage_upload",
+    source: "support-attachments",
+    type: "UPLOAD",
+    duration: "512ms",
+    statusLabel: "Success",
+    statusKind: "success",
+    details: "attachment uploaded",
+  },
+];
+
+export const RECENT_DB_EVENTS_TOTAL = 842;
+export const RECENT_DB_EVENTS_TOTAL_PAGES = 141;
+
+/* Re-export icons used downstream by the database page in case a future
+ * component needs them. Tree-shaken away when unused. */
+export { ServerCog, HardDriveDownload, ShieldQuestion, ListTree };

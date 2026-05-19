@@ -14,7 +14,7 @@ import { getAllTutorials, type TutorialRow } from "@/lib/programs/tutorial-queri
 import { TutorialLibrary } from "@/components/tutorials/library";
 import { FeaturedTutorial } from "@/components/tutorials/featured";
 
-export const metadata = { title: "Tutorials · Creator Growth OS" };
+export const metadata = { title: "Tutorials | Creator Growth OS" };
 
 type SearchParams = Promise<{ q?: string }>;
 

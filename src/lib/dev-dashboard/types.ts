@@ -1110,3 +1110,153 @@ export type SupportTicketDetailBundle = {
   relatedIssues: SupportRelatedIssue[];
   slaRisk: SupportSlaRisk;
 };
+
+/* ─────────────────────────────────────────────────────────────────────────
+   DATABASE PAGE (/dev/database)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/** Tone for the top metric tile (icon-tile + sparkline color). */
+export type DatabaseMetricTone = "blue" | "green" | "amber" | "orange" | "red";
+
+/** Top-strip metric card. `value` may be a status word ("Healthy") or a
+ *  number/duration. When `statusLabel` is present, it renders as a pill
+ *  instead of a sparkline delta — used by "Database Status". */
+export type DatabaseMetricCard = {
+  key: string;
+  label: string;
+  value: string;
+  tone: DatabaseMetricTone;
+  icon: LucideIcon;
+  /** Optional pill — when set, the delta row is replaced by this label. */
+  statusLabel?: string;
+  /** Optional note rendered under the value (e.g. "All connections stable"). */
+  note?: string;
+  delta?: string;
+  deltaDirection?: "up" | "down";
+  deltaIsGood?: boolean;
+  baseline?: string;
+  series: number[];
+};
+
+/* ── Filter / control row ──────────────────────────────────────────────── */
+
+export type DatabaseFiltersState = {
+  table: string;        // "All tables", "profiles", "subscriptions", …
+  queryType: string;    // "All query types", "SELECT", "INSERT", …
+  status: string;       // "All statuses", "Success", "Warning", …
+  environment: string;  // "Production" | "Staging" | …
+  timeframe: string;    // "Last 24 hours" | "Last 7 days" | …
+};
+
+/* ── Query Performance Over Time chart ─────────────────────────────────── */
+
+export type DbQueryPerfSeriesKey = "avg" | "p95" | "failed";
+export type DbQueryPerfSeries = {
+  key: DbQueryPerfSeriesKey;
+  label: string;
+  color: string;
+  values: number[];
+};
+export type DbQueryPerfChart = {
+  xLabels: string[];
+  yLabels: string[];
+  yMax: number;
+  series: DbQueryPerfSeries[];
+};
+
+/* ── Table Activity ────────────────────────────────────────────────────── */
+
+export type DbTableActivityStatus =
+  | "Healthy"
+  | "High activity"
+  | "Warning"
+  | "Critical";
+export type DbTableActivityRow = {
+  table: string;
+  reads: number;
+  writes: number;
+  rowCount: number;
+  status: DbTableActivityStatus;
+};
+
+/* ── Slowest Queries ───────────────────────────────────────────────────── */
+
+export type DbSlowQueryRow = {
+  key: string;
+  /** Truncated query — full query lives in the events log. */
+  query: string;
+  p95Ms: number;
+};
+
+/* ── RLS / Policy Monitor ──────────────────────────────────────────────── */
+
+export type DbRlsPolicyStatus = "Healthy" | "Warning" | "Review" | "Restricted";
+export type DbRlsPolicyRow = {
+  key: string;
+  label: string;
+  status: DbRlsPolicyStatus;
+};
+
+/* ── Migration Status ──────────────────────────────────────────────────── */
+
+export type DbMigrationStatusKind = "Applied" | "Pending" | "Failed";
+export type DbMigrationStatus = {
+  latestMigration: string;
+  status: DbMigrationStatusKind;
+  lastRun: string;
+  pendingCount: number;
+  failedCount: number;
+};
+
+/* ── Storage Bucket Status ─────────────────────────────────────────────── */
+
+export type DbStorageBucketStatus = "Healthy" | "Warning" | "Critical";
+export type DbStorageBucketRow = {
+  bucket: string;
+  status: DbStorageBucketStatus;
+  size: string;        // "1.8GB"
+  /** Used % for the soft fill bar — 0-100. */
+  usagePercent: number;
+};
+
+/* ── RPC / Functions Health ────────────────────────────────────────────── */
+
+export type DbRpcStatus = "Healthy" | "Warning" | "Critical";
+export type DbRpcRow = {
+  fn: string;
+  status: DbRpcStatus;
+  avgMs: number;
+};
+
+/* ── Database Integrity Warnings ───────────────────────────────────────── */
+
+export type DbIntegrityTone = "warning" | "danger" | "info";
+export type DbIntegrityWarning = {
+  id: string;
+  message: string;
+  tone: DbIntegrityTone;
+};
+
+/* ── Recent Database Events table ──────────────────────────────────────── */
+
+export type DbEventStatusKind = "success" | "warning" | "danger" | "info";
+export type DbEventType =
+  | "SELECT"
+  | "INSERT"
+  | "UPDATE"
+  | "DELETE"
+  | "RPC"
+  | "UPLOAD"
+  | "MIGRATION"
+  | "OTHER";
+export type DbEventRow = {
+  id: string;
+  time: string;
+  event: string;       // e.g. "query_completed", "rls_denied", …
+  source: string;      // table or function name
+  type: DbEventType;
+  duration: string;    // pre-formatted ("82ms", "1.24s")
+  statusLabel: string;
+  statusKind: DbEventStatusKind;
+  details: string;
+};

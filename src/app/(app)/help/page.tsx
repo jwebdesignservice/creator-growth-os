@@ -5,7 +5,7 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getAllHelpArticles } from "@/lib/support/queries";
 import { PageShell } from "@/components/app-shell/page-shell";
 
-export const metadata = { title: "Help Center · Creator Growth OS" };
+export const metadata = { title: "Help Center | Creator Growth OS" };
 
 export default async function HelpCenterPage() {
   const ctx = await getShellContext();
@@ -38,15 +38,34 @@ export default async function HelpCenterPage() {
           </p>
         </header>
 
-        {/* Search (UI-only placeholder for now) */}
+        {/*
+          Search field — UI-only placeholder until the help search
+          backend lands. Rendered as visually-disabled with a "Coming
+          soon" pill so users don't type and wonder why nothing happens.
+          Mirrors the same honest-disabled treatment used elsewhere in
+          the app for not-yet-wired controls.
+        */}
         <div className="relative max-w-xl">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-[15px] text-ink-400" strokeWidth={1.9} aria-hidden />
+          <Search
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 size-[15px] text-ink-300"
+            strokeWidth={1.9}
+            aria-hidden
+          />
           <input
             type="search"
             placeholder="Search articles…"
-            aria-label="Search help articles"
-            className="w-full h-11 pl-9 pr-3 rounded-[12px] bg-white border border-ink-200 text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200 transition-colors"
+            aria-label="Search help articles — coming soon"
+            aria-disabled="true"
+            disabled
+            title="Search is coming soon. Browse the categories below or contact support."
+            className="w-full h-11 pl-9 pr-28 rounded-[12px] bg-cream-100 border border-ink-100 text-[13.5px] text-ink-700 placeholder:text-ink-400 cursor-not-allowed"
           />
+          <span
+            className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center px-2 h-6 rounded-full text-[10.5px] font-semibold tracking-wider uppercase bg-cream-200 text-ink-500 border border-ink-200"
+            aria-hidden
+          >
+            Coming soon
+          </span>
         </div>
 
         {articles.length === 0 ? (

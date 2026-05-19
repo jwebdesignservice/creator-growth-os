@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getNotificationPreferences } from "@/lib/notifications/queries";
 import { SettingsPageClient } from "./settings-panel";
 
-export const metadata = { title: "Settings · Creator Growth OS" };
+export const metadata = { title: "Settings | Creator Growth OS" };
 
 export default async function SettingsPage() {
   const ctx = await getShellContext();
@@ -12,6 +12,9 @@ export default async function SettingsPage() {
 
   const supabase  = await createClient();
   const userId    = ctx.user.id;
+  const firstName =
+    (ctx.profile?.display_name ?? ctx.profile?.full_name ?? ctx.user.email?.split("@")[0] ?? "Creator")
+      .split(" ")[0];
 
   const [
     { data: profile },
@@ -35,6 +38,7 @@ export default async function SettingsPage() {
       socialAccounts={socialAccounts ?? []}
       pillars={(pillars ?? []).map((p) => p.label)}
       preferences={preferences}
+      firstName={firstName}
     />
   );
 }

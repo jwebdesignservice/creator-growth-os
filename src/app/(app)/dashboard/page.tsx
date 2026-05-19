@@ -25,7 +25,7 @@ import {
 import { PerformanceOverview } from "@/components/dashboard/performance-overview";
 import { getProgressForPrograms } from "@/lib/programs/queries";
 
-export const metadata = { title: "Dashboard · Creator Growth OS" };
+export const metadata = { title: "Dashboard | Creator Growth OS" };
 
 export default async function DashboardPage() {
   const ctx = await getShellContext();
@@ -334,10 +334,12 @@ const FALLBACK_PROGRAMS: ProgramCard[] = [
   },
 ];
 
+// Fallback shown when the user has no lesson_progress rows yet. Slugs match
+// real lessons in 0003_lessons_seed.sql so links don't 404.
 const MOCK_LESSONS: Lesson[] = [
   {
-    slug: "finding-your-niche",
-    title: "Finding Your Niche",
+    slug: "defining-niche-sweet-spot",
+    title: "Defining Your Niche Sweet Spot",
     program_title: "The Influencer Blueprint",
     lesson_label: "Lesson 3",
     duration: "12:45",
@@ -350,8 +352,8 @@ const MOCK_LESSONS: Lesson[] = [
     duration: "15:30",
   },
   {
-    slug: "hooks-that-get-attention",
-    title: "Hooks That Get Attention",
+    slug: "hooks-that-stop-the-scroll",
+    title: "Hooks That Stop The Scroll",
     program_title: "Content That Connects",
     lesson_label: "Lesson 6",
     duration: "11:20",

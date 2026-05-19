@@ -91,13 +91,14 @@ interface Props {
   notifications: NotificationWithGroup[];
   preferences:   NotificationPreferences;
   unreadCount:   number;
+  firstName?:    string;
 }
 
-export function NotificationsPageClient({ notifications, preferences, unreadCount }: Props) {
+export function NotificationsPageClient({ notifications, preferences, unreadCount, firstName }: Props) {
   return (
     <PageShell rail={<NotificationsRail initialPrefs={preferences} initialUnread={unreadCount} />}>
       <div className="w-full max-w-[1180px]">
-        <NotificationsMain initialItems={notifications} />
+        <NotificationsMain initialItems={notifications} firstName={firstName} />
 
         {/* Inline rail content for <xl viewers — desktop rail is `hidden xl:flex`. */}
         <div className="xl:hidden mt-8 space-y-4">
@@ -115,7 +116,13 @@ export function NotificationsPageClient({ notifications, preferences, unreadCoun
 // Main notification list
 // ─────────────────────────────────────────────────────────────────────────────
 
-function NotificationsMain({ initialItems }: { initialItems: NotificationWithGroup[] }) {
+function NotificationsMain({
+  initialItems,
+  firstName,
+}: {
+  initialItems: NotificationWithGroup[];
+  firstName?: string;
+}) {
   const [items, setItems]               = useState(initialItems);
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>("all");
   const [, startTransition]             = useTransition();
@@ -166,6 +173,11 @@ function NotificationsMain({ initialItems }: { initialItems: NotificationWithGro
     <div>
       {/* Header */}
       <div className="mb-6">
+        {firstName && (
+          <div className="text-rose-600 font-medium text-[13.5px] flex items-center gap-2 mb-2">
+            Welcome back, {firstName}! <span aria-hidden>👋</span>
+          </div>
+        )}
         <h1 className="font-display text-[28px] text-ink-900 leading-tight">Notifications</h1>
         <p className="text-[14px] text-ink-500 mt-1">
           Stay updated with tasks, lessons, community, events and important updates.

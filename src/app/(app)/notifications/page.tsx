@@ -6,13 +6,16 @@ import {
 } from "@/lib/notifications/queries";
 import { NotificationsPageClient } from "./notifications-panel";
 
-export const metadata = { title: "Notifications · Creator Growth OS" };
+export const metadata = { title: "Notifications | Creator Growth OS" };
 
 export default async function NotificationsPage() {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
   const userId = ctx.user.id;
+  const firstName =
+    (ctx.profile?.display_name ?? ctx.profile?.full_name ?? ctx.user.email?.split("@")[0] ?? "Creator")
+      .split(" ")[0];
 
   // Run all three queries in parallel — getShellContext is cached so
   // unreadNotificationCount is already available without an extra round-trip.
@@ -26,6 +29,7 @@ export default async function NotificationsPage() {
       notifications={notifications}
       preferences={preferences}
       unreadCount={ctx.unreadNotificationCount}
+      firstName={firstName}
     />
   );
 }

@@ -108,7 +108,9 @@ export function NotifDropdown({
   // Channel name carries a per-mount suffix so a remount (page nav,
   // Fast Refresh) never collides with a stale subscription still
   // tearing down — that collision was throwing inside the topbar and
-  // bubbling up as a 500 on /posting and other shell pages.
+  // bubbling up as a 500 on /posting and other shell pages. The
+  // `cancelled` flag guards the INSERT callback so a late event
+  // arriving after unmount can't call setState on a dead component.
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
