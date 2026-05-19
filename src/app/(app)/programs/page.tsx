@@ -10,7 +10,7 @@ import { ProgramsGrid } from "@/components/programs/programs-grid";
 import type { ProgramRow } from "@/components/programs/program-card";
 import { getProgressForPrograms } from "@/lib/programs/queries";
 
-export const metadata = { title: "Programs · Creator Growth OS" };
+export const metadata = { title: "Programs | Creator Growth OS" };
 
 export default async function ProgramsPage() {
   const ctx = await getShellContext();
@@ -170,12 +170,16 @@ function RecommendedForYou({ programs }: { programs: ProgramRow[] }) {
 }
 
 function CreatorDrills() {
+  // Slugs below all map to real lessons seeded in 0003_lessons_seed.sql.
+  // `hooks-that-stop-the-scroll`, `your-story-differentiator`, and
+  // `defining-niche-sweet-spot` replaced earlier copy that linked to
+  // tutorial slugs that don't exist yet.
   const drills = [
-    { title: "Hooks That Get Attention", duration: "11:20", slug: "hooks-that-get-attention" },
-    { title: "Content Pillars That Work", duration: "15:30", slug: "content-pillars-that-work" },
+    { title: "Hooks That Stop The Scroll",       duration: "11:20", slug: "hooks-that-stop-the-scroll" },
+    { title: "Content Pillars That Work",        duration: "15:30", slug: "content-pillars-that-work" },
     { title: "How To Read Platform Performance", duration: "13:45", slug: "platform-performance" },
-    { title: "Storytelling That Builds Trust", duration: "10:05", slug: "storytelling" },
-    { title: "Engaging Captions That Convert", duration: "08:40", slug: "captions-that-convert" },
+    { title: "Your Story Differentiator",        duration: "10:05", slug: "your-story-differentiator" },
+    { title: "Engaging Captions That Convert",   duration: "08:40", slug: "captions-that-convert" },
   ];
   return (
     <div className="card p-5">

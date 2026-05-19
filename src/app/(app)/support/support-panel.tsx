@@ -85,6 +85,7 @@ type Props = {
   initialTopic?: string;
   recentTickets: DbSupportTicket[];
   helpArticles:  DbHelpArticle[];
+  firstName?:    string;
 };
 
 export function SupportPageClient({
@@ -92,6 +93,7 @@ export function SupportPageClient({
   initialTopic,
   recentTickets,
   helpArticles,
+  firstName,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<SupportStepKey>(initialStep);
@@ -212,6 +214,11 @@ export function SupportPageClient({
       <div className="max-w-[var(--container-content)] space-y-4">
         {/* ── Header ───────────────────────────────────────────────── */}
         <header>
+          {firstName && (
+            <div className="text-rose-600 font-medium text-[13.5px] flex items-center gap-2 mb-2">
+              Welcome back, {firstName}! <span aria-hidden>👋</span>
+            </div>
+          )}
           <h1 className="font-display text-[26px] sm:text-[30px] text-ink-900 leading-tight">
             Support &amp; Contact
           </h1>

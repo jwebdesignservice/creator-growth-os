@@ -63,6 +63,7 @@ interface Props {
   socialAccounts: SocialAccount[];
   pillars:        string[];
   preferences:    NotificationPreferences;
+  firstName?:     string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ export function SettingsPageClient({
   socialAccounts,
   pillars: initialPillars,
   preferences,
+  firstName,
 }: Props) {
   const instagram = socialAccounts.find((a) => a.platform === "instagram");
   const tiktok    = socialAccounts.find((a) => a.platform === "tiktok");
@@ -96,6 +98,11 @@ export function SettingsPageClient({
       <div className="max-w-[var(--container-content)] space-y-5 sm:space-y-6">
         {/* Page header */}
         <div>
+          {firstName && (
+            <div className="text-rose-600 font-medium text-[13.5px] flex items-center gap-2 mb-2">
+              Welcome back, {firstName}! <span aria-hidden>👋</span>
+            </div>
+          )}
           <h1 className="font-display text-[26px] sm:text-[28px] text-ink-900 leading-tight">
             User Settings
           </h1>
@@ -186,16 +193,26 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
             </div>
             <button
               type="button"
-              className="absolute bottom-0 right-0 size-7 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-white flex items-center justify-center transition-colors shadow-sm"
-              aria-label="Edit photo"
+              disabled
+              aria-disabled="true"
+              aria-label="Edit photo — coming soon"
+              title="Photo upload is coming soon."
+              className="absolute bottom-0 right-0 size-7 rounded-full bg-rose-300 border-2 border-white flex items-center justify-center shadow-sm cursor-not-allowed"
             >
-              <Pencil className="size-3 text-white" strokeWidth={2.5} />
+              <Pencil className="size-3 text-white" strokeWidth={2.5} aria-hidden />
             </button>
           </div>
-          <span className="mt-2.5 text-[12.5px] font-medium text-rose-600 cursor-pointer hover:text-rose-700">
+          <span
+            aria-disabled="true"
+            title="Photo upload is coming soon."
+            className="mt-2.5 text-[12.5px] font-medium text-ink-400 cursor-not-allowed select-none"
+          >
             Edit photo
           </span>
-          <span className="text-[11px] text-ink-400 text-center mt-0.5 leading-snug">
+          <span className="inline-flex items-center px-1.5 h-[18px] mt-1 rounded-full text-[10px] font-semibold bg-cream-200 text-ink-500 border border-ink-200 uppercase tracking-wider">
+            Coming soon
+          </span>
+          <span className="text-[11px] text-ink-400 text-center mt-1 leading-snug">
             JPG, PNG or WebP. Max 5MB.
           </span>
         </div>
@@ -774,13 +791,13 @@ function SettingsRail({
               )}
             </div>
           </div>
-          <button
-            type="button"
-            className="w-full h-9 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors flex items-center justify-center gap-1.5"
+          <Link
+            href="/profile"
+            className="w-full h-9 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
           >
             View Public Profile
-            <ExternalLink className="size-3.5" strokeWidth={2} />
-          </button>
+            <ExternalLink className="size-3.5" strokeWidth={2} aria-hidden />
+          </Link>
         </div>
 
         {/* Social & Audience Snapshot */}

@@ -4,7 +4,7 @@ import { getMyRecentTickets, getPopularHelpArticles } from "@/lib/support/querie
 import { SupportPageClient } from "./support-panel";
 import type { SupportStepKey } from "./types";
 
-export const metadata = { title: "Support · Creator Growth OS" };
+export const metadata = { title: "Support | Creator Growth OS" };
 
 type PageProps = {
   searchParams: Promise<{ step?: string | string[]; topic?: string | string[] }>;
@@ -40,6 +40,9 @@ export default async function SupportPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const initialStep = parseStep(params.step);
   const initialTopic = parseTopic(params.topic);
+  const firstName =
+    (ctx.profile?.display_name ?? ctx.profile?.full_name ?? ctx.user.email?.split("@")[0] ?? "Creator")
+      .split(" ")[0];
 
   const [recentTickets, helpArticles] = await Promise.all([
     getMyRecentTickets(3),
@@ -52,6 +55,7 @@ export default async function SupportPage({ searchParams }: PageProps) {
       initialTopic={initialTopic}
       recentTickets={recentTickets}
       helpArticles={helpArticles}
+      firstName={firstName}
     />
   );
 }

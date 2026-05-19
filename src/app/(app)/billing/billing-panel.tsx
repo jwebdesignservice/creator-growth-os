@@ -78,11 +78,13 @@ export function BillingPageClient({
   subscription,
   invoices,
   stripeReady,
+  firstName,
 }: {
   plan: "free" | "basic" | "pro";
   subscription: SubscriptionRow | null;
   invoices: InvoiceRow[];
   stripeReady: boolean;
+  firstName?: string;
 }) {
   return (
     <PageShell>
@@ -90,6 +92,11 @@ export function BillingPageClient({
 
         {/* ── Page header ─────────────────────────────────────────────── */}
         <div>
+          {firstName && (
+            <div className="text-rose-600 font-medium text-[13.5px] flex items-center gap-2 mb-2">
+              Welcome back, {firstName}! <span aria-hidden>👋</span>
+            </div>
+          )}
           <h1 className="font-display text-[var(--text-page-title)] text-ink-900 leading-tight">
             Billing
           </h1>
