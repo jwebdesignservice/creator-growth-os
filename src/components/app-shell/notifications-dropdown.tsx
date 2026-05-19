@@ -104,11 +104,25 @@ export function NotifDropdown({
   // arrives, bump the unread badge and briefly pulse the bell. If the
   // dropdown is currently open we also append the new item so the
   // user sees it land without a refresh.
+  //
+  // Channel name carries a per-mount suffix so a remount (page nav,
+  // Fast Refresh) never collides with a stale subscription still
+  // tearing down — that collision was throwing inside the topbar and
+  // bubbling up as a 500 on /posting and other shell pages.
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
+
+    const suffix =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const channelName = `notifications:user:${userId}:${suffix}`;
+
+    let cancelled = false;
+
     const channel = supabase
-      .channel(`notifications:user:${userId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -118,6 +132,7 @@ export function NotifDropdown({
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          if (cancelled) return;
           const row = payload.new as {
             id: string;
             title: string;
@@ -140,7 +155,14 @@ export function NotifDropdown({
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      try {
+        supabase.removeChannel(channel);
+      } catch {
+        // Channel may already be torn down (HMR, double-invoke in
+        // StrictMode, or socket in a transient state). Swallow so the
+        // unmount path can't throw and crash the surrounding tree.
+      }
     };
   }, [userId]);
 
