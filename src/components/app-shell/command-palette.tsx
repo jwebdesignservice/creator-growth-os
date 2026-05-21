@@ -21,7 +21,6 @@ import {
   Settings,
   Bell,
   MessageSquare,
-  HelpCircle,
   User,
   Sparkles,
   type LucideIcon,
@@ -99,8 +98,7 @@ const ITEMS: SearchItem[] = [
 
   // ── More — secondary destinations ────────────────────────────────────
   { id: "more-notifications", label: "Notifications", hint: "Recent activity & alerts", href: "/notifications", category: "more", icon: Bell,          keywords: ["alerts", "inbox"] },
-  { id: "more-support",       label: "Support",       hint: "Get help fast",            href: "/support",       category: "more", icon: MessageSquare, keywords: ["help desk", "ticket"] },
-  { id: "more-help",          label: "Help center",   hint: "Guides & FAQ",             href: "/help",          category: "more", icon: HelpCircle,    keywords: ["faq", "docs", "guides"] },
+  { id: "more-support",       label: "Support",       hint: "Help, guides & tickets",   href: "/support",       category: "more", icon: MessageSquare, keywords: ["help desk", "ticket", "faq", "guides", "help center"] },
   { id: "more-billing",       label: "Billing",       hint: "Plan & invoices",          href: "/billing",       category: "more", icon: CreditCard,    keywords: ["payment", "subscription", "plan"] },
   { id: "more-settings",      label: "Settings",      hint: "Account preferences",      href: "/settings",      category: "more", icon: Settings,      keywords: ["preferences", "account"] },
   { id: "more-profile",       label: "Profile",       hint: "Your public profile",      href: "/profile",       category: "more", icon: User,          keywords: ["bio", "avatar"] },

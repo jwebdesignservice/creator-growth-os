@@ -56,34 +56,21 @@ export function RightRail({ profile }: { profile: Profile }) {
 
 function ProfileCard({ profile }: { profile: Profile }) {
   return (
-    <div className="card p-[var(--space-card-padding-sm)] relative">
-      <Link
-        href="/settings"
-        className="absolute top-3 right-3 size-7 rounded-full bg-cream-100 hover:bg-cream-200 inline-flex items-center justify-center"
-        aria-label="Edit profile"
-      >
-        <Pencil className="size-3.5 text-ink-500" strokeWidth={2} />
-      </Link>
-      <div className="flex items-start gap-3">
-        <Avatar
-          name={profile.name}
-          src={profile.avatar_url ?? undefined}
-          size={56}
-        />
-        <div className="min-w-0">
-          <div className="text-[14.5px] font-semibold text-ink-900 truncate">
-            {profile.name}
-          </div>
-          <div className="text-[12.5px] text-ink-500 truncate">
-            {profile.email}
-          </div>
-          {profile.phone && (
-            <div className="text-[12.5px] text-ink-500">{profile.phone}</div>
-          )}
+    <div className="card p-[var(--space-card-padding-sm)]">
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[13.5px] font-semibold text-ink-900">
+          Your Social Snapshot
         </div>
+        <Link
+          href="/settings"
+          className="size-7 rounded-full bg-cream-100 hover:bg-cream-200 inline-flex items-center justify-center"
+          aria-label="Connect social accounts"
+        >
+          <Pencil className="size-3.5 text-ink-500" strokeWidth={2} />
+        </Link>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <SocialStat
           icon={<InstagramIcon className="text-rose-600" size={16} />}
           label="Followers"
@@ -207,7 +194,7 @@ function CategoryCard({
       <p className="text-[12px] text-ink-500 leading-snug">
         You&apos;re in the {label} category. {description}
       </p>
-      <Link href="/help" className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
+      <Link href="/support" className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
         Learn more about categories <ArrowRight className="size-3.5" strokeWidth={2} />
       </Link>
     </div>

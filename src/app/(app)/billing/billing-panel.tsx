@@ -544,7 +544,7 @@ function BillingSummaryCard({
 
       <div className="mt-4 pt-4 border-t border-ink-100">
         <Link
-          href="/help"
+          href="/support"
           className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
         >
           Billing help & FAQ <ArrowRight className="size-3.5" strokeWidth={2.5} />

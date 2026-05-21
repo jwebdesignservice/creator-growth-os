@@ -146,12 +146,12 @@ export default function PrivacyPage() {
             <p>
               Questions about your data? Visit{" "}
               <Link
-                href="/help"
+                href="/support"
                 className="text-rose-600 font-medium hover:text-rose-700"
               >
-                /help
+                Support
               </Link>{" "}
-              or reach support from the Support page.
+              or reach our support team from there.
             </p>
           </section>
         </div>

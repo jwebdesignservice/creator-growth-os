@@ -100,7 +100,7 @@ export function SupportPageClient({
   const [, startTransition] = useTransition();
 
   // Form state — seeded from the draft so the layout feels alive on first
-  // load. Topic can also be deep-linked via /support?topic=<key>. Once a
+  // load. Topic can also be deep-linked via /support/new?topic=<key>. Once a
   // real ticket is submitted we reset on the success screen.
   const [selectedTopic, setSelectedTopic] = useState<string>(
     initialTopic ?? SUPPORT_FORM_DRAFT.selectedTopic,
@@ -127,7 +127,7 @@ export function SupportPageClient({
   function go(next: SupportStepKey) {
     setStep(next);
     startTransition(() => {
-      router.replace(next === "topic" ? "/support" : `/support?step=${next}`, { scroll: false });
+      router.replace(next === "topic" ? "/support/new" : `/support/new?step=${next}`, { scroll: false });
     });
   }
 
@@ -396,7 +396,7 @@ function FormActions({
       )}
 
       <Link
-        href="/help"
+        href="/support"
         className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-[12.5px] text-ink-500 hover:text-rose-700 transition-colors order-3"
       >
         Browse Help Center
@@ -1277,13 +1277,13 @@ function HelpArticlesCard({ articles }: { articles: DbHelpArticle[] }) {
   // Fallback to the static placeholder titles so the rail looks right
   // even when the DB has no articles yet.
   const fallback: { key: string; title: string; href: string }[] = [
-    { key: "fb-1", title: "How to upload videos to Posting Plans", href: "/help/upload-videos" },
-    { key: "fb-2", title: "Fixing common upload errors",           href: "/help/upload-errors" },
-    { key: "fb-3", title: "Managing your subscription",            href: "/help/manage-subscription" },
-    { key: "fb-4", title: "Account login & access help",           href: "/help/login-access" },
+    { key: "fb-1", title: "How to upload videos to Posting Plans", href: "/tutorials" },
+    { key: "fb-2", title: "Fixing common upload errors",           href: "/tutorials" },
+    { key: "fb-3", title: "Managing your subscription",            href: "/tutorials" },
+    { key: "fb-4", title: "Account login & access help",           href: "/tutorials" },
   ];
   const list = articles.length > 0
-    ? articles.map((a) => ({ key: a.id, title: a.title, href: `/help/${a.slug}` }))
+    ? articles.map((a) => ({ key: a.id, title: a.title, href: "/tutorials" }))
     : fallback;
 
   return (
@@ -1308,7 +1308,7 @@ function HelpArticlesCard({ articles }: { articles: DbHelpArticle[] }) {
         ))}
       </ul>
       <Link
-        href="/help"
+        href="/tutorials"
         className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-rose-700 hover:text-rose-600 transition-colors"
       >
         View all articles

@@ -147,7 +147,7 @@ export function TutorialDetailRail({
             audience, increasing engagement, and building authority.
           </p>
           <Link
-            href="/help"
+            href="/support"
             className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
           >
             Learn more about categories

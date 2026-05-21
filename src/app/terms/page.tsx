@@ -134,12 +134,12 @@ export default function TermsPage() {
             <p>
               Questions about these terms? Visit{" "}
               <Link
-                href="/help"
+                href="/support"
                 className="text-rose-600 font-medium hover:text-rose-700"
               >
-                /help
+                Support
               </Link>{" "}
-              or email our support team from the Support page.
+              or email our support team from there.
             </p>
           </section>
         </div>
