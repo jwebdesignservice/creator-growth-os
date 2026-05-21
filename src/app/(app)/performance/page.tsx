@@ -70,8 +70,6 @@ export default async function PerformancePage({
     <PageShell
       rail={
         <PerformanceRail
-          userName={ctx.name}
-          avatarUrl={ctx.railProfile.avatar_url}
           plan={ctx.plan}
           streak={streak}
           snapshot={snapshot}
