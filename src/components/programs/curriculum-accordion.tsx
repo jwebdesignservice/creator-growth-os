@@ -206,7 +206,9 @@ function LessonRow({
 
   return (
     <li className="my-1">
-      <Link href={`/tutorials/${lesson.slug}`} className="block">
+      {/* Stay inside the program — open the in-program lesson player rather
+          than bouncing the user out into the standalone Tutorials route. */}
+      <Link href={`/programs/${programSlug}/${lesson.slug}`} className="block">
         {inner}
       </Link>
     </li>

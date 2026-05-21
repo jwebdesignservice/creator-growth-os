@@ -19,7 +19,6 @@ import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/app-shell/avatar";
-import { ProgramDetailRail } from "@/components/programs/program-detail-rail";
 import { CurriculumAccordion } from "@/components/programs/curriculum-accordion";
 import { DetailTabs } from "@/components/programs/detail-tabs";
 import {
@@ -83,49 +82,29 @@ export default async function ProgramDetailPage({
   // otherwise show a friendly nonzero value so the UI demo stays alive.
   const effectivePercent =
     progress.lessonsTotal > 0 ? progress.percent : 62;
-  const effectiveCompleted =
-    progress.lessonsTotal > 0 ? progress.lessonsCompleted : 20;
   const effectiveTotal =
     progress.lessonsTotal > 0
       ? progress.lessonsTotal
       : (program.total_lessons ?? 32);
-  const nextLessonInfo = progress.nextLesson
-    ? {
-        title: progress.nextLesson.title,
-        moduleLabel: progress.nextLesson.moduleLabel,
-        duration: progress.nextLesson.duration,
-        href: `/tutorials/${progress.nextLesson.slug}`,
-      }
-    : {
-        title: "Brand Values & Positioning",
-        moduleLabel: "Lesson 1.3",
-        duration: "09:15",
-        href: "/tutorials/brand-values-positioning",
-      };
+
+  // "Continue Program" should resume the program where the user left off —
+  // the next incomplete lesson, then the in-progress one, then the first
+  // unlocked lesson — and open the IN-PROGRAM player (not the standalone
+  // Tutorials route). Falls back to the program landing if nothing resolves.
+  const flatLessons = modules.flatMap((m) => m.lessons);
+  const continueSlug =
+    progress.nextLesson?.slug ??
+    flatLessons.find((l) => l.status === "current")?.slug ??
+    flatLessons.find((l) => l.status !== "locked")?.slug ??
+    flatLessons[0]?.slug ??
+    null;
+  const continueHref = continueSlug
+    ? `/programs/${slug}/${continueSlug}`
+    : `/programs/${slug}`;
 
   return (
-    <PageShell
-      rail={
-        <ProgramDetailRail
-          userName={ctx.name}
-          avatarUrl={ctx.railProfile.avatar_url}
-          plan={ctx.plan}
-          progress={{
-            percent: effectivePercent,
-            lessonsCompleted: effectiveCompleted,
-            lessonsTotal: effectiveTotal,
-            streakDays: 6,
-          }}
-          coach={{
-            name: "Sophie Carter",
-            role: "Growth Coach",
-            blurb: "Brand strategist helping creators build influence, trust & income.",
-          }}
-          nextLesson={nextLessonInfo}
-        />
-      }
-    >
-      <div className="space-y-6 max-w-[1240px] mx-auto">
+    <PageShell>
+      <div className="space-y-6">
         {/* Breadcrumb */}
         <nav className="text-[13px]">
           <Link href="/programs" className="text-rose-600 hover:text-rose-700 font-medium">
@@ -143,6 +122,7 @@ export default async function ProgramDetailPage({
           totalTasks={program.total_tasks ?? 18}
           estimatedDays={program.estimated_days ?? 42}
           progress={effectivePercent}
+          continueHref={continueHref}
         />
 
         {/* Tabs + content */}
@@ -178,6 +158,7 @@ function ProgramHero({
   totalTasks,
   estimatedDays,
   progress,
+  continueHref,
 }: {
   title: string;
   description: string;
@@ -185,6 +166,7 @@ function ProgramHero({
   totalTasks: number;
   estimatedDays: number;
   progress: number;
+  continueHref: string;
 }) {
   return (
     <section className="rounded-[24px] bg-cream-200 overflow-hidden relative">
@@ -251,7 +233,7 @@ function ProgramHero({
           {/* CTAs */}
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/tutorials/brand-values-positioning"
+              href={continueHref}
               className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-medium shadow-sm transition-colors"
             >
               <Play className="size-4" fill="currentColor" />
