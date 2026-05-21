@@ -8,7 +8,6 @@ import {
   Flame,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
-import { RightRail } from "@/components/app-shell/right-rail";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getAllTutorials, type TutorialRow } from "@/lib/programs/tutorial-queries";
 import { TutorialLibrary } from "@/components/tutorials/library";
@@ -58,8 +57,8 @@ export default async function TutorialsPage({
   const firstName = ctx.name.split(" ")[0];
 
   return (
-    <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-      <div className="space-y-6 sm:space-y-7 max-w-[1240px] mx-auto">
+    <PageShell>
+      <div className="space-y-6 sm:space-y-7 max-w-[1600px] mx-auto">
         {/* Header */}
         <header>
           <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">

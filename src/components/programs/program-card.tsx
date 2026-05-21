@@ -1,6 +1,18 @@
 import Link from "next/link";
-import { Lock, BookOpen, CheckSquare, CalendarDays } from "lucide-react";
+import { Lock, BookOpen, CheckSquare, CalendarDays, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/cn";
+
+/** Human-friendly program length: 3 days · 1 week · 3 weeks · 1 month. */
+function formatDuration(days: number): string {
+  if (days < 1) return "";
+  if (days < 7) return `${days} ${days === 1 ? "day" : "days"}`;
+  if (days < 30) {
+    const weeks = Math.round(days / 7);
+    return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+  }
+  const months = Math.round(days / 30);
+  return `${months} ${months === 1 ? "month" : "months"}`;
+}
 
 export type ProgramRow = {
   slug: string;
@@ -15,67 +27,107 @@ export type ProgramRow = {
   estimated_days?: number;
 };
 
+/**
+ * Program card — YouTube-inspired layout.
+ *
+ * Borderless (no card chrome): a rounded 16:9 "thumbnail" carries the
+ * artwork, a dark days badge in the corner mirrors YouTube's duration
+ * pill. Title + meta sit directly on the page background below, but unlike
+ * a raw video listing we keep the full course info: a clean lessons/tasks
+ * stat row and an explicit progress bar with its percentage.
+ */
 export function ProgramCard({ program }: { program: ProgramRow }) {
-  const isPro = program.status === "pro_only";
+  const isPro        = program.status === "pro_only";
+  const isCompleted  = program.status === "completed";
+  const isInProgress = program.status === "in_progress";
   const href = isPro ? "/billing?upgrade=pro" : `/programs/${program.slug}`;
-  return (
-    <Link
-      href={href}
-      className="card overflow-hidden hover:shadow-card transition-shadow group flex flex-col"
-    >
-      <CoverArt hue={program.cover_hue} status={program.status} />
+  const progress = Math.min(100, Math.max(0, program.progress ?? 0));
 
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="text-[14px] font-semibold text-ink-900 leading-snug">
+  return (
+    <Link href={href} className="group flex flex-col gap-3">
+      {/* ── Thumbnail ─────────────────────────────────────────────── */}
+      <div className="relative aspect-video rounded-xl overflow-hidden">
+        <CoverArt hue={program.cover_hue} status={program.status} />
+
+        {/* Status badge (top-left) — only for states worth calling out. */}
+        {isInProgress && (
+          <span className="absolute top-2.5 left-2.5 chip chip-rose text-[10px] font-semibold uppercase tracking-wide shadow-soft">
+            In progress
+          </span>
+        )}
+        {isCompleted && (
+          <span className="absolute top-2.5 left-2.5 chip chip-success text-[10px] font-semibold uppercase tracking-wide shadow-soft">
+            Completed
+          </span>
+        )}
+
+      </div>
+
+      {/* ── Meta (borderless, on the page background) ─────────────────── */}
+      <div className="flex flex-col gap-2.5 px-0.5">
+        {/* Title + category */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-[15px] font-semibold text-ink-900 leading-snug line-clamp-2 group-hover:text-rose-700 transition-colors">
             {program.title}
-          </div>
+          </h3>
           {program.category_label && !isPro && (
             <span className="chip chip-rose shrink-0">
               {program.category_label}
             </span>
           )}
         </div>
-        <div className="text-[12px] text-ink-500 leading-snug mb-3 line-clamp-2 flex-1">
-          {program.description}
-        </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-ink-500 mb-3">
+        {/* Short description */}
+        {program.description && (
+          <p className="text-[12.5px] text-ink-500 leading-snug line-clamp-2">
+            {program.description}
+          </p>
+        )}
+
+        {/* Stat row — lessons / tasks / duration. */}
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[12px] text-ink-500">
           {typeof program.total_lessons === "number" && (
-            <span className="inline-flex items-center gap-1">
-              <BookOpen className="size-3" strokeWidth={1.8} />
+            <span className="inline-flex items-center gap-1.5">
+              <BookOpen className="size-3.5 text-ink-400" strokeWidth={1.8} />
               {program.total_lessons} Lessons
             </span>
           )}
           {typeof program.total_tasks === "number" && (
-            <span className="inline-flex items-center gap-1">
-              <CheckSquare className="size-3" strokeWidth={1.8} />
+            <span className="inline-flex items-center gap-1.5">
+              <CheckSquare className="size-3.5 text-ink-400" strokeWidth={1.8} />
               {program.total_tasks} Tasks
             </span>
           )}
-          {typeof program.estimated_days === "number" && (
-            <span className="inline-flex items-center gap-1">
-              <CalendarDays className="size-3" strokeWidth={1.8} />
-              {program.estimated_days} Days
+          {typeof program.estimated_days === "number" && program.estimated_days > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="size-3.5 text-ink-400" strokeWidth={1.8} />
+              {formatDuration(program.estimated_days)}
             </span>
           )}
         </div>
 
+        {/* Progress / Pro CTA */}
         {isPro ? (
           <div className="h-9 inline-flex items-center justify-center w-full rounded-[10px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
             <Lock className="size-3.5 mr-1.5" strokeWidth={2} />
             Upgrade to Pro
           </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden flex-1">
               <div
-                className="h-full bg-rose-500"
-                style={{ width: `${program.progress ?? 0}%` }}
+                className={cn("h-full rounded-full", isCompleted ? "bg-success" : "bg-rose-500")}
+                style={{ width: `${progress}%` }}
               />
             </div>
-            <span className="text-[11px] text-ink-500 font-medium tabular-nums shrink-0">
-              {program.progress ?? 0}%
+            <span
+              className={cn(
+                "text-[11.5px] font-semibold tabular-nums shrink-0 inline-flex items-center gap-1",
+                isCompleted ? "text-success" : "text-ink-500",
+              )}
+            >
+              {isCompleted && <CheckCircle2 className="size-3.5" strokeWidth={2} />}
+              {progress}%
             </span>
           </div>
         )}
@@ -102,44 +154,23 @@ export function CoverArt({
   return (
     <div
       className={cn(
-        "h-[140px] relative overflow-hidden",
+        "absolute inset-0 transition-[filter,transform] duration-300 group-hover:brightness-[0.98]",
         `bg-gradient-to-br ${palette}`,
       )}
     >
       {/* Decorative dots */}
       <svg
-        className="absolute inset-0 text-rose-300/70"
-        viewBox="0 0 200 140"
+        className="absolute inset-0 h-full w-full text-rose-300/70"
+        viewBox="0 0 200 112"
+        preserveAspectRatio="none"
         fill="currentColor"
         aria-hidden
       >
         <circle cx="30" cy="20" r="2" />
-        <circle cx="170" cy="30" r="3" />
-        <circle cx="50" cy="110" r="2.5" />
-        <circle cx="150" cy="100" r="2" />
+        <circle cx="170" cy="26" r="3" />
+        <circle cx="50" cy="92" r="2.5" />
+        <circle cx="150" cy="84" r="2" />
       </svg>
-
-      {/* Status pill */}
-      <span
-        className={cn(
-          "absolute top-3 left-3 chip text-[10.5px] font-semibold uppercase tracking-wide",
-          isPro
-            ? "chip-rose"
-            : status === "in_progress"
-              ? "chip-rose"
-              : status === "completed"
-                ? "chip-success"
-                : "chip-gold",
-        )}
-      >
-        {isPro
-          ? "PRO ONLY"
-          : status === "in_progress"
-            ? "IN PROGRESS"
-            : status === "completed"
-              ? "COMPLETED"
-              : "NOT STARTED"}
-      </span>
 
       {isPro && (
         <div className="absolute inset-0 flex items-center justify-center">

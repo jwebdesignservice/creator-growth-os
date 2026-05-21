@@ -17,10 +17,9 @@ import {
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
-import { getTutorialDetail, getAllTutorials } from "@/lib/programs/tutorial-queries";
+import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
-import { TutorialDetailRail } from "@/components/tutorials/detail-rail";
 import { Avatar } from "@/components/app-shell/avatar";
 import { cn } from "@/lib/cn";
 
@@ -48,44 +47,9 @@ export default async function TutorialDetailPage({
 
   const proLocked = lesson.planAccess === "pro" && ctx.plan !== "pro";
 
-  // Compute aggregate tutorials-progress for the rail
-  const all = await getAllTutorials();
-  const watched = all.filter((t) => t.completed).length;
-  const completionPercent =
-    all.length === 0 ? 0 : Math.round((watched / all.length) * 100);
-
   return (
-    <PageShell
-      rail={
-        <TutorialDetailRail
-          userName={ctx.name}
-          email={ctx.railProfile.email}
-          phone={ctx.railProfile.phone}
-          avatarUrl={ctx.railProfile.avatar_url}
-          socials={ctx.railProfile.socials}
-          tutorialsProgress={{
-            percent: completionPercent,
-            watched,
-            completed: watched,
-            total: all.length,
-            streak: 6,
-          }}
-          categoryLabel={ctx.railProfile.category_label}
-          plan={ctx.plan}
-          nextLesson={
-            lesson.next
-              ? {
-                  title: lesson.next.title,
-                  moduleLabel: `Lesson ${lesson.moduleNumber ?? 1}`,
-                  duration: lesson.duration,
-                  href: `/tutorials/${lesson.next.slug}`,
-                }
-              : null
-          }
-        />
-      }
-    >
-      <div className="space-y-6 max-w-[1240px] mx-auto">
+    <PageShell>
+      <div className="space-y-6">
         {/* Breadcrumbs */}
         <nav className="text-[13px]">
           <Link href="/tutorials" className="text-rose-600 hover:text-rose-700 font-medium">
