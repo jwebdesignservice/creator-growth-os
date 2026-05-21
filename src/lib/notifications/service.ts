@@ -356,3 +356,21 @@ export async function notifyAnnouncement(
     audience?.category ?? null,
   );
 }
+
+export async function notifyChatMention(
+  userId: string,
+  authorName: string,
+  messageId: string,
+  bodyPreview: string,
+): Promise<void> {
+  await createNotification(userId, {
+    title: `${authorName} mentioned you in Community Chat`,
+    body: bodyPreview,
+    type: "chat_mention",
+    category: "community",
+    priority: 3,
+    action_label: "View Chat",
+    action_url: "/community/chat",
+    metadata: { message_id: messageId, author_name: authorName },
+  });
+}

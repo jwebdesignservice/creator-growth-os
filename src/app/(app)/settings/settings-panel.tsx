@@ -541,13 +541,49 @@ function CreatorInfoCard({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SecurityCard({ profile }: { profile: ProfileRow }) {
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwPending, startPwTransition] = useTransition();
+
+  function handleChangePassword() {
+    setPwError("");
+    setPwSuccess(false);
+    if (newPassword.length < 8) {
+      setPwError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError("Passwords don't match.");
+      return;
+    }
+    startPwTransition(async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPwError(error.message);
+      } else {
+        setPwSuccess(true);
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => { setChangingPassword(false); setPwSuccess(false); }, 2000);
+      }
+    });
+  }
+
   const rows = [
     {
       icon: <Lock className="size-4 text-ink-500" strokeWidth={1.8} />,
       label: "Password",
       action: (
-        <span className="text-[13px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer">
-          Change Password
+        <span
+          onClick={() => { setChangingPassword((o) => !o); setPwError(""); setPwSuccess(false); }}
+          className="text-[13px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+        >
+          {changingPassword ? "Cancel" : "Change Password"}
         </span>
       ),
     },
@@ -634,8 +670,42 @@ function SecurityCard({ profile }: { profile: ProfileRow }) {
               {inner}
             </Link>
           ) : (
-            <div key={label} className={baseClasses}>
-              {inner}
+            <div key={label}>
+              <div className={baseClasses}>
+                {inner}
+              </div>
+              {label === "Password" && changingPassword && (
+                <div className="pb-4 space-y-3">
+                  <input
+                    type="password"
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full h-10 px-3 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full h-10 px-3 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                  />
+                  {pwError && (
+                    <p className="text-[12px] text-rose-600">{pwError}</p>
+                  )}
+                  {pwSuccess && (
+                    <p className="text-[12px] text-emerald-600 font-medium">Password updated!</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleChangePassword}
+                    disabled={pwPending}
+                    className="h-9 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-medium transition-colors"
+                  >
+                    {pwPending ? "Saving…" : "Update Password"}
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

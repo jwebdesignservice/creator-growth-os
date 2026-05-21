@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, CalendarDays, Star } from "lucide-react";
+import { Sparkles, CalendarDays, Star, MessageSquare, ArrowRight } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { RightRail } from "@/components/app-shell/right-rail";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
@@ -72,6 +72,28 @@ export default async function CommunityPage() {
               />
             ))}
           </div>
+        </section>
+
+        <section>
+          <Link
+            href="/community/chat"
+            className="flex items-center justify-between gap-4 p-5 rounded-[20px] bg-gradient-to-r from-rose-50 to-cream-100 border border-rose-100 hover:border-rose-200 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-[12px] bg-rose-100 flex items-center justify-center shrink-0">
+                <MessageSquare className="size-5 text-rose-600" strokeWidth={2} />
+              </div>
+              <div>
+                <div className="text-[14.5px] font-semibold text-ink-900 group-hover:text-rose-700 transition-colors">
+                  Community Chat
+                </div>
+                <div className="text-[12.5px] text-ink-500 mt-0.5">
+                  Join the live conversation with your peers and coaches
+                </div>
+              </div>
+            </div>
+            <ArrowRight className="size-5 text-ink-400 group-hover:text-rose-600 transition-colors shrink-0" />
+          </Link>
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5">
