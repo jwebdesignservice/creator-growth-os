@@ -156,3 +156,12 @@ export async function loadOlderMessages(
   const { listRecentMessages } = await import("./queries");
   return listRecentMessages(limit, before);
 }
+
+// ── fetchRecentMessages (for reconnect recovery) ───────────────────────
+
+export async function fetchRecentMessages(
+  limit = 30,
+): Promise<ChatMessage[]> {
+  const { listRecentMessages } = await import("./queries");
+  return listRecentMessages(limit);
+}

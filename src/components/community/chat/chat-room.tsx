@@ -6,6 +6,7 @@ import { MessageList } from "./message-list";
 import { PinnedBanner } from "./pinned-banner";
 import { Composer } from "./composer";
 import { MessageSquare } from "lucide-react";
+import { fetchRecentMessages } from "@/lib/community/chat/actions";
 import type { ChatMessage } from "@/lib/community/chat/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -32,6 +33,7 @@ export function ChatRoom({
   const [isConnected, setIsConnected] = useState(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasDisconnected = useRef(false);
 
   const showError = useCallback((message: string) => {
     const id = Date.now();
@@ -91,7 +93,19 @@ export function ChatRoom({
             clearTimeout(reconnectTimer.current);
             reconnectTimer.current = null;
           }
+          // Refetch to catch messages missed during disconnect
+          if (wasDisconnected.current) {
+            wasDisconnected.current = false;
+            fetchRecentMessages(30).then((fresh) => {
+              setMessages((prev) => {
+                const existingIds = new Set(prev.map((m) => m.id));
+                const newOnes = fresh.filter((m) => !existingIds.has(m.id));
+                return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+              });
+            });
+          }
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          wasDisconnected.current = true;
           reconnectTimer.current = setTimeout(
             () => setIsConnected(false),
             3000,
