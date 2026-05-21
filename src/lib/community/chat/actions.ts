@@ -3,6 +3,7 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notifyChatMention } from "@/lib/notifications/service";
 import type { ChatActionResult, MentionCandidate, ChatMessage } from "./types";
+import { listRecentMessages } from "./queries";
 
 // ── sendMessage ────────────────────────────────────────────────────────
 
@@ -69,9 +70,11 @@ export async function sendMessage(body: string): Promise<ChatActionResult> {
 
   // Fire mention notifications via service client (bypasses RLS)
   const bodyPreview = trimmed.slice(0, 100);
-  for (const mentionedId of mentionUserIds) {
-    await notifyChatMention(mentionedId, authorName, msg.id, bodyPreview);
-  }
+  await Promise.all(
+    mentionUserIds.map((mentionedId) =>
+      notifyChatMention(mentionedId, authorName, msg.id, bodyPreview),
+    ),
+  );
 
   return { ok: true, id: msg.id };
 }
@@ -103,6 +106,11 @@ export async function softDeleteMessage(
 
 export async function pinMessage(id: string): Promise<ChatActionResult> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
   const { data: isAdminRaw } = await supabase.rpc("is_admin");
   if (!isAdminRaw) return { ok: false, error: "Only admins can pin messages." };
 
@@ -120,6 +128,11 @@ export async function pinMessage(id: string): Promise<ChatActionResult> {
 
 export async function unpinMessage(id: string): Promise<ChatActionResult> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
   const { data: isAdminRaw } = await supabase.rpc("is_admin");
   if (!isAdminRaw) return { ok: false, error: "Only admins can unpin messages." };
 
@@ -138,6 +151,11 @@ export async function searchHandles(
   q: string,
 ): Promise<MentionCandidate[]> {
   if (!q || q.length < 1) return [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
   const svc = createServiceClient();
   const { data } = await svc
     .from("profiles")
@@ -153,7 +171,6 @@ export async function loadOlderMessages(
   before: string,
   limit = 50,
 ): Promise<ChatMessage[]> {
-  const { listRecentMessages } = await import("./queries");
   return listRecentMessages(limit, before);
 }
 
@@ -162,6 +179,5 @@ export async function loadOlderMessages(
 export async function fetchRecentMessages(
   limit = 30,
 ): Promise<ChatMessage[]> {
-  const { listRecentMessages } = await import("./queries");
   return listRecentMessages(limit);
 }

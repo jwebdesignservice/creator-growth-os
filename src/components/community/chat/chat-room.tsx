@@ -18,6 +18,7 @@ type Props = {
   currentUserAvatar: string | null;
   isAdmin: boolean;
 };
+// currentUserName and currentUserAvatar reserved for future optimistic insert
 
 type Toast = { id: number; kind: "error" | "success"; message: string };
 
@@ -129,13 +130,22 @@ export function ChatRoom({
   }
 
   function handlePinChanged(id: string, isPinned: boolean) {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, pinned: isPinned } : m)),
-    );
     if (isPinned) {
-      const msg = messages.find((m) => m.id === id);
-      if (msg) setPinned((prev) => [{ ...msg, pinned: true }, ...prev].slice(0, 3));
+      // Use nested functional updater to read fresh messages without stale closure
+      setMessages((prev) => {
+        const msg = prev.find((m) => m.id === id);
+        if (msg) {
+          setPinned((pins) => {
+            if (pins.some((p) => p.id === id)) return pins;
+            return [{ ...msg, pinned: true }, ...pins].slice(0, 3);
+          });
+        }
+        return prev.map((m) => (m.id === id ? { ...m, pinned: true } : m));
+      });
     } else {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, pinned: false } : m)),
+      );
       setPinned((prev) => prev.filter((m) => m.id !== id));
     }
   }
