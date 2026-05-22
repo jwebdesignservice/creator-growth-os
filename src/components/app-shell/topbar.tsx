@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Mail, CalendarDays } from "lucide-react";
+import { Search, Headset, CalendarDays } from "lucide-react";
 import { ProfileMenu } from "./profile-menu";
 import { NotifDropdown } from "./notifications-dropdown";
 import { MobileDrawer } from "./mobile-drawer";
@@ -60,8 +60,8 @@ export function Topbar({
           className="flex items-center gap-2 min-w-0 flex-1 -ml-0.5"
         >
           <BrandMark size={28} />
-          <span className="text-[15px] font-semibold text-ink-900 leading-none truncate">
-            Creator Growth OS
+          <span className="text-[16px] font-semibold tracking-tight text-ink-900 leading-none truncate">
+            profluencer
           </span>
         </Link>
 
@@ -122,10 +122,10 @@ export function Topbar({
           <NotifDropdown initialUnreadCount={unreadNotificationCount} userId={user.id} />
           <Link
             href="/support"
-            aria-label="Messages"
+            aria-label="Support"
             className="relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors"
           >
-            <Mail className="size-[18px] text-ink-700" strokeWidth={1.8} />
+            <Headset className="size-[18px] text-ink-700" strokeWidth={1.8} />
           </Link>
           <Link
             href="/posting"

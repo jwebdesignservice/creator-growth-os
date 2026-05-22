@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,6 +17,9 @@ import {
   ShieldCheck,
   Terminal,
   Wallet,
+  UserRound,
+  Plus,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
@@ -55,31 +59,27 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   return (
-    <aside className="hidden lg:flex flex-col w-[252px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
+    <aside className="hidden lg:flex flex-col w-[200px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
       {/* Logo */}
       <Link
         href="/dashboard"
-        className="flex items-start gap-3 px-6 py-6 hover:opacity-90 transition-opacity"
+        className="flex items-center gap-2.5 px-4 py-4 hover:opacity-90 transition-opacity"
       >
-        <BrandMark size={42} />
-        <div className="text-[12.5px] font-medium leading-[1.25] text-ink-900 pt-0.5">
-          How To Become
-          <br />
-          A Successful
-          <br />
-          Social Media Influencer
-        </div>
+        <BrandMark size={28} />
+        <span className="text-[16px] font-semibold tracking-tight text-ink-900">
+          profluencer
+        </span>
       </Link>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 overflow-y-auto">
+      <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto">
         <ul className="space-y-1">
           {PRIMARY.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
           ))}
         </ul>
 
-        <div className="my-4 h-px bg-ink-100 mx-3" />
+        <div className="my-3 h-px bg-ink-100 mx-2.5" />
 
         <ul className="space-y-1">
           {SECONDARY.map((item) => (
@@ -88,48 +88,41 @@ export function Sidebar({
         </ul>
 
         {(isAdmin || isDev) && (
-          <div className="my-4 h-px bg-ink-100 mx-3" />
+          <div className="my-3 h-px bg-ink-100 mx-2.5" />
         )}
 
         {isAdmin && (
           <Link
             href="/admin"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[14px] font-medium transition-colors"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors"
           >
             <ShieldCheck
-              className="size-[18px] text-rose-300"
+              className="size-[17px] text-rose-300"
               strokeWidth={1.8}
             />
             <span className="flex-1">Admin Console</span>
-            <span className="text-[9.5px] font-semibold tracking-wider text-rose-300 uppercase">
-              Admin
-            </span>
           </Link>
         )}
 
         {isDev && (
           <Link
             href="/dev"
-            className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[14px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
+            className="mt-2 flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
           >
             <Terminal
-              className="size-[18px] text-[#7AA9FF]"
+              className="size-[17px] text-[#7AA9FF]"
               strokeWidth={1.8}
             />
             <span className="flex-1">Dev Console</span>
-            <span className="text-[9.5px] font-semibold tracking-wider text-[#7AA9FF] uppercase">
-              Dev
-            </span>
           </Link>
         )}
       </nav>
 
-      {/* Upgrade card — hidden for Pro users */}
-      {plan !== "pro" && (
-        <div className="p-4">
-          <UpgradeCard />
-        </div>
-      )}
+      {/* Bottom cards — upgrade (non-Pro only) + referral promo */}
+      <div className="p-4 space-y-3">
+        {plan !== "pro" && <UpgradeCard />}
+        <ReferralCard />
+      </div>
     </aside>
   );
 }
@@ -146,7 +139,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       <Link
         href={item.href}
         className={cn(
-          "group flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[14px] font-medium transition-colors",
+          "group flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-[13.5px] font-medium transition-colors",
           active
             ? "bg-rose-100 text-rose-700"
             : "text-ink-700 hover:bg-cream-200 hover:text-ink-900",
@@ -154,7 +147,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       >
         <Icon
           className={cn(
-            "size-[18px] shrink-0",
+            "size-[17px] shrink-0",
             active ? "text-rose-600" : "text-ink-500",
           )}
           strokeWidth={1.8}
@@ -194,5 +187,65 @@ function UpgradeCard() {
         Upgrade now
       </Link>
     </div>
+  );
+}
+
+/* ─── Referral promo — invite friends, earn free credits ───────────────── */
+
+function ReferralCard() {
+  // Session-only dismiss: the (app) layout (and this sidebar) persists across
+  // client navigation, so closing it keeps it hidden until a full reload —
+  // no localStorage/effect needed, which keeps this lint- and hydration-clean.
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+
+  return (
+    <div className="relative rounded-[16px] border border-rose-100 bg-rose-50 p-4 text-center">
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+        className="absolute top-2 right-2 inline-flex items-center justify-center size-6 rounded-full text-ink-400 hover:text-ink-700 hover:bg-rose-100 transition-colors"
+      >
+        <X className="size-3.5" strokeWidth={2} />
+      </button>
+
+      {/* Avatar cluster + add badge */}
+      <div className="flex items-center justify-center -space-x-2.5 mb-3 mt-1">
+        <ReferralAvatar tone="bg-rose-300" />
+        <ReferralAvatar tone="bg-rose-400" />
+        <ReferralAvatar tone="bg-rose-300" />
+        <span className="relative z-10 inline-flex items-center justify-center size-6 rounded-full bg-gold-500 text-white border-2 border-rose-50">
+          <Plus className="size-3" strokeWidth={3} />
+        </span>
+      </div>
+
+      <p className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-1">
+        Invite friends, earn free credits
+      </p>
+      <p className="text-[11px] text-ink-500 leading-snug mb-3">
+        Get free monthly usage or upgrade credits for every friend who joins.
+      </p>
+
+      <Link
+        href="/settings"
+        className="block w-full h-9 leading-9 text-[12.5px] font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-[10px] transition-colors"
+      >
+        Invite friends
+      </Link>
+    </div>
+  );
+}
+
+function ReferralAvatar({ tone }: { tone: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center size-9 rounded-full border-2 border-rose-50",
+        tone,
+      )}
+    >
+      <UserRound className="size-4 text-white" strokeWidth={2} />
+    </span>
   );
 }

@@ -197,7 +197,7 @@ export function TicketsTable({ tickets }: { tickets: SupportTicket[] }) {
             </div>
 
             <Link
-              href="/support"
+              href="/support/new"
               className="inline-flex items-center gap-1.5 h-10 px-3.5 sm:px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 active:bg-rose-700 text-white text-[12.5px] sm:text-[13px] font-semibold transition-colors shadow-sm shrink-0"
             >
               <Plus className="size-[15px]" strokeWidth={2.4} />
@@ -427,7 +427,7 @@ function EmptyState({ query, hasAny }: { query: string; hasAny: boolean }) {
       {!searching && (
         <div className="mt-5">
           <Link
-            href="/support"
+            href="/support/new"
             className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold transition-colors shadow-sm"
           >
             <Plus className="size-[15px]" strokeWidth={2.4} />

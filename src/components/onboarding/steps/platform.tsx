@@ -4,13 +4,6 @@ import {
   Sprout,
   CalendarPlus,
   Flame,
-  Lightbulb,
-  CalendarX,
-  Eye,
-  DollarSign,
-  CalendarRange,
-  Heart,
-  ArrowRight,
 } from "lucide-react";
 import {
   InstagramIcon,
@@ -18,9 +11,7 @@ import {
   YoutubeIcon,
 } from "@/components/brand-icons";
 import { SelectionCard } from "@/components/onboarding/selection-card";
-import { Pill } from "@/components/onboarding/pill";
 import { InfoBanner } from "@/components/onboarding/info-banner";
-import { OnboardingRail } from "@/components/onboarding/rail";
 import type { OnboardingDraft } from "@/components/onboarding/types";
 
 const PLATFORMS = [
@@ -63,17 +54,10 @@ const PLATFORMS = [
 ];
 
 const RHYTHMS = [
-  { value: "just_starting", label: "Just starting", icon: Sprout },
+  { value: "just_starting", label: "Not posting yet", icon: Sprout },
   { value: "1-2/week", label: "1–2 times/week", icon: CalendarPlus },
   { value: "3-5/week", label: "3–5 times/week", icon: CalendarPlus },
   { value: "daily", label: "Daily", icon: Flame },
-];
-
-const BOTTLENECKS = [
-  { value: "no_ideas", label: "No clear ideas", icon: Lightbulb },
-  { value: "inconsistent", label: "Inconsistent posting", icon: CalendarX },
-  { value: "low_reach", label: "Low reach & visibility", icon: Eye },
-  { value: "no_monetization", label: "Not monetizing yet", icon: DollarSign },
 ];
 
 type Props = {
@@ -83,99 +67,63 @@ type Props = {
 
 export function PlatformStep({ draft, onChange }: Props) {
   return (
-    <div className="grid lg:grid-cols-[1fr_280px] gap-6">
-      <div className="space-y-6 min-w-0">
-        <header>
-          <h1 className="font-display text-[34px] text-ink-900 leading-tight flex items-start gap-2 mb-2">
-            <span className="text-rose-500 mt-2">✦</span>
-            Which platform do you want to grow on?
-          </h1>
-          <p className="text-ink-500 text-[14px]">
-            We&apos;ll tailor your growth path, posting plans, and tutorials to the
-            platform that matters most to you.
-          </p>
-        </header>
+    <div className="space-y-6">
+      <header>
+        <h1 className="font-display text-[34px] text-ink-900 leading-tight flex items-start gap-2 mb-2">
+          <span className="text-rose-500 mt-2">✦</span>
+          Which platform do you want to grow on first?
+        </h1>
+        <p className="text-ink-500 text-[14px]">
+          We&apos;ll tailor your growth path, posting plans, and tutorials to the
+          platform that matters most to you.
+        </p>
+      </header>
 
-        <section>
-          <div className="text-[13px] font-semibold text-ink-900 mb-3">
-            1. Choose your primary platform
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {PLATFORMS.map((p) => (
-              <SelectionCard
-                key={p.key}
-                icon={p.icon}
-                title={p.title}
-                description={p.desc}
-                selected={draft.primary_platform === p.key}
-                onToggle={() =>
-                  onChange({
-                    primary_platform:
-                      p.key as OnboardingDraft["primary_platform"],
-                  })
-                }
-              />
-            ))}
-          </div>
-        </section>
+      <section>
+        <div className="text-[13px] font-semibold text-ink-900 mb-3">
+          1. Choose your primary platform
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {PLATFORMS.map((p) => (
+            <SelectionCard
+              key={p.key}
+              icon={p.icon}
+              title={p.title}
+              description={p.desc}
+              selected={draft.primary_platform === p.key}
+              onToggle={() =>
+                onChange({
+                  primary_platform:
+                    p.key as OnboardingDraft["primary_platform"],
+                })
+              }
+            />
+          ))}
+        </div>
+      </section>
 
-        <section>
-          <div className="text-[13px] font-semibold text-ink-900 mb-3">
-            2. Your current posting rhythm
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {RHYTHMS.map((r) => (
-              <Pill
-                key={r.value}
-                icon={<r.icon className="size-4" strokeWidth={1.8} />}
-                label={r.label}
-                selected={draft.content_frequency === r.value}
-                onToggle={() => onChange({ content_frequency: r.value })}
-              />
-            ))}
-          </div>
-        </section>
+      <section>
+        <div className="text-[13px] font-semibold text-ink-900 mb-3">
+          2. What&apos;s your current posting rhythm?
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {RHYTHMS.map((r) => (
+            <SelectionCard
+              key={r.value}
+              size="compact"
+              layout="horizontal"
+              icon={<r.icon className="size-4" strokeWidth={1.8} />}
+              title={r.label}
+              selected={draft.content_frequency === r.value}
+              onToggle={() => onChange({ content_frequency: r.value })}
+            />
+          ))}
+        </div>
+      </section>
 
-        <section>
-          <div className="text-[13px] font-semibold text-ink-900 mb-3">
-            3. What&apos;s your biggest bottleneck right now?
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {BOTTLENECKS.map((b) => (
-              <Pill
-                key={b.value}
-                icon={<b.icon className="size-4" strokeWidth={1.8} />}
-                label={b.label}
-                selected={draft.bottleneck === b.value}
-                onToggle={() => onChange({ bottleneck: b.value })}
-              />
-            ))}
-          </div>
-        </section>
-
-        <InfoBanner>
-          We&apos;ll prioritize your weekly plan around the bottleneck you pick.
-        </InfoBanner>
-      </div>
-
-      <OnboardingRail
-        reasons={[
-          {
-            icon: CalendarRange,
-            label: "Personalized tutorials made for your platform",
-          },
-          { icon: CalendarPlus, label: "Platform-specific posting plans" },
-          { icon: Heart, label: "Better content recommendations" },
-          { icon: ArrowRight, label: "A tailored growth path that works for you" },
-        ]}
-        nextUp={{
-          title: "Goals",
-          description: "We'll help you define your top goals and milestones.",
-          platforms: ["instagram", "tiktok", "youtube", "snapchat"],
-          step: 1,
-          totalSteps: 3,
-        }}
-      />
+      <InfoBanner>
+        We&apos;ll build your weekly posting plan around your platform and rhythm.
+      </InfoBanner>
     </div>
   );
 }

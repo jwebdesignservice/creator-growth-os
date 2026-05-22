@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { StepHeader } from "./step-header";
 import { StageStep } from "./steps/stage";
@@ -32,7 +31,6 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
   const [step, setStep] = useState<StepKey | "complete">("stage");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   const onChange = useCallback((patch: Partial<OnboardingDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -81,14 +79,16 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
     >
       <div className="max-w-[1240px] mx-auto bg-white rounded-[20px] sm:rounded-[28px] border border-ink-100 shadow-card overflow-hidden">
         <div className="p-5 sm:p-6 lg:p-10 space-y-6 sm:space-y-8">
-          <StepHeader current={step} />
+          {/* Stepper is hidden on the completion screen — no need to show the
+              steps again once the user is done. */}
+          {step !== "complete" && <StepHeader current={step} />}
 
           {step === "stage" && <StageStep draft={draft} onChange={onChange} />}
           {step === "platform" && <PlatformStep draft={draft} onChange={onChange} />}
           {step === "goals" && <GoalsStep draft={draft} onChange={onChange} />}
           {step === "content" && <ContentStep draft={draft} onChange={onChange} />}
           {step === "complete" && (
-            <CompleteStep draft={draft} firstName={firstName} onBack={goBack} />
+            <CompleteStep firstName={firstName} onBack={goBack} />
           )}
 
           {submitError && (

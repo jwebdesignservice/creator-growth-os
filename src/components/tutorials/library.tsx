@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Play,
-  Clock,
   CheckCircle2,
   Lock,
   ChevronDown,
@@ -210,7 +209,7 @@ export function TutorialLibrary({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {shown.map((t) => (
               <TutorialCard key={t.slug} tutorial={t} userPlan={userPlan} />
             ))}
@@ -278,32 +277,36 @@ function TutorialCard({
     ? "/billing?upgrade=pro"
     : `/tutorials/${tutorial.slug}`;
 
+  const hasDuration = tutorial.duration && tutorial.duration !== "—";
+
   return (
     <Link
       href={href}
-      className="card overflow-hidden hover:shadow-card transition-shadow group flex flex-col"
+      className="card overflow-hidden hover:shadow-card hover:border-rose-200 transition-all group flex flex-col"
     >
-      <div className="relative h-[140px] bg-gradient-to-br from-rose-100/60 via-cream-200 to-rose-100/30 overflow-hidden">
-        {/* Top pills */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5">
-          <span className="chip chip-rose">
+      {/* Thumbnail — Loom-style tile with a corner duration badge */}
+      <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-rose-100/60 via-cream-200 to-rose-100/30">
+        {/* Category + type badges (top-left) */}
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+          <span className="chip chip-rose text-[10px]">
             {tutorial.categoryLabel.split(" ")[0]}
           </span>
-          <span className="chip bg-white/80 text-ink-700">
+          <span className="chip bg-white/85 text-ink-700 text-[10px]">
             {prettyContentType(tutorial.contentType)}
           </span>
         </div>
 
-        {/* Center play / lock */}
+        {/* Completed badge (top-right) */}
+        {tutorial.completed && (
+          <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 chip chip-success text-[10px]">
+            <CheckCircle2 className="size-3" strokeWidth={3} />
+            Completed
+          </span>
+        )}
+
+        {/* Center play / lock — the platform play button, kept as-is */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span
-            className={cn(
-              "size-12 rounded-full inline-flex items-center justify-center backdrop-blur",
-              proLocked
-                ? "bg-white/80 text-rose-600"
-                : "bg-white/80 text-rose-600 group-hover:scale-105 transition-transform",
-            )}
-          >
+          <span className="size-12 rounded-full inline-flex items-center justify-center bg-white/85 text-rose-600 backdrop-blur shadow-soft group-hover:scale-105 transition-transform">
             {proLocked ? (
               <Lock className="size-5" strokeWidth={2} />
             ) : (
@@ -312,38 +315,37 @@ function TutorialCard({
           </span>
         </div>
 
-        {/* Completed badge */}
-        {tutorial.completed && (
-          <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 chip chip-success">
-            <CheckCircle2 className="size-3" strokeWidth={3} />
-            Completed
+        {/* Duration badge (bottom-right) — Loom signature */}
+        {hasDuration && (
+          <span className="absolute bottom-2 right-2 rounded-md bg-ink-900/85 px-1.5 py-0.5 text-[11px] font-semibold text-white tabular-nums leading-none">
+            {tutorial.duration}
           </span>
         )}
       </div>
 
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="text-[13.5px] font-semibold text-ink-900 leading-snug mb-2 line-clamp-2">
+      {/* Meta — inside the card body */}
+      <div className="p-3.5 flex-1 flex flex-col">
+        <h3 className="text-[14px] font-semibold text-ink-900 leading-snug line-clamp-2 group-hover:text-rose-700 transition-colors">
           {tutorial.title}
-        </div>
-        <div className="flex items-center gap-3 text-[11.5px] text-ink-500 mb-3">
-          <span className="inline-flex items-center gap-1 tabular-nums">
-            <Clock className="size-3" strokeWidth={2} />
-            {tutorial.duration}
-          </span>
-          {tutorial.moduleNumber && (
-            <span>Lesson {tutorial.moduleNumber}</span>
+        </h3>
+        <div className="mt-1 text-[12px] text-ink-500 inline-flex items-center gap-1.5 flex-wrap">
+          {proLocked ? (
+            <span className="inline-flex items-center gap-1 text-rose-700 font-medium">
+              <Lock className="size-3" strokeWidth={2} />
+              Pro — upgrade to unlock
+            </span>
+          ) : (
+            <>
+              <span>{prettyContentType(tutorial.contentType)}</span>
+              {tutorial.moduleNumber && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>Lesson {tutorial.moduleNumber}</span>
+                </>
+              )}
+            </>
           )}
         </div>
-        {proLocked ? (
-          <div className="h-9 inline-flex items-center justify-center rounded-[10px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
-            <Lock className="size-3.5 mr-1.5" strokeWidth={2} />
-            Upgrade to Pro
-          </div>
-        ) : (
-          <div className="text-[12px] text-rose-600 font-medium mt-auto">
-            {tutorial.completed ? "Watch again" : "Start lesson →"}
-          </div>
-        )}
       </div>
     </Link>
   );

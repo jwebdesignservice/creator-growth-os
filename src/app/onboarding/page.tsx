@@ -15,7 +15,7 @@ export default async function OnboardingPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "full_name, display_name, onboarded, category, follower_base, primary_platform, content_frequency, platform_focus, main_goal, weekly_pace, top_value_priorities, focus_formats, help_needs",
+      "full_name, display_name, onboarded, category, primary_platform, content_frequency, platform_focus, main_goal, weekly_pace, top_value_priorities, focus_formats, help_needs",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -34,7 +34,6 @@ export default async function OnboardingPage() {
       firstName={firstName}
       initialDraft={{
         // Pre-fill draft from anything captured at signup, so users don't re-pick.
-        follower_base: profile?.follower_base ?? null,
         primary_platform: (profile?.primary_platform as never) ?? null,
       }}
     />

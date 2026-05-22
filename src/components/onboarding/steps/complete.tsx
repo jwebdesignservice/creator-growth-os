@@ -1,16 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Check,
-  CheckCircle2,
-  TrendingUp,
-  Smartphone,
-  Users,
-  Scale,
-  Heart,
-  Video,
-  Lightbulb,
   LayoutGrid,
   CalendarDays,
   GraduationCap,
@@ -18,113 +11,22 @@ import {
   ArrowLeft,
   ArrowRight,
   Sparkles,
+  PlayCircle,
+  Lock,
 } from "lucide-react";
 import { InfoBanner } from "@/components/onboarding/info-banner";
-import type { OnboardingDraft } from "@/components/onboarding/types";
+import { IntroVideo } from "@/components/onboarding/intro-video";
+import { cn } from "@/lib/cn";
 
 type Props = {
-  draft: OnboardingDraft;
   /** Display name shown in the celebration string */
   firstName?: string;
   onBack: () => void;
 };
 
-const STAGE_LABEL: Record<string, string> = {
-  starter: "Starter Creator",
-  growth: "Growth Creator",
-  authority: "Authority Creator",
-  monetization: "Monetization Creator",
-};
-const PLATFORM_LABEL: Record<string, string> = {
-  instagram: "Instagram",
-  tiktok: "TikTok",
-  youtube: "YouTube",
-  snapchat: "Snapchat",
-  linkedin: "LinkedIn",
-  multiple: "Multiple",
-};
-const GOAL_LABEL: Record<string, string> = {
-  grow_audience: "Grow audience",
-  improve_consistency: "Improve consistency",
-  build_authority: "Build authority",
-  monetize: "Monetize",
-};
-const PACE_LABEL: Record<string, string> = {
-  light: "Light pace",
-  balanced: "Balanced pace",
-  growth: "Growth pace",
-  intensive: "Intensive pace",
-};
-const PILLAR_LABEL: Record<string, string> = {
-  education: "Education",
-  lifestyle: "Lifestyle",
-  motivation: "Motivation",
-  behind_the_scenes: "Behind the Scenes",
-  personal_brand: "Personal Brand",
-  business_monetization: "Business / Monetization",
-};
-const FORMAT_LABEL: Record<string, string> = {
-  reels_shortform: "Reels / Short-form Video",
-  carousels: "Carousels",
-  stories: "Stories",
-  youtube_shorts: "YouTube Shorts",
-  live_content: "Live Content",
-};
-const HELP_LABEL: Record<string, string> = {
-  content_ideas: "Content Ideas",
-  hooks_captions: "Hooks & Captions",
-  filming: "Filming",
-  editing: "Editing",
-  consistency: "Consistency",
-  brand_deals: "Brand Deals",
-};
-
-export function CompleteStep({ draft, onBack }: Props) {
-  const summary = [
-    {
-      label: "Creator Category",
-      value: draft.stage ? STAGE_LABEL[draft.stage] : "—",
-      icon: TrendingUp,
-    },
-    {
-      label: "Primary Platform",
-      value: draft.primary_platform
-        ? PLATFORM_LABEL[draft.primary_platform]
-        : "—",
-      icon: Smartphone,
-    },
-    {
-      label: "Main Goal",
-      value: draft.main_goal ? GOAL_LABEL[draft.main_goal] : "—",
-      icon: Users,
-    },
-    {
-      label: "Weekly Pace",
-      value: draft.weekly_pace ? PACE_LABEL[draft.weekly_pace] : "—",
-      icon: Scale,
-    },
-    {
-      label: "Content Pillars",
-      value: draft.content_pillars.length
-        ? draft.content_pillars.map((p) => PILLAR_LABEL[p] ?? p).join(", ")
-        : "—",
-      icon: Heart,
-    },
-    {
-      label: "Focus Formats",
-      value: draft.focus_formats.length
-        ? draft.focus_formats.map((f) => FORMAT_LABEL[f] ?? f).join(", ")
-        : "—",
-      icon: Video,
-    },
-    {
-      label: "Needs Help With",
-      value: draft.help_needs.length
-        ? draft.help_needs.map((h) => HELP_LABEL[h] ?? h).join(", ")
-        : "—",
-      icon: Lightbulb,
-    },
-  ];
+export function CompleteStep({ firstName, onBack }: Props) {
+  const router = useRouter();
+  const [introWatched, setIntroWatched] = useState(false);
 
   return (
     <div className="space-y-6 max-w-[1240px] mx-auto">
@@ -137,7 +39,9 @@ export function CompleteStep({ draft, onBack }: Props) {
           </div>
           <div>
             <h1 className="font-display text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
-              Your personalized dashboard is ready 🎉
+              {firstName
+                ? `You're all set, ${firstName}! 🎉`
+                : "Your personalized dashboard is ready 🎉"}
             </h1>
             <p className="text-ink-700 text-[14.5px] leading-relaxed max-w-2xl">
               We&apos;ve used your answers to tailor your programs, posting plans,
@@ -149,29 +53,17 @@ export function CompleteStep({ draft, onBack }: Props) {
         </div>
       </section>
 
-      {/* Answers summary */}
+      {/* Platform intro — must be watched before continuing */}
       <section>
-        <h2 className="text-[16px] font-semibold text-ink-900 mb-3">
-          Your answers summary
+        <h2 className="text-[16px] font-semibold text-ink-900 mb-1.5 flex items-center gap-2">
+          <PlayCircle className="size-[18px] text-rose-500" strokeWidth={2} />
+          Watch your quick platform tour
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-          {summary.map((s) => (
-            <div
-              key={s.label}
-              className="bg-white rounded-[16px] border border-ink-100 p-4 text-center"
-            >
-              <div className="mx-auto inline-flex items-center justify-center size-10 rounded-full bg-rose-100 text-rose-600 mb-2">
-                <s.icon className="size-4" strokeWidth={2} />
-              </div>
-              <div className="text-[11.5px] text-ink-500 font-medium mb-1">
-                {s.label}
-              </div>
-              <div className="text-[12.5px] text-ink-900 font-semibold leading-snug line-clamp-3">
-                {s.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        <p className="text-[13px] text-ink-500 mb-3 max-w-2xl leading-snug">
+          A 2-minute walkthrough of how everything fits together. Finish it and
+          your dashboard unlocks below.
+        </p>
+        <IntroVideo onComplete={() => setIntroWatched(true)} />
       </section>
 
       {/* What we personalized */}
@@ -210,22 +102,47 @@ export function CompleteStep({ draft, onBack }: Props) {
         </InfoBanner>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 h-12 px-6 rounded-[14px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors"
+          className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-[14px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors"
         >
           <ArrowLeft className="size-4" strokeWidth={2} />
           Review My Answers
         </button>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 h-12 px-8 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-semibold transition-colors shadow-sm"
-        >
-          Go to My Dashboard
-          <ArrowRight className="size-4" strokeWidth={2} />
-        </Link>
+
+        <div className="flex flex-col items-stretch sm:items-end gap-1.5">
+          <button
+            type="button"
+            disabled={!introWatched}
+            aria-disabled={!introWatched}
+            onClick={() => router.push("/dashboard")}
+            className={cn(
+              "inline-flex items-center justify-center gap-2 h-12 px-8 rounded-[14px] text-[15px] font-semibold shadow-sm transition-all duration-300",
+              introWatched
+                ? "bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-200 scale-[1.02]"
+                : "bg-rose-300/50 text-white/80 cursor-not-allowed",
+            )}
+          >
+            {introWatched ? (
+              <>
+                Go to platform
+                <ArrowRight className="size-4" strokeWidth={2} />
+              </>
+            ) : (
+              <>
+                <Lock className="size-4" strokeWidth={2} />
+                Finish the intro to continue
+              </>
+            )}
+          </button>
+          {!introWatched && (
+            <span className="text-[11.5px] text-ink-500 text-center sm:text-right">
+              The button unlocks the moment the intro finishes.
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -308,6 +225,3 @@ function CrownDecor() {
     </div>
   );
 }
-
-// Suppress unused warning (CheckCircle2 imported for type compatibility)
-void CheckCircle2;

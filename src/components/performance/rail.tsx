@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Flame, ArrowRight, TrendingUp, ArrowUp, ArrowDown, Lock, Sparkles } from "lucide-react";
-import { Avatar } from "@/components/app-shell/avatar";
 import { cn } from "@/lib/cn";
 import type { PerformanceEntry } from "@/lib/performance/queries";
 
@@ -11,8 +10,6 @@ type Insight = {
 };
 
 type Props = {
-  userName: string;
-  avatarUrl?: string | null;
   plan: "free" | "basic" | "pro";
   streak: { current: number; last8: boolean[] };
   snapshot: { label: string; value: string }[];
@@ -22,8 +19,6 @@ type Props = {
 const DAY_LABELS = ["W-7", "W-6", "W-5", "W-4", "W-3", "W-2", "W-1", "Now"];
 
 export function PerformanceRail({
-  userName,
-  avatarUrl,
   plan,
   streak,
   snapshot,
@@ -32,14 +27,6 @@ export function PerformanceRail({
   return (
     <aside className="hidden xl:flex flex-col w-[336px] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
       <div className="p-5 space-y-4">
-        {/* Profile chip */}
-        <div className="flex items-center gap-3 pb-2">
-          <Avatar name={userName} src={avatarUrl ?? undefined} size={40} />
-          <div className="text-[14px] font-semibold text-ink-900">
-            {userName}
-          </div>
-        </div>
-
         {/* This Week's Snapshot */}
         <section className="card p-4">
           <div className="flex items-center justify-between mb-3">

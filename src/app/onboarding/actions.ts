@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { sendWelcomeEmail } from "@/lib/email/send";
@@ -48,17 +47,17 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
   if (!user) return { ok: false, error: "Not signed in." };
 
   // Server-side validation
-  if (!draft.stage || !draft.follower_base) {
-    return { ok: false, error: "Stage and follower base are required." };
+  if (!draft.stage || !draft.bottleneck) {
+    return { ok: false, error: "Please complete the first step (stage & bottleneck)." };
   }
-  if (!draft.primary_platform || !draft.content_frequency || !draft.bottleneck) {
+  if (!draft.primary_platform || !draft.content_frequency) {
     return { ok: false, error: "Platform answers are incomplete." };
   }
   if (!draft.main_goal || !draft.weekly_pace) {
     return { ok: false, error: "Goal and weekly pace are required." };
   }
-  if (draft.content_pillars.length === 0 || draft.focus_formats.length === 0) {
-    return { ok: false, error: "Pick at least one content pillar and one format." };
+  if (draft.content_pillars.length === 0) {
+    return { ok: false, error: "Pick at least one content pillar." };
   }
 
   const category = STAGE_TO_CATEGORY[draft.stage];
@@ -68,7 +67,6 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
     .from("profiles")
     .update({
       category,
-      follower_base: draft.follower_base,
       primary_platform: draft.primary_platform,
       content_frequency: draft.content_frequency,
       bottleneck: draft.bottleneck,
@@ -133,6 +131,10 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
     console.error("[onboarding] welcome email send failed:", err);
   }
 
-  revalidatePath("/", "layout");
+  // NB: intentionally no revalidatePath here. Revalidating the layout would
+  // re-run the /onboarding server page, which redirects already-onboarded users
+  // to /dashboard — that made the completion/intro screen flash for ~0.5s before
+  // bouncing away. The dashboard + app shell are auth-dynamic, so they render
+  // fresh on navigation anyway when the user clicks through.
   return { ok: true };
 }

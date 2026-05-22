@@ -46,11 +46,11 @@ export default function NotFound() {
             Back to dashboard
           </Link>
           <Link
-            href="/help"
+            href="/support"
             className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] border border-ink-200 bg-white hover:bg-cream-100 text-ink-900 text-[14px] font-semibold transition-colors"
           >
             <Compass className="size-4" strokeWidth={2} />
-            Visit help center
+            Visit support center
           </Link>
         </div>
 

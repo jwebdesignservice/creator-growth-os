@@ -107,7 +107,7 @@ export function ProfileMenu({ user }: Props) {
             onClick={() => setOpen(false)}
           />
           <MenuLink
-            href="/help"
+            href="/support"
             icon={<LifeBuoy className="size-4" strokeWidth={1.8} />}
             label="Help & Support"
             onClick={() => setOpen(false)}

@@ -38,16 +38,12 @@ export async function signUpWithPassword(
 ): Promise<FormResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const confirmPassword = String(formData.get("confirm_password") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
-  const followerBase = String(formData.get("follower_base") ?? "").trim();
-  const primaryPlatform = String(formData.get("primary_platform") ?? "").trim();
   const acceptTerms = formData.get("accept_terms") === "on";
 
   if (!email || !password) return { error: "Email and password are required." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
-  if (password !== confirmPassword) return { error: "Passwords don't match." };
   if (!acceptTerms) return { error: "You need to accept the Terms of Service to continue." };
 
   const supabase = await createClient();
@@ -59,8 +55,6 @@ export async function signUpWithPassword(
         full_name: fullName || email.split("@")[0],
         display_name: fullName || email.split("@")[0],
         phone: phone || undefined,
-        follower_base: followerBase || undefined,
-        primary_platform: primaryPlatform || undefined,
       },
     },
   });

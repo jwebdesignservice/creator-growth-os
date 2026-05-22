@@ -1,40 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   User,
   Mail,
   Phone,
-  Users as FollowerIcon,
-  MonitorSmartphone,
   ArrowRight,
   Sparkles,
 } from "lucide-react";
 import { TextInput } from "@/components/ui/text-input";
 import { PasswordInput } from "@/components/ui/password-input";
-import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PasswordStrengthCard } from "@/components/auth/password-strength";
 import { signUpWithPassword } from "../actions";
-
-const FOLLOWER_RANGES = [
-  { value: "0-1k", label: "0 – 1,000 followers" },
-  { value: "1k-10k", label: "1K – 10K followers" },
-  { value: "10k-50k", label: "10K – 50K followers" },
-  { value: "50k+", label: "50K+ followers" },
-];
-
-const PLATFORMS = [
-  { value: "instagram", label: "Instagram" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "youtube", label: "YouTube" },
-  { value: "snapchat", label: "Snapchat" },
-  { value: "linkedin", label: "LinkedIn" },
-  { value: "multiple", label: "Multiple platforms" },
-];
 
 export function SignUpForm() {
   const [state, formAction, pending] = useActionState(signUpWithPassword, {});
+
+  // Controlled so the shared strength card can react live — same meter +
+  // rules as /reset-password. No confirm field: the live requirements
+  // checklist + show-password toggle already let the user verify what they
+  // typed, so a second box is redundant friction at signup.
+  const [password, setPassword] = useState("");
+
+  const passwordGateOpen = password.length >= 8;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -65,41 +55,20 @@ export function SignUpForm() {
         icon={<Phone className="size-4" strokeWidth={2} />}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <PasswordInput
-          label="Password"
-          name="password"
-          autoComplete="new-password"
-          required
-          placeholder="••••••••••••"
-          minLength={8}
-        />
-        <PasswordInput
-          label="Confirm password"
-          name="confirm_password"
-          autoComplete="new-password"
-          required
-          placeholder="••••••••••••"
-          minLength={8}
-        />
-      </div>
+      <PasswordInput
+        label="Password"
+        name="password"
+        autoComplete="new-password"
+        required
+        placeholder="••••••••••••"
+        minLength={8}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Follower Base"
-          name="follower_base"
-          placeholder="Select your range"
-          options={FOLLOWER_RANGES}
-          icon={<FollowerIcon className="size-4" strokeWidth={2} />}
-        />
-        <Select
-          label="Primary Platform"
-          name="primary_platform"
-          placeholder="Select your platform"
-          options={PLATFORMS}
-          icon={<MonitorSmartphone className="size-4" strokeWidth={2} />}
-        />
-      </div>
+      {/* Live strength meter + rules — shared with /reset-password so the
+          two screens are byte-for-byte identical. */}
+      <PasswordStrengthCard password={password} />
 
       {/* Onboarding note */}
       <div className="flex items-start gap-3 rounded-[12px] bg-rose-50/60 border border-rose-100 px-4 py-3">
@@ -139,8 +108,8 @@ export function SignUpForm() {
 
       <button
         type="submit"
-        disabled={pending}
-        className="w-full h-12 rounded-[14px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[15px] font-medium transition-colors inline-flex items-center justify-center gap-2 shadow-sm"
+        disabled={pending || !passwordGateOpen}
+        className="w-full h-12 rounded-[14px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 disabled:cursor-not-allowed text-white text-[15px] font-medium transition-colors inline-flex items-center justify-center gap-2 shadow-sm"
       >
         {pending ? "Creating account…" : "Create Account & Start Free Trial"}
         {!pending && <ArrowRight className="size-4" strokeWidth={2} />}
