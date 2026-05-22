@@ -4,7 +4,7 @@ import { useEffect, useRef, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { MessageBubble } from "./message-bubble";
 import { loadOlderMessages } from "@/lib/community/chat/actions";
-import type { ChatMessage } from "@/lib/community/chat/types";
+import type { ChatMessage, ReactionGroup } from "@/lib/community/chat/types";
 
 type Props = {
   messages: ChatMessage[];
@@ -15,6 +15,7 @@ type Props = {
   onError: (msg: string) => void;
   onOlderLoaded: (older: ChatMessage[]) => void;
   onReply: (message: ChatMessage) => void;
+  reactions: ReactionGroup[];
 };
 
 export function MessageList({
@@ -26,6 +27,7 @@ export function MessageList({
   onError,
   onOlderLoaded,
   onReply,
+  reactions,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -90,6 +92,7 @@ export function MessageList({
           message={msg}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
+          reactions={reactions.filter((r) => r.message_id === msg.id)}
           onDeleted={onDeleted}
           onPinChanged={onPinChanged}
           onError={onError}

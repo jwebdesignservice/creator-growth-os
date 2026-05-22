@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { MessageList } from "./message-list";
@@ -8,35 +8,66 @@ import { PinnedBanner } from "./pinned-banner";
 import { Composer } from "./composer";
 import { MessageSquare, ArrowLeft } from "lucide-react";
 import { fetchRecentMessages } from "@/lib/community/chat/actions";
-import type { ChatMessage } from "@/lib/community/chat/types";
+import type {
+  ChatMessage,
+  ChatReaction,
+  PresenceUser,
+  ReactionGroup,
+} from "@/lib/community/chat/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type Props = {
   initialMessages: ChatMessage[];
   initialPinned: ChatMessage[];
+  initialReactions: ChatReaction[];
   currentUserId: string;
   currentUserName: string;
   currentUserAvatar: string | null;
   isAdmin: boolean;
 };
-// currentUserName and currentUserAvatar reserved for future optimistic insert
 
 type Toast = { id: number; kind: "error" | "success"; message: string };
 
 export function ChatRoom({
   initialMessages,
   initialPinned,
+  initialReactions,
   currentUserId,
+  currentUserName,
+  currentUserAvatar,
   isAdmin,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [pinned, setPinned] = useState<ChatMessage[]>(initialPinned);
+  const [reactions, setReactions] = useState<ChatReaction[]>(initialReactions);
+  const [presence, setPresence] = useState<PresenceUser[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isConnected, setIsConnected] = useState(true);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasDisconnected = useRef(false);
+
+  // Aggregate raw reactions into ReactionGroup[] (one per message+emoji)
+  const reactionGroups: ReactionGroup[] = useMemo(() => {
+    const map = new Map<string, ReactionGroup>();
+    for (const r of reactions) {
+      const key = `${r.message_id}::${r.emoji}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count += 1;
+        existing.user_ids.push(r.user_id);
+      } else {
+        map.set(key, {
+          message_id: r.message_id,
+          emoji: r.emoji,
+          count: 1,
+          user_ids: [r.user_id],
+        });
+      }
+    }
+    return [...map.values()];
+  }, [reactions]);
 
   const showError = useCallback((message: string) => {
     const id = Date.now();
@@ -49,7 +80,64 @@ export function ChatRoom({
     const supabase = createClient();
 
     const channel = supabase
-      .channel("chat:global")
+      .channel("chat:global", {
+        config: { presence: { key: currentUserId } },
+      })
+      // ── Reactions (INSERT + DELETE)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_chat_reactions",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const r = payload.new as ChatReaction;
+            setReactions((prev) =>
+              prev.some(
+                (x) =>
+                  x.message_id === r.message_id &&
+                  x.user_id === r.user_id &&
+                  x.emoji === r.emoji,
+              )
+                ? prev
+                : [...prev, r],
+            );
+          } else if (payload.eventType === "DELETE") {
+            const old = payload.old as ChatReaction;
+            setReactions((prev) =>
+              prev.filter(
+                (x) =>
+                  !(
+                    x.message_id === old.message_id &&
+                    x.user_id === old.user_id &&
+                    x.emoji === old.emoji
+                  ),
+              ),
+            );
+          }
+        },
+      )
+      // ── Presence sync
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<
+          string,
+          Array<PresenceUser>
+        >;
+        const flat: PresenceUser[] = [];
+        const seen = new Set<string>();
+        for (const arr of Object.values(state)) {
+          for (const meta of arr) {
+            if (!seen.has(meta.user_id)) {
+              seen.add(meta.user_id);
+              flat.push(meta);
+            }
+          }
+        }
+        setPresence(flat);
+      })
+      // ── Messages
       .on(
         "postgres_changes",
         {
@@ -89,13 +177,19 @@ export function ChatRoom({
           }
         },
       )
-      .subscribe((status) => {
+      .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           setIsConnected(true);
           if (reconnectTimer.current) {
             clearTimeout(reconnectTimer.current);
             reconnectTimer.current = null;
           }
+          // Announce ourselves via presence
+          await channel.track({
+            user_id: currentUserId,
+            name: currentUserName,
+            avatar: currentUserAvatar,
+          } satisfies PresenceUser);
           // Refetch to catch messages missed during disconnect
           if (wasDisconnected.current) {
             wasDisconnected.current = false;
@@ -175,13 +269,39 @@ export function ChatRoom({
         <span className="h-5 w-px bg-ink-100" aria-hidden />
         <MessageSquare className="size-4 text-rose-500" strokeWidth={2} />
         <h1 className="font-semibold text-[15px] text-ink-900">Community Chat</h1>
-        <div className="ml-auto flex items-center gap-1.5">
-          <span
-            className={`size-2 rounded-full ${isConnected ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`}
-          />
-          <span className="text-[11.5px] text-ink-400">
-            {isConnected ? "Live" : "Connecting…"}
-          </span>
+        <div className="ml-auto flex items-center gap-3">
+          {/* Online count + stacked avatars */}
+          {presence.length > 0 && (
+            <div className="flex items-center gap-2" title={presence.map((p) => p.name).join(", ")}>
+              <div className="flex -space-x-2">
+                {presence.slice(0, 3).map((p) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <div
+                    key={p.user_id}
+                    className="size-6 rounded-full ring-2 ring-white bg-cream-200 overflow-hidden flex items-center justify-center text-[10px] font-semibold text-ink-700"
+                  >
+                    {p.avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      p.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                ))}
+              </div>
+              <span className="text-[11.5px] text-ink-500 font-medium">
+                {presence.length} online
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`size-2 rounded-full ${isConnected ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`}
+            />
+            <span className="text-[11.5px] text-ink-400">
+              {isConnected ? "Live" : "Connecting…"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -191,6 +311,7 @@ export function ChatRoom({
       {/* Message list */}
       <MessageList
         messages={messages}
+        reactions={reactionGroups}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
         onDeleted={handleDeleted}
@@ -207,6 +328,7 @@ export function ChatRoom({
         onSent={() => {/* scroll handled by MessageList useEffect */}}
         onError={showError}
         isConnected={isConnected}
+        currentUserId={currentUserId}
       />
 
       {/* Inline toasts */}
