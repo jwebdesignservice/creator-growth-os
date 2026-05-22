@@ -16,6 +16,7 @@ export type NotificationType =
   | "program_available"
   | "community_reply"
   | "chat_mention"
+  | "chat_reply"
   | "coach_message"
   | "live_event"
   | "upgrade_recommendation"
