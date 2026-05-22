@@ -7,25 +7,32 @@ import {
   useTransition,
   type KeyboardEvent,
 } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X, CornerUpLeft } from "lucide-react";
 import { MentionPopover } from "./mention-popover";
 import { sendMessage, searchHandles } from "@/lib/community/chat/actions";
 import { cn } from "@/lib/cn";
-import type { MentionCandidate } from "@/lib/community/chat/types";
+import type { ChatMessage, MentionCandidate } from "@/lib/community/chat/types";
 
 type Props = {
   onSent: () => void;
   onError: (msg: string) => void;
   isConnected: boolean;
+  replyTo: ChatMessage | null;
+  onCancelReply: () => void;
 };
 
 const MAX_CHARS = 2000;
 const WARN_CHARS = 1900;
 
-export function Composer({ onSent, onError, isConnected }: Props) {
+export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply }: Props) {
   const [body, setBody] = useState("");
   const [sending, startSending] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Focus textarea when replyTo changes (clicking Reply on a message focuses composer)
+  useEffect(() => {
+    if (replyTo) textareaRef.current?.focus();
+  }, [replyTo]);
 
   // Mention autocomplete state
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -108,14 +115,16 @@ export function Composer({ onSent, onError, isConnected }: Props) {
   function submit() {
     const trimmed = body.trim();
     if (!trimmed || sending) return;
+    const replyId = replyTo?.id;
     startSending(async () => {
-      const result = await sendMessage(trimmed);
+      const result = await sendMessage(trimmed, replyId);
       if (!result.ok) {
         onError(result.error);
       } else {
         setBody("");
         setMentionQuery(null);
         setCandidates([]);
+        onCancelReply();
         onSent();
       }
     });
@@ -131,6 +140,26 @@ export function Composer({ onSent, onError, isConnected }: Props) {
         <div className="text-[11.5px] text-amber-600 flex items-center gap-1.5 mb-2">
           <Loader2 className="size-3 animate-spin" strokeWidth={2} />
           Reconnecting…
+        </div>
+      )}
+
+      {/* Reply context pill */}
+      {replyTo && (
+        <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-rose-50 border border-rose-100 text-[12px]">
+          <CornerUpLeft className="size-3 text-rose-500 shrink-0" strokeWidth={2.5} />
+          <div className="flex-1 min-w-0 truncate">
+            <span className="text-ink-500">Replying to </span>
+            <span className="font-semibold text-rose-700">{replyTo.author_name}</span>
+            <span className="text-ink-400 ml-1.5 truncate">{replyTo.body}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelReply}
+            className="shrink-0 size-5 rounded-full flex items-center justify-center text-ink-400 hover:bg-rose-100 hover:text-rose-600 transition-colors"
+            aria-label="Cancel reply"
+          >
+            <X className="size-3" strokeWidth={2.5} />
+          </button>
         </div>
       )}
 

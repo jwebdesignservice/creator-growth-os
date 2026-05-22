@@ -14,6 +14,7 @@ type Props = {
   onPinChanged: (id: string, pinned: boolean) => void;
   onError: (msg: string) => void;
   onOlderLoaded: (older: ChatMessage[]) => void;
+  onReply: (message: ChatMessage) => void;
 };
 
 export function MessageList({
@@ -24,6 +25,7 @@ export function MessageList({
   onPinChanged,
   onError,
   onOlderLoaded,
+  onReply,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -91,6 +93,7 @@ export function MessageList({
           onDeleted={onDeleted}
           onPinChanged={onPinChanged}
           onError={onError}
+          onReply={onReply}
         />
       ))}
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { MoreHorizontal, Trash2, Pin, PinOff } from "lucide-react";
+import { Fragment, useState, useTransition } from "react";
+import { MoreHorizontal, Trash2, Pin, PinOff, CornerUpLeft, Reply } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
 import { softDeleteMessage, pinMessage, unpinMessage } from "@/lib/community/chat/actions";
 import { cn } from "@/lib/cn";
@@ -14,7 +14,42 @@ type Props = {
   onDeleted: (id: string) => void;
   onPinChanged: (id: string, pinned: boolean) => void;
   onError: (msg: string) => void;
+  onReply: (message: ChatMessage) => void;
 };
+
+/**
+ * Render message body with @handle tokens highlighted as rose chips.
+ * Regex matches the same shape we extract on the server side.
+ */
+function renderBody(body: string) {
+  const parts: Array<{ text: string; isMention: boolean }> = [];
+  const re = /(^|\s)@([a-z0-9_]+)/gi;
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) !== null) {
+    const matchStart = m.index + m[1].length; // skip leading whitespace
+    if (matchStart > lastIndex) {
+      parts.push({ text: body.slice(lastIndex, matchStart), isMention: false });
+    }
+    parts.push({ text: `@${m[2]}`, isMention: true });
+    lastIndex = matchStart + m[2].length + 1; // +1 for '@'
+  }
+  if (lastIndex < body.length) {
+    parts.push({ text: body.slice(lastIndex), isMention: false });
+  }
+  return parts.map((p, i) =>
+    p.isMention ? (
+      <span
+        key={i}
+        className="inline-flex items-center px-1 rounded-[4px] bg-rose-100 text-rose-700 font-medium"
+      >
+        {p.text}
+      </span>
+    ) : (
+      <Fragment key={i}>{p.text}</Fragment>
+    ),
+  );
+}
 
 export function MessageBubble({
   message,
@@ -23,6 +58,7 @@ export function MessageBubble({
   onDeleted,
   onPinChanged,
   onError,
+  onReply,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -93,11 +129,37 @@ export function MessageBubble({
           <span className="text-[11px] text-ink-400 ml-auto">{time}</span>
         </div>
 
+        {/* Reply quote (if this message is a reply) */}
+        {message.reply_to_preview && (
+          <div className="mt-1 flex items-start gap-1.5 pl-2 border-l-2 border-rose-200 text-[12px] text-ink-500">
+            <CornerUpLeft className="size-3 text-rose-400 mt-0.5 shrink-0" strokeWidth={2} />
+            <div className="min-w-0">
+              <span className="font-semibold text-ink-700">
+                {message.reply_to_preview.author_name}
+              </span>
+              <span className="ml-1.5 truncate inline-block max-w-full align-bottom">
+                {message.reply_to_preview.body}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Body */}
         <p className="mt-0.5 text-[13.5px] text-ink-800 leading-relaxed break-words">
-          {message.body}
+          {renderBody(message.body)}
         </p>
       </div>
+
+      {/* Quick reply button (visible on hover, separate from action menu) */}
+      <button
+        type="button"
+        onClick={() => onReply(message)}
+        className="shrink-0 self-start size-7 rounded-[8px] flex items-center justify-center text-ink-400 hover:bg-cream-200 hover:text-rose-600 transition-colors opacity-0 group-hover:opacity-100"
+        aria-label="Reply"
+        title="Reply"
+      >
+        <Reply className="size-4" strokeWidth={2} />
+      </button>
 
       {/* Action menu (visible on hover or when open) */}
       {(canDelete || canPin) && (

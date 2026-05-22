@@ -7,7 +7,10 @@ import { listRecentMessages } from "./queries";
 
 // ── sendMessage ────────────────────────────────────────────────────────
 
-export async function sendMessage(body: string): Promise<ChatActionResult> {
+export async function sendMessage(
+  body: string,
+  replyToId?: string,
+): Promise<ChatActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,6 +20,25 @@ export async function sendMessage(body: string): Promise<ChatActionResult> {
   const trimmed = body.trim();
   if (!trimmed) return { ok: false, error: "Message cannot be empty." };
   if (trimmed.length > 2000) return { ok: false, error: "Message too long." };
+
+  // Resolve reply parent (if any) — denormalize a snippet for display
+  let replyToPreview: { author_name: string; body: string } | null = null;
+  let validReplyToId: string | null = null;
+  if (replyToId) {
+    const { data: parent } = await supabase
+      .from("community_chat_messages")
+      .select("id, author_name, body, deleted_at")
+      .eq("id", replyToId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (parent) {
+      validReplyToId = parent.id;
+      replyToPreview = {
+        author_name: parent.author_name,
+        body: parent.body.slice(0, 140),
+      };
+    }
+  }
 
   // Own profile — safe: RLS allows reading your own row
   const { data: profile } = await supabase
@@ -62,6 +84,8 @@ export async function sendMessage(body: string): Promise<ChatActionResult> {
       author_name: authorName,
       author_avatar: authorAvatar,
       author_is_admin: authorIsAdmin,
+      reply_to_id: validReplyToId,
+      reply_to_preview: replyToPreview,
     })
     .select("id")
     .single();

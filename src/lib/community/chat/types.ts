@@ -1,6 +1,11 @@
 // Types for the community chat feature.
 // ChatMessage mirrors the community_chat_messages DB row.
 
+export type ReplyPreview = {
+  author_name: string;
+  body: string;
+};
+
 export type ChatMessage = {
   id: string;
   user_id: string;
@@ -12,6 +17,8 @@ export type ChatMessage = {
   author_name: string;
   author_avatar: string | null;
   author_is_admin: boolean;
+  reply_to_id: string | null;
+  reply_to_preview: ReplyPreview | null;
   created_at: string;
 };
 

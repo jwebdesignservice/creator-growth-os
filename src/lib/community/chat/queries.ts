@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ChatMessage } from "./types";
 
 const CHAT_COLS =
-  "id, user_id, body, pinned, deleted_at, deleted_by, mention_user_ids, author_name, author_avatar, author_is_admin, created_at";
+  "id, user_id, body, pinned, deleted_at, deleted_by, mention_user_ids, author_name, author_avatar, author_is_admin, reply_to_id, reply_to_preview, created_at";
 
 /**
  * Fetch the most recent messages (excluding soft-deleted).

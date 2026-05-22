@@ -77,22 +77,44 @@ export default async function CommunityPage() {
         <section>
           <Link
             href="/community/chat"
-            className="flex items-center justify-between gap-4 p-5 rounded-[20px] bg-gradient-to-r from-rose-50 to-cream-100 border border-rose-100 hover:border-rose-200 transition-colors group"
+            className="relative block overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-100 via-rose-50 to-cream-100 border-2 border-rose-200 hover:border-rose-300 hover:shadow-lg transition-all group"
           >
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-[12px] bg-rose-100 flex items-center justify-center shrink-0">
-                <MessageSquare className="size-5 text-rose-600" strokeWidth={2} />
+            {/* Decorative floating chat bubbles */}
+            <div className="absolute right-8 top-6 size-12 rounded-[14px] bg-white shadow-md rotate-[8deg] flex items-center justify-center opacity-90 hidden md:flex">
+              <MessageSquare className="size-5 text-rose-500" strokeWidth={2} />
+            </div>
+            <div className="absolute right-28 top-16 size-10 rounded-[12px] bg-rose-300/30 rotate-[-12deg] hidden md:block" />
+            <div className="absolute right-16 bottom-6 size-8 rounded-[10px] bg-white/80 shadow-sm rotate-[15deg] hidden md:block" />
+
+            <div className="relative p-7 lg:p-9 grid lg:grid-cols-[1fr_auto] items-center gap-6">
+              <div className="flex items-start gap-5">
+                <div className="size-16 rounded-[18px] bg-rose-600 flex items-center justify-center shrink-0 shadow-md">
+                  <MessageSquare className="size-7 text-white" strokeWidth={2} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-semibold">
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live now
+                    </span>
+                  </div>
+                  <h2 className="font-display text-[26px] lg:text-[32px] text-ink-900 leading-tight mb-1">
+                    Community Chat
+                  </h2>
+                  <p className="text-[14px] text-ink-700 max-w-xl">
+                    Talk to other creators, ask questions, and get real-time answers
+                    from coaches.
+                  </p>
+                </div>
               </div>
-              <div>
-                <div className="text-[14.5px] font-semibold text-ink-900 group-hover:text-rose-700 transition-colors">
-                  Community Chat
-                </div>
-                <div className="text-[12.5px] text-ink-500 mt-0.5">
-                  Join the live conversation with your peers and coaches
-                </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="inline-flex items-center gap-2 h-12 px-5 rounded-[14px] bg-rose-600 group-hover:bg-rose-700 text-white text-[14.5px] font-semibold shadow-sm transition-colors">
+                  Join chat
+                  <ArrowRight className="size-4" strokeWidth={2.5} />
+                </span>
               </div>
             </div>
-            <ArrowRight className="size-5 text-ink-400 group-hover:text-rose-600 transition-colors shrink-0" />
           </Link>
         </section>
 
