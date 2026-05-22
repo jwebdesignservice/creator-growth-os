@@ -7,9 +7,10 @@ import {
   useTransition,
   type KeyboardEvent,
 } from "react";
-import { Send, Loader2, X, CornerUpLeft } from "lucide-react";
+import { Send, Loader2, X, CornerUpLeft, Paperclip, Image as ImageIcon } from "lucide-react";
 import { MentionPopover } from "./mention-popover";
 import { sendMessage, searchHandles } from "@/lib/community/chat/actions";
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 import type { ChatMessage, MentionCandidate } from "@/lib/community/chat/types";
 
@@ -19,15 +20,71 @@ type Props = {
   isConnected: boolean;
   replyTo: ChatMessage | null;
   onCancelReply: () => void;
+  currentUserId: string;
 };
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 const MAX_CHARS = 2000;
 const WARN_CHARS = 1900;
 
-export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply }: Props) {
+export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply, currentUserId }: Props) {
   const [body, setBody] = useState("");
   const [sending, startSending] = useTransition();
+  const [uploading, setUploading] = useState(false);
+  const [pendingImage, setPendingImage] = useState<{ url: string; name: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadImage(file: File) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      onError("Only PNG, JPEG, WebP, or GIF images are allowed.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      onError("Image must be under 5MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const supabase = createBrowserClient();
+      const ext = file.name.split(".").pop() ?? "png";
+      const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage
+        .from("chat-images")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (error) {
+        onError(error.message);
+        return;
+      }
+      const { data } = supabase.storage.from("chat-images").getPublicUrl(path);
+      setPendingImage({ url: data.publicUrl, name: file.name });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) uploadImage(file);
+    e.target.value = ""; // allow re-selecting the same file later
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          uploadImage(file);
+          return;
+        }
+      }
+    }
+  }
 
   // Focus textarea when replyTo changes (clicking Reply on a message focuses composer)
   useEffect(() => {
@@ -114,14 +171,16 @@ export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply 
 
   function submit() {
     const trimmed = body.trim();
-    if (!trimmed || sending) return;
+    if ((!trimmed && !pendingImage) || sending) return;
     const replyId = replyTo?.id;
+    const imageUrl = pendingImage?.url;
     startSending(async () => {
-      const result = await sendMessage(trimmed, replyId);
+      const result = await sendMessage(trimmed, replyId, imageUrl);
       if (!result.ok) {
         onError(result.error);
       } else {
         setBody("");
+        setPendingImage(null);
         setMentionQuery(null);
         setCandidates([]);
         onCancelReply();
@@ -163,6 +222,35 @@ export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply 
         </div>
       )}
 
+      {/* Pending image preview */}
+      {pendingImage && (
+        <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-[12px] bg-cream-100 border border-ink-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={pendingImage.url} alt="" className="size-12 rounded-[8px] object-cover shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] font-medium text-ink-700 truncate">{pendingImage.name}</div>
+            <div className="text-[11px] text-ink-400">Ready to send</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPendingImage(null)}
+            className="shrink-0 size-7 rounded-full flex items-center justify-center text-ink-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+            aria-label="Remove image"
+          >
+            <X className="size-3.5" strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ALLOWED_IMAGE_TYPES.join(",")}
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       <div className="relative flex items-end gap-2">
         {/* Mention popover anchored to the textarea */}
         {candidates.length > 0 && (
@@ -173,12 +261,28 @@ export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply 
           />
         )}
 
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={sending || uploading || !isConnected}
+          className="shrink-0 size-[44px] rounded-[14px] flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-rose-600 disabled:opacity-40 transition-colors"
+          aria-label="Attach image"
+          title="Attach image"
+        >
+          {uploading ? (
+            <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+          ) : (
+            <Paperclip className="size-4" strokeWidth={2} />
+          )}
+        </button>
+
         <textarea
           ref={textareaRef}
           value={body}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Message the community… (Enter to send, Shift+Enter for new line)"
+          onPaste={handlePaste}
+          placeholder={pendingImage ? "Add a caption… (optional)" : "Message the community… (Enter to send, Shift+Enter for new line)"}
           rows={1}
           maxLength={MAX_CHARS}
           disabled={sending || !isConnected}
@@ -193,7 +297,7 @@ export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply 
         <button
           type="button"
           onClick={submit}
-          disabled={!body.trim() || sending || !isConnected}
+          disabled={(!body.trim() && !pendingImage) || sending || !isConnected}
           className="shrink-0 size-[44px] rounded-[14px] flex items-center justify-center bg-rose-600 text-white hover:bg-rose-700 disabled:bg-ink-200 disabled:text-ink-400 transition-colors"
           aria-label="Send message"
         >

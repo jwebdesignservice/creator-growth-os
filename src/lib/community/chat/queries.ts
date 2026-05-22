@@ -1,9 +1,9 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, ChatReaction, ReactionGroup } from "./types";
 
 const CHAT_COLS =
-  "id, user_id, body, pinned, deleted_at, deleted_by, mention_user_ids, author_name, author_avatar, author_is_admin, reply_to_id, reply_to_preview, created_at";
+  "id, user_id, body, pinned, deleted_at, deleted_by, mention_user_ids, author_name, author_avatar, author_is_admin, reply_to_id, reply_to_preview, edited_at, image_url, link_preview, created_at";
 
 /**
  * Fetch the most recent messages (excluding soft-deleted).
@@ -45,4 +45,41 @@ export async function listPinned(): Promise<ChatMessage[]> {
     .order("created_at", { ascending: false })
     .limit(3);
   return (data ?? []) as ChatMessage[];
+}
+
+/**
+ * Fetch all reactions for a set of message ids, aggregated by (message, emoji).
+ * Returns ReactionGroup[] so the UI can render chips with counts.
+ */
+export async function listReactions(
+  messageIds: string[],
+): Promise<ReactionGroup[]> {
+  if (messageIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("community_chat_reactions")
+    .select("message_id, user_id, emoji")
+    .in("message_id", messageIds);
+  return groupReactions((data ?? []) as ChatReaction[]);
+}
+
+/** Aggregate raw reaction rows into ReactionGroup[] (one per message+emoji). */
+export function groupReactions(rows: ChatReaction[]): ReactionGroup[] {
+  const map = new Map<string, ReactionGroup>();
+  for (const r of rows) {
+    const key = `${r.message_id}::${r.emoji}`;
+    const existing = map.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.user_ids.push(r.user_id);
+    } else {
+      map.set(key, {
+        message_id: r.message_id,
+        emoji: r.emoji,
+        count: 1,
+        user_ids: [r.user_id],
+      });
+    }
+  }
+  return [...map.values()];
 }
