@@ -374,3 +374,26 @@ export async function notifyChatMention(
     metadata: { message_id: messageId, author_name: authorName },
   });
 }
+
+export async function notifyChatReply(
+  userId: string,
+  authorName: string,
+  messageId: string,
+  parentMessageId: string,
+  bodyPreview: string,
+): Promise<void> {
+  await createNotification(userId, {
+    title: `${authorName} replied to your message`,
+    body: bodyPreview,
+    type: "chat_reply",
+    category: "community",
+    priority: 3,
+    action_label: "View Reply",
+    action_url: "/community/chat",
+    metadata: {
+      message_id: messageId,
+      reply_to_id: parentMessageId,
+      author_name: authorName,
+    },
+  });
+}

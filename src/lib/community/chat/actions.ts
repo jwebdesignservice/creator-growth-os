@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { notifyChatMention } from "@/lib/notifications/service";
+import { notifyChatMention, notifyChatReply } from "@/lib/notifications/service";
 import type { ChatActionResult, MentionCandidate, ChatMessage } from "./types";
 import { listRecentMessages } from "./queries";
 
@@ -26,15 +26,17 @@ export async function sendMessage(
   // Resolve reply parent (if any) — denormalize a snippet for display
   let replyToPreview: { author_name: string; body: string } | null = null;
   let validReplyToId: string | null = null;
+  let replyParentUserId: string | null = null;
   if (replyToId) {
     const { data: parent } = await supabase
       .from("community_chat_messages")
-      .select("id, author_name, body, deleted_at")
+      .select("id, user_id, author_name, body, deleted_at")
       .eq("id", replyToId)
       .is("deleted_at", null)
       .maybeSingle();
     if (parent) {
       validReplyToId = parent.id;
+      replyParentUserId = parent.user_id;
       replyToPreview = {
         author_name: parent.author_name,
         body: parent.body.slice(0, 140),
@@ -99,13 +101,28 @@ export async function sendMessage(
 
   if (error) return { ok: false, error: error.message };
 
-  // Fire mention notifications via service client (bypasses RLS)
-  const bodyPreview = trimmed.slice(0, 100);
-  await Promise.all(
-    mentionUserIds.map((mentionedId) =>
-      notifyChatMention(mentionedId, authorName, msg.id, bodyPreview),
-    ),
-  );
+  // Fire notifications via service client (bypasses RLS).
+  // Use body preview, falling back to "(image)" for image-only messages.
+  const bodyPreview = trimmed.slice(0, 100) || (imageUrl ? "(image)" : "");
+
+  // If this is a reply, ping the parent author — but only if it's not the
+  // sender themselves, and skip them from the mention list to avoid double-ping.
+  const shouldNotifyReplyAuthor =
+    replyParentUserId && replyParentUserId !== user.id;
+  const mentionRecipients = shouldNotifyReplyAuthor
+    ? mentionUserIds.filter((id) => id !== replyParentUserId)
+    : mentionUserIds;
+
+  const notifications: Promise<void>[] = [];
+  if (shouldNotifyReplyAuthor && replyParentUserId && validReplyToId) {
+    notifications.push(
+      notifyChatReply(replyParentUserId, authorName, msg.id, validReplyToId, bodyPreview),
+    );
+  }
+  for (const mentionedId of mentionRecipients) {
+    notifications.push(notifyChatMention(mentionedId, authorName, msg.id, bodyPreview));
+  }
+  await Promise.all(notifications);
 
   return { ok: true, id: msg.id };
 }
