@@ -32,6 +32,7 @@ export function ChatRoom({
   const [pinned, setPinned] = useState<ChatMessage[]>(initialPinned);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isConnected, setIsConnected] = useState(true);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasDisconnected = useRef(false);
@@ -186,10 +187,13 @@ export function ChatRoom({
         onPinChanged={handlePinChanged}
         onError={showError}
         onOlderLoaded={handleOlderLoaded}
+        onReply={setReplyTo}
       />
 
       {/* Composer */}
       <Composer
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
         onSent={() => {/* scroll handled by MessageList useEffect */}}
         onError={showError}
         isConnected={isConnected}
