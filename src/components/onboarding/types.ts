@@ -20,7 +20,6 @@ export type PrimaryGoal =
 export type OnboardingDraft = {
   // Step 1 — Stage
   stage: CreatorStage | null;
-  follower_base: string | null; // 0-1k | 1k-10k | 10k-50k | 50k+
 
   // Step 2 — Platform
   primary_platform: PrimaryPlatform | null;
@@ -40,7 +39,6 @@ export type OnboardingDraft = {
 
 export const EMPTY_DRAFT: OnboardingDraft = {
   stage: null,
-  follower_base: null,
   primary_platform: null,
   content_frequency: null,
   bottleneck: null,
@@ -62,12 +60,12 @@ export function isStepComplete(
 ): boolean {
   switch (step) {
     case "stage":
-      return Boolean(d.stage && d.follower_base);
+      return Boolean(d.stage && d.bottleneck);
     case "platform":
-      return Boolean(d.primary_platform && d.content_frequency && d.bottleneck);
+      return Boolean(d.primary_platform && d.content_frequency);
     case "goals":
       return Boolean(d.main_goal && d.weekly_pace);
     case "content":
-      return d.content_pillars.length > 0 && d.focus_formats.length > 0;
+      return d.content_pillars.length > 0;
   }
 }
