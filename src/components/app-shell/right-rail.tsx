@@ -54,6 +54,29 @@ export function RightRail({ profile }: { profile: Profile }) {
   );
 }
 
+/**
+ * Full-width inline insights grid.
+ *
+ * Used on the dashboard, which no longer docks the right rail — instead
+ * these cards (social snapshot, profile completion, coach, category, plan)
+ * flow inside the main content as a responsive grid. Reuses the exact same
+ * card components as <RightRail /> so they stay visually identical.
+ */
+export function DashboardInsights({ profile }: { profile: Profile }) {
+  return (
+    <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-[var(--space-grid-gap)] items-start">
+      <ProfileCard profile={profile} />
+      <CompletionCard percent={profile.profile_completion} />
+      <CoachCard />
+      <CategoryCard
+        label={profile.category_label}
+        description={profile.category_description}
+      />
+      <PlanCard plan={profile.plan} />
+    </section>
+  );
+}
+
 function ProfileCard({ profile }: { profile: Profile }) {
   return (
     <div className="card p-[var(--space-card-padding-sm)]">

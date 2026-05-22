@@ -1,122 +1,341 @@
+import Link from "next/link";
 import {
-  Flame,
-  PlayCircle,
-  TrendingUp,
+  Sparkles,
+  CalendarDays,
+  Info,
+  Circle,
   CheckCircle2,
-  ArrowUp,
-  ChevronRight,
 } from "lucide-react";
 import { Donut } from "./donut";
+import { Sparkline } from "./sparkline";
 import { cn } from "@/lib/cn";
 
-type Kpi = {
-  program_progress: number;
-  daily_streak: number;
-  videos_watched: number;
-  weekly_progress: number;
-  weekly_progress_delta: number;
-  tasks_completed: number;
-  tasks_total: number;
+export type ChecklistItem = { label: string; done: boolean };
+
+export type Kpi = {
+  followers: number;
+  /** Followers history (oldest→newest) for the Audience Growth sparkline. */
+  followersSeries: number[];
+  tasksCompleted: number;
+  tasksTotal: number;
+  /** Up to 4 items shown in Today's Progress. */
+  checklist: ChecklistItem[];
+  postsThisWeek: number;
+  /** 7 values, Mon→Sun, for the Content Activity bars. */
+  contentActivity: number[];
+  revenue: number;
+  revenueGoal: number;
 };
 
 export function KpiCards({ kpi }: { kpi: Kpi }) {
+  const taskPct =
+    kpi.tasksTotal > 0
+      ? Math.round((kpi.tasksCompleted / kpi.tasksTotal) * 100)
+      : 0;
+  const revenuePct =
+    kpi.revenueGoal > 0
+      ? Math.min(100, Math.round((kpi.revenue / kpi.revenueGoal) * 100))
+      : 0;
+
   return (
-    <section className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-[var(--mobile-grid-gap)] sm:gap-[var(--space-grid-gap-sm)]">
-      {/* Program progress */}
-      <KpiCard
-        media={
-          <Donut percent={kpi.program_progress} size={64} strokeWidth={7}>
-            <span className="text-[13px] font-semibold text-ink-900">
-              {kpi.program_progress}%
-            </span>
-          </Donut>
-        }
-        label="Program Progress"
-        primary={`${kpi.program_progress}%`}
-        sub="Overall progress"
+    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--space-grid-gap-sm)] items-stretch">
+      <AudienceGrowthCard
+        followers={kpi.followers}
+        series={kpi.followersSeries}
       />
-
-      <KpiCard
-        media={<IconBubble><Flame className="size-5 text-rose-600" strokeWidth={2} fill="currentColor" /></IconBubble>}
-        label="Daily Streak"
-        primary={String(kpi.daily_streak)}
-        sub="days in a row"
+      <TodaysProgressCard
+        completed={kpi.tasksCompleted}
+        total={kpi.tasksTotal}
+        percent={taskPct}
+        checklist={kpi.checklist}
       />
-
-      <KpiCard
-        media={<IconBubble><PlayCircle className="size-5 text-rose-600" strokeWidth={1.6} /></IconBubble>}
-        label="Videos Watched"
-        primary={String(kpi.videos_watched)}
-        sub="total videos"
+      <ContentActivityCard
+        posts={kpi.postsThisWeek}
+        activity={kpi.contentActivity}
       />
-
-      <KpiCard
-        media={<IconBubble><TrendingUp className="size-5 text-rose-600" strokeWidth={2} /></IconBubble>}
-        label="Weekly Progress"
-        primary={`${kpi.weekly_progress}%`}
-        sub={
-          <span className="inline-flex items-center gap-0.5 text-success text-[11.5px] font-medium">
-            <ArrowUp className="size-3" strokeWidth={2.5} />
-            {kpi.weekly_progress_delta}% vs last week
-          </span>
-        }
-      />
-
-      {/* Tasks Completed — full-width on mobile (image shows this card spanning
-          both columns with a trailing chevron). Reverts to one slot from md+. */}
-      <KpiCard
-        className="col-span-2 md:col-span-1"
-        trailing={
-          <ChevronRight
-            className="size-4 text-ink-300 shrink-0 md:hidden"
-            strokeWidth={2}
-          />
-        }
-        media={<IconBubble><CheckCircle2 className="size-5 text-rose-600" strokeWidth={1.8} /></IconBubble>}
-        label="Tasks Completed"
-        primary={String(kpi.tasks_completed)}
-        sub={`of ${kpi.tasks_total} tasks`}
+      <RevenueGoalCard
+        revenue={kpi.revenue}
+        goal={kpi.revenueGoal}
+        percent={revenuePct}
       />
     </section>
   );
 }
 
-function IconBubble({ children }: { children: React.ReactNode }) {
+/* ─── Shared bits ────────────────────────────────────────────────────────── */
+
+function CardHeader({ title, hint }: { title: string; hint: string }) {
   return (
-    <div className="size-[var(--icon-container-xl)] rounded-full bg-rose-100/70 flex items-center justify-center">
-      {children}
+    <div className="flex items-center gap-1.5 mb-3">
+      <h3 className="text-[14px] font-semibold text-ink-900">{title}</h3>
+      <span
+        title={hint}
+        className="inline-flex text-ink-300 hover:text-ink-500 transition-colors cursor-help"
+      >
+        <Info className="size-3.5" strokeWidth={2} aria-label={hint} />
+      </span>
     </div>
   );
 }
 
-function KpiCard({
-  media,
-  label,
-  primary,
-  sub,
-  className,
-  trailing,
-}: {
-  media: React.ReactNode;
-  label: string;
-  primary: string;
-  sub: React.ReactNode;
-  className?: string;
-  trailing?: React.ReactNode;
-}) {
+function BigStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className={cn("card p-[var(--space-card-padding-sm)] flex items-center gap-3.5", className)}>
-      <div className="shrink-0">{media}</div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[12px] text-ink-500 font-medium leading-tight mb-1">
-          {label}
-        </div>
-        <div className="text-[22px] font-semibold text-ink-900 leading-none mb-1">
-          {primary}
-        </div>
-        <div className="text-[11.5px] text-ink-500">{sub}</div>
+    <div className="min-w-0">
+      <div className="text-[30px] font-semibold text-ink-900 leading-none tabular-nums">
+        {value}
       </div>
-      {trailing}
+      <div className="text-[12.5px] text-ink-500 mt-1.5">{label}</div>
     </div>
   );
+}
+
+function CardCTA({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="mt-auto inline-flex w-full items-center justify-center h-10 rounded-full border border-ink-200 bg-white hover:bg-cream-100 text-[13px] font-medium text-ink-900 transition-colors"
+    >
+      {label}
+    </Link>
+  );
+}
+
+/* ─── 1. Audience Growth ─────────────────────────────────────────────────── */
+
+function AudienceGrowthCard({
+  followers,
+  series,
+}: {
+  followers: number;
+  series: number[];
+}) {
+  // Illustrative growth curve until the user has a real follower history.
+  const data = series.length >= 2 ? series : [8, 10, 9, 14, 13, 18, 16, 22, 21, 28];
+
+  return (
+    <div className="card p-5 flex flex-col">
+      <CardHeader
+        title="Audience Growth"
+        hint="Your total following across connected platforms."
+      />
+      <BigStat value={formatCompact(followers)} label="Total Followers" />
+
+      <div className="mt-4 pt-4 border-t border-ink-100 flex-1 flex flex-col">
+        <div className="flex items-start gap-2 mb-3">
+          <Sparkles className="size-4 text-rose-500 shrink-0 mt-0.5" strokeWidth={2} />
+          <div className="min-w-0">
+            <div className="text-[12.5px] font-semibold text-ink-900">
+              Grow your audience
+            </div>
+            <p className="text-[11.5px] text-ink-500 leading-snug">
+              Start creating consistently and connect with your community.
+            </p>
+          </div>
+        </div>
+
+        <Sparkline
+          data={data}
+          width={260}
+          height={56}
+          className="w-full h-14 mb-3"
+        />
+
+        <CardCTA href="/tutorials" label="View Growth Tips" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── 2. Today's Progress ────────────────────────────────────────────────── */
+
+function TodaysProgressCard({
+  completed,
+  total,
+  percent,
+  checklist,
+}: {
+  completed: number;
+  total: number;
+  percent: number;
+  checklist: ChecklistItem[];
+}) {
+  return (
+    <div className="card p-5 flex flex-col">
+      <CardHeader
+        title="Today's Progress"
+        hint="Tasks completed from today's plan."
+      />
+
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[30px] font-semibold text-ink-900 leading-none tabular-nums">
+            {completed}
+            <span className="text-[20px] text-ink-400 font-medium"> / {total}</span>
+          </div>
+          <div className="text-[12.5px] text-ink-500 mt-1.5">Tasks Completed</div>
+        </div>
+        <Donut percent={percent} size={56} strokeWidth={6}>
+          <span className="text-[12px] font-semibold text-ink-900 tabular-nums">
+            {percent}%
+          </span>
+        </Donut>
+      </div>
+
+      <ul className="mt-4 pt-4 border-t border-ink-100 space-y-2.5 flex-1">
+        {checklist.slice(0, 4).map((item, i) => (
+          <li key={i} className="flex items-center gap-2.5">
+            {item.done ? (
+              <CheckCircle2 className="size-[18px] text-rose-500 shrink-0" strokeWidth={2} />
+            ) : (
+              <Circle className="size-[18px] text-ink-300 shrink-0" strokeWidth={2} />
+            )}
+            <span
+              className={cn(
+                "text-[12.5px] truncate",
+                item.done ? "text-ink-400 line-through" : "text-ink-700",
+              )}
+            >
+              {item.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <CardCTA href="/missions" label="View Today's Plan" />
+    </div>
+  );
+}
+
+/* ─── 3. Content Activity ────────────────────────────────────────────────── */
+
+function ContentActivityCard({
+  posts,
+  activity,
+}: {
+  posts: number;
+  activity: number[];
+}) {
+  return (
+    <div className="card p-5 flex flex-col">
+      <CardHeader
+        title="Content Activity"
+        hint="Posts scheduled or published this week."
+      />
+
+      <div className="flex items-start justify-between gap-3">
+        <BigStat value={String(posts)} label="Posts This Week" />
+        <span className="size-12 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <CalendarDays className="size-5" strokeWidth={1.9} />
+        </span>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-ink-100 flex-1 flex flex-col">
+        <WeekBars data={activity} />
+        <CardCTA href="/posting" label="Plan Your Content" />
+      </div>
+    </div>
+  );
+}
+
+function WeekBars({ data }: { data: number[] }) {
+  const days = ["M", "T", "W", "T", "F", "S", "S"];
+  const max = Math.max(1, ...data);
+  const safe = days.map((_, i) => data[i] ?? 0);
+
+  return (
+    <div className="flex items-stretch gap-2 mb-4">
+      <div className="flex flex-col justify-end text-[10px] text-ink-400 pb-5 tabular-nums">
+        0
+      </div>
+      <div className="flex-1 grid grid-cols-7 gap-2">
+        {safe.map((v, i) => (
+          <div key={i} className="flex flex-col items-center">
+            <div className="relative w-full h-[64px] flex items-end justify-center border-b border-ink-100">
+              {/* dashed per-day guide */}
+              <span
+                aria-hidden
+                className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-ink-100"
+              />
+              {v > 0 && (
+                <div
+                  className="relative w-2.5 rounded-t-[3px] bg-rose-400"
+                  style={{ height: `${Math.max(8, (v / max) * 100)}%` }}
+                  title={`${v} ${v === 1 ? "post" : "posts"}`}
+                />
+              )}
+            </div>
+            <span className="mt-1.5 text-[10px] text-ink-400">{days[i]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── 4. Revenue Goal ────────────────────────────────────────────────────── */
+
+function RevenueGoalCard({
+  revenue,
+  goal,
+  percent,
+}: {
+  revenue: number;
+  goal: number;
+  percent: number;
+}) {
+  return (
+    <div className="card p-5 flex flex-col">
+      <CardHeader
+        title="Revenue Goal"
+        hint="Progress toward your monthly revenue goal."
+      />
+
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[30px] font-semibold text-ink-900 leading-none tabular-nums">
+            ${formatCompact(revenue)}
+          </div>
+          <div className="text-[12.5px] text-ink-500 mt-1.5">
+            of ${formatCompact(goal)} goal
+          </div>
+        </div>
+        <Donut percent={percent} size={56} strokeWidth={6}>
+          <span className="text-[12px] font-semibold text-ink-900 tabular-nums">
+            {percent}%
+          </span>
+        </Donut>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-ink-100 flex-1 flex flex-col">
+        <div className="h-2 rounded-full bg-cream-200 overflow-hidden mb-3">
+          <div
+            className="h-full rounded-full bg-rose-500 transition-[width] duration-700"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        <div className="flex items-start gap-2 mb-3">
+          <Sparkles className="size-4 text-rose-500 shrink-0 mt-0.5" strokeWidth={2} />
+          <div className="min-w-0">
+            <div className="text-[12.5px] font-semibold text-ink-900">
+              Keep going!
+            </div>
+            <p className="text-[11.5px] text-ink-500 leading-snug">
+              You&apos;re on track to reach your goal.
+            </p>
+          </div>
+        </div>
+
+        <CardCTA href="/monetization" label="View Monetization Hub" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
+
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(n);
 }
