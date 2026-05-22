@@ -4,7 +4,6 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { PostingKpiTiles } from "@/components/posting/kpi-tiles";
 import { ActivePlanCard } from "@/components/posting/active-plan-card";
 import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
-import { PostingRail } from "@/components/posting/rail";
 import { PostingTabs } from "@/components/posting/tabs";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
@@ -12,7 +11,6 @@ import {
   getActivePlan,
   getPlannedItems,
   getWeeklyStats,
-  getUserPillars,
   type PostingItem,
 } from "@/lib/posting/queries";
 
@@ -32,10 +30,7 @@ export default async function PostingPage({
   const activeTab: "my_plans" | "calendar" =
     view === "calendar" ? "calendar" : "my_plans";
 
-  const [activePlan, pillars] = await Promise.all([
-    getActivePlan(),
-    getUserPillars(),
-  ]);
+  const activePlan = await getActivePlan();
 
   // Calendar needs the FULL week's items, not just the top 4 the
   // table previews. Pull a bigger window when we know we'll need it.
@@ -73,36 +68,9 @@ export default async function PostingPage({
             { label: "Videos", count: 2, color: "var(--ink-700)" },
           ],
         };
-  const pillarsForUI =
-    pillars.length > 0
-      ? pillars
-      : [
-          { label: "Education", weight: 40 },
-          { label: "Inspiration", weight: 30 },
-          { label: "Behind the Scenes", weight: 20 },
-          { label: "Promotion", weight: 10 },
-        ];
-
-  const upcoming = itemsForUI.slice(0, 3).map((it) => ({
-    id: it.id,
-    scheduled_for: it.scheduled_for,
-    platform: it.platform,
-    topic: it.topic,
-  }));
-
   return (
-    <PageShell
-      rail={
-        <PostingRail
-          userName={ctx.name}
-          avatarUrl={ctx.railProfile.avatar_url}
-          weekly={weeklyForUI}
-          upcoming={upcoming}
-          pillars={pillarsForUI}
-        />
-      }
-    >
-      <div className="space-y-7 max-w-[1240px] mx-auto">
+    <PageShell>
+      <div className="space-y-7 max-w-[1600px] mx-auto">
         {/* Header */}
         <header className="flex items-start justify-between gap-4 flex-wrap">
           <div>

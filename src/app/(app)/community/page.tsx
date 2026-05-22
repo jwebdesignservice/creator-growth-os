@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, CalendarDays, Star, MessageSquare, ArrowRight } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
-import { RightRail } from "@/components/app-shell/right-rail";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import {
   listSpaces,
@@ -34,8 +33,8 @@ export default async function CommunityPage() {
   const spaceOptions = spaces.map((s) => ({ slug: s.slug, name: s.name }));
 
   return (
-    <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-      <div className="space-y-7 max-w-[1240px] mx-auto">
+    <PageShell>
+      <div className="space-y-7 max-w-[1600px] mx-auto">
         <header className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">

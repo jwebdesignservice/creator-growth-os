@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles, CalendarDays, GraduationCap, CalendarRange } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
-import { MissionsRail } from "@/components/missions/rail";
 import { MissionsBoard } from "@/components/missions/missions-board";
+import { ActivityBar } from "@/components/missions/activity-bar";
 import type { Mission } from "@/components/missions/mission-card";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
@@ -44,7 +44,6 @@ export default async function MissionsPage({
 
   const [
     { data: dbMissions },
-    { data: weekProfile },
     { data: completedThisWeek },
   ] = await Promise.all([
     supabase
@@ -54,11 +53,6 @@ export default async function MissionsPage({
       .gte("due_date", todayIso)
       .order("created_at", { ascending: true })
       .limit(20),
-    supabase
-      .from("profiles")
-      .select("daily_streak")
-      .eq("id", ctx.user.id)
-      .maybeSingle(),
     supabase
       .from("missions")
       .select("completed_at")
@@ -80,9 +74,7 @@ export default async function MissionsPage({
     );
     if (idx >= 0 && idx < 7) dayBuckets[idx] += 1;
   }
-  const weekChecks = dayBuckets.map((n) => n > 0);
   const activityCounts = dayBuckets;
-  const dailyStreak = weekProfile?.daily_streak ?? 0;
 
   const hasRealMissions = (dbMissions?.length ?? 0) > 0;
   const missions: Mission[] = hasRealMissions
@@ -115,21 +107,8 @@ export default async function MissionsPage({
   const completedCount = missions.filter((m) => m.completed).length;
 
   return (
-    <PageShell
-      rail={
-        <MissionsRail
-          userName={ctx.name}
-          avatarUrl={ctx.railProfile.avatar_url}
-          plan={ctx.plan}
-          streak={dailyStreak}
-          weekChecks={weekChecks}
-          activityCounts={activityCounts}
-          focusLine="Lock in 1 posting mission and 1 engagement mission to keep your streak alive."
-          upNext={UP_NEXT}
-        />
-      }
-    >
-      <div className="space-y-7 max-w-[1240px] mx-auto">
+    <PageShell>
+      <div className="space-y-7">
         {/* Header */}
         <header className="flex items-start justify-between gap-6 flex-wrap">
           <div>
@@ -146,6 +125,9 @@ export default async function MissionsPage({
             </p>
           </div>
         </header>
+
+        {/* Mission Activity — weekly mission completions (moved out of the rail) */}
+        <ActivityBar counts={activityCounts} />
 
         {hasRealMissions ? (
           <MissionsBoard
@@ -194,13 +176,3 @@ function MissionsEmptyState() {
     </section>
   );
 }
-
-// ----------------------------------------------------------------------
-// Static content
-// ----------------------------------------------------------------------
-
-const UP_NEXT = [
-  { title: "Plan tomorrow's posting", type: "Strategy" },
-  { title: "Engage with 5 new accounts", type: "Engagement" },
-  { title: "Update bio CTA", type: "Confidence" },
-];

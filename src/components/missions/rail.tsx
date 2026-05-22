@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { Sparkles, ArrowRight, Check, Crown } from "lucide-react";
-import { Avatar } from "@/components/app-shell/avatar";
 import { StreakCard } from "./streak-card";
 import { ActivityBar } from "./activity-bar";
 
 type Props = {
-  userName: string;
-  avatarUrl?: string | null;
   streak: number;
   weekChecks: boolean[];
   activityCounts: number[];
@@ -16,8 +13,6 @@ type Props = {
 };
 
 export function MissionsRail({
-  userName,
-  avatarUrl,
   streak,
   weekChecks,
   activityCounts,
@@ -28,16 +23,6 @@ export function MissionsRail({
   return (
     <aside className="hidden xl:flex flex-col w-[336px] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
       <div className="p-5 space-y-4">
-        {/* Profile chip */}
-        <div className="flex items-center justify-between pb-2">
-          <div className="flex items-center gap-3">
-            <Avatar name={userName} src={avatarUrl ?? undefined} size={40} />
-            <div className="text-[14px] font-semibold text-ink-900">
-              {userName}
-            </div>
-          </div>
-        </div>
-
         {/* Today's Focus */}
         <div className="rounded-[16px] bg-rose-50/80 border border-rose-100 p-4">
           <div className="flex items-center gap-1.5 mb-2">
