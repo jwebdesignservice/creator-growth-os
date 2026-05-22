@@ -135,9 +135,9 @@ export function MobileDrawer({ plan = "free", isAdmin = false, isDev = false }: 
                   onClick={close}
                   className="flex items-center gap-2.5 min-w-0"
                 >
-                  <BrandMark size={32} />
-                  <span className="text-[14px] font-semibold text-ink-900 leading-tight truncate">
-                    Creator Growth OS
+                  <BrandMark size={28} />
+                  <span className="text-[16px] font-semibold tracking-tight text-ink-900 leading-tight truncate">
+                    profluencer
                   </span>
                 </Link>
                 <button
@@ -186,9 +186,6 @@ export function MobileDrawer({ plan = "free", isAdmin = false, isDev = false }: 
                   >
                     <ShieldCheck className="size-[18px] text-rose-300" strokeWidth={1.8} />
                     <span className="flex-1">Admin Console</span>
-                    <span className="text-[9.5px] font-semibold tracking-wider text-rose-300 uppercase">
-                      Admin
-                    </span>
                   </Link>
                 )}
 
@@ -200,9 +197,6 @@ export function MobileDrawer({ plan = "free", isAdmin = false, isDev = false }: 
                   >
                     <Terminal className="size-[18px] text-[#7AA9FF]" strokeWidth={1.8} />
                     <span className="flex-1">Dev Console</span>
-                    <span className="text-[9.5px] font-semibold tracking-wider text-[#7AA9FF] uppercase">
-                      Dev
-                    </span>
                   </Link>
                 )}
               </nav>
