@@ -9,6 +9,7 @@ import { Composer } from "./composer";
 import { MessageSquare, ArrowLeft } from "lucide-react";
 import { fetchRecentMessages } from "@/lib/community/chat/actions";
 import type {
+  ChatChannel,
   ChatMessage,
   ChatReaction,
   PresenceUser,
@@ -17,6 +18,7 @@ import type {
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type Props = {
+  channel: ChatChannel;
   initialMessages: ChatMessage[];
   initialPinned: ChatMessage[];
   initialReactions: ChatReaction[];
@@ -29,6 +31,7 @@ type Props = {
 type Toast = { id: number; kind: "error" | "success"; message: string };
 
 export function ChatRoom({
+  channel,
   initialMessages,
   initialPinned,
   initialReactions,
@@ -37,6 +40,7 @@ export function ChatRoom({
   currentUserAvatar,
   isAdmin,
 }: Props) {
+  const canPostInChannel = !channel.posts_admin_only || isAdmin;
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [pinned, setPinned] = useState<ChatMessage[]>(initialPinned);
   const [reactions, setReactions] = useState<ChatReaction[]>(initialReactions);
@@ -79,8 +83,8 @@ export function ChatRoom({
   useEffect(() => {
     const supabase = createClient();
 
-    const channel = supabase
-      .channel("chat:global", {
+    const rt = supabase
+      .channel(`chat:${channel.id}`, {
         config: { presence: { key: currentUserId } },
       })
       // ── Reactions (INSERT + DELETE)
@@ -121,7 +125,7 @@ export function ChatRoom({
       )
       // ── Presence sync
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState() as Record<
+        const state = rt.presenceState() as Record<
           string,
           Array<PresenceUser>
         >;
@@ -137,13 +141,14 @@ export function ChatRoom({
         }
         setPresence(flat);
       })
-      // ── Messages
+      // ── Messages (filtered by this channel)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "community_chat_messages",
+          filter: `channel_id=eq.${channel.id}`,
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
@@ -185,7 +190,7 @@ export function ChatRoom({
             reconnectTimer.current = null;
           }
           // Announce ourselves via presence
-          await channel.track({
+          await rt.track({
             user_id: currentUserId,
             name: currentUserName,
             avatar: currentUserAvatar,
@@ -193,7 +198,7 @@ export function ChatRoom({
           // Refetch to catch messages missed during disconnect
           if (wasDisconnected.current) {
             wasDisconnected.current = false;
-            fetchRecentMessages(30).then((fresh) => {
+            fetchRecentMessages(channel.id, 30).then((fresh) => {
               setMessages((prev) => {
                 const existingIds = new Set(prev.map((m) => m.id));
                 const newOnes = fresh.filter((m) => !existingIds.has(m.id));
@@ -210,13 +215,15 @@ export function ChatRoom({
         }
       });
 
-    channelRef.current = channel;
+    channelRef.current = rt;
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(rt);
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
-  }, []);
+    // Re-subscribe whenever the channel changes (navigating between channels)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel.id]);
 
   // ── Handlers forwarded to child components ─────────────────────────
 
@@ -267,8 +274,15 @@ export function ChatRoom({
           <span className="hidden sm:inline">Community</span>
         </Link>
         <span className="h-5 w-px bg-ink-100" aria-hidden />
-        <MessageSquare className="size-4 text-rose-500" strokeWidth={2} />
-        <h1 className="font-semibold text-[15px] text-ink-900">Community Chat</h1>
+        <span className="text-[15px]" aria-hidden>
+          {channel.icon ?? "💬"}
+        </span>
+        <h1 className="font-semibold text-[15px] text-ink-900">{channel.name}</h1>
+        {channel.posts_admin_only && (
+          <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-[10.5px] font-semibold text-amber-700">
+            Admins post only
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-3">
           {/* Online count + stacked avatars */}
           {presence.length > 0 && (
@@ -310,6 +324,7 @@ export function ChatRoom({
 
       {/* Message list */}
       <MessageList
+        channelId={channel.id}
         messages={messages}
         reactions={reactionGroups}
         currentUserId={currentUserId}
@@ -321,15 +336,26 @@ export function ChatRoom({
         onReply={setReplyTo}
       />
 
-      {/* Composer */}
-      <Composer
-        replyTo={replyTo}
-        onCancelReply={() => setReplyTo(null)}
-        onSent={() => {/* scroll handled by MessageList useEffect */}}
-        onError={showError}
-        isConnected={isConnected}
-        currentUserId={currentUserId}
-      />
+      {/* Composer — disabled with notice if channel is admin-only and user is not admin */}
+      {canPostInChannel ? (
+        <Composer
+          channelId={channel.id}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          onSent={() => {/* scroll handled by MessageList useEffect */}}
+          onError={showError}
+          isConnected={isConnected}
+          currentUserId={currentUserId}
+        />
+      ) : (
+        <div className="border-t border-ink-100 bg-cream-50 px-4 py-4 text-center">
+          <p className="text-[13px] text-ink-500">
+            <span className="font-semibold text-ink-700">{channel.name}</span> is
+            an announcements-only channel. You can read messages but only admins
+            can post here.
+          </p>
+        </div>
+      )}
 
       {/* Inline toasts */}
       <div className="fixed bottom-20 right-4 z-50 flex flex-col gap-2 pointer-events-none">
