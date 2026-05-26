@@ -152,8 +152,10 @@ export function ChannelList({ channels, currentSlug, isAdmin }: Props) {
 
       <aside
         className={cn(
-          // Desktop: inline sidebar
-          "shrink-0 w-[240px] bg-white rounded-[20px] border border-ink-100 overflow-hidden",
+          // Desktop: inline sidebar — h-fit + self-start so the panel hugs
+          // its content height instead of stretching the full viewport, which
+          // is what made the area below the channels feel "scrollable".
+          "shrink-0 w-[240px] bg-white rounded-[20px] border border-ink-100 overflow-hidden lg:h-fit lg:self-start",
           // Mobile: drawer
           "lg:flex flex-col",
           mobileOpen
