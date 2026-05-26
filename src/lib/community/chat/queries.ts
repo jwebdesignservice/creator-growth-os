@@ -1,9 +1,38 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { ChatMessage, ChatReaction, ReactionGroup } from "./types";
+import type { ChatChannel, ChatMessage, ChatReaction, ReactionGroup } from "./types";
 
 const CHAT_COLS =
-  "id, user_id, body, pinned, deleted_at, deleted_by, mention_user_ids, author_name, author_avatar, author_is_admin, reply_to_id, reply_to_preview, edited_at, image_url, link_preview, created_at";
+  "id, channel_id, user_id, body, pinned, deleted_at, deleted_by, mention_user_ids, author_name, author_avatar, author_is_admin, reply_to_id, reply_to_preview, edited_at, image_url, link_preview, created_at";
+
+const CHANNEL_COLS =
+  "id, slug, name, description, icon, posts_admin_only, sort_order, created_at";
+
+/**
+ * List all channels, sorted for sidebar display.
+ */
+export async function listChannels(): Promise<ChatChannel[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("community_chat_channels")
+    .select(CHANNEL_COLS)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+  return (data ?? []) as ChatChannel[];
+}
+
+/**
+ * Fetch a single channel by slug. Returns null if not found.
+ */
+export async function getChannelBySlug(slug: string): Promise<ChatChannel | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("community_chat_channels")
+    .select(CHANNEL_COLS)
+    .eq("slug", slug)
+    .maybeSingle();
+  return (data ?? null) as ChatChannel | null;
+}
 
 /**
  * Fetch the most recent messages (excluding soft-deleted).
@@ -11,6 +40,7 @@ const CHAT_COLS =
  * Pass `before` (ISO timestamp) to paginate backwards.
  */
 export async function listRecentMessages(
+  channelId: string,
   limit = 100,
   before?: string,
 ): Promise<ChatMessage[]> {
@@ -18,6 +48,7 @@ export async function listRecentMessages(
   let q = supabase
     .from("community_chat_messages")
     .select(CHAT_COLS)
+    .eq("channel_id", channelId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -32,14 +63,14 @@ export async function listRecentMessages(
 }
 
 /**
- * Fetch up to 3 pinned non-deleted messages, newest-pin-first,
- * for the pinned banner at the top of the chat.
+ * Fetch up to 3 pinned non-deleted messages for this channel, newest-pin-first.
  */
-export async function listPinned(): Promise<ChatMessage[]> {
+export async function listPinned(channelId: string): Promise<ChatMessage[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("community_chat_messages")
     .select(CHAT_COLS)
+    .eq("channel_id", channelId)
     .eq("pinned", true)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })

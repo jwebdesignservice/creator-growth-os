@@ -12,6 +12,7 @@ const RATE_LIMIT_SECONDS = 5;
 // ── sendMessage ────────────────────────────────────────────────────────
 
 export async function sendMessage(
+  channelId: string,
   body: string,
   replyToId?: string,
   imageUrl?: string,
@@ -22,6 +23,7 @@ export async function sendMessage(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
+  if (!channelId) return { ok: false, error: "Channel is required." };
   const trimmed = body.trim();
   // An image alone (without text) is allowed
   if (!trimmed && !imageUrl) return { ok: false, error: "Message cannot be empty." };
@@ -62,15 +64,16 @@ export async function sendMessage(
     }
   }
 
-  // Resolve reply parent (if any) — denormalize a snippet for display
+  // Resolve reply parent (if any) — must be in the same channel.
   let replyToPreview: { author_name: string; body: string } | null = null;
   let validReplyToId: string | null = null;
   let replyParentUserId: string | null = null;
   if (replyToId) {
     const { data: parent } = await supabase
       .from("community_chat_messages")
-      .select("id, user_id, author_name, body, deleted_at")
+      .select("id, channel_id, user_id, author_name, body, deleted_at")
       .eq("id", replyToId)
+      .eq("channel_id", channelId)
       .is("deleted_at", null)
       .maybeSingle();
     if (parent) {
@@ -122,6 +125,7 @@ export async function sendMessage(
   const { data: msg, error } = await supabase
     .from("community_chat_messages")
     .insert({
+      channel_id: channelId,
       user_id: user.id,
       body: trimmed || "",
       mention_user_ids: mentionUserIds,
@@ -253,18 +257,20 @@ export async function searchHandles(
 // ── loadOlderMessages ─────────────────────────────────────────────────
 
 export async function loadOlderMessages(
+  channelId: string,
   before: string,
   limit = 50,
 ): Promise<ChatMessage[]> {
-  return listRecentMessages(limit, before);
+  return listRecentMessages(channelId, limit, before);
 }
 
 // ── fetchRecentMessages (for reconnect recovery) ───────────────────────
 
 export async function fetchRecentMessages(
+  channelId: string,
   limit = 30,
 ): Promise<ChatMessage[]> {
-  return listRecentMessages(limit);
+  return listRecentMessages(channelId, limit);
 }
 
 // ── Reactions ─────────────────────────────────────────────────────────

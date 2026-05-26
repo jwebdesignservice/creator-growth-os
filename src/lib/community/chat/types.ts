@@ -14,8 +14,20 @@ export type LinkPreview = {
   site_name: string | null;
 };
 
+export type ChatChannel = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  posts_admin_only: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
 export type ChatMessage = {
   id: string;
+  channel_id: string;
   user_id: string;
   body: string;
   pinned: boolean;
