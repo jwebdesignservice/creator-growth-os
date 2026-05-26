@@ -90,3 +90,8 @@ export function getOutcomeForModule(moduleNumber: number): Outcome {
   const idx = (safe - 1) % PROGRAM_OUTCOMES.length;
   return PROGRAM_OUTCOMES[idx] ?? PROGRAM_OUTCOMES[0]!;
 }
+
+// Per-lesson task templates now live in the DB (public.lesson_task_templates,
+// see migration 0027). The previous static `LESSON_TASKS` map + `getTaskForLesson`
+// helper were removed in that migration's commit — read templates via
+// `getLessonTaskStates` from `@/lib/programs/lesson-task-queries` instead.

@@ -31,6 +31,10 @@ import {
   getProgramProgress,
 } from "@/lib/programs/queries";
 import { PROGRAM_OUTCOMES } from "@/lib/programs/outcomes";
+import {
+  getProgramUserTasks,
+  type ProgramUserTask,
+} from "@/lib/programs/lesson-task-queries";
 
 type Params = Promise<{ slug: string }>;
 
@@ -59,7 +63,7 @@ export default async function ProgramDetailPage({
   const supabase = await createClient();
   const { data: dbProgram } = await supabase
     .from("programs")
-    .select("slug, title, description, total_lessons, total_tasks, estimated_days, plan_access")
+    .select("id, slug, title, description, total_lessons, total_tasks, estimated_days, plan_access")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -108,6 +112,20 @@ export default async function ProgramDetailPage({
     ? `/programs/${slug}/${continueSlug}`
     : `/programs/${slug}`;
 
+  // ── Real user tasks for this program (from generated missions) ───────
+  const programUuid = dbProgram?.id ?? null;
+  const programTasks: ProgramUserTask[] = programUuid
+    ? await getProgramUserTasks(programUuid, ctx.user.id)
+    : [];
+
+  // This-week subset for the Overview card: due within the next 7 days (or no due date).
+  const weekHorizon = new Date();
+  weekHorizon.setDate(weekHorizon.getDate() + 7);
+  const weekHorizonIso = weekHorizon.toISOString().slice(0, 10);
+  const thisWeekTasks = programTasks.filter(
+    (t) => !t.due_date || t.due_date <= weekHorizonIso,
+  );
+
   return (
     <PageShell>
       <div className="space-y-6">
@@ -142,7 +160,7 @@ export default async function ProgramDetailPage({
               />
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-5">
                 <div className="space-y-5">
-                  <ThisWeeksLinkedTasks />
+                  <ThisWeeksLinkedTasks tasks={thisWeekTasks} />
                   <TemplatesDownloads />
                 </div>
                 <CurriculumAccordion modules={modules} programSlug={slug} />
@@ -155,7 +173,7 @@ export default async function ProgramDetailPage({
             </div>
           }
           resources={<ResourcesPanel />}
-          tasks={<TasksPanel />}
+          tasks={<AllProgramTasks tasks={programTasks} />}
         />
       </div>
     </PageShell>
@@ -446,18 +464,13 @@ function WhatYoullLearn({
   );
 }
 
-function ThisWeeksLinkedTasks() {
-  const tasks = [
-    { title: "Define your niche statement", due: "Due in 2 days", done: true },
-    { title: "Create 3 content pillar ideas", due: "Due in 4 days", done: true },
-    { title: "Write 5 hook variations", due: "Due in 5 days", done: false },
-  ];
-  const completed = tasks.filter((t) => t.done).length;
-  const total = 6;
-  const pct = Math.round((completed / total) * 100);
-  const nextIdx = tasks.findIndex((t) => !t.done);
+function ThisWeeksLinkedTasks({ tasks }: { tasks: ProgramUserTask[] }) {
+  const completed = tasks.filter((t) => t.status === "completed").length;
+  const total = tasks.length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const nextIdx = tasks.findIndex((t) => t.status !== "completed");
   const nextTask = nextIdx >= 0 ? tasks[nextIdx] : null;
-  const remaining = tasks.filter((t) => !t.done).length;
+  const remaining = total - completed;
 
   return (
     <section className="card p-5 sm:p-6">
@@ -483,82 +496,89 @@ function ThisWeeksLinkedTasks() {
         </Link>
       </div>
 
-      {/* Task list */}
-      <ul className="space-y-3 mb-4">
-        {tasks.map((t, i) => {
-          const isNext = i === nextIdx;
-          return (
-            <li
-              key={t.title}
-              className={`flex items-center gap-3 ${i < tasks.length - 1 ? "pb-3 border-b border-ink-100" : ""}`}
-            >
-              <span
-                className={`size-6 rounded-full inline-flex items-center justify-center shrink-0 transition-colors ${
-                  t.done
-                    ? "bg-rose-500 text-white"
-                    : "border-2 border-rose-300 bg-white"
-                }`}
-                aria-hidden
-              >
-                {t.done && <Check className="size-3.5" strokeWidth={3} />}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div
-                  className={`text-[14px] leading-snug ${
-                    t.done
-                      ? "text-ink-400 line-through"
-                      : "text-ink-900 font-semibold"
-                  }`}
+      {total === 0 ? (
+        <ProgramTasksEmptyState compact />
+      ) : (
+        <>
+          {/* Task list */}
+          <ul className="space-y-3 mb-4">
+            {tasks.map((t, i) => {
+              const isDone = t.status === "completed";
+              const isNext = i === nextIdx;
+              return (
+                <li
+                  key={t.id}
+                  className={`flex items-center gap-3 ${i < tasks.length - 1 ? "pb-3 border-b border-ink-100" : ""}`}
                 >
-                  {t.title}
-                </div>
-                {isNext && (
-                  <div className="text-[11.5px] text-ink-500 mt-0.5">
-                    Next recommended task
+                  <span
+                    className={`size-6 rounded-full inline-flex items-center justify-center shrink-0 transition-colors ${
+                      isDone
+                        ? "bg-rose-500 text-white"
+                        : "border-2 border-rose-300 bg-white"
+                    }`}
+                    aria-hidden
+                  >
+                    {isDone && <Check className="size-3.5" strokeWidth={3} />}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`text-[14px] leading-snug ${
+                        isDone
+                          ? "text-ink-400 line-through"
+                          : "text-ink-900 font-semibold"
+                      }`}
+                    >
+                      {t.title}
+                    </div>
+                    {isNext && (
+                      <div className="text-[11.5px] text-ink-500 mt-0.5">
+                        Next recommended task
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-cream-100 text-ink-500 text-[11px] font-medium shrink-0 tabular-nums">
-                {t.due}
+                  <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-cream-100 text-ink-500 text-[11px] font-medium shrink-0 tabular-nums">
+                    {t.due_date ? formatDueLabel(t.due_date) : `~${t.estimated_minutes} min`}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Next-up callout */}
+          {nextTask && (
+            <div className="rounded-[12px] bg-rose-50 border border-rose-100 px-3.5 py-2.5 flex items-center gap-3 mb-4">
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rose-700 shrink-0">
+                <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
+                Next up
               </span>
-            </li>
-          );
-        })}
-      </ul>
+              <span aria-hidden className="w-px h-4 bg-rose-200 shrink-0" />
+              <span className="flex-1 text-[12.5px] text-ink-700 leading-snug truncate">
+                Complete {nextTask.title.toLowerCase()} to unlock your next lesson.
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600 shrink-0">
+                <span aria-hidden className="size-1.5 rounded-full bg-rose-500" />
+                {remaining} task{remaining === 1 ? "" : "s"} ready now
+              </span>
+            </div>
+          )}
 
-      {/* Next-up callout */}
-      {nextTask && (
-        <div className="rounded-[12px] bg-rose-50 border border-rose-100 px-3.5 py-2.5 flex items-center gap-3 mb-4">
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rose-700 shrink-0">
-            <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
-            Next up
-          </span>
-          <span aria-hidden className="w-px h-4 bg-rose-200 shrink-0" />
-          <span className="flex-1 text-[12.5px] text-ink-700 leading-snug truncate">
-            Complete {nextTask.title.toLowerCase()} to unlock your next lesson.
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600 shrink-0">
-            <span aria-hidden className="size-1.5 rounded-full bg-rose-500" />
-            {remaining} task{remaining === 1 ? "" : "s"} ready now
-          </span>
-        </div>
+          {/* Progress */}
+          <div>
+            <div className="flex items-center justify-between text-[12px] text-ink-500 mb-1.5">
+              <span>
+                {completed} of {total} tasks completed
+              </span>
+              <span className="font-semibold text-ink-900 tabular-nums">{pct}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-cream-200 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-rose-500 transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        </>
       )}
-
-      {/* Progress */}
-      <div>
-        <div className="flex items-center justify-between text-[12px] text-ink-500 mb-1.5">
-          <span>
-            {completed} of {total} tasks completed
-          </span>
-          <span className="font-semibold text-ink-900 tabular-nums">{pct}%</span>
-        </div>
-        <div className="h-2 rounded-full bg-cream-200 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-rose-500 transition-[width] duration-500"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
     </section>
   );
 }
@@ -704,24 +724,171 @@ function ResourcesPanel() {
   );
 }
 
-function TasksPanel() {
+/**
+ * Tasks tab — every task linked to the current program, rendered with the
+ * same row chrome as the Overview's "This Week's Linked Tasks" card so the
+ * two stay visually consistent. This tab is the full-width superset; the
+ * Overview card is the this-week subset.
+ */
+function AllProgramTasks({ tasks }: { tasks: ProgramUserTask[] }) {
+  const completed = tasks.filter((t) => t.status === "completed").length;
+  const total = tasks.length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const nextIdx = tasks.findIndex((t) => t.status !== "completed");
+  const nextTask = nextIdx >= 0 ? tasks[nextIdx] : null;
+  const remaining = total - completed;
+
   return (
-    <div className="card p-5">
-      <h3 className="font-display text-[18px] text-ink-900 mb-3">
-        Program Tasks
-      </h3>
-      <p className="text-[13px] text-ink-500 mb-4">
-        Tasks linked to this program show up in your Today&apos;s Missions feed.
-        Open the full mission list to manage them.
+    <section className="card p-5 sm:p-6">
+      {/* Header — same chrome as ThisWeeksLinkedTasks */}
+      <div className="flex items-start gap-3 mb-5">
+        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <Link2 className="size-[18px]" strokeWidth={1.9} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[16px] font-bold text-ink-900 leading-tight">
+            Program Tasks
+          </h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            Every task linked to this program — generated as you complete videos
+          </p>
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <ProgramTasksEmptyState />
+      ) : (
+      <>
+      {/* Task list */}
+      <ul className="space-y-3 mb-4">
+        {tasks.map((t, i) => {
+          const isDone = t.status === "completed";
+          const isNext = i === nextIdx;
+          return (
+            <li
+              key={t.id}
+              className={`flex items-center gap-3 ${i < tasks.length - 1 ? "pb-3 border-b border-ink-100" : ""}`}
+            >
+              <span
+                className={`size-6 rounded-full inline-flex items-center justify-center shrink-0 transition-colors ${
+                  isDone
+                    ? "bg-rose-500 text-white"
+                    : "border-2 border-rose-300 bg-white"
+                }`}
+                aria-hidden
+              >
+                {isDone && <Check className="size-3.5" strokeWidth={3} />}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div
+                  className={`text-[14px] leading-snug ${
+                    isDone
+                      ? "text-ink-400 line-through"
+                      : "text-ink-900 font-semibold"
+                  }`}
+                >
+                  {t.title}
+                </div>
+                <div className="text-[11.5px] text-ink-500 mt-0.5 truncate">
+                  {t.module_number
+                    ? `Module ${t.module_number} · ${t.module_title ?? "Module"}`
+                    : t.lesson_title ?? "Program task"}
+                  {isNext && (
+                    <>
+                      <span aria-hidden> · </span>
+                      <span className="text-rose-600 font-semibold">
+                        Next recommended task
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-cream-100 text-ink-500 text-[11px] font-medium shrink-0 tabular-nums">
+                {t.due_date ? formatDueLabel(t.due_date) : `~${t.estimated_minutes} min`}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Next-up callout */}
+      {nextTask && (
+        <div className="rounded-[12px] bg-rose-50 border border-rose-100 px-3.5 py-2.5 flex items-center gap-3 mb-4 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rose-700 shrink-0">
+            <Sparkles
+              className="size-3.5"
+              strokeWidth={2}
+              fill="currentColor"
+            />
+            Next up
+          </span>
+          <span aria-hidden className="w-px h-4 bg-rose-200 shrink-0" />
+          <span className="flex-1 min-w-0 text-[12.5px] text-ink-700 leading-snug truncate">
+            Complete {nextTask.title.toLowerCase()} to unlock your next lesson.
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600 shrink-0">
+            <span aria-hidden className="size-1.5 rounded-full bg-rose-500" />
+            {remaining} task{remaining === 1 ? "" : "s"} ready now
+          </span>
+        </div>
+      )}
+
+      {/* Progress */}
+      <div>
+        <div className="flex items-center justify-between text-[12px] text-ink-500 mb-1.5">
+          <span>
+            {completed} of {total} tasks completed
+          </span>
+          <span className="font-semibold text-ink-900 tabular-nums">
+            {pct}%
+          </span>
+        </div>
+        <div className="h-2 rounded-full bg-cream-200 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-rose-500 transition-[width] duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+      </>
+      )}
+    </section>
+  );
+}
+
+/* ─── Empty state + helpers shared by both task cards ─────────────────── */
+
+function ProgramTasksEmptyState({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={`rounded-[14px] bg-cream-50 border border-cream-200 text-center ${
+        compact ? "px-4 py-5" : "px-4 py-8"
+      }`}
+    >
+      <span className="size-10 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center mb-3">
+        <Sparkles className="size-[18px]" strokeWidth={1.9} />
+      </span>
+      <h4 className="text-[14px] font-semibold text-ink-900 mb-1">
+        No tasks linked yet
+      </h4>
+      <p className="text-[12.5px] text-ink-500 max-w-md mx-auto leading-snug">
+        Complete a lesson in this program to unlock its tasks. They&apos;ll show
+        up here and in your global Tasks tab.
       </p>
-      <Link
-        href="/missions"
-        className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors"
-      >
-        Go to Today&apos;s Missions
-        <ArrowRight className="size-4" strokeWidth={2} />
-      </Link>
     </div>
   );
 }
+
+/** Format an ISO date (YYYY-MM-DD) as a human-friendly "Due in N days" chip. */
+function formatDueLabel(iso: string): string {
+  const due = new Date(iso + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  if (diff < 0) return `Overdue ${Math.abs(diff)}d`;
+  if (diff === 0) return "Due today";
+  if (diff === 1) return "Due tomorrow";
+  return `Due in ${diff} days`;
+}
+
 

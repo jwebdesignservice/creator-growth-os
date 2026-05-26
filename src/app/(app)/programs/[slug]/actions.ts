@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyMilestoneReached } from "@/lib/notifications/service";
+import { generateTasksForCompletedLesson } from "@/lib/programs/generate-lesson-tasks";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -49,6 +50,16 @@ export async function markLessonComplete(
   );
   if (error) return { ok: false, error: error.message };
 
+  // Generate the lesson's tasks into the user's mission list. Idempotent —
+  // re-completing the same lesson never duplicates rows.
+  if (completed) {
+    await generateTasksForCompletedLesson(supabase, {
+      userId: user.id,
+      programId: lesson.program_id,
+      lessonId: lesson.id,
+    });
+  }
+
   if (completed && program) {
     const afterPct = await programProgressPct(supabase, user.id, lesson.program_id);
     const crossed = MILESTONES.find((m) => beforePct < m && afterPct >= m);
@@ -60,6 +71,8 @@ export async function markLessonComplete(
   revalidatePath(`/programs/${lesson.program_id}`, "layout");
   revalidatePath("/programs", "layout");
   revalidatePath("/dashboard", "layout");
+  // Generated tasks land on the global Tasks/Missions page too.
+  revalidatePath("/missions", "layout");
   return { ok: true };
 }
 

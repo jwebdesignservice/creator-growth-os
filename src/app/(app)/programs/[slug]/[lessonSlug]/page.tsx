@@ -5,6 +5,7 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
+  ArrowRight,
   BookOpen,
   BarChart3,
   Clock,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   CalendarDays,
   FileText,
+  ClipboardCheck,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
@@ -20,6 +22,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurriculumForProgram } from "@/lib/programs/queries";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
 import { getOutcomeForModule } from "@/lib/programs/outcomes";
+import {
+  getLessonTaskStates,
+  type LessonTaskState,
+} from "@/lib/programs/lesson-task-queries";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { cn } from "@/lib/cn";
@@ -72,12 +78,17 @@ export default async function ProgramLessonPage({
   const { slug, lessonSlug } = await params;
 
   const supabase = await createClient();
-  const { data: dbProgram } = await supabase
-    .from("programs")
-    .select("title")
-    .eq("slug", slug)
-    .maybeSingle();
+  const [{ data: dbProgram }, { data: dbLesson }] = await Promise.all([
+    supabase.from("programs").select("title, id").eq("slug", slug).maybeSingle(),
+    supabase
+      .from("lessons")
+      .select("id, program_id")
+      .eq("slug", lessonSlug)
+      .maybeSingle(),
+  ]);
   const programTitle = dbProgram?.title ?? prettySlug(slug);
+  const lessonUuid = dbLesson?.id ?? null;
+  const programUuid = dbLesson?.program_id ?? dbProgram?.id ?? null;
 
   const [modules, detail] = await Promise.all([
     getCurriculumForProgram(slug, ctx.plan),
@@ -233,6 +244,16 @@ export default async function ProgramLessonPage({
                 description={description}
                 moduleNumber={moduleNumber}
               />
+
+              {/* Lesson-specific tasks (DB-backed) */}
+              {lessonUuid && programUuid && (
+                <LessonTasksSection
+                  lessonId={lessonUuid}
+                  programSlug={slug}
+                  userId={ctx.user.id}
+                  lessonCompleted={completed}
+                />
+              )}
             </div>
 
             {/* RIGHT — Program path, YouTube "up next" style */}
@@ -391,6 +412,214 @@ function LessonOverview({
         </div>
       </div>
     </section>
+  );
+}
+
+/* ─── Lesson-specific tasks (DB-backed) ───────────────────────────────── */
+
+/**
+ * Async server component — fetches the lesson's task templates plus per-user
+ * generated state and renders one card per template. Renders nothing when
+ * the lesson has no templates configured.
+ */
+async function LessonTasksSection({
+  lessonId,
+  programSlug,
+  userId,
+  lessonCompleted,
+}: {
+  lessonId: string;
+  programSlug: string;
+  userId: string;
+  lessonCompleted: boolean;
+}) {
+  const tasks = await getLessonTaskStates(lessonId, userId);
+  if (tasks.length === 0) return null;
+
+  return (
+    <section className="card p-5 sm:p-6">
+      <div className="flex items-start gap-3 mb-5">
+        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <ClipboardCheck className="size-[18px]" strokeWidth={1.9} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[16px] font-bold text-ink-900 leading-tight">
+            {tasks.length === 1 ? "Your Lesson Task" : "Your Lesson Tasks"}
+          </h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            {lessonCompleted
+              ? tasks.every((t) => t.generated)
+                ? "Added to your missions — complete them anytime"
+                : "Complete this video again to add to your missions"
+              : "Complete this video to add these to your missions"}
+          </p>
+        </div>
+        <LessonTasksHeaderPill
+          lessonCompleted={lessonCompleted}
+          allGenerated={tasks.every((t) => t.generated)}
+        />
+      </div>
+
+      <div className="space-y-3">
+        {tasks.map((task) => (
+          <LessonTaskCard
+            key={task.id}
+            task={task}
+            lessonCompleted={lessonCompleted}
+            programSlug={programSlug}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LessonTasksHeaderPill({
+  lessonCompleted,
+  allGenerated,
+}: {
+  lessonCompleted: boolean;
+  allGenerated: boolean;
+}) {
+  if (lessonCompleted && allGenerated) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success-bg text-success text-[12px] font-semibold shrink-0 whitespace-nowrap">
+        <Check className="size-3.5" strokeWidth={3} />
+        Added to your Tasks
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold shrink-0 whitespace-nowrap">
+      <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
+      {lessonCompleted ? "Linked to this lesson" : "Unlocks on completion"}
+    </span>
+  );
+}
+
+function LessonTaskCard({
+  task,
+  lessonCompleted,
+  programSlug,
+}: {
+  task: LessonTaskState;
+  lessonCompleted: boolean;
+  programSlug: string;
+}) {
+  const isActive = task.generated; // mission exists in user's task list
+  const isLocked = !lessonCompleted && !task.generated;
+
+  return (
+    <div
+      className={`rounded-[14px] border p-4 sm:p-5 ${
+        isActive
+          ? "bg-success-bg/40 border-success/30"
+          : "bg-rose-50 border-rose-100"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {/* Status marker */}
+        {isActive ? (
+          <span
+            aria-hidden
+            className="size-7 rounded-full bg-success text-white inline-flex items-center justify-center shrink-0 mt-0.5"
+          >
+            <Check className="size-4" strokeWidth={3} />
+          </span>
+        ) : isLocked ? (
+          <span
+            aria-hidden
+            className="size-7 rounded-full border-2 border-rose-300 bg-white inline-flex items-center justify-center shrink-0 mt-0.5 text-rose-400"
+          >
+            <Lock className="size-3.5" strokeWidth={2.2} />
+          </span>
+        ) : (
+          <span
+            aria-hidden
+            className="size-7 rounded-full border-2 border-rose-300 bg-white shrink-0 mt-0.5"
+          />
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="text-[15px] font-bold text-ink-900 leading-snug mb-1">
+            {task.title}
+          </div>
+          {task.description && (
+            <p className="text-[13px] text-ink-700 leading-relaxed">
+              {task.description}
+            </p>
+          )}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white border border-rose-200 px-2.5 py-1 text-[11.5px] font-semibold text-rose-700">
+              <Sparkles
+                className="size-3"
+                fill="currentColor"
+                strokeWidth={0}
+              />
+              +{task.points} pts
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white border border-rose-200 px-2.5 py-1 text-[11.5px] font-medium text-ink-700">
+              <Clock className="size-3" strokeWidth={2} />~
+              {task.estimated_minutes} min
+            </span>
+            <span className="inline-flex items-center rounded-full bg-white border border-rose-200 px-2.5 py-1 text-[11.5px] font-medium text-ink-700 capitalize">
+              {task.task_type}
+            </span>
+            {task.priority === "high" && (
+              <span className="inline-flex items-center rounded-full bg-rose-100 text-rose-700 px-2.5 py-1 text-[11.5px] font-semibold">
+                High priority
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        aria-hidden
+        className={`h-px my-4 ${isActive ? "bg-success/20" : "bg-rose-200/60"}`}
+      />
+
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {isActive ? (
+          <>
+            <p className="text-[12px] text-ink-500 leading-snug">
+              Already in your Tasks — mark it complete when you&apos;ve taken
+              action.
+            </p>
+            <Link
+              href="/missions"
+              className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-success text-white text-[13.5px] font-semibold transition-colors shrink-0 hover:opacity-90"
+            >
+              Open in My Tasks
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          </>
+        ) : isLocked ? (
+          <>
+            <p className="text-[12px] text-ink-500 leading-snug">
+              Mark this video complete to add the task to your missions.
+            </p>
+            <span className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-rose-100 text-rose-700 text-[13.5px] font-semibold shrink-0">
+              <Lock className="size-3.5" strokeWidth={2.5} />
+              Locked
+            </span>
+          </>
+        ) : (
+          <>
+            <p className="text-[12px] text-ink-500 leading-snug">
+              Re-complete the video to add this task to your missions.
+            </p>
+            <Link
+              href={`/programs/${programSlug}`}
+              className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shrink-0"
+            >
+              Back to program
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
