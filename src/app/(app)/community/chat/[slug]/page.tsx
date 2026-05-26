@@ -50,13 +50,20 @@ export default async function CommunityChatChannelPage({
   }
 
   return (
-    <div className="flex h-[calc(100dvh-var(--mobile-topbar-height))] lg:h-[calc(100dvh-var(--topbar-height))] overflow-hidden px-[var(--mobile-content-x)] lg:px-[var(--space-page-x)] py-4 gap-4">
+    <div
+      className="flex overflow-hidden px-[var(--mobile-content-x)] lg:px-[var(--space-page-x)] py-4 gap-4"
+      style={{
+        // Inline style avoids Tailwind arbitrary-value resolution quirks.
+        // dvh handles mobile browser chrome correctly.
+        height: "calc(100dvh - var(--topbar-height))",
+      }}
+    >
       <ChannelList
         channels={channels}
         currentSlug={slug}
         isAdmin={isAdmin}
       />
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
         <ChatRoom
           key={channel.id}
           channel={channel}
