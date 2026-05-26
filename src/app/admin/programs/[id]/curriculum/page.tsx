@@ -1,28 +1,48 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  Eye,
-  Pencil,
-  Upload,
-  Search,
-  Filter,
-  SlidersHorizontal,
-  BookOpen,
-  Box,
-  FilePen,
-  CheckCircle2,
-  Plus,
-  Lightbulb,
-  ArrowUpRight,
-  type LucideIcon,
-} from "lucide-react";
+import { Eye, BookOpen, Box, FilePen, CheckCircle2 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getCurriculumForProgram } from "@/lib/programs/queries";
-import { ModuleList } from "./module-list";
+import { CurriculumEditor } from "./curriculum-editor";
 
 export const metadata = { title: "Curriculum · Admin" };
 
 type Params = Promise<{ id: string }>;
+
+export type ModuleRow = {
+  id: string;
+  number: number;
+  title: string;
+  bonus: boolean;
+  pro_only: boolean;
+};
+
+export type LessonRow = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  video_url: string | null;
+  duration_seconds: number;
+  module_number: number | null;
+  module_title: string | null;
+  plan_access: "free" | "basic" | "pro";
+  published: boolean;
+  archived: boolean;
+  sort_order: number;
+};
+
+export type TaskTemplate = {
+  id: string;
+  lesson_id: string;
+  title: string;
+  description: string | null;
+  task_type: string;
+  priority: "low" | "normal" | "high";
+  estimated_minutes: number;
+  points: number;
+  is_required: boolean;
+  sort_order: number;
+};
 
 export default async function CurriculumEditorPage({
   params,
@@ -34,21 +54,91 @@ export default async function CurriculumEditorPage({
 
   const { data: program } = await supabase
     .from("programs")
-    .select("id, slug, title, total_lessons, total_tasks, published")
+    .select("id, slug, title, published")
     .eq("id", id)
     .maybeSingle();
 
   if (!program) notFound();
 
-  const modules = await getCurriculumForProgram(program.slug, "pro");
+  // Modules from the first-class table.
+  const { data: rawModules } = await supabase
+    .from("program_modules")
+    .select("id, number, title, bonus, pro_only")
+    .eq("program_id", program.id)
+    .order("number", { ascending: true });
+
+  const modules: ModuleRow[] = (rawModules ?? []).map((m) => ({
+    id: m.id,
+    number: m.number,
+    title: m.title,
+    bonus: !!m.bonus,
+    pro_only: !!m.pro_only,
+  }));
+
+  // Lessons for the whole program.
+  const { data: rawLessons } = await supabase
+    .from("lessons")
+    .select(
+      "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, published, archived, sort_order",
+    )
+    .eq("program_id", program.id)
+    .order("sort_order", { ascending: true });
+
+  const lessons: LessonRow[] = (rawLessons ?? []).map((l) => ({
+    id: l.id,
+    slug: l.slug,
+    title: l.title,
+    description: l.description,
+    video_url: l.video_url,
+    duration_seconds: l.duration_seconds ?? 0,
+    module_number: l.module_number,
+    module_title: l.module_title,
+    plan_access: l.plan_access as "free" | "basic" | "pro",
+    published: !!l.published,
+    archived: !!l.archived,
+    sort_order: l.sort_order ?? 0,
+  }));
+
+  // Task templates for every lesson, grouped by lesson_id.
+  const lessonIds = lessons.map((l) => l.id);
+  let templates: TaskTemplate[] = [];
+  if (lessonIds.length > 0) {
+    const { data: rawTemplates } = await supabase
+      .from("lesson_task_templates")
+      .select(
+        "id, lesson_id, title, description, task_type, priority, estimated_minutes, points, is_required, sort_order",
+      )
+      .in("lesson_id", lessonIds)
+      .order("sort_order", { ascending: true });
+
+    templates = (rawTemplates ?? []).map((t) => ({
+      id: t.id,
+      lesson_id: t.lesson_id,
+      title: t.title,
+      description: t.description,
+      task_type: t.task_type,
+      priority: (t.priority as "low" | "normal" | "high") ?? "normal",
+      estimated_minutes: t.estimated_minutes ?? 15,
+      points: t.points ?? 10,
+      is_required: !!t.is_required,
+      sort_order: t.sort_order ?? 0,
+    }));
+  }
+
+  const templatesByLesson: Record<string, TaskTemplate[]> = {};
+  for (const t of templates) {
+    if (!templatesByLesson[t.lesson_id]) templatesByLesson[t.lesson_id] = [];
+    templatesByLesson[t.lesson_id]!.push(t);
+  }
+
+  // Quick stats for the bar at the top.
   const moduleCount = modules.length;
-  const lessonCount = modules.reduce((sum, m) => sum + m.lessons.length, 0);
-  // Until lessons carry a publish flag of their own, every lesson is a draft.
-  const draftCount = lessonCount;
-  const taskFlowCount = (program.total_tasks ?? 0) > 0 ? 1 : 0;
+  const lessonCount = lessons.filter((l) => !l.archived).length;
+  const draftCount = lessons.filter((l) => !l.published && !l.archived).length;
+  const taskFlowCount = templates.length;
 
   return (
-    <div className="space-y-6 max-w-[1320px] mx-auto">
+    <div className="space-y-6 container-dashboard">
       {/* Breadcrumb + title + Preview */}
       <header>
         <nav className="text-[12.5px] mb-2">
@@ -71,64 +161,17 @@ export default async function CurriculumEditorPage({
               steps.
             </p>
           </div>
-          <Link
+          <a
             href={`/programs/${program.slug}`}
             target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-white border border-ink-200 text-ink-900 text-[13px] font-medium hover:bg-cream-100 transition-colors shrink-0"
           >
             <Eye className="size-4" strokeWidth={2} />
             Preview
-          </Link>
+          </a>
         </div>
       </header>
-
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 transition-colors cursor-pointer"
-        >
-          <Pencil className="size-3.5" strokeWidth={2} />
-          Bulk edit
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 transition-colors cursor-pointer"
-        >
-          <Upload className="size-3.5" strokeWidth={2} />
-          Import content
-        </button>
-
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-ink-400"
-              strokeWidth={2}
-              aria-hidden
-            />
-            <input
-              type="search"
-              placeholder="Search lessons…"
-              aria-label="Search lessons"
-              className="h-10 pl-9 pr-3 w-[200px] sm:w-[240px] rounded-[10px] bg-white border border-ink-100 text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-            />
-          </div>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 transition-colors cursor-pointer"
-          >
-            <Filter className="size-3.5" strokeWidth={2} />
-            Filter
-          </button>
-          <button
-            type="button"
-            aria-label="View options"
-            className="size-10 rounded-[10px] bg-white border border-ink-200 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 transition-colors cursor-pointer"
-          >
-            <SlidersHorizontal className="size-4" strokeWidth={2} />
-          </button>
-        </div>
-      </div>
 
       {/* Stats bar */}
       <section className="card p-4 sm:p-5">
@@ -136,41 +179,21 @@ export default async function CurriculumEditorPage({
           <StatBlock icon={BookOpen} value={lessonCount} label="lessons" />
           <StatBlock icon={Box} value={moduleCount} label="modules" />
           <StatBlock icon={FilePen} value={draftCount} label="draft items" />
-          <StatBlock icon={CheckCircle2} value={taskFlowCount} label="task flow" />
+          <StatBlock
+            icon={CheckCircle2}
+            value={taskFlowCount}
+            label="task templates"
+          />
         </div>
       </section>
 
-      {/* Module list — client expand/collapse */}
-      <ModuleList modules={modules} />
-
-      {/* Add new module */}
-      <button
-        type="button"
-        className="w-full inline-flex items-center justify-center gap-2 py-5 rounded-[14px] border-2 border-dashed border-rose-200 bg-rose-50/30 hover:bg-rose-50/70 text-[14px] font-semibold text-rose-600 transition-colors cursor-pointer"
-      >
-        <Plus className="size-4" strokeWidth={2.5} />
-        Add new module
-      </button>
-
-      {/* Tip */}
-      <div className="rounded-[14px] bg-cream-100/60 border border-cream-300 p-4 flex items-start gap-3">
-        <span className="size-9 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-          <Lightbulb className="size-4" strokeWidth={1.9} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] text-ink-700 leading-snug">
-            <span className="font-semibold text-ink-900">Tip:</span> Start each
-            module with a clear outcome and end with an action step.
-          </p>
-        </div>
-        <Link
-          href="/help"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 shrink-0"
-        >
-          Learn more about curriculum best practices
-          <ArrowUpRight className="size-3.5" strokeWidth={2} />
-        </Link>
-      </div>
+      {/* Interactive editor */}
+      <CurriculumEditor
+        programId={program.id}
+        modules={modules}
+        lessons={lessons}
+        templatesByLesson={templatesByLesson}
+      />
     </div>
   );
 }
@@ -180,7 +203,7 @@ function StatBlock({
   value,
   label,
 }: {
-  icon: LucideIcon;
+  icon: typeof BookOpen;
   value: number;
   label: string;
 }) {
