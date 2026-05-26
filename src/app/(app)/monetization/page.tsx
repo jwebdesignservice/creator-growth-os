@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, Crown } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
-import { RightRail } from "@/components/app-shell/right-rail";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import {
   getMediaKit,
@@ -26,8 +25,8 @@ export default async function MonetizationPage() {
 
   if (ctx.plan !== "pro") {
     return (
-      <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-        <div className="space-y-7 max-w-[1240px] mx-auto">
+      <PageShell>
+        <div className="space-y-7">
           <ProUpsell firstName={ctx.name.split(" ")[0]} />
         </div>
       </PageShell>
@@ -45,8 +44,8 @@ export default async function MonetizationPage() {
   const firstName = ctx.name.split(" ")[0];
 
   return (
-    <PageShell rail={<RightRail profile={ctx.railProfile} />}>
-      <div className="space-y-7 max-w-[1240px] mx-auto">
+    <PageShell>
+      <div className="space-y-7">
         <header>
           <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
             <Sparkles className="size-4" strokeWidth={2} />
