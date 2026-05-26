@@ -1,13 +1,12 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { AdminMetricsChart } from "@/components/admin/metrics-chart";
+import { ActiveBuildsSection } from "@/components/admin/active-builds";
 import {
-  Users,
-  Crown,
-  TrendingUp,
-  UserPlus,
-  ArrowRight,
-} from "lucide-react";
-import { StatTile } from "@/components/admin/stat-tile";
-import { getAdminStats } from "@/lib/admin/queries";
+  getAdminStats,
+  getAdminMetricsSeries,
+  getActiveProgramBuilds,
+} from "@/lib/admin/queries";
 
 export const metadata = { title: "Admin · Creator Growth OS" };
 
@@ -25,11 +24,11 @@ const PLAN_TONE: Record<string, "rose" | "gold" | "ink"> = {
 };
 
 export default async function AdminDashboardPage() {
-  const stats = await getAdminStats();
-  const onboardPct =
-    stats.totalUsers === 0
-      ? 0
-      : Math.round((stats.onboardedUsers / stats.totalUsers) * 100);
+  const [stats, metricsSeries, builds] = await Promise.all([
+    getAdminStats(),
+    getAdminMetricsSeries(),
+    getActiveProgramBuilds(3),
+  ]);
 
   return (
     <div className="space-y-6 max-w-[1240px] mx-auto">
@@ -44,44 +43,18 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
         <Link
-          href="/admin/announcements?compose=1"
+          href="/create-new"
           className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors shadow-sm"
         >
-          + New Broadcast
+          + Create New
         </Link>
       </header>
 
-      {/* Top stats */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatTile
-          label="Total Users"
-          primary={stats.totalUsers}
-          sub={`${stats.onboardedUsers} onboarded`}
-          icon={Users}
-          tone="rose"
-        />
-        <StatTile
-          label="New This Week"
-          primary={stats.newThisWeek}
-          sub="Last 7 days"
-          icon={UserPlus}
-          tone="success"
-        />
-        <StatTile
-          label="Onboarded"
-          primary={`${onboardPct}%`}
-          sub={`${stats.totalUsers - stats.onboardedUsers} pending`}
-          icon={TrendingUp}
-          tone="gold"
-        />
-        <StatTile
-          label="Pro Members"
-          primary={stats.byPlan.pro ?? 0}
-          sub={`${stats.byPlan.basic ?? 0} on Basic · ${stats.byPlan.free ?? 0} free`}
-          icon={Crown}
-          tone="ink"
-        />
-      </section>
+      {/* Top section — metrics chart */}
+      <AdminMetricsChart series={metricsSeries} />
+
+      {/* Continue where you left off — active program builds */}
+      <ActiveBuildsSection builds={builds} />
 
       {/* Distribution row */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
