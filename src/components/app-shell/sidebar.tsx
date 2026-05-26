@@ -217,10 +217,6 @@ function ReferralCard() {
         </span>
       </div>
 
-      <p className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-3">
-        Invite friends, earn free credits
-      </p>
-
       <Link
         href="/settings/referrals"
         className="block w-full h-9 leading-9 text-[12.5px] font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-[10px] transition-colors"
