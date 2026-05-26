@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { linkReferral } from "@/lib/referrals/service";
 
 type FormResult = { error?: string; success?: string };
 
@@ -41,6 +42,7 @@ export async function signUpWithPassword(
   const fullName = String(formData.get("full_name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const acceptTerms = formData.get("accept_terms") === "on";
+  const referralCode = String(formData.get("referral_code") ?? "").trim();
 
   if (!email || !password) return { error: "Email and password are required." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
@@ -60,6 +62,12 @@ export async function signUpWithPassword(
   });
 
   if (error) return { error: error.message };
+
+  // Link referral if a code was supplied. Best-effort — failures (bad code,
+  // self-referral, already linked) don't block signup.
+  if (referralCode && data.user) {
+    await linkReferral(data.user.id, referralCode);
+  }
 
   // If Supabase auto-confirms (confirmation disabled) we land directly in
   // the app; otherwise we send the user to the verify-email screen so they

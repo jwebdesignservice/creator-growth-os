@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/server";
 import { notifyBillingUpdate } from "@/lib/notifications/service";
+import { qualifyReferral } from "@/lib/referrals/service";
 
 export const runtime = "nodejs";
 
@@ -127,6 +128,12 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     userId,
     `Payment received: ${amount} ${invoice.currency.toUpperCase()}.`,
   );
+
+  // Referral qualification: any successful payment by a referred user
+  // promotes their referral from pending → qualified, and may trigger a
+  // milestone reward for the referrer. qualifyReferral() is idempotent so
+  // repeated invoices don't double-count.
+  await qualifyReferral(userId);
 }
 
 async function handleInvoiceFailed(invoice: Stripe.Invoice) {

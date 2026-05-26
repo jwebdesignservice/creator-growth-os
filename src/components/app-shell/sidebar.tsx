@@ -228,7 +228,7 @@ function ReferralCard() {
       </p>
 
       <Link
-        href="/settings"
+        href="/settings/referrals"
         className="block w-full h-9 leading-9 text-[12.5px] font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-[10px] transition-colors"
       >
         Invite friends
