@@ -16,18 +16,55 @@
 // Words are stored lowercased. Word-boundary matching is applied at check time.
 
 const PROFANITY = [
+  // fuck family + common deliberate misspellings (o↔u, ck↔k, ph↔f)
   "fuck",
   "fucker",
   "fucking",
+  "fucked",
   "motherfucker",
+  "fok",
+  "foker",
+  "foking",
+  "focker",
+  "focking",
+  "focked",
+  "motherfocker",
+  "fuk",
+  "fuker",
+  "fuking",
+  "fuked",
+  "fck",
+  "phuck",
+  "phucker",
+  "phucking",
+  // shit
   "shit",
   "shitty",
   "bullshit",
+  "shithead",
+  // asshole / bitch / bastard
   "asshole",
+  "azzhole",
+  "arsehole",
   "bitch",
+  "biatch",
+  "beotch",
+  "beatch",
+  "bytch",
   "bastard",
+  // cock + common variants
   "cock",
+  "cocek",
+  "cawk",
+  "kock",
+  "cok",
   "cocksucker",
+  // pussy + variants
+  "pussy",
+  "pussay",
+  "pussae",
+  "pusy",
+  // others
   "cunt",
   "dick",
   "dickhead",
@@ -36,7 +73,6 @@ const PROFANITY = [
   "hoe",
   "piss",
   "prick",
-  "pussy",
   "slut",
   "twat",
   "wanker",
@@ -85,16 +121,13 @@ const ABUSE = [
 type Category = "profanity" | "slur" | "self_harm" | "abuse";
 type Entry = { term: string; category: Category };
 
-const BLOCKLIST: Entry[] = [
-  ...PROFANITY.map((t) => ({ term: t, category: "profanity" as Category })),
-  ...SLURS.map((t) => ({ term: t, category: "slur" as Category })),
-  ...SELF_HARM.map((t) => ({ term: t, category: "self_harm" as Category })),
-  ...ABUSE.map((t) => ({ term: t, category: "abuse" as Category })),
-];
-
 /**
  * Normalize text for moderation: lowercase, strip diacritics, reverse common
- * leet-speak substitutions, collapse repeated punctuation/spacing.
+ * leet-speak substitutions, collapse repeated characters and separators.
+ *
+ * Note: this collapses 2+ repeats (not 3+) so "fuuck" and "pusssy" reduce.
+ * Because we apply the SAME normalizer to the blocklist below, legit
+ * doubled letters ("asshole" → "ashole") still match — symmetry preserved.
  */
 function normalize(s: string): string {
   return s
@@ -111,14 +144,23 @@ function normalize(s: string): string {
     .replace(/7/g, "t")
     .replace(/@/g, "a")
     .replace(/\$/g, "s")
-    // Collapse repeated chars to break "fuuuuuck" → "fuck"
-    .replace(/(.)\1{2,}/g, "$1")
-    // Collapse separator characters between letters: "f.u.c.k" → "fuck"
+    // Collapse 2+ repeats so "fuuuuuck", "fuuck", "pusssy" all reduce.
+    .replace(/(.)\1+/g, "$1")
+    // Collapse separator characters between letters: "f.u.c.k" → "f u c k"
     .replace(/(?<=[a-z])[^a-z]+(?=[a-z])/g, " ")
     // Whitespace cleanup
     .replace(/\s+/g, " ")
     .trim();
 }
+
+// Build the blocklist with each term pre-normalized. Comparisons happen
+// against the normalized form so the same rules apply to both sides.
+const BLOCKLIST: (Entry & { normalized: string })[] = [
+  ...PROFANITY.map((t) => ({ term: t, category: "profanity" as Category, normalized: normalize(t) })),
+  ...SLURS.map((t) => ({ term: t, category: "slur" as Category, normalized: normalize(t) })),
+  ...SELF_HARM.map((t) => ({ term: t, category: "self_harm" as Category, normalized: normalize(t) })),
+  ...ABUSE.map((t) => ({ term: t, category: "abuse" as Category, normalized: normalize(t) })),
+];
 
 /**
  * Test if `body` contains any blocked term (case-insensitive, word-bounded).
@@ -126,24 +168,24 @@ function normalize(s: string): string {
  */
 export function findBlockedTerm(body: string): Entry | null {
   const normalized = normalize(body);
-  // Also compare against a tokens-only form (strip ALL non-letters between
-  // characters) so "f u c k" still trips. This is the more aggressive form.
+  // Contiguous letter-only form: strips ALL non-letters so bypasses like
+  // "f u c k", "f*ck", "c-o-c-k" all collapse to "fuck"/"cock".
   const stripped = normalized.replace(/[^a-z]/g, "");
 
   for (const entry of BLOCKLIST) {
-    const term = entry.term;
+    const term = entry.normalized;
 
-    // Multi-word phrases: do a simple substring check on normalized form
+    // Multi-word phrases: substring check on the normalized form.
     if (term.includes(" ")) {
       if (normalized.includes(term)) return entry;
       continue;
     }
 
-    // Single word: word-bounded match against the normalized form
+    // Single word: word-bounded match against the normalized form.
     const re = new RegExp(`\\b${escapeRegex(term)}\\b`, "i");
     if (re.test(normalized)) return entry;
 
-    // Aggressive fallback: contiguous letter-only form (catches "f u c k")
+    // Aggressive fallback: contiguous letter-only form.
     if (stripped.includes(term)) return entry;
   }
   return null;

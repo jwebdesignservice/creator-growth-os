@@ -371,6 +371,73 @@ function parseOg(html: string, url: string): LinkPreview {
   };
 }
 
+// ── createChannel (admin only) ────────────────────────────────────────
+
+import { revalidatePath } from "next/cache";
+
+export async function createChannel(input: {
+  name: string;
+  icon?: string;
+  description?: string;
+  postsAdminOnly?: boolean;
+}): Promise<ChatActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data: isAdminRaw } = await supabase.rpc("is_admin");
+  if (!isAdminRaw) return { ok: false, error: "Only admins can create channels." };
+
+  const name = input.name.trim();
+  if (!name || name.length > 80) {
+    return { ok: false, error: "Channel name must be 1–80 characters." };
+  }
+
+  // Derive a slug from the name: lowercase, alphanumeric + hyphens only.
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  if (!slug) return { ok: false, error: "Channel name has no usable letters." };
+
+  const icon = input.icon?.trim().slice(0, 4) || null;
+  const description = input.description?.trim().slice(0, 200) || null;
+  const postsAdminOnly = input.postsAdminOnly === true;
+
+  // Sort_order: append to end.
+  const { data: maxRow } = await supabase
+    .from("community_chat_channels")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = (maxRow?.sort_order ?? -1) + 1;
+
+  const { error } = await supabase.from("community_chat_channels").insert({
+    slug,
+    name,
+    icon,
+    description,
+    posts_admin_only: postsAdminOnly,
+    sort_order: sortOrder,
+  });
+
+  if (error) {
+    if (/duplicate|unique/i.test(error.message)) {
+      return { ok: false, error: "A channel with that name already exists." };
+    }
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/community/chat", "layout");
+  return { ok: true };
+}
+
+// ── Link preview (Open Graph unfurl) — used internally by sendMessage ─
+
 /** Fetch OG metadata for the first URL in `body`. Best-effort; null on any failure. */
 export async function fetchLinkPreview(
   body: string,
