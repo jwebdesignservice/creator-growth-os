@@ -77,6 +77,11 @@ const PROFANITY = [
   "twat",
   "wanker",
   "whore",
+  // anatomical/scatological phrases — multi-word entries are substring-matched
+  "bum hole",
+  "bumhole",
+  "ass hole",
+  "arse hole",
 ];
 
 // Slurs — kept short for legibility; expand as needed via admin review.
