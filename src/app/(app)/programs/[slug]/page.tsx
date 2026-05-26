@@ -14,6 +14,11 @@ import {
   FileSpreadsheet,
   Files,
   ChevronRight,
+  Link2,
+  Sparkles,
+  Star,
+  Library,
+  type LucideIcon,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
@@ -25,6 +30,7 @@ import {
   getCurriculumForProgram,
   getProgramProgress,
 } from "@/lib/programs/queries";
+import { PROGRAM_OUTCOMES } from "@/lib/programs/outcomes";
 
 type Params = Promise<{ slug: string }>;
 
@@ -129,13 +135,18 @@ export default async function ProgramDetailPage({
         <DetailTabs
           tasksCount={6}
           overview={
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-5">
-              <div className="space-y-5">
-                <WhatYoullLearn />
-                <ThisWeeksLinkedTasks />
-                <TemplatesDownloads />
+            <div className="space-y-5">
+              <WhatYoullLearn
+                percent={effectivePercent}
+                continueHref={continueHref}
+              />
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-5">
+                <div className="space-y-5">
+                  <ThisWeeksLinkedTasks />
+                  <TemplatesDownloads />
+                </div>
+                <CurriculumAccordion modules={modules} programSlug={slug} />
               </div>
-              <CurriculumAccordion modules={modules} programSlug={slug} />
             </div>
           }
           curriculum={
@@ -291,30 +302,146 @@ function NotebookOrnament() {
   );
 }
 
-function WhatYoullLearn() {
-  const items = [
-    "Define your niche and unique positioning",
-    "Build content pillars that attract and convert",
-    "Create hook-driven content that stops the scroll",
-    "Stay consistent and build a loyal community",
-    "Turn your personal brand into real income",
-  ];
+function WhatYoullLearn({
+  percent,
+  continueHref,
+}: {
+  percent: number;
+  continueHref: string;
+}) {
+  // Single source of truth — same outcomes power the in-lesson "Lesson
+  // Overview" so what you'll learn stays connected to where you are.
+  const outcomes = PROGRAM_OUTCOMES;
+  const total = outcomes.length;
+  const completed = Math.min(total, Math.round((percent / 100) * total));
+  const allDone = completed >= total;
+
   return (
-    <section className="card p-5">
-      <h3 className="font-display text-[18px] text-ink-900 mb-3 flex items-center gap-2">
-        <span className="text-rose-500">📖</span>
-        What You&apos;ll Learn
-      </h3>
-      <ul className="space-y-2.5">
-        {items.map((t) => (
-          <li key={t} className="flex items-start gap-2">
-            <span className="size-5 mt-0.5 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-              <Check className="size-3" strokeWidth={3} />
+    <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-5">
+      {/* ── Left: outcomes ───────────────────────────────────────────── */}
+      <div className="rounded-[20px] bg-cream-100 border border-cream-200 p-5 sm:p-6">
+        <header className="flex items-start justify-between gap-4 mb-5 flex-wrap">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <span className="size-12 rounded-[14px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+              <BookOpen className="size-[22px]" strokeWidth={1.9} />
             </span>
-            <span className="text-[13px] text-ink-700">{t}</span>
-          </li>
-        ))}
-      </ul>
+            <div className="min-w-0">
+              <h2 className="font-display text-[24px] text-ink-900 leading-tight mb-1">
+                What You&apos;ll Learn
+              </h2>
+              <p className="text-[13px] text-ink-500 leading-snug max-w-md">
+                Master the essential building blocks to grow your brand,
+                attract your audience, and create real impact.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12.5px] font-semibold whitespace-nowrap shrink-0">
+            <Sparkles className="size-3.5" strokeWidth={2} />
+            <span>Complete</span>
+            <span className="tabular-nums">
+              {completed} / {total}
+            </span>
+          </span>
+        </header>
+
+        <ul className="rounded-[16px] bg-white border border-ink-100 overflow-hidden">
+          {outcomes.map((o, i) => {
+            const isDone = i < completed;
+            const Icon = o.icon;
+            return (
+              <li
+                key={o.title}
+                className={`flex items-center gap-4 p-4 ${
+                  i > 0 ? "border-t border-ink-100" : ""
+                }`}
+              >
+                <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+                  <Icon className="size-[20px]" strokeWidth={1.9} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[14px] font-semibold text-ink-900 leading-snug">
+                    {o.title}
+                  </div>
+                  <div className="text-[12.5px] text-ink-500 leading-snug mt-0.5">
+                    {o.desc}
+                  </div>
+                </div>
+                <span
+                  className={`size-7 rounded-full inline-flex items-center justify-center shrink-0 ${
+                    isDone
+                      ? "bg-rose-100 text-rose-600"
+                      : "bg-cream-100 text-ink-300"
+                  }`}
+                  aria-label={isDone ? "Mastered" : "Not yet mastered"}
+                >
+                  <Check className="size-3.5" strokeWidth={3} />
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* ── Right: status / celebration ──────────────────────────────── */}
+      <aside className="rounded-[20px] bg-rose-50 border border-rose-100 p-6 flex flex-col items-center text-center">
+        <div className="relative mb-4 mt-1">
+          <span className="size-16 rounded-full bg-rose-500 text-white inline-flex items-center justify-center shadow-sm">
+            <Star className="size-7" fill="currentColor" strokeWidth={0} />
+          </span>
+          <span
+            aria-hidden
+            className="absolute -top-1 -left-2 text-rose-400 text-[10px]"
+          >
+            ✦
+          </span>
+          <span
+            aria-hidden
+            className="absolute -top-2 right-0 text-rose-400 text-[13px]"
+          >
+            ✦
+          </span>
+          <span
+            aria-hidden
+            className="absolute -bottom-1 -right-2 text-rose-400 text-[11px]"
+          >
+            ✦
+          </span>
+        </div>
+        {allDone ? (
+          <>
+            <p className="text-[12.5px] text-ink-500 mb-1.5">
+              You&apos;re all set!
+            </p>
+            <h3 className="font-display text-[24px] text-ink-900 leading-tight mb-3">
+              All lessons completed
+            </h3>
+            <p className="text-[12.5px] text-ink-500 leading-relaxed mb-5 max-w-[220px]">
+              You&apos;ve completed everything in this section. Keep building
+              and keep growing!
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-[12.5px] text-ink-500 mb-1.5">
+              You&apos;re making progress!
+            </p>
+            <h3 className="font-display text-[24px] text-ink-900 leading-tight mb-3 tabular-nums">
+              {percent}% complete
+            </h3>
+            <p className="text-[12.5px] text-ink-500 leading-relaxed mb-5 max-w-[220px]">
+              Stick with it — every lesson moves you closer to mastering all
+              five outcomes.
+            </p>
+          </>
+        )}
+        <Link
+          href={continueHref}
+          className="inline-flex items-center gap-1.5 h-11 px-5 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-700 text-[14px] font-semibold transition-colors"
+        >
+          {allDone ? "Keep Going" : "Continue"}
+          <ArrowRight className="size-4" strokeWidth={2.5} />
+        </Link>
+      </aside>
     </section>
   );
 }
@@ -326,42 +453,110 @@ function ThisWeeksLinkedTasks() {
     { title: "Write 5 hook variations", due: "Due in 5 days", done: false },
   ];
   const completed = tasks.filter((t) => t.done).length;
-  const pct = Math.round((completed / 6) * 100);
+  const total = 6;
+  const pct = Math.round((completed / total) * 100);
+  const nextIdx = tasks.findIndex((t) => !t.done);
+  const nextTask = nextIdx >= 0 ? tasks[nextIdx] : null;
+  const remaining = tasks.filter((t) => !t.done).length;
+
   return (
-    <section className="card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[18px] text-ink-900 flex items-center gap-2">
-          <span className="text-rose-500">🗓</span>
-          This Week&apos;s Linked Tasks
-        </h3>
-        <Link href="/missions" className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
+    <section className="card p-5 sm:p-6">
+      {/* Header — icon tile + title/subtitle + View all */}
+      <div className="flex items-start gap-3 mb-5">
+        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <Link2 className="size-[18px]" strokeWidth={1.9} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[16px] font-bold text-ink-900 leading-tight">
+            This Week&apos;s Linked Tasks
+          </h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            Tasks connected to your current program
+          </p>
+        </div>
+        <Link
+          href="/missions"
+          className="inline-flex items-center gap-1 text-[13px] font-semibold text-rose-600 hover:text-rose-700 transition-colors shrink-0"
+        >
           View all
+          <ArrowRight className="size-3.5" strokeWidth={2} />
         </Link>
       </div>
-      <ul className="space-y-2 mb-4">
-        {tasks.map((t) => (
-          <li key={t.title} className="flex items-center gap-2.5">
-            <span
-              className={`size-4 rounded-full inline-flex items-center justify-center shrink-0 ${t.done ? "bg-rose-500 text-white" : "border-2 border-ink-300"}`}
+
+      {/* Task list */}
+      <ul className="space-y-3 mb-4">
+        {tasks.map((t, i) => {
+          const isNext = i === nextIdx;
+          return (
+            <li
+              key={t.title}
+              className={`flex items-center gap-3 ${i < tasks.length - 1 ? "pb-3 border-b border-ink-100" : ""}`}
             >
-              {t.done && <Check className="size-2.5" strokeWidth={3} />}
-            </span>
-            <span className={`flex-1 text-[13px] ${t.done ? "text-ink-400 line-through" : "text-ink-700"}`}>
-              {t.title}
-            </span>
-            <span className="chip bg-cream-100 text-ink-500 text-[10.5px]">
-              {t.due}
-            </span>
-          </li>
-        ))}
+              <span
+                className={`size-6 rounded-full inline-flex items-center justify-center shrink-0 transition-colors ${
+                  t.done
+                    ? "bg-rose-500 text-white"
+                    : "border-2 border-rose-300 bg-white"
+                }`}
+                aria-hidden
+              >
+                {t.done && <Check className="size-3.5" strokeWidth={3} />}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div
+                  className={`text-[14px] leading-snug ${
+                    t.done
+                      ? "text-ink-400 line-through"
+                      : "text-ink-900 font-semibold"
+                  }`}
+                >
+                  {t.title}
+                </div>
+                {isNext && (
+                  <div className="text-[11.5px] text-ink-500 mt-0.5">
+                    Next recommended task
+                  </div>
+                )}
+              </div>
+              <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-cream-100 text-ink-500 text-[11px] font-medium shrink-0 tabular-nums">
+                {t.due}
+              </span>
+            </li>
+          );
+        })}
       </ul>
-      <div>
-        <div className="flex items-center justify-between text-[11.5px] text-ink-500 mb-1">
-          <span>{completed} of 6 tasks completed</span>
-          <span>{pct}%</span>
+
+      {/* Next-up callout */}
+      {nextTask && (
+        <div className="rounded-[12px] bg-rose-50 border border-rose-100 px-3.5 py-2.5 flex items-center gap-3 mb-4">
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rose-700 shrink-0">
+            <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
+            Next up
+          </span>
+          <span aria-hidden className="w-px h-4 bg-rose-200 shrink-0" />
+          <span className="flex-1 text-[12.5px] text-ink-700 leading-snug truncate">
+            Complete {nextTask.title.toLowerCase()} to unlock your next lesson.
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600 shrink-0">
+            <span aria-hidden className="size-1.5 rounded-full bg-rose-500" />
+            {remaining} task{remaining === 1 ? "" : "s"} ready now
+          </span>
         </div>
-        <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden">
-          <div className="h-full bg-rose-500" style={{ width: `${pct}%` }} />
+      )}
+
+      {/* Progress */}
+      <div>
+        <div className="flex items-center justify-between text-[12px] text-ink-500 mb-1.5">
+          <span>
+            {completed} of {total} tasks completed
+          </span>
+          <span className="font-semibold text-ink-900 tabular-nums">{pct}%</span>
+        </div>
+        <div className="h-2 rounded-full bg-cream-200 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-rose-500 transition-[width] duration-500"
+            style={{ width: `${pct}%` }}
+          />
         </div>
       </div>
     </section>
@@ -369,50 +564,126 @@ function ThisWeeksLinkedTasks() {
 }
 
 function TemplatesDownloads() {
-  const items = [
-    { title: "Niche Clarity Worksheet", type: "PDF", icon: FileText },
-    { title: "Content Pillars Template", type: "Google Sheet", icon: FileSpreadsheet },
-    { title: "Hook Library Starter Pack", type: "Swipe File", icon: Files, pro: true },
-    { title: "Creator Checklist", type: "PDF Guide", icon: FileText },
+  const items: {
+    title: string;
+    desc: string;
+    type: string;
+    icon: LucideIcon;
+    pro?: boolean;
+  }[] = [
+    {
+      title: "Niche Clarity Worksheet",
+      desc: "Clarify your offer, audience, and positioning.",
+      type: "PDF",
+      icon: FileText,
+    },
+    {
+      title: "Content Pillars Template",
+      desc: "Map your recurring themes and posting angles.",
+      type: "Google Sheet",
+      icon: FileSpreadsheet,
+    },
+    {
+      title: "Hook Library Starter Pack",
+      desc: "Plug-and-play hook prompts for better content starts.",
+      type: "Swipe File",
+      icon: Files,
+      pro: true,
+    },
+    {
+      title: "Creator Checklist",
+      desc: "A simple execution checklist for consistent publishing.",
+      type: "PDF Guide",
+      icon: FileText,
+    },
   ];
+  const ready = items.length;
+  const proCount = items.filter((it) => it.pro).length;
+
   return (
-    <section className="card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[18px] text-ink-900 flex items-center gap-2">
-          <span className="text-rose-500">📚</span>
-          Templates &amp; Downloads
-        </h3>
-        <Link href="/tutorials" className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700">
+    <section className="card overflow-hidden">
+      {/* Header — matches This Week's Linked Tasks chrome */}
+      <div className="p-5 sm:p-6 flex items-start gap-3">
+        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <Library className="size-[18px]" strokeWidth={1.9} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[16px] font-bold text-ink-900 leading-tight">
+            Templates &amp; Downloads
+          </h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            Ready-to-use resources to speed up execution
+          </p>
+        </div>
+        <Link
+          href="/tutorials"
+          className="inline-flex items-center gap-1 text-[13px] font-semibold text-rose-600 hover:text-rose-700 transition-colors shrink-0"
+        >
           View all
+          <ArrowRight className="size-3.5" strokeWidth={2} />
         </Link>
       </div>
-      <ul className="space-y-2">
+
+      {/* Rows */}
+      <ul>
         {items.map((it) => {
           const Icon = it.icon;
           return (
-            <li key={it.title}>
+            <li key={it.title} className="border-t border-ink-100">
               <button
                 type="button"
-                className="flex items-center gap-3 w-full p-2 -mx-2 rounded-[10px] hover:bg-cream-100 transition-colors cursor-pointer text-left"
+                className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 hover:bg-cream-50 transition-colors cursor-pointer text-left"
               >
-                <span className="size-9 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-                  <Icon className="size-4" strokeWidth={1.8} />
+                <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+                  <Icon className="size-[20px]" strokeWidth={1.9} />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-ink-900 truncate flex items-center gap-1.5">
-                    {it.title}
+                  <div className="flex items-center gap-2 text-[14px] font-semibold text-ink-900 leading-snug">
+                    <span className="truncate">{it.title}</span>
                     {it.pro && (
-                      <span className="chip chip-rose text-[9px]">PRO</span>
+                      <span className="chip chip-rose text-[9.5px] px-2 py-0.5">
+                        PRO
+                      </span>
                     )}
                   </div>
+                  <div className="text-[12px] text-ink-500 leading-snug mt-0.5 truncate">
+                    {it.desc}
+                  </div>
                 </div>
-                <span className="text-[11.5px] text-ink-500">{it.type}</span>
-                <ChevronRight className="size-3.5 text-ink-400" strokeWidth={2} />
+                <span className="text-[12px] text-ink-500 shrink-0 hidden sm:inline">
+                  {it.type}
+                </span>
+                <ChevronRight
+                  className="size-4 text-ink-400 shrink-0"
+                  strokeWidth={2}
+                />
               </button>
             </li>
           );
         })}
       </ul>
+
+      {/* Footer stats */}
+      <div className="border-t border-ink-100 px-5 sm:px-6 py-3 flex items-center gap-2 text-[12px] text-ink-500 flex-wrap">
+        <span className="size-6 rounded-full bg-rose-100 text-rose-500 inline-flex items-center justify-center shrink-0">
+          <Star className="size-3" fill="currentColor" strokeWidth={0} />
+        </span>
+        <span>
+          <span className="font-semibold text-ink-700 tabular-nums">
+            {ready}
+          </span>{" "}
+          ready resources
+        </span>
+        <span aria-hidden className="text-ink-300">
+          ·
+        </span>
+        <span>
+          <span className="font-semibold text-ink-700 tabular-nums">
+            {proCount}
+          </span>{" "}
+          Pro resource{proCount === 1 ? "" : "s"} included
+        </span>
+      </div>
     </section>
   );
 }

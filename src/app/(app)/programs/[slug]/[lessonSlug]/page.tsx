@@ -9,7 +9,8 @@ import {
   BarChart3,
   Clock,
   CheckCircle2,
-  Target,
+  Check,
+  Sparkles,
   CalendarDays,
   FileText,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { getCurriculumForProgram } from "@/lib/programs/queries";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
+import { getOutcomeForModule } from "@/lib/programs/outcomes";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { cn } from "@/lib/cn";
@@ -226,7 +228,11 @@ export default async function ProgramLessonPage({
               <PrevNextNav programSlug={slug} prev={prev} next={next} />
 
               {/* Description */}
-              <LessonOverview title={title} description={description} />
+              <LessonOverview
+                title={title}
+                description={description}
+                moduleNumber={moduleNumber}
+              />
             </div>
 
             {/* RIGHT — Program path, YouTube "up next" style */}
@@ -309,36 +315,82 @@ function PrevNextNav({
 function LessonOverview({
   title,
   description,
+  moduleNumber,
 }: {
   title: string;
   description: string | null;
+  moduleNumber: number;
 }) {
+  // Pull the outcome this lesson's module teaches — same source as the
+  // program-level "What You'll Learn", so the two stay in sync.
+  const outcome = getOutcomeForModule(moduleNumber);
+  const OutcomeIcon = outcome.icon;
+
   return (
-    <div className="card p-5">
-      <h3 className="font-display text-[18px] text-ink-900 mb-3 flex items-center gap-2">
-        <BookOpen className="size-4 text-rose-500" strokeWidth={1.8} />
-        Lesson Overview
-      </h3>
-      <p className="text-[13px] text-ink-500 leading-relaxed mb-4">
-        {description ??
-          "A focused step in your program path — clear, practical, and built to apply this week. Complete it to unlock the next lesson and keep your progress moving."}
-      </p>
-      <div className="rounded-[12px] bg-cream-100 border border-cream-300 p-4 flex items-start gap-3">
-        <span className="size-9 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-          <Target className="size-4" strokeWidth={1.9} />
+    <section className="card p-5 sm:p-6">
+      {/* Header — book icon + title/subtitle + Action step pill */}
+      <div className="flex items-start gap-3 mb-5">
+        <span className="size-11 rounded-[13px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <BookOpen className="size-[20px]" strokeWidth={1.9} />
         </span>
-        <div>
-          <div className="text-[12.5px] font-semibold text-ink-900 mb-0.5">
-            Apply it now
+        <div className="flex-1 min-w-0">
+          <h2 className="font-display text-[22px] sm:text-[24px] text-ink-900 leading-tight mb-1">
+            Lesson Overview
+          </h2>
+          <p className="text-[12.5px] sm:text-[13px] text-ink-500 leading-snug max-w-2xl">
+            {description ??
+              "A focused step in your program path — clear, practical, and built to apply this week. Complete it to unlock the next lesson and keep your progress moving."}
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold shrink-0 whitespace-nowrap">
+          <Sparkles
+            className="size-3.5"
+            strokeWidth={2}
+            fill="currentColor"
+          />
+          Action step
+        </span>
+      </div>
+
+      {/* Apply-it-now block — outcome icon + lesson title + best next step */}
+      <div className="rounded-[14px] bg-rose-50 border border-rose-100 p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+            <OutcomeIcon className="size-[20px]" strokeWidth={1.9} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-bold text-ink-900 mb-1">
+              Apply it now
+            </div>
+            <p className="text-[13px] text-ink-700 leading-relaxed">
+              Put <span className="font-semibold text-ink-900">{title}</span>{" "}
+              into practice before moving on — this lesson builds toward{" "}
+              <span className="font-semibold text-rose-700">
+                {outcome.title}
+              </span>
+              .
+            </p>
           </div>
-          <p className="text-[12px] text-ink-600 leading-snug">
-            Put <span className="font-semibold">{title}</span> into practice
-            before moving on — programs work because you follow the path in
-            order.
+        </div>
+
+        {/* Divider */}
+        <div aria-hidden className="h-px bg-rose-200/60 my-3.5" />
+
+        {/* Best next step — outcome-specific action */}
+        <div className="flex items-start gap-2.5">
+          <span className="size-5 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0 mt-0.5">
+            <Check className="size-3" strokeWidth={3} />
+          </span>
+          <p className="text-[12.5px] text-ink-700 leading-snug">
+            {outcome.nextStep.lead}
+            <span className="font-semibold text-rose-700">
+              {outcome.nextStep.bold}
+            </span>
+            {outcome.nextStep.trail}
           </p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
