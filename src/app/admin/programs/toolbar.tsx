@@ -121,6 +121,7 @@ export function ProgramsToolbar() {
           { value: "all", label: "All statuses", dot: "bg-rose-500" },
           { value: "published", label: "Published", dot: "bg-success" },
           { value: "draft", label: "Draft", dot: "bg-ink-400" },
+          { value: "archived", label: "Archived", dot: "bg-ink-300" },
         ]}
       />
 

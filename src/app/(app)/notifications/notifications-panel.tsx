@@ -178,7 +178,7 @@ function NotificationsMain({
             Welcome back, {firstName}! <span aria-hidden>👋</span>
           </div>
         )}
-        <h1 className="font-display text-[28px] text-ink-900 leading-tight">Notifications</h1>
+        <h1 className="text-page-title text-ink-900">Notifications</h1>
         <p className="text-[14px] text-ink-500 mt-1">
           Stay updated with tasks, lessons, community, events and important updates.
         </p>

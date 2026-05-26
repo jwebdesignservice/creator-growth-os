@@ -26,7 +26,9 @@ import { cn } from "@/lib/cn";
 import {
   toggleLessonPublished,
   deleteLesson,
+  archiveLesson,
 } from "@/app/admin/lessons/actions";
+import { useRouter } from "next/navigation";
 
 export type TutorialCardData = {
   id: string;
@@ -127,7 +129,7 @@ export function TutorialsView({
             Import
           </HeaderButton>
           <Link
-            href="/create-new"
+            href="/admin/tutorials/new"
             className="inline-flex items-center gap-2 h-11 px-5 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-semibold transition-colors shadow-sm"
           >
             <Plus className="size-4" strokeWidth={2.5} />
@@ -493,6 +495,7 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
@@ -508,7 +511,18 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
     e.stopPropagation();
     setOpen(false);
     startTransition(async () => {
-      await toggleLessonPublished(t.id, !t.published);
+      const res = await toggleLessonPublished(t.id, !t.published);
+      if (res.ok) router.refresh();
+    });
+  }
+
+  function toggleArchive(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+    startTransition(async () => {
+      const res = await archiveLesson(t.id, true);
+      if (res.ok) router.refresh();
     });
   }
 
@@ -521,15 +535,9 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
     )
       return;
     startTransition(async () => {
-      await deleteLesson(t.id);
+      const res = await deleteLesson(t.id);
+      if (res.ok) router.refresh();
     });
-  }
-
-  function notImplemented(e: React.MouseEvent, label: string) {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(false);
-    alert(`${label} — coming soon.`);
   }
 
   return (
@@ -554,11 +562,26 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
           role="menu"
           className="absolute right-0 top-[calc(100%+6px)] w-48 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
-          <MenuItem
-            icon={<Pencil className="size-3.5" strokeWidth={2} />}
-            label="Edit"
-            onClick={(e) => notImplemented(e, "Edit")}
-          />
+          {t.programId ? (
+            <MenuLink
+              icon={<Pencil className="size-3.5" strokeWidth={2} />}
+              label="Edit in curriculum"
+              href={`/admin/programs/${t.programId}/curriculum`}
+            />
+          ) : (
+            <MenuItem
+              icon={<Pencil className="size-3.5" strokeWidth={2} />}
+              label="Edit"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpen(false);
+                alert(
+                  "This tutorial isn't attached to a program — assign it to a program first to edit it inline.",
+                );
+              }}
+            />
+          )}
           <MenuItem
             icon={
               t.published ? (
@@ -569,6 +592,11 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
             }
             label={t.published ? "Unpublish" : "Publish"}
             onClick={togglePublish}
+          />
+          <MenuItem
+            icon={<EyeOff className="size-3.5" strokeWidth={2} />}
+            label="Archive"
+            onClick={toggleArchive}
           />
           <MenuLink
             icon={<ExternalLink className="size-3.5" strokeWidth={2} />}
@@ -723,7 +751,7 @@ function EmptyState({
       <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-5">{copy}</p>
       {!hasFilters && tab !== "archived" && (
         <Link
-          href="/create-new"
+          href="/admin/tutorials/new"
           className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-semibold transition-colors"
         >
           <Plus className="size-4" strokeWidth={2.5} />

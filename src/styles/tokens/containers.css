@@ -8,6 +8,7 @@
   /* ── Page containers ───────────────────────────────────────────────────── */
   --container-page:       min(100%, 96rem);    /* 1536px — widest allowed    */
   --container-dashboard:  min(100%, 84rem);    /* 1344px — main app canvas   */
+  --container-app:        min(100%, 77.5rem);  /* 1240px — most in-app pages (programs, missions, performance…) */
   --container-admin:      min(100%, 92rem);    /* 1472px — CMS pages         */
   --container-content:    min(100%, 68.75rem); /* 1100px — content-heavy pages (billing, settings) */
   --container-narrow:     min(100%, 52rem);    /*  832px — settings sections, focused views */

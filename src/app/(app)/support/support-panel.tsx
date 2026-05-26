@@ -219,7 +219,7 @@ export function SupportPageClient({
               Welcome back, {firstName}! <span aria-hidden>👋</span>
             </div>
           )}
-          <h1 className="font-display text-[26px] sm:text-[30px] text-ink-900 leading-tight">
+          <h1 className="text-page-title text-ink-900">
             Support &amp; Contact
           </h1>
           <p className="mt-1.5 text-[13.5px] sm:text-[14px] text-ink-500 max-w-2xl leading-relaxed">

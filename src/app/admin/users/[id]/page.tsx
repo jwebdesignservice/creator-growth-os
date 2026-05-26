@@ -23,7 +23,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
   const { profile, subscription, aggregates } = data;
 
   return (
-    <div className="space-y-6 max-w-[1240px] mx-auto">
+    <div className="space-y-6 container-app">
       {/* Breadcrumb */}
       <nav className="text-[13px]">
         <Link

@@ -57,13 +57,21 @@ export default async function AdminProgramsPage({
   let query = supabase
     .from("programs")
     .select(
-      "id, slug, title, description, plan_access, cover_image_url, total_lessons, published, created_at",
+      "id, slug, title, description, plan_access, cover_image_url, total_lessons, published, archived, created_at",
       { count: "exact" },
     );
 
   if (search) query = query.ilike("title", `%${search}%`);
-  if (status === "published") query = query.eq("published", true);
-  if (status === "draft") query = query.eq("published", false);
+  if (status === "published") {
+    query = query.eq("published", true).eq("archived", false);
+  } else if (status === "draft") {
+    query = query.eq("published", false).eq("archived", false);
+  } else if (status === "archived") {
+    query = query.eq("archived", true);
+  } else {
+    // Default: hide archived rows.
+    query = query.eq("archived", false);
+  }
   if (plan === "free" || plan === "basic" || plan === "pro") {
     query = query.eq("plan_access", plan);
   }
@@ -129,6 +137,7 @@ export default async function AdminProgramsPage({
       cover_image_url: p.cover_image_url,
       total_lessons: p.total_lessons,
       published: p.published,
+      archived: !!p.archived,
       created_at: p.created_at,
       members: membersByProgram.get(p.id) ?? 0,
     }),

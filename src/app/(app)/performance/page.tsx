@@ -77,7 +77,7 @@ export default async function PerformancePage({
         />
       }
     >
-      <div className="space-y-7 max-w-[1240px] mx-auto">
+      <div className="space-y-7 container-app">
         {/* Header */}
         <header className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -85,7 +85,7 @@ export default async function PerformancePage({
               <Sparkles className="size-4" strokeWidth={2} />
               Welcome back, {firstName}!
             </div>
-            <h1 className="font-display text-[40px] text-ink-900 leading-tight mb-1">
+            <h1 className="text-h1 text-ink-900 mb-1">
               Performance
             </h1>
             <p className="text-ink-500 text-[14px]">

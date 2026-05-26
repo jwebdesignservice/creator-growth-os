@@ -107,7 +107,7 @@ export default async function ProfilePage() {
             </div>
 
             <div className="flex-1 min-w-0 text-center sm:text-left">
-              <h1 className="font-display text-[26px] sm:text-[30px] text-ink-900 leading-tight">
+              <h1 className="text-page-title text-ink-900">
                 {fullName}
               </h1>
               <div className="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[13px] text-ink-500">

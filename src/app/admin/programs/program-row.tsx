@@ -9,8 +9,15 @@ import {
   EyeOff,
   Trash2,
   ExternalLink,
+  Pencil,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
-import { toggleProgramPublished, deleteProgram } from "./actions";
+import {
+  toggleProgramPublished,
+  deleteProgram,
+  archiveProgram,
+} from "./actions";
 import { cn } from "@/lib/cn";
 
 export type ProgramRowData = {
@@ -22,6 +29,7 @@ export type ProgramRowData = {
   cover_image_url: string | null;
   total_lessons: number;
   published: boolean;
+  archived: boolean;
   created_at: string;
   members: number;
 };
@@ -87,6 +95,13 @@ export function ProgramRow({
     setMenuOpen(false);
     startTransition(async () => {
       await toggleProgramPublished(program.id, !program.published);
+    });
+  };
+
+  const toggleArchive = () => {
+    setMenuOpen(false);
+    startTransition(async () => {
+      await archiveProgram(program.id, !program.archived);
     });
   };
 
@@ -215,6 +230,13 @@ export function ProgramRow({
               role="menu"
               className="absolute right-0 top-[calc(100%+6px)] z-20 w-48 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
             >
+              <Link
+                role="menuitem"
+                href={`/admin/programs/${program.id}`}
+                className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-cream-100"
+              >
+                <Pencil className="size-3.5" strokeWidth={2} /> Edit
+              </Link>
               <button
                 type="button"
                 role="menuitem"
@@ -228,6 +250,23 @@ export function ProgramRow({
                 ) : (
                   <>
                     <Eye className="size-3.5" strokeWidth={2} /> Publish
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={toggleArchive}
+                className="w-full text-left flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-cream-100 cursor-pointer"
+              >
+                {program.archived ? (
+                  <>
+                    <ArchiveRestore className="size-3.5" strokeWidth={2} />{" "}
+                    Restore
+                  </>
+                ) : (
+                  <>
+                    <Archive className="size-3.5" strokeWidth={2} /> Archive
                   </>
                 )}
               </button>
