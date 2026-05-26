@@ -2,8 +2,12 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notifyChatMention, notifyChatReply } from "@/lib/notifications/service";
+import { isClean, MODERATION_REJECTION } from "./moderation";
 import type { ChatActionResult, MentionCandidate, ChatMessage } from "./types";
 import { listRecentMessages } from "./queries";
+
+// Minimum seconds between messages from a non-admin user.
+const RATE_LIMIT_SECONDS = 5;
 
 // ── sendMessage ────────────────────────────────────────────────────────
 
@@ -22,6 +26,41 @@ export async function sendMessage(
   // An image alone (without text) is allowed
   if (!trimmed && !imageUrl) return { ok: false, error: "Message cannot be empty." };
   if (trimmed.length > 2000) return { ok: false, error: "Message too long." };
+
+  // Moderation — block slurs, strong profanity, abuse/self-harm phrases.
+  // Image-only messages skip this; text is normalized inside isClean().
+  if (trimmed && !isClean(trimmed)) {
+    return { ok: false, error: MODERATION_REJECTION };
+  }
+
+  // Admin check (also used below for author_is_admin and rate-limit bypass).
+  const { data: isAdminRaw } = await supabase.rpc("is_admin");
+  const authorIsAdmin = isAdminRaw === true;
+
+  // Rate limit — skip for admins so broadcasts aren't throttled. Looks up
+  // the user's most recent non-deleted message; if it's within the window,
+  // reject with a wait hint.
+  if (!authorIsAdmin) {
+    const { data: lastMsg } = await supabase
+      .from("community_chat_messages")
+      .select("created_at")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastMsg) {
+      const secsSince =
+        (Date.now() - new Date(lastMsg.created_at).getTime()) / 1000;
+      if (secsSince < RATE_LIMIT_SECONDS) {
+        const wait = Math.ceil(RATE_LIMIT_SECONDS - secsSince);
+        return {
+          ok: false,
+          error: `Slow down — wait ${wait}s before sending another message.`,
+        };
+      }
+    }
+  }
 
   // Resolve reply parent (if any) — denormalize a snippet for display
   let replyToPreview: { author_name: string; body: string } | null = null;
@@ -55,9 +94,7 @@ export async function sendMessage(
     profile?.display_name ?? profile?.full_name ?? "Creator";
   const authorAvatar = profile?.avatar_url ?? null;
 
-  // Admin check (is_admin() reads admin_users for the current user)
-  const { data: isAdminRaw } = await supabase.rpc("is_admin");
-  const authorIsAdmin = isAdminRaw === true;
+  // authorIsAdmin already resolved above for rate-limit decision.
 
   // Extract @handle tokens (handles are [a-z0-9_] per signup UI)
   const handleMatches = [
@@ -288,6 +325,7 @@ export async function editMessage(
   const trimmed = newBody.trim();
   if (!trimmed) return { ok: false, error: "Message cannot be empty." };
   if (trimmed.length > 2000) return { ok: false, error: "Message too long." };
+  if (!isClean(trimmed)) return { ok: false, error: MODERATION_REJECTION };
 
   // RLS enforces owner-only update (auth.uid() = user_id OR is_admin()).
   // The action layer further restricts to owner-only edits (admins can delete
