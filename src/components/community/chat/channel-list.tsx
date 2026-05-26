@@ -152,11 +152,14 @@ export function ChannelList({ channels, currentSlug, isAdmin }: Props) {
 
       <aside
         className={cn(
-          // Desktop: inline sidebar — full viewport height minus topbar
-          // (and the chat page's py-4 = 2rem), sticky just below the topbar
-          // so it stays glued in place regardless of body scroll.
-          "shrink-0 w-[240px] bg-white rounded-[20px] border border-ink-100 overflow-hidden lg:sticky lg:top-[calc(var(--topbar-height)+1rem)] lg:self-start lg:h-[calc(100dvh-var(--topbar-height)-2rem)]",
-          // Mobile: drawer
+          // Desktop: inline sidebar. No explicit height — the flex parent
+          // is viewport-bounded and align-items: stretch (default) makes
+          // this stretch vertically to match the chat-room column next to
+          // it. Don't add lg:sticky/self-start/h-[calc] here — they
+          // interfere with how flex computes the sibling chat-room's
+          // height, which silently kills MessageList's overflow-y-auto.
+          "shrink-0 w-[240px] bg-white rounded-[20px] border border-ink-100 overflow-hidden",
+          // Both desktop and mobile drawer use flex column for header/nav/footer stack
           "lg:flex flex-col",
           mobileOpen
             ? "fixed left-3 top-3 bottom-3 z-50 flex w-[260px] shadow-xl"
