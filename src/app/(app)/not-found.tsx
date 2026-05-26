@@ -12,11 +12,11 @@ export const metadata = {
 
 export default function AppNotFound() {
   return (
-    <main className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 py-10 max-w-[1240px] mx-auto">
+    <main className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 py-10 container-app">
       <div className="text-rose-600 font-semibold text-[12.5px] uppercase tracking-[0.12em] mb-2">
         Error 404
       </div>
-      <h1 className="font-display text-[40px] text-ink-900 leading-tight mb-3">
+      <h1 className="text-h1 text-ink-900 mb-3">
         We couldn&apos;t find that page
       </h1>
       <p className="text-[14.5px] text-ink-500 leading-relaxed mb-8 max-w-[420px]">

@@ -37,7 +37,7 @@ export default async function AdminUsersPage({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="space-y-6 max-w-[1240px] mx-auto">
+    <div className="space-y-6 container-app">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-1">

@@ -233,6 +233,110 @@ select.input {
   color:      var(--success);
 }
 
+/* ─── TYPOGRAPHY UTILITIES ──────────────────────────────────────────────────
+   Semantic wrappers around the fluid type-scale tokens in
+   styles/tokens/typography.css. Use these on H1..H6, body copy, captions,
+   labels and helper text instead of hard-coded `text-[Npx]` values so the
+   platform stays consistent and scales smoothly across breakpoints.
+
+   Display-family headings (h1/h2/h3/h4 + page title + section title) use
+   var(--font-heading); body, small and label sizes inherit the sans body
+   stack. All sizes are fluid via clamp().
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.text-h1 {
+  font-family:    var(--font-heading);
+  font-size:      var(--text-h1);
+  font-weight:    var(--weight-heading);
+  line-height:    var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
+}
+.text-h2 {
+  font-family:    var(--font-heading);
+  font-size:      var(--text-h2);
+  font-weight:    var(--weight-heading);
+  line-height:    var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
+}
+.text-h3 {
+  font-family:    var(--font-heading);
+  font-size:      var(--text-h3);
+  font-weight:    var(--weight-heading);
+  line-height:    var(--leading-snug);
+  letter-spacing: var(--tracking-heading);
+}
+.text-h4 {
+  font-family:    var(--font-heading);
+  font-size:      var(--text-h4);
+  font-weight:    var(--weight-heading);
+  line-height:    var(--leading-snug);
+  letter-spacing: var(--tracking-heading);
+}
+
+/* Sans page title — denser than h1, used for in-app pages
+   (Settings, Billing, Notifications, ticket detail, etc.). */
+.text-page-title {
+  font-family:    var(--font-heading);
+  font-size:      var(--text-page-title);
+  font-weight:    var(--weight-heading);
+  line-height:    var(--leading-tight);
+  letter-spacing: var(--tracking-heading);
+}
+
+/* Card / section heading — sans for cleaner hierarchy contrast with body. */
+.text-card-title {
+  font-family:    var(--font-body);
+  font-size:      var(--text-card-title);
+  font-weight:    var(--weight-semibold);
+  line-height:    var(--leading-snug);
+}
+
+.text-body-lg { font-size: var(--text-body-lg); line-height: var(--leading-relaxed); }
+.text-body    { font-size: var(--text-body);    line-height: var(--leading-body); }
+.text-body-sm { font-size: var(--text-body-sm); line-height: var(--leading-snug); }
+.text-small   { font-size: var(--text-small);   line-height: var(--leading-snug); }
+.text-tiny    { font-size: var(--text-tiny);    line-height: var(--leading-snug); }
+
+/* Uppercase tracked label — used above value blocks, table headers, badges. */
+.text-label-caps {
+  font-size:      var(--text-label);
+  font-weight:    var(--weight-semibold);
+  line-height:    var(--leading-ui);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.text-helper {
+  font-size:   var(--text-small);
+  line-height: var(--leading-snug);
+  color:       var(--ink-500);
+}
+
+/* ─── CONTAINER UTILITIES ───────────────────────────────────────────────────
+   Standardized max-widths so every page reads with the same canvas size.
+   Replace ad-hoc `max-w-[1240px] mx-auto` with `container-dashboard`, etc.
+   ─────────────────────────────────────────────────────────────────────────── */
+.container-page      { width: 100%; max-width: var(--container-page);      margin-inline: auto; }
+.container-dashboard { width: 100%; max-width: var(--container-dashboard); margin-inline: auto; }
+.container-app       { width: 100%; max-width: var(--container-app);       margin-inline: auto; }
+.container-admin     { width: 100%; max-width: var(--container-admin);     margin-inline: auto; }
+.container-content   { width: 100%; max-width: var(--container-content);   margin-inline: auto; }
+.container-narrow    { width: 100%; max-width: var(--container-narrow);    margin-inline: auto; }
+.container-form      { width: 100%; max-width: var(--container-form);      margin-inline: auto; }
+.container-auth      { width: 100%; max-width: var(--container-auth);      margin-inline: auto; }
+
+/* ─── SPACING SHORTCUTS ─────────────────────────────────────────────────────
+   Token-backed convenience utilities. Use these instead of arbitrary
+   `p-[Npx]` so spacing stays fluid across breakpoints.
+   ─────────────────────────────────────────────────────────────────────────── */
+.gap-section    { gap: var(--space-section-gap); }
+.gap-grid       { gap: var(--space-grid-gap); }
+.gap-grid-sm    { gap: var(--space-grid-gap-sm); }
+.px-page        { padding-inline: var(--space-page-x); }
+.py-page        { padding-block:  var(--space-page-y); }
+.p-card         { padding: var(--space-card-padding); }
+.p-card-sm      { padding: var(--space-card-padding-sm); }
+
 /* ─── SCROLLBAR ─────────────────────────────────────────────────────────────
    Subtle, premium scrollbar consistent across all pages.
    ─────────────────────────────────────────────────────────────────────────── */

@@ -76,7 +76,7 @@ export default async function ProgramsPage() {
             <Sparkles className="size-4" strokeWidth={2} />
             Welcome back, {firstName}!
           </div>
-          <h1 className="font-display text-[28px] sm:text-[34px] lg:text-[40px] text-ink-900 leading-tight mb-1">
+          <h1 className="text-h1 text-ink-900 mb-1">
             Influencer Programs
           </h1>
           <p className="text-ink-500 text-[14px]">

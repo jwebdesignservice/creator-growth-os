@@ -8,7 +8,7 @@ export default async function AdminMissionsPage() {
   const templates = await getMissionTemplates();
 
   return (
-    <div className="space-y-6 max-w-[1240px] mx-auto">
+    <div className="space-y-6 container-app">
       <header>
         <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-1">
           Mission Templates

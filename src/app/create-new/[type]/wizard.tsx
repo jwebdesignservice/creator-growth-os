@@ -213,7 +213,7 @@ export function CreateWizard({ type }: { type: WizardType }) {
           "radial-gradient(60% 60% at 50% 0%, rgba(244, 213, 209, 0.7) 0%, rgba(244, 213, 209, 0) 60%), linear-gradient(180deg, var(--cream-50) 0%, var(--cream-100) 100%)",
       }}
     >
-      <div className="max-w-[1240px] mx-auto bg-white rounded-[20px] sm:rounded-[28px] border border-ink-100 shadow-card overflow-hidden">
+      <div className="container-app bg-white rounded-[20px] sm:rounded-[28px] border border-ink-100 shadow-card overflow-hidden">
         <div className="p-5 sm:p-7 lg:p-10 space-y-7 sm:space-y-8">
           {/* Brand + stepper */}
           <header className="flex items-center justify-between gap-4 flex-wrap">

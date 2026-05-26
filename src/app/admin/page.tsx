@@ -31,7 +31,7 @@ export default async function AdminDashboardPage() {
   ]);
 
   return (
-    <div className="space-y-6 max-w-[1240px] mx-auto">
+    <div className="space-y-6 container-app">
       {/* Header */}
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>

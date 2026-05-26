@@ -70,7 +70,7 @@ export default async function AdminProgramDetailPage({
     program.plan_access.charAt(0).toUpperCase() + program.plan_access.slice(1);
 
   return (
-    <div className="space-y-6 max-w-[1320px] mx-auto">
+    <div className="space-y-6 container-dashboard">
       {/* Header — breadcrumb + title + actions */}
       <header>
         <nav className="text-[12.5px] mb-2">
