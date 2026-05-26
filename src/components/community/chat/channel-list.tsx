@@ -152,12 +152,10 @@ export function ChannelList({ channels, currentSlug, isAdmin }: Props) {
 
       <aside
         className={cn(
-          // Desktop: inline sidebar — sticky just below the topbar so it
-          // always stays in view even if anything causes the body to scroll.
-          // h-fit + self-start keeps the panel sized to its content (no
-          // empty white space below the channels), and max-h caps it to the
-          // visible area in case the channel list ever grows long.
-          "shrink-0 w-[240px] bg-white rounded-[20px] border border-ink-100 overflow-hidden lg:sticky lg:top-[calc(var(--topbar-height)+1rem)] lg:self-start lg:max-h-[calc(100dvh-var(--topbar-height)-2rem)]",
+          // Desktop: inline sidebar — full viewport height minus topbar
+          // (and the chat page's py-4 = 2rem), sticky just below the topbar
+          // so it stays glued in place regardless of body scroll.
+          "shrink-0 w-[240px] bg-white rounded-[20px] border border-ink-100 overflow-hidden lg:sticky lg:top-[calc(var(--topbar-height)+1rem)] lg:self-start lg:h-[calc(100dvh-var(--topbar-height)-2rem)]",
           // Mobile: drawer
           "lg:flex flex-col",
           mobileOpen
