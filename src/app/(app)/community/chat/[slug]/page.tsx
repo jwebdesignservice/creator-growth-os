@@ -50,7 +50,7 @@ export default async function CommunityChatChannelPage({
   }
 
   return (
-    <div className="flex flex-1 min-h-0 px-[var(--mobile-content-x)] lg:px-[var(--space-page-x)] py-4 gap-4">
+    <div className="flex h-[calc(100dvh-var(--mobile-topbar-height))] lg:h-[calc(100dvh-var(--topbar-height))] px-[var(--mobile-content-x)] lg:px-[var(--space-page-x)] py-4 gap-4">
       <ChannelList
         channels={channels}
         currentSlug={slug}
