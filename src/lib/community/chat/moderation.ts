@@ -26,13 +26,21 @@ const PROFANITY = [
   "asshole",
   "bitch",
   "bastard",
+  "cock",
+  "cocksucker",
   "cunt",
   "dick",
   "dickhead",
+  "douche",
+  "douchebag",
+  "hoe",
   "piss",
+  "prick",
   "pussy",
+  "slut",
   "twat",
   "wanker",
+  "whore",
 ];
 
 // Slurs — kept short for legibility; expand as needed via admin review.
