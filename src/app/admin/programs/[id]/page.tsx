@@ -9,11 +9,8 @@ import {
   Layers,
   Check,
   Settings2,
-  Link2,
-  Copy,
-  BarChart3,
   Sparkles,
-  ChevronDown,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -21,6 +18,15 @@ import { getCurriculumForProgram } from "@/lib/programs/queries";
 import { cn } from "@/lib/cn";
 import { CurriculumOutline } from "./curriculum-outline";
 import { PublishButton } from "./publish-button";
+import {
+  EditTitleButton,
+  EditDescriptionButton,
+  EditThumbnailButton,
+  PlanAccessPicker,
+  SalesPageEditor,
+  ProgramHeaderActions,
+  PreviewProgramLink,
+} from "./program-detail-editors";
 
 export const metadata = { title: "Program Setup Guide · Admin" };
 
@@ -37,7 +43,7 @@ export default async function AdminProgramDetailPage({
   const { data: program } = await supabase
     .from("programs")
     .select(
-      "id, slug, title, description, plan_access, cover_image_url, total_lessons, total_tasks, estimated_days, published",
+      "id, slug, title, description, plan_access, cover_image_url, total_lessons, total_tasks, estimated_days, published, archived, sales_page_url",
     )
     .eq("id", id)
     .maybeSingle();
@@ -100,15 +106,13 @@ export default async function AdminProgramDetailPage({
             </p>
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
-            <Link
-              href={`/programs/${program.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-white border border-ink-200 text-ink-900 text-[13px] font-medium hover:bg-cream-100 transition-colors"
-            >
-              <Eye className="size-4" strokeWidth={2} />
-              Preview
-            </Link>
+            <PreviewProgramLink slug={program.slug} />
             <PublishButton programId={program.id} published={program.published} />
+            <ProgramHeaderActions
+              programId={program.id}
+              programTitle={program.title}
+              archived={program.archived}
+            />
           </div>
         </div>
       </header>
@@ -148,41 +152,11 @@ export default async function AdminProgramDetailPage({
             n={2}
             title="Access & pricing"
             subtitle="Choose who can access your program and how it's offered."
-            actions={
-              <Link
-                href="/admin/programs"
-                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
-              >
-                <Settings2 className="size-3.5" strokeWidth={2} />
-                Manage access
-              </Link>
-            }
           >
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[12.5px] text-ink-500 shrink-0">
-                Current access tier:
-              </span>
-              {(["free", "basic", "pro"] as const).map((tier) => {
-                const active = program.plan_access === tier;
-                return (
-                  <span
-                    key={tier}
-                    className={cn(
-                      "inline-flex items-center h-8 px-3.5 rounded-[8px] text-[12.5px] font-semibold capitalize transition-colors",
-                      active
-                        ? "bg-rose-100 text-rose-700 border border-rose-200"
-                        : "bg-white text-ink-500 border border-ink-100",
-                    )}
-                  >
-                    {tier}
-                  </span>
-                );
-              })}
-              <span className="inline-flex items-center gap-1 text-[11.5px] text-ink-500 ml-auto">
-                <Crown className="size-3 text-rose-500" strokeWidth={2} />
-                {accessLabel} members only
-              </span>
-            </div>
+            <PlanAccessPicker
+              programId={program.id}
+              current={program.plan_access as "free" | "basic" | "pro"}
+            />
           </StepCard>
 
           <StepCard
@@ -191,47 +165,17 @@ export default async function AdminProgramDetailPage({
             subtitle="Connect your program to a sales page where members can discover and purchase."
           >
             <div className="space-y-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[12.5px] text-ink-500 shrink-0 w-[72px]">
-                  Sales page
-                </span>
-                <div className="flex-1 min-w-[200px] inline-flex items-center gap-2 h-10 px-3 rounded-[10px] bg-white border border-ink-100 text-[13px] text-ink-500">
-                  <Link2 className="size-3.5 text-ink-500 shrink-0" strokeWidth={2} />
-                  <span className="truncate">No sales page connected yet</span>
-                  <ChevronDown
-                    className="size-3.5 text-ink-500 ml-auto"
-                    strokeWidth={2}
-                  />
-                </div>
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center gap-1.5 h-10 px-3 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 opacity-60 cursor-not-allowed"
-                >
-                  <Eye className="size-3.5" strokeWidth={2} /> Preview
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center gap-1.5 h-10 px-3 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 opacity-60 cursor-not-allowed"
-                >
-                  <Copy className="size-3.5" strokeWidth={2} /> Copy link
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center gap-1.5 h-10 px-3 rounded-[10px] bg-rose-50 border border-rose-200 text-[12.5px] font-semibold text-rose-700 opacity-60 cursor-not-allowed"
-                >
-                  <Pencil className="size-3.5" strokeWidth={2} /> Edit page
-                </button>
-              </div>
+              <SalesPageEditor
+                programId={program.id}
+                currentUrl={program.sales_page_url}
+              />
               <div className="rounded-[10px] bg-rose-50/60 border border-rose-100 px-3 py-2.5 flex items-center gap-2">
                 <Sparkles className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
                 <p className="text-[12.5px] text-ink-700 leading-snug">
                   A high-converting sales page can significantly increase program
                   enrollments.{" "}
                   <Link
-                    href="/help"
+                    href="/support"
                     className="text-rose-600 hover:text-rose-700 font-semibold"
                   >
                     Learn best practices →
@@ -253,19 +197,45 @@ export default async function AdminProgramDetailPage({
               <Settings2 className="size-4 text-ink-400" strokeWidth={2} />
             </header>
             <ul className="space-y-3.5">
-              <CustomizeRow label="Program title" value={program.title} />
-              <CustomizeRow
-                label="Program description"
-                value={
-                  program.description?.slice(0, 60) +
-                    (program.description && program.description.length > 60
-                      ? "…"
-                      : "") || "—"
-                }
-              />
               <li className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11.5px] text-ink-500 mb-1">Thumbnail</div>
+                  <div className="text-[11.5px] text-ink-500 mb-0.5">
+                    Program title
+                  </div>
+                  <div className="text-[13px] font-semibold text-ink-900 truncate">
+                    {program.title}
+                  </div>
+                </div>
+                <EditTitleButton
+                  programId={program.id}
+                  currentTitle={program.title}
+                />
+              </li>
+
+              <li className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11.5px] text-ink-500 mb-0.5">
+                    Program description
+                  </div>
+                  <div className="text-[13px] font-semibold text-ink-900 truncate">
+                    {program.description && program.description.length > 0
+                      ? program.description.length > 60
+                        ? `${program.description.slice(0, 60)}…`
+                        : program.description
+                      : "—"}
+                  </div>
+                </div>
+                <EditDescriptionButton
+                  programId={program.id}
+                  currentDescription={program.description}
+                />
+              </li>
+
+              <li className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11.5px] text-ink-500 mb-1">
+                    Thumbnail
+                  </div>
                   <div className="w-full max-w-[160px] h-[68px] rounded-[8px] overflow-hidden bg-gradient-to-br from-rose-100 via-rose-50 to-cream-200">
                     {program.cover_image_url && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -277,9 +247,22 @@ export default async function AdminProgramDetailPage({
                     )}
                   </div>
                 </div>
-                <EditIconButton label="thumbnail" />
+                <EditThumbnailButton
+                  programId={program.id}
+                  currentUrl={program.cover_image_url}
+                />
               </li>
-              <CustomizeRow label="Curriculum layout" value="Accordion" />
+
+              <li className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11.5px] text-ink-500 mb-0.5">
+                    Curriculum layout
+                  </div>
+                  <div className="text-[13px] font-semibold text-ink-900 truncate">
+                    Accordion
+                  </div>
+                </div>
+              </li>
             </ul>
           </section>
 
@@ -389,39 +372,6 @@ function StepCard({
       </header>
       {children}
     </section>
-  );
-}
-
-function CustomizeRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <li className="flex items-center gap-3">
-      <div className="flex-1 min-w-0">
-        <div className="text-[11.5px] text-ink-500 mb-0.5">{label}</div>
-        <div className="text-[13px] font-semibold text-ink-900 truncate">
-          {value}
-        </div>
-      </div>
-      <EditIconButton label={label.toLowerCase()} />
-    </li>
-  );
-}
-
-function EditIconButton({ label }: { label: string }) {
-  return (
-    <button
-      type="button"
-      className="size-8 rounded-[8px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-ink-900 transition-colors shrink-0 cursor-pointer"
-      aria-label={`Edit ${label}`}
-      title={`Edit ${label}`}
-    >
-      <Pencil className="size-3.5" strokeWidth={2} />
-    </button>
   );
 }
 
