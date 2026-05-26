@@ -173,13 +173,10 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 function UpgradeCard() {
   return (
     <div className="rounded-[16px] border border-rose-200 bg-rose-50/60 p-4 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-rose-700 text-[13px] font-semibold mb-1">
+      <div className="flex items-center justify-center gap-1.5 text-rose-700 text-[13px] font-semibold mb-3">
         <Sparkles className="size-4" strokeWidth={2} />
         Upgrade to Pro
       </div>
-      <p className="text-[11.5px] text-ink-500 leading-snug mb-3">
-        Unlock all programs, premium resources and 1-to-1 coaching.
-      </p>
       <Link
         href="/billing?upgrade=pro"
         className="block w-full h-9 leading-9 text-[12.5px] font-medium bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-[10px] transition-colors"
@@ -220,11 +217,8 @@ function ReferralCard() {
         </span>
       </div>
 
-      <p className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-1">
+      <p className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-3">
         Invite friends, earn free credits
-      </p>
-      <p className="text-[11px] text-ink-500 leading-snug mb-3">
-        Get free monthly usage or upgrade credits for every friend who joins.
       </p>
 
       <Link
