@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PasswordStrengthCard } from "@/components/auth/password-strength";
 import { signUpWithPassword } from "../actions";
 
-export function SignUpForm() {
+export function SignUpForm({ referralCode }: { referralCode: string | null }) {
   const [state, formAction, pending] = useActionState(signUpWithPassword, {});
 
   // Controlled so the shared strength card can react live — same meter +
@@ -28,6 +28,19 @@ export function SignUpForm() {
 
   return (
     <form action={formAction} className="space-y-4">
+      {referralCode && (
+        <>
+          <input type="hidden" name="referral_code" value={referralCode} />
+          <div className="flex items-center gap-2 rounded-[10px] bg-emerald-50 border border-emerald-200 px-3 py-2 text-[12.5px] text-emerald-800">
+            <Sparkles className="size-3.5 shrink-0" strokeWidth={2} />
+            <span>
+              You were invited by a friend — they&apos;ll earn rewards once you
+              subscribe.
+            </span>
+          </div>
+        </>
+      )}
+
       <TextInput
         label="Full name"
         name="full_name"

@@ -2,12 +2,17 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notifyChatMention, notifyChatReply } from "@/lib/notifications/service";
+import { isClean, MODERATION_REJECTION } from "./moderation";
 import type { ChatActionResult, MentionCandidate, ChatMessage } from "./types";
 import { listRecentMessages } from "./queries";
+
+// Minimum seconds between messages from a non-admin user.
+const RATE_LIMIT_SECONDS = 5;
 
 // ── sendMessage ────────────────────────────────────────────────────────
 
 export async function sendMessage(
+  channelId: string,
   body: string,
   replyToId?: string,
   imageUrl?: string,
@@ -18,20 +23,57 @@ export async function sendMessage(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
+  if (!channelId) return { ok: false, error: "Channel is required." };
   const trimmed = body.trim();
   // An image alone (without text) is allowed
   if (!trimmed && !imageUrl) return { ok: false, error: "Message cannot be empty." };
   if (trimmed.length > 2000) return { ok: false, error: "Message too long." };
 
-  // Resolve reply parent (if any) — denormalize a snippet for display
+  // Moderation — block slurs, strong profanity, abuse/self-harm phrases.
+  // Image-only messages skip this; text is normalized inside isClean().
+  if (trimmed && !isClean(trimmed)) {
+    return { ok: false, error: MODERATION_REJECTION };
+  }
+
+  // Admin check (also used below for author_is_admin and rate-limit bypass).
+  const { data: isAdminRaw } = await supabase.rpc("is_admin");
+  const authorIsAdmin = isAdminRaw === true;
+
+  // Rate limit — skip for admins so broadcasts aren't throttled. Looks up
+  // the user's most recent non-deleted message; if it's within the window,
+  // reject with a wait hint.
+  if (!authorIsAdmin) {
+    const { data: lastMsg } = await supabase
+      .from("community_chat_messages")
+      .select("created_at")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastMsg) {
+      const secsSince =
+        (Date.now() - new Date(lastMsg.created_at).getTime()) / 1000;
+      if (secsSince < RATE_LIMIT_SECONDS) {
+        const wait = Math.ceil(RATE_LIMIT_SECONDS - secsSince);
+        return {
+          ok: false,
+          error: `Slow down — wait ${wait}s before sending another message.`,
+        };
+      }
+    }
+  }
+
+  // Resolve reply parent (if any) — must be in the same channel.
   let replyToPreview: { author_name: string; body: string } | null = null;
   let validReplyToId: string | null = null;
   let replyParentUserId: string | null = null;
   if (replyToId) {
     const { data: parent } = await supabase
       .from("community_chat_messages")
-      .select("id, user_id, author_name, body, deleted_at")
+      .select("id, channel_id, user_id, author_name, body, deleted_at")
       .eq("id", replyToId)
+      .eq("channel_id", channelId)
       .is("deleted_at", null)
       .maybeSingle();
     if (parent) {
@@ -55,9 +97,7 @@ export async function sendMessage(
     profile?.display_name ?? profile?.full_name ?? "Creator";
   const authorAvatar = profile?.avatar_url ?? null;
 
-  // Admin check (is_admin() reads admin_users for the current user)
-  const { data: isAdminRaw } = await supabase.rpc("is_admin");
-  const authorIsAdmin = isAdminRaw === true;
+  // authorIsAdmin already resolved above for rate-limit decision.
 
   // Extract @handle tokens (handles are [a-z0-9_] per signup UI)
   const handleMatches = [
@@ -85,6 +125,7 @@ export async function sendMessage(
   const { data: msg, error } = await supabase
     .from("community_chat_messages")
     .insert({
+      channel_id: channelId,
       user_id: user.id,
       body: trimmed || "",
       mention_user_ids: mentionUserIds,
@@ -216,18 +257,20 @@ export async function searchHandles(
 // ── loadOlderMessages ─────────────────────────────────────────────────
 
 export async function loadOlderMessages(
+  channelId: string,
   before: string,
   limit = 50,
 ): Promise<ChatMessage[]> {
-  return listRecentMessages(limit, before);
+  return listRecentMessages(channelId, limit, before);
 }
 
 // ── fetchRecentMessages (for reconnect recovery) ───────────────────────
 
 export async function fetchRecentMessages(
+  channelId: string,
   limit = 30,
 ): Promise<ChatMessage[]> {
-  return listRecentMessages(limit);
+  return listRecentMessages(channelId, limit);
 }
 
 // ── Reactions ─────────────────────────────────────────────────────────
@@ -288,6 +331,7 @@ export async function editMessage(
   const trimmed = newBody.trim();
   if (!trimmed) return { ok: false, error: "Message cannot be empty." };
   if (trimmed.length > 2000) return { ok: false, error: "Message too long." };
+  if (!isClean(trimmed)) return { ok: false, error: MODERATION_REJECTION };
 
   // RLS enforces owner-only update (auth.uid() = user_id OR is_admin()).
   // The action layer further restricts to owner-only edits (admins can delete
@@ -326,6 +370,73 @@ function parseOg(html: string, url: string): LinkPreview {
     site_name: pick("og:site_name"),
   };
 }
+
+// ── createChannel (admin only) ────────────────────────────────────────
+
+import { revalidatePath } from "next/cache";
+
+export async function createChannel(input: {
+  name: string;
+  icon?: string;
+  description?: string;
+  postsAdminOnly?: boolean;
+}): Promise<ChatActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data: isAdminRaw } = await supabase.rpc("is_admin");
+  if (!isAdminRaw) return { ok: false, error: "Only admins can create channels." };
+
+  const name = input.name.trim();
+  if (!name || name.length > 80) {
+    return { ok: false, error: "Channel name must be 1–80 characters." };
+  }
+
+  // Derive a slug from the name: lowercase, alphanumeric + hyphens only.
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  if (!slug) return { ok: false, error: "Channel name has no usable letters." };
+
+  const icon = input.icon?.trim().slice(0, 4) || null;
+  const description = input.description?.trim().slice(0, 200) || null;
+  const postsAdminOnly = input.postsAdminOnly === true;
+
+  // Sort_order: append to end.
+  const { data: maxRow } = await supabase
+    .from("community_chat_channels")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = (maxRow?.sort_order ?? -1) + 1;
+
+  const { error } = await supabase.from("community_chat_channels").insert({
+    slug,
+    name,
+    icon,
+    description,
+    posts_admin_only: postsAdminOnly,
+    sort_order: sortOrder,
+  });
+
+  if (error) {
+    if (/duplicate|unique/i.test(error.message)) {
+      return { ok: false, error: "A channel with that name already exists." };
+    }
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/community/chat", "layout");
+  return { ok: true };
+}
+
+// ── Link preview (Open Graph unfurl) — used internally by sendMessage ─
 
 /** Fetch OG metadata for the first URL in `body`. Best-effort; null on any failure. */
 export async function fetchLinkPreview(

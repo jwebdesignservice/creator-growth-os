@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 import type { ChatMessage, MentionCandidate } from "@/lib/community/chat/types";
 
 type Props = {
+  channelId: string;
   onSent: () => void;
   onError: (msg: string) => void;
   isConnected: boolean;
@@ -29,7 +30,7 @@ const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif
 const MAX_CHARS = 2000;
 const WARN_CHARS = 1900;
 
-export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply, currentUserId }: Props) {
+export function Composer({ channelId, onSent, onError, isConnected, replyTo, onCancelReply, currentUserId }: Props) {
   const [body, setBody] = useState("");
   const [sending, startSending] = useTransition();
   const [uploading, setUploading] = useState(false);
@@ -175,7 +176,7 @@ export function Composer({ onSent, onError, isConnected, replyTo, onCancelReply,
     const replyId = replyTo?.id;
     const imageUrl = pendingImage?.url;
     startSending(async () => {
-      const result = await sendMessage(trimmed, replyId, imageUrl);
+      const result = await sendMessage(channelId, trimmed, replyId, imageUrl);
       if (!result.ok) {
         onError(result.error);
       } else {

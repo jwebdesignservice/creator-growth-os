@@ -7,6 +7,7 @@ import { loadOlderMessages } from "@/lib/community/chat/actions";
 import type { ChatMessage, ReactionGroup } from "@/lib/community/chat/types";
 
 type Props = {
+  channelId: string;
   messages: ChatMessage[];
   currentUserId: string;
   isAdmin: boolean;
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export function MessageList({
+  channelId,
   messages,
   currentUserId,
   isAdmin,
@@ -53,7 +55,7 @@ export function MessageList({
     const oldest = messages[0];
     if (!oldest) return;
     startLoadingOlder(async () => {
-      const older = await loadOlderMessages(oldest.created_at, 50);
+      const older = await loadOlderMessages(channelId, oldest.created_at, 50);
       onOlderLoaded(older);
     });
   }
@@ -61,7 +63,7 @@ export function MessageList({
   return (
     <div
       ref={listRef}
-      className="flex-1 overflow-y-auto min-h-0 px-2 py-2 space-y-0.5"
+      className="flex-1 overflow-y-auto overscroll-contain min-h-0 px-2 py-2 space-y-0.5"
     >
       {/* Load older button */}
       <div className="flex justify-center py-2">

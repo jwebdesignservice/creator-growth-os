@@ -9,7 +9,17 @@ import { SignUpForm } from "./sign-up-form";
 
 export const metadata = { title: "Create account · Creator Growth OS" };
 
-export default function SignUpPage() {
+type SearchParams = Promise<{ ref?: string }>;
+
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const { ref } = await searchParams;
+  // Sanitize: codes are lowercase alphanumeric (see generate_referral_code).
+  const referralCode = ref?.replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 16) || null;
+
   return (
     <div className="grid lg:grid-cols-[1fr_560px] min-h-screen">
       {/* Left/main: form */}
@@ -39,7 +49,7 @@ export default function SignUpPage() {
                 <TrialBadge />
               </div>
 
-              <SignUpForm />
+              <SignUpForm referralCode={referralCode} />
 
               <p className="mt-6 text-center text-[13px] text-ink-500">
                 Already have an account?{" "}
