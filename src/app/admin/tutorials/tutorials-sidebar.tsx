@@ -8,24 +8,21 @@ import {
 } from "@/components/admin/surface-sidebar";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Tutorials sidebar (client) — picks the items shown in the middle nav
-   based on the current pathname.
+   Tutorials sidebar (client) — only rendered for the editor route.
 
-   • On `/admin/tutorials` and `/admin/tutorials/new`:
-       shows the surface root nav (All tutorials · New tutorial).
+   • On `/admin/tutorials` (list) and `/admin/tutorials/new`:
+       returns `null`. The list page already has its own filter chips
+       (All / Drafts / Published / Archived) plus a "New tutorial" CTA
+       in the page header, so the middle nav adds nothing — hiding it
+       lets the grid use the full canvas.
    • On `/admin/tutorials/[id]` (the editor):
-       collapses what used to be a *third* in-content tab rail into this
-       same middle sidebar — All tutorials · Overview · Metadata · Thumbnail
-       · Lesson path · Creator drill · Resources · Controls · Access.
-       Tab state is driven by the `?tab=…` search param so the link-based
-       sidebar can highlight the right item without lifting React state
-       across the layout boundary.
+       renders the section-tab rail that used to live inside the editor —
+       All tutorials · Overview · Metadata · Thumbnail · Lesson path ·
+       Creator drill · Resources · Controls · Access. Tab state is driven
+       by the `?tab=…` search param so the link-based sidebar can
+       highlight the right item without lifting React state across the
+       layout boundary.
    ───────────────────────────────────────────────────────────────────────── */
-
-const LIST_NAV: SurfaceSidebarItem[] = [
-  { label: "All tutorials", href: "/admin/tutorials",     icon: "play-circle" },
-  { label: "New tutorial",  href: "/admin/tutorials/new", icon: "plus" },
-];
 
 const EDITOR_TABS: ReadonlyArray<{
   key: string;
@@ -65,16 +62,7 @@ export function TutorialsSidebar({
     return { id: first };
   }, [pathname]);
 
-  if (!editorMatch) {
-    return (
-      <AdminSurfaceSidebar
-        sectionLabel="Tutorials"
-        items={LIST_NAV}
-        adminName={adminName}
-        adminEmail={adminEmail}
-      />
-    );
-  }
+  if (!editorMatch) return null;
 
   const currentTab = searchParams?.get("tab") ?? DEFAULT_TAB;
   const editorBase = `/admin/tutorials/${editorMatch.id}`;
