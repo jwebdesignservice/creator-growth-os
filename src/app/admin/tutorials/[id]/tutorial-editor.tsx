@@ -37,7 +37,11 @@ import { updateLesson } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
 import { ThumbnailTab } from "./thumbnail-tab";
 import { CreatorDrillTab } from "./creator-drill-tab";
+import type { DrillRow } from "./drill-actions";
 import { ControlsTab } from "./controls-tab";
+import { OverviewTab, AtAGlanceCard } from "./overview-tab";
+import { LessonPathTab } from "./lesson-path-tab";
+import type { LessonChapter } from "./lesson-chapters-actions";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -109,9 +113,15 @@ const ACCESS_HELP: Record<TutorialEditorData["planAccess"], string> = {
 export function TutorialEditor({
   lesson,
   programs,
+  initialDrill,
+  drillTableMissing,
+  initialChapters,
 }: {
   lesson: TutorialEditorData;
   programs: ProgramOption[];
+  initialDrill: DrillRow | null;
+  drillTableMissing: boolean;
+  initialChapters: LessonChapter[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -315,7 +325,10 @@ export function TutorialEditor({
           drill-readiness card next to the video. */}
       {activeTab === "creator-drill" ? (
         <CreatorDrillTab
+          lessonId={lesson.id}
           lessonTitle={lesson.title}
+          initialDrill={initialDrill}
+          tableMissing={drillTableMissing}
           videoSlot={
             <VideoPreviewCard
               videoUrl={lesson.videoUrl}
@@ -352,12 +365,23 @@ export function TutorialEditor({
               />
             ) : activeTab === "controls" ? (
               <ControlsTab />
+            ) : activeTab === "overview" ? (
+              <OverviewTab tutorialId={lesson.id} />
+            ) : activeTab === "lesson-path" ? (
+              <LessonPathTab
+                lessonId={lesson.id}
+                initialChapters={initialChapters}
+                lastUpdatedAt={lesson.createdAt}
+              />
             ) : (
               <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
             )}
           </section>
 
-          {/* ── RIGHT: video player + publishing readiness ───────────── */}
+          {/* ── RIGHT rail ─────────────────────────────────────────────
+              Standard video + readiness pair. On the Overview tab we
+              add an "At a glance" stat strip underneath — same
+              swap-on-tab pattern used elsewhere in the editor. */}
           <aside className="space-y-4 min-w-0">
             <VideoPreviewCard
               videoUrl={lesson.videoUrl}
@@ -369,6 +393,7 @@ export function TutorialEditor({
               checks={readiness.checks}
               onAddChapters={() => setHasChapters(true)}
             />
+            {activeTab === "overview" && <AtAGlanceCard />}
           </aside>
         </div>
       )}
