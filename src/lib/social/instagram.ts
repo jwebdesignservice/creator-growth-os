@@ -92,6 +92,88 @@ async function fetchIgProfile(igUserId: string, pageToken: string): Promise<IgPr
   return (await res.json()) as IgProfile;
 }
 
+// ── Account-level insights (reach, profile views) ─────────────────────
+
+type InsightsResponse = {
+  data?: Array<{
+    name: string;
+    period: string;
+    values: Array<{ value: number; end_time?: string }>;
+  }>;
+};
+
+/**
+ * Fetch daily account-level insights between two timestamps and sum them.
+ * v18 supports `reach` and `profile_views` with period=day. `impressions`
+ * was removed in v22 — we leave it out for forward compatibility.
+ *
+ * Returns null on any failure so the rest of the sync can still proceed.
+ */
+async function fetchInsightsTotals(
+  igUserId: string,
+  pageToken: string,
+  sinceMs: number,
+  untilMs: number,
+): Promise<{ reach: number; profileViews: number } | null> {
+  const url = new URL(`${GRAPH}/${igUserId}/insights`);
+  url.searchParams.set("metric", "reach,profile_views");
+  url.searchParams.set("period", "day");
+  url.searchParams.set("since", String(Math.floor(sinceMs / 1000)));
+  url.searchParams.set("until", String(Math.floor(untilMs / 1000)));
+  url.searchParams.set("access_token", pageToken);
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.warn("[instagram-sync] insights fetch failed:", res.status, await res.text());
+    return null;
+  }
+  const body = (await res.json()) as InsightsResponse;
+  let reach = 0;
+  let profileViews = 0;
+  for (const entry of body.data ?? []) {
+    const total = entry.values.reduce((acc, v) => acc + (v.value ?? 0), 0);
+    if (entry.name === "reach") reach = total;
+    if (entry.name === "profile_views") profileViews = total;
+  }
+  return { reach, profileViews };
+}
+
+// ── Recent media for engagement + post count ─────────────────────────
+
+type MediaItem = {
+  id: string;
+  timestamp: string; // ISO8601
+  like_count?: number;
+  comments_count?: number;
+  media_type?: string;
+};
+
+/**
+ * Fetch the most recent 25 media posts (Instagram's default page size).
+ * Used to compute engagement rate + how many posts went up this week.
+ * Returns [] on failure so a media-less account doesn't break the sync.
+ */
+async function fetchRecentMedia(
+  igUserId: string,
+  pageToken: string,
+): Promise<MediaItem[]> {
+  const url = new URL(`${GRAPH}/${igUserId}/media`);
+  url.searchParams.set(
+    "fields",
+    "id,timestamp,like_count,comments_count,media_type",
+  );
+  url.searchParams.set("limit", "25");
+  url.searchParams.set("access_token", pageToken);
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.warn("[instagram-sync] media fetch failed:", res.status, await res.text());
+    return [];
+  }
+  const body = (await res.json()) as { data?: MediaItem[] };
+  return body.data ?? [];
+}
+
 /**
  * Run a sync for the given user's Instagram connection. Updates
  * social_accounts in-place and upserts a performance_entries row.
@@ -188,20 +270,55 @@ export async function syncInstagramAccount(
       .eq("user_id", userId)
       .eq("platform", "instagram");
 
-    // Step 5: upsert a performance_entries row for the current week so
-    // the KPI tiles auto-update. We only fill `followers` here; other
-    // metrics (reach, engagement) are left to manual entry until we
-    // hook up the IG insights endpoint.
-    if (followers !== null) {
-      await svc.from("performance_entries").upsert(
-        {
-          user_id: userId,
-          week_start: currentMonday(),
-          followers,
-        },
-        { onConflict: "user_id,week_start" },
-      );
+    // Step 5: aggregate this week's insights + media engagement.
+    //
+    // Window: start of current ISO week (Monday 00:00 local) → now.
+    // Reach + profile_views come from /insights summed across days in
+    // the window. Engagement_rate is computed from likes+comments on
+    // media posted within the window divided by current follower count.
+    const weekStart = new Date(`${currentMonday()}T00:00:00Z`).getTime();
+    const now = Date.now();
+
+    const insights = await fetchInsightsTotals(igUserId, pageToken, weekStart, now);
+    const media = await fetchRecentMedia(igUserId, pageToken);
+
+    // Posts published this week + their engagement totals.
+    let postsThisWeek = 0;
+    let likesThisWeek = 0;
+    let commentsThisWeek = 0;
+    for (const m of media) {
+      const t = new Date(m.timestamp).getTime();
+      if (t >= weekStart && t <= now) {
+        postsThisWeek += 1;
+        likesThisWeek += m.like_count ?? 0;
+        commentsThisWeek += m.comments_count ?? 0;
+      }
     }
+    const engagement = likesThisWeek + commentsThisWeek;
+    const engagementRate =
+      followers && followers > 0 && engagement > 0
+        ? Math.min(100, (engagement / followers) * 100)
+        : null;
+
+    // Step 6: upsert performance_entries with everything we got. Null
+    // fields are omitted so we don't clobber any value the user has
+    // already entered manually for that week.
+    const entryUpdates: Record<string, unknown> = {
+      user_id: userId,
+      week_start: currentMonday(),
+    };
+    if (followers !== null) entryUpdates.followers = followers;
+    if (insights?.reach != null) entryUpdates.reach = insights.reach;
+    if (insights?.profileViews != null) entryUpdates.profile_visits = insights.profileViews;
+    if (postsThisWeek > 0) entryUpdates.posts_published = postsThisWeek;
+    if (engagementRate !== null) {
+      // performance_entries.engagement_rate is numeric(5,2) — round to 2dp.
+      entryUpdates.engagement_rate = Number(engagementRate.toFixed(2));
+    }
+
+    await svc
+      .from("performance_entries")
+      .upsert(entryUpdates, { onConflict: "user_id,week_start" });
 
     return { ok: true, followerCount: followers };
   } catch (err) {
