@@ -184,7 +184,11 @@ export default async function AdminProgramDetailPage({
               </>
             }
           >
-            <CurriculumOutline modules={modules} />
+            <CurriculumOutline
+              modules={modules}
+              programId={program.id}
+              programSlug={program.slug}
+            />
           </StepCard>
 
           <StepCard
