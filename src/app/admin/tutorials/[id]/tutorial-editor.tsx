@@ -31,7 +31,7 @@ import {
   CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Donut } from "@/components/dashboard/donut";
 import { updateLesson } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
@@ -58,7 +58,9 @@ export type TutorialEditorData = {
 
 export type ProgramOption = { id: string; title: string };
 
-/* Tabs shown in the left rail. */
+/* Editor section keys. Source of truth for `?tab=…` values; the middle
+   admin sidebar renders the corresponding nav items (see
+   `app/admin/tutorials/tutorials-sidebar.tsx`). */
 type TabKey =
   | "overview"
   | "metadata"
@@ -80,6 +82,9 @@ const TABS: Tab[] = [
   { key: "controls",      label: "Controls",      icon: SlidersHorizontal },
   { key: "access",        label: "Access",        icon: Lock             },
 ];
+
+const TAB_KEYS = new Set<TabKey>(TABS.map((t) => t.key));
+const DEFAULT_TAB: TabKey = "metadata";
 
 /* Access-tier display map. */
 const ACCESS_LABELS: Record<TutorialEditorData["planAccess"], string> = {
@@ -106,11 +111,18 @@ export function TutorialEditor({
   programs: ProgramOption[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
   const [saving, setSaving]   = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>("metadata");
+
+  /* The active section is URL-driven (`?tab=…`) so the middle admin
+     sidebar can both navigate the editor and highlight the active row
+     without lifting state across the layout boundary. */
+  const tabParam = searchParams?.get("tab") as TabKey | null;
+  const activeTab: TabKey =
+    tabParam && TAB_KEYS.has(tabParam) ? tabParam : DEFAULT_TAB;
 
   /* ── Form state — seeded from DB row ─────────────────────────────── */
   const [title,        setTitle]        = useState(lesson.title);
@@ -293,42 +305,11 @@ export function TutorialEditor({
       )}
 
       {/* ── Body grid ────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[200px_minmax(0,1fr)_minmax(0,420px)] gap-5 items-start">
-        {/* ── LEFT TAB RAIL ─────────────────────────────────────────── */}
-        <nav className="card p-2 sticky top-4 self-start" aria-label="Tutorial sections">
-          <ul className="space-y-1">
-            {TABS.map((tab) => {
-              const active = activeTab === tab.key;
-              const Icon = tab.icon;
-              return (
-                <li key={tab.key}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab(tab.key)}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13.5px] font-medium transition-colors text-left",
-                      active
-                        ? "bg-rose-50 text-rose-700 border border-rose-100 shadow-[inset_0_0_0_1px_rgba(248,113,113,0.06)]"
-                        : "text-ink-700 hover:bg-cream-100",
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "size-[17px] shrink-0",
-                        active ? "text-rose-600" : "text-ink-500",
-                      )}
-                      strokeWidth={2}
-                    />
-                    {tab.label}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        {/* ── CENTER: tab content ──────────────────────────────────── */}
+      {/* Tab navigation lives in the middle admin sidebar — see
+          `app/admin/tutorials/tutorials-sidebar.tsx`. This grid is just
+          (content · video + readiness rail). */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5 items-start">
+        {/* ── LEFT: tab content ────────────────────────────────────── */}
         <section className="min-w-0 space-y-5">
           {activeTab === "metadata" ? (
             <MetadataTab

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
+  ChevronLeft,
   PlayCircle,
   Plus,
   Mail,
@@ -13,6 +14,14 @@ import {
   Workflow,
   PenSquare,
   Send,
+  Info,
+  Sparkles,
+  Image as ImageIcon,
+  Route as RouteIcon,
+  GraduationCap,
+  Folder,
+  SlidersHorizontal,
+  Lock,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -41,24 +50,48 @@ export type SurfaceSidebarIconKey =
   | "settings"
   | "workflow"
   | "pen-square"
-  | "send";
+  | "send"
+  | "info"
+  | "sparkles"
+  | "image"
+  | "route"
+  | "graduation-cap"
+  | "folder"
+  | "sliders-horizontal"
+  | "lock"
+  | "chevron-left";
 
 const ICONS: Record<SurfaceSidebarIconKey, LucideIcon> = {
-  "play-circle": PlayCircle,
-  plus:          Plus,
-  mail:          Mail,
-  "file-text":   FileText,
-  history:       History,
-  settings:      Settings,
-  workflow:      Workflow,
-  "pen-square":  PenSquare,
-  send:          Send,
+  "play-circle":       PlayCircle,
+  plus:                Plus,
+  mail:                Mail,
+  "file-text":         FileText,
+  history:             History,
+  settings:            Settings,
+  workflow:            Workflow,
+  "pen-square":        PenSquare,
+  send:                Send,
+  info:                Info,
+  sparkles:            Sparkles,
+  image:               ImageIcon,
+  route:               RouteIcon,
+  "graduation-cap":    GraduationCap,
+  folder:              Folder,
+  "sliders-horizontal": SlidersHorizontal,
+  lock:                Lock,
+  "chevron-left":      ChevronLeft,
 };
 
 export type SurfaceSidebarItem = {
   label: string;
   href: string;
   icon: SurfaceSidebarIconKey;
+  /**
+   * Explicit override for active-state highlighting. When provided this wins
+   * over the default pathname match — used by surfaces that disambiguate
+   * tabs via search params (e.g. the tutorial editor's `?tab=…`).
+   */
+  active?: boolean;
 };
 
 type Props = {
@@ -107,7 +140,7 @@ export function AdminSurfaceSidebar({
       <nav className="flex-1 px-3 overflow-y-auto">
         <ul className="space-y-1">
           {items.map((item) => {
-            const active = isActive(pathname, item.href);
+            const active = item.active ?? isActive(pathname, item.href);
             const Icon = ICONS[item.icon];
             return (
               <li key={item.href}>
