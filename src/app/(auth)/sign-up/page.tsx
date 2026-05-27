@@ -34,7 +34,7 @@ export default async function SignUpPage({
                     className="size-5 text-rose-500 mb-3"
                     strokeWidth={2}
                   />
-                  <h1 className="font-display text-[36px] text-ink-900 leading-tight flex items-center gap-2.5">
+                  <h1 className="text-h1 text-ink-900 leading-tight flex items-center gap-2.5">
                     Create your account
                     <Heart
                       className="size-5 text-rose-500"
@@ -94,7 +94,7 @@ function TrialBadge() {
       <div className="text-[12px] text-ink-700 font-medium leading-tight">
         Start your
       </div>
-      <div className="font-display text-[17px] text-ink-900 leading-tight">
+      <div className="text-h5 text-ink-900 leading-tight">
         7-day free trial
       </div>
       <div className="text-[10.5px] text-ink-500 mt-1 leading-tight">

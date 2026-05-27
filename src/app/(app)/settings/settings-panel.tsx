@@ -173,7 +173,7 @@ function ProfileSettingsCard({ profile }: { profile: ProfileRow }) {
 
   return (
     <div className="card p-5 sm:p-6">
-      <h2 className="font-display text-[18px] text-ink-900 mb-5">
+      <h2 className="text-h4 text-ink-900 mb-5">
         Profile Settings
       </h2>
 
@@ -398,7 +398,7 @@ function CreatorInfoCard({
 
   return (
     <div className="card p-5 sm:p-6">
-      <h2 className="font-display text-[18px] text-ink-900 mb-5">
+      <h2 className="text-h4 text-ink-900 mb-5">
         Personal Brand / Creator Info
       </h2>
 
@@ -633,7 +633,7 @@ function SecurityCard({ profile }: { profile: ProfileRow }) {
 
   return (
     <div className="card p-5">
-      <h2 className="font-display text-[17px] text-ink-900 mb-4">Security</h2>
+      <h2 className="text-h5 text-ink-900 mb-4">Security</h2>
       <div className="divide-y divide-ink-100">
         {rows.map(({ icon, label, action, href }) => {
           // Inner content is identical for both the static and navigable
@@ -760,7 +760,7 @@ function NotificationPrefsCard({ preferences }: { preferences: NotificationPrefe
 
   return (
     <div className="card p-5">
-      <h2 className="font-display text-[17px] text-ink-900 mb-4">
+      <h2 className="text-h5 text-ink-900 mb-4">
         Notification Preferences
       </h2>
       <div className="space-y-0">
@@ -969,7 +969,7 @@ function SettingsRail({
         <div className="card p-5">
           <h3 className="text-[13px] font-semibold text-ink-900 mb-1">Your Plan</h3>
           <div className="flex items-baseline justify-between mb-1">
-            <span className="font-display text-[22px] text-ink-900 capitalize">{plan}</span>
+            <span className="text-h3 text-ink-900 capitalize">{plan}</span>
             <span className="text-[13px] text-ink-500">
               {plan === "pro" ? "1 499 kr/month" : plan === "basic" ? "999 kr/month" : "Free"}
             </span>

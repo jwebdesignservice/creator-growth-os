@@ -21,6 +21,9 @@ import {
   Paperclip,
   PieChart,
   PlayCircle,
+  Pin,
+  Link2,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -108,7 +111,7 @@ export function TutorialsView({
       {/* ── Header ───────────────────────────────────────────────────── */}
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-1">
+          <h1 className="text-h1 text-ink-900 leading-tight mb-1">
             Tutorials
           </h1>
           <p className="text-ink-500 text-[14px]">
@@ -383,10 +386,83 @@ function ViewToggle({
 /* ───────────────────────────────────────────────────────────────────── */
 
 function TutorialCard({ t }: { t: TutorialCardData }) {
+  const editHref = `/admin/tutorials/${t.id}`;
+  const publicHref = `/tutorials/${t.slug}`;
+  const [selected, setSelected] = useState(false);
+  const [pinned, setPinned] = useState(false);
+
   return (
-    <article className="card overflow-hidden flex flex-col hover:shadow-card transition-shadow">
-      <CardThumb t={t} />
-      <div className="p-4 flex flex-col gap-2 flex-1">
+    <article
+      className={cn(
+        "group relative card overflow-hidden flex flex-col transition-all",
+        "hover:ring-2 hover:ring-rose-300/70 hover:border-rose-200",
+        selected && "ring-2 ring-rose-400/80 border-rose-200",
+      )}
+    >
+      {/* Thumbnail (clickable → edit) */}
+      <Link
+        href={editHref}
+        aria-label={`Edit ${t.title}`}
+        className="relative block aspect-video overflow-hidden bg-gradient-to-br from-rose-100/70 via-rose-50 to-cream-100"
+      >
+        {t.coverImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={t.coverImageUrl}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          // Empty-state thumbnail: clean rose-cream gradient, no center play
+          // icon — matches the Loom-style look the user asked for.
+          <div className="w-full h-full" aria-hidden />
+        )}
+
+        {/* Dark hover overlay — only shows on hover */}
+        <div
+          className={cn(
+            "absolute inset-0 bg-ink-900/35 transition-opacity pointer-events-none",
+            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          )}
+          aria-hidden
+        />
+
+        {/* Duration badge — always visible */}
+        {t.durationSeconds > 0 && (
+          <span className="absolute bottom-3 right-3 inline-flex items-center px-2 py-1 rounded-[6px] bg-ink-900/80 text-white text-[11px] font-semibold tabular-nums">
+            {formatDuration(t.durationSeconds)}
+          </span>
+        )}
+      </Link>
+
+      {/* Hover overlays — checkbox top-left + action stack top-right.
+          Rendered as siblings of the Link so their clicks aren't swallowed
+          by the navigation. Each handler also stops propagation. */}
+      <HoverCheckbox
+        selected={selected}
+        onToggle={() => setSelected((v) => !v)}
+      />
+      <div
+        className={cn(
+          "absolute top-3 right-3 z-10 flex flex-col gap-1.5 transition-opacity",
+          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
+        )}
+      >
+        <HoverIconButton
+          icon={<Pin className={cn("size-4", pinned && "fill-current")} strokeWidth={2} />}
+          label={pinned ? "Unpin tutorial" : "Pin tutorial"}
+          onClick={() => setPinned((v) => !v)}
+          pressed={pinned}
+        />
+        <CopyLinkButton href={publicHref} />
+        <KebabMenu t={t} />
+      </div>
+
+      {/* Body (clickable → edit) */}
+      <Link
+        href={editHref}
+        className="p-4 flex flex-col gap-2 flex-1"
+      >
         <h3 className="text-[14.5px] font-bold text-ink-900 leading-snug line-clamp-2">
           {t.title}
         </h3>
@@ -399,42 +475,111 @@ function TutorialCard({ t }: { t: TutorialCardData }) {
             · Updated {relativeTime(t.updatedAt)}
           </span>
         </div>
-      </div>
+      </Link>
       <CardStats t={t} />
     </article>
   );
 }
 
-function CardThumb({ t }: { t: TutorialCardData }) {
+/* ── Hover-action primitives ─────────────────────────────────────────── */
+
+function HoverCheckbox({
+  selected,
+  onToggle,
+}: {
+  selected: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <Link
-      href={`/tutorials/${t.slug}`}
-      className="relative block aspect-video overflow-hidden bg-gradient-to-br from-rose-100 via-rose-50 to-cream-100"
-      aria-label={`Preview ${t.title}`}
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle();
+      }}
+      aria-pressed={selected}
+      aria-label={selected ? "Deselect tutorial" : "Select tutorial"}
+      className={cn(
+        "absolute top-3 left-3 z-10 size-7 rounded-[6px] border-2 inline-flex items-center justify-center transition-all",
+        selected
+          ? "bg-rose-500 border-rose-500 text-white opacity-100"
+          : "bg-white/90 border-white text-transparent opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-white",
+      )}
     >
-      {t.coverImageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={t.coverImageUrl}
-          alt=""
-          className="w-full h-full object-cover"
-        />
+      <Check className="size-4" strokeWidth={3} />
+    </button>
+  );
+}
+
+function HoverIconButton({
+  icon,
+  label,
+  onClick,
+  pressed,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  pressed?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
+      title={label}
+      aria-label={label}
+      aria-pressed={pressed}
+      className={cn(
+        "size-8 rounded-[8px] inline-flex items-center justify-center bg-white text-ink-700 hover:bg-cream-50 hover:text-ink-900 shadow-sm transition-colors",
+        pressed && "text-rose-600",
+      )}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function CopyLinkButton({ href }: { href: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const full =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${href}`
+          : href;
+      await navigator.clipboard.writeText(full);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      // Clipboard unavailable — silent fail.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={copied ? "Link copied" : "Copy share link"}
+      aria-label={copied ? "Link copied" : "Copy share link"}
+      className={cn(
+        "size-8 rounded-[8px] inline-flex items-center justify-center bg-white text-ink-700 hover:bg-cream-50 hover:text-ink-900 shadow-sm transition-colors",
+        copied && "text-success",
+      )}
+    >
+      {copied ? (
+        <Check className="size-4" strokeWidth={2.5} />
       ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <span className="size-12 rounded-full bg-white/80 text-rose-600 inline-flex items-center justify-center shadow-sm">
-            <PlayCircle className="size-6" fill="currentColor" strokeWidth={0} />
-          </span>
-        </div>
+        <Link2 className="size-4" strokeWidth={2} />
       )}
-      {/* Kebab — sits OUTSIDE the link via stopPropagation */}
-      <KebabMenu t={t} />
-      {/* Duration badge */}
-      {t.durationSeconds > 0 && (
-        <span className="absolute bottom-3 right-3 inline-flex items-center px-2 py-1 rounded-[6px] bg-ink-900/80 text-white text-[11px] font-semibold tabular-nums">
-          {formatDuration(t.durationSeconds)}
-        </span>
-      )}
-    </Link>
+    </button>
   );
 }
 
@@ -541,7 +686,7 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
   }
 
   return (
-    <div ref={wrapRef} className="absolute top-3 right-3 z-10">
+    <div ref={wrapRef} className="relative">
       <button
         type="button"
         onClick={(e) => {
@@ -553,7 +698,7 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
         aria-label="Open tutorial actions"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="size-8 rounded-full inline-flex items-center justify-center bg-white/90 text-ink-700 hover:bg-white hover:text-ink-900 backdrop-blur shadow-sm cursor-pointer disabled:opacity-50"
+        className="size-8 rounded-[8px] inline-flex items-center justify-center bg-white text-ink-700 hover:bg-cream-50 hover:text-ink-900 shadow-sm cursor-pointer disabled:opacity-50"
       >
         <MoreHorizontal className="size-4" strokeWidth={2} />
       </button>
@@ -562,24 +707,16 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
           role="menu"
           className="absolute right-0 top-[calc(100%+6px)] w-48 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
-          {t.programId ? (
+          <MenuLink
+            icon={<Pencil className="size-3.5" strokeWidth={2} />}
+            label="Edit"
+            href={`/admin/tutorials/${t.id}/edit`}
+          />
+          {t.programId && (
             <MenuLink
               icon={<Pencil className="size-3.5" strokeWidth={2} />}
               label="Edit in curriculum"
               href={`/admin/programs/${t.programId}/curriculum`}
-            />
-          ) : (
-            <MenuItem
-              icon={<Pencil className="size-3.5" strokeWidth={2} />}
-              label="Edit"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setOpen(false);
-                alert(
-                  "This tutorial isn't attached to a program — assign it to a program first to edit it inline.",
-                );
-              }}
             />
           )}
           <MenuItem
@@ -689,7 +826,7 @@ function TutorialListRow({ t }: { t: TutorialCardData }) {
       </div>
       <div className="flex-1 min-w-0">
         <Link
-          href={`/tutorials/${t.slug}`}
+          href={`/admin/tutorials/${t.id}`}
           className="text-[14px] font-bold text-ink-900 hover:text-rose-700 transition-colors truncate block"
         >
           {t.title}
@@ -745,7 +882,7 @@ function EmptyState({
       <div className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-3 mx-auto">
         <PlayCircle className="size-6" strokeWidth={1.8} />
       </div>
-      <h2 className="font-display text-[22px] text-ink-900 mb-1">
+      <h2 className="text-h3 text-ink-900 mb-1">
         No tutorials to show
       </h2>
       <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-5">{copy}</p>

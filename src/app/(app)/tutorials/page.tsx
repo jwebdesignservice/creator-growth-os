@@ -116,7 +116,7 @@ function RecommendedNext({ items }: { items: TutorialRow[] }) {
   return (
     <div className="card p-5">
       <header className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[19px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Recommended Next
         </h3>
         <Link
@@ -166,7 +166,7 @@ function ThisWeeksDrill({ drill }: { drill: TutorialRow }) {
   return (
     <div className="rounded-[16px] bg-cream-200 border border-cream-300 p-5 flex flex-col">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <h3 className="font-display text-[19px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           This Week&apos;s Creator Drill
         </h3>
         <span className="chip chip-rose inline-flex items-center gap-1 shrink-0">

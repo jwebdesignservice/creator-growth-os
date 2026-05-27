@@ -86,7 +86,7 @@ function ProUpsell({ firstName }: { firstName: string }) {
       <div className="text-rose-600 font-medium text-[12px] uppercase tracking-wide mb-3">
         Pro feature
       </div>
-      <h1 className="font-display text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-3 max-w-2xl mx-auto">
+      <h1 className="text-h1 lg:text-[42px] text-ink-900 leading-tight mb-3 max-w-2xl mx-auto">
         Hey {firstName}, monetize your audience with intention.
       </h1>
       <p className="text-[15px] text-ink-700 max-w-xl mx-auto mb-6">

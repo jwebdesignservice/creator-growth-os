@@ -46,7 +46,7 @@ export function ActivePlanCard({
           <div className="text-[10.5px] tracking-[0.12em] uppercase text-rose-600 font-semibold mb-1">
             Active Plan
           </div>
-          <h3 className="font-display text-[24px] text-ink-900 leading-tight mb-1">
+          <h3 className="text-h3 text-ink-900 leading-tight mb-1">
             {title}
           </h3>
           <p className="text-[13px] text-ink-500 leading-snug mb-4 max-w-md">

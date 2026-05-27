@@ -58,7 +58,7 @@ export function CurriculumAccordion({
   return (
     <div className="card p-5">
       <header className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[19px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Program Curriculum
         </h3>
         <button

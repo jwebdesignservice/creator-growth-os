@@ -40,7 +40,7 @@ export default function GlobalError({
           Unexpected error
         </div>
 
-        <h1 className="font-display text-[40px] sm:text-[48px] text-ink-900 leading-tight mb-3">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-3">
           Something went wrong
         </h1>
 

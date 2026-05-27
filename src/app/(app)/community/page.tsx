@@ -97,7 +97,7 @@ export default async function CommunityPage() {
                       Live now
                     </span>
                   </div>
-                  <h2 className="font-display text-[26px] lg:text-[32px] text-ink-900 leading-tight mb-1">
+                  <h2 className="text-h2 text-ink-900 leading-tight mb-1">
                     Community Chat
                   </h2>
                   <p className="text-[14px] text-ink-700 max-w-xl">
@@ -152,7 +152,7 @@ function FeaturedSpace({
           <div className="text-rose-600 font-medium text-[12px] uppercase tracking-wide mb-2">
             Featured Circle
           </div>
-          <h2 className="font-display text-[28px] lg:text-[32px] text-ink-900 leading-tight mb-2">
+          <h2 className="text-h2 lg:text-[32px] text-ink-900 leading-tight mb-2">
             {space.name}
           </h2>
           <p className="text-[14px] text-ink-700 max-w-2xl">
@@ -181,7 +181,7 @@ function UpcomingEvents({
   return (
     <div className="card p-5">
       <header className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[18px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Upcoming events
         </h3>
         <CalendarDays className="size-4 text-ink-400" strokeWidth={2} />
@@ -232,7 +232,7 @@ function MemberSpotlight({
   return (
     <div className="card p-5">
       <header className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[18px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Member spotlight
         </h3>
         <Star className="size-4 text-ink-400" strokeWidth={2} />

@@ -164,7 +164,7 @@ export function ChannelList({ channels, currentSlug, isAdmin }: Props) {
         )}
       >
         <header className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-ink-100">
-          <h2 className="font-display text-[16px] text-ink-900">Channels</h2>
+          <h2 className="text-h5 text-ink-900">Channels</h2>
           {/* Mobile close */}
           <button
             type="button"

@@ -44,7 +44,7 @@ export default function TicketDetailError({
         </span>
 
         <div className="space-y-1.5">
-          <h2 className="font-display text-[20px] text-ink-900">
+          <h2 className="text-h4 text-ink-900">
             We couldn&rsquo;t load this ticket
           </h2>
           <p className="text-[13.5px] text-ink-500 max-w-[60ch] leading-relaxed">

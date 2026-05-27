@@ -70,7 +70,7 @@ export function ThisWeeksOverview({
   return (
     <section className="card p-[var(--space-card-padding)]">
       <header className="mb-5">
-        <h3 className="font-display text-[20px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           This Week&apos;s Overview
         </h3>
         <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">

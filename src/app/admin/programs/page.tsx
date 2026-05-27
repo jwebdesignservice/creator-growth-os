@@ -54,37 +54,103 @@ export default async function AdminProgramsPage({
   const supabase = createServiceClient();
 
   // ── Listing query (filtered + paginated) ─────────────────────────────
-  let query = supabase
-    .from("programs")
-    .select(
-      "id, slug, title, description, plan_access, cover_image_url, total_lessons, published, archived, created_at",
-      { count: "exact" },
-    );
-
-  if (search) query = query.ilike("title", `%${search}%`);
-  if (status === "published") {
-    query = query.eq("published", true).eq("archived", false);
-  } else if (status === "draft") {
-    query = query.eq("published", false).eq("archived", false);
-  } else if (status === "archived") {
-    query = query.eq("archived", true);
-  } else {
-    // Default: hide archived rows.
-    query = query.eq("archived", false);
-  }
-  if (plan === "free" || plan === "basic" || plan === "pro") {
-    query = query.eq("plan_access", plan);
-  }
+  //
+  // The `archived` column lives in migration 0029. If that migration
+  // hasn't been applied to the live database yet, including `archived`
+  // in the SELECT (or filtering on it) will fail and the listing returns
+  // zero rows — which is exactly the "5 in stats / 0 in table" bug.
+  //
+  // We try the modern query first, then fall back to a degraded query
+  // without `archived` so existing programs still render. Once 0029 is
+  // applied the fallback simply never fires.
 
   const sortAsc = sort === "oldest" || sort === "name";
   const sortColumn = sort === "name" ? "title" : "created_at";
-  query = query.order(sortColumn, { ascending: sortAsc });
-
   const from = (pageNum - 1) * perPage;
   const to = from + perPage - 1;
-  query = query.range(from, to);
 
-  const { data: programs, count: filteredCount } = await query;
+  type ProgramListRow = {
+    id: string;
+    slug: string;
+    title: string;
+    description: string | null;
+    plan_access: string;
+    cover_image_url: string | null;
+    total_lessons: number;
+    published: boolean;
+    archived?: boolean | null;
+    created_at: string;
+  };
+
+  let programs: ProgramListRow[] | null = null;
+  let filteredCount: number | null = 0;
+  let hasArchivedColumn = true;
+
+  {
+    let q = supabase
+      .from("programs")
+      .select(
+        "id, slug, title, description, plan_access, cover_image_url, total_lessons, published, archived, created_at",
+        { count: "exact" },
+      );
+    if (search) q = q.ilike("title", `%${search}%`);
+    if (status === "published") {
+      q = q.eq("published", true).eq("archived", false);
+    } else if (status === "draft") {
+      q = q.eq("published", false).eq("archived", false);
+    } else if (status === "archived") {
+      q = q.eq("archived", true);
+    } else {
+      q = q.eq("archived", false);
+    }
+    if (plan === "free" || plan === "basic" || plan === "pro") {
+      q = q.eq("plan_access", plan);
+    }
+    q = q.order(sortColumn, { ascending: sortAsc }).range(from, to);
+
+    const result = await q;
+    if (result.error) {
+      // 42703 = undefined_column. Treat "archived" missing as a known
+      // pending-migration state and degrade rather than crash.
+      if (result.error.code === "42703") {
+        hasArchivedColumn = false;
+      } else {
+        console.error("[admin/programs] Listing query failed:", result.error);
+      }
+    } else {
+      programs = (result.data ?? []) as ProgramListRow[];
+      filteredCount = result.count;
+    }
+  }
+
+  if (!hasArchivedColumn && programs === null) {
+    let q = supabase
+      .from("programs")
+      .select(
+        "id, slug, title, description, plan_access, cover_image_url, total_lessons, published, created_at",
+        { count: "exact" },
+      );
+    if (search) q = q.ilike("title", `%${search}%`);
+    if (status === "published") {
+      q = q.eq("published", true);
+    } else if (status === "draft") {
+      q = q.eq("published", false);
+    }
+    // status === "archived" returns nothing without the column; leave q
+    // unfiltered so we still surface the rest of the rows for filtering.
+    if (plan === "free" || plan === "basic" || plan === "pro") {
+      q = q.eq("plan_access", plan);
+    }
+    q = q.order(sortColumn, { ascending: sortAsc }).range(from, to);
+
+    const fallback = await q;
+    if (fallback.error) {
+      console.error("[admin/programs] Fallback listing failed:", fallback.error);
+    } else {
+      programs = (fallback.data ?? []) as ProgramListRow[];
+      filteredCount = fallback.count;
+    }
+  }
 
   // ── Stats (always reflect totals, never the filtered subset) ─────────
   const monthAgo = new Date();
@@ -166,7 +232,7 @@ export default async function AdminProgramsPage({
       {/* ── Header ───────────────────────────────────────────────────── */}
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-display text-[40px] text-ink-900 leading-tight mb-1">
+          <h1 className="text-h1 text-ink-900 leading-tight mb-1">
             Programs
           </h1>
           <p className="text-ink-500 text-[14px]">

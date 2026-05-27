@@ -37,7 +37,7 @@ export function DealTracker({ deals }: { deals: BrandDeal[] }) {
     <div className="card p-[var(--space-card-padding)]">
       <header className="flex items-start justify-between gap-3 mb-5 flex-wrap">
         <div>
-          <h2 className="font-display text-[22px] text-ink-900 leading-tight">
+          <h2 className="text-h3 text-ink-900 leading-tight">
             Brand Deal Tracker
           </h2>
           <p className="text-[13px] text-ink-500 mt-1">
@@ -261,7 +261,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-[11px] text-ink-500 font-medium uppercase tracking-wide">
         {label}
       </div>
-      <div className="font-display text-[20px] text-ink-900 tabular-nums mt-1">
+      <div className="text-h4 text-ink-900 tabular-nums mt-1">
         {value}
       </div>
     </div>

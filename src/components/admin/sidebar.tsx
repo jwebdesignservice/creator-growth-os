@@ -68,11 +68,24 @@ function isProgramDetailRoute(pathname: string): boolean {
   return true;
 }
 
+/**
+ * Single-tutorial detail (`/admin/tutorials/<id>`) renders its own tab rail
+ * inside the page content, so the parent sidebar collapses to icons there
+ * too. The list page (`/admin/tutorials`) and the upload flow
+ * (`/admin/tutorials/new`) stay full-width.
+ */
+function isTutorialDetailRoute(pathname: string): boolean {
+  if (!pathname.startsWith("/admin/tutorials/")) return false;
+  if (pathname.startsWith("/admin/tutorials/new")) return false;
+  return true;
+}
+
 export function AdminSidebar() {
   const pathname = usePathname();
   const compact =
     COMPACT_ROUTES.some((p) => pathname.startsWith(p)) ||
-    isProgramDetailRoute(pathname);
+    isProgramDetailRoute(pathname) ||
+    isTutorialDetailRoute(pathname);
 
   return (
     <aside

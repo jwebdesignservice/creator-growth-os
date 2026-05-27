@@ -22,7 +22,7 @@ export function DiscussionList({ posts }: { posts: CommunityPost[] }) {
     return (
       <div className="card p-8 text-center">
         <MessageCircle className="size-8 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
-        <h3 className="font-display text-[18px] text-ink-900 mb-1">
+        <h3 className="text-h4 text-ink-900 mb-1">
           No discussions yet
         </h3>
         <p className="text-[13px] text-ink-500">
@@ -78,7 +78,7 @@ function DiscussionRow({ post }: { post: CommunityPost }) {
               {timeAgo(post.created_at)}
             </span>
           </div>
-          <h4 className="font-display text-[17px] text-ink-900 leading-snug mb-1">
+          <h4 className="text-h5 text-ink-900 leading-snug mb-1">
             {post.title}
           </h4>
           <p className="text-[13.5px] text-ink-700 leading-relaxed line-clamp-3 mb-3">

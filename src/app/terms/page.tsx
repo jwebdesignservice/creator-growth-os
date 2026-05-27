@@ -23,7 +23,7 @@ export default function TermsPage() {
         <div className="text-[12px] text-ink-500 uppercase tracking-wide mb-2">
           Legal
         </div>
-        <h1 className="font-display text-[40px] lg:text-[48px] text-ink-900 leading-tight mb-2">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-2">
           Terms of Service
         </h1>
         <p className="text-[14px] text-ink-500 mb-10">
@@ -36,7 +36,7 @@ export default function TermsPage() {
 
         <div className="prose-card space-y-6 text-[14.5px] text-ink-800 leading-relaxed">
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               1. Acceptance of Terms
             </h2>
             <p>
@@ -47,7 +47,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               2. Eligibility
             </h2>
             <p>
@@ -58,7 +58,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               3. Subscription & Payment
             </h2>
             <p>
@@ -69,7 +69,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               4. Your Content
             </h2>
             <p>
@@ -82,7 +82,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               5. Acceptable Use
             </h2>
             <p>
@@ -94,7 +94,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               6. Termination
             </h2>
             <p>
@@ -105,7 +105,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               7. Disclaimer
             </h2>
             <p>
@@ -116,7 +116,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               8. Changes
             </h2>
             <p>
@@ -128,7 +128,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               9. Contact
             </h2>
             <p>

@@ -35,7 +35,7 @@ export function ProgramsRow({ programs }: { programs: ProgramCard[] }) {
   return (
     <section>
       <header className="flex items-center justify-between mb-[var(--space-grid-gap-sm)]">
-        <h2 className="font-display text-[22px] text-ink-900">Your Programs</h2>
+        <h2 className="text-h3 text-ink-900">Your Programs</h2>
         <Link
           href="/programs"
           className="text-[13px] font-medium text-rose-600 hover:text-rose-700 inline-flex items-center gap-1"

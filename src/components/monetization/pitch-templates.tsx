@@ -34,7 +34,7 @@ export function PitchTemplates({
   return (
     <div className="card p-[var(--space-card-padding)]">
       <header className="mb-5">
-        <h2 className="font-display text-[22px] text-ink-900 leading-tight">
+        <h2 className="text-h3 text-ink-900 leading-tight">
           Brand Pitch Templates
         </h2>
         <p className="text-[13px] text-ink-500 mt-1">
@@ -85,7 +85,7 @@ export function PitchTemplates({
                 className="size-7 text-rose-500 mx-auto mb-3"
                 strokeWidth={1.8}
               />
-              <h3 className="font-display text-[18px] text-ink-900 mb-1">
+              <h3 className="text-h4 text-ink-900 mb-1">
                 Premium template
               </h3>
               <p className="text-[13px] text-ink-500 mb-4 max-w-sm mx-auto">

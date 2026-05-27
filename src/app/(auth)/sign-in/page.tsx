@@ -23,7 +23,7 @@ export default function SignInPage() {
 
           <div className="card p-7 lg:p-9">
             <Sparkles className="size-5 text-rose-500 mb-3" strokeWidth={2} />
-            <h1 className="font-display text-[36px] text-ink-900 leading-tight flex items-center gap-2.5">
+            <h1 className="text-h1 text-ink-900 leading-tight flex items-center gap-2.5">
               Welcome back <span aria-hidden>👋</span>
             </h1>
             <p className="mt-2 text-ink-500 text-[13.5px] leading-relaxed mb-6">

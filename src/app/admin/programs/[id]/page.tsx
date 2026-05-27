@@ -40,13 +40,52 @@ export default async function AdminProgramDetailPage({
   const { id } = await params;
   const supabase = createServiceClient();
 
-  const { data: program } = await supabase
-    .from("programs")
-    .select(
-      "id, slug, title, description, plan_access, cover_image_url, total_lessons, total_tasks, estimated_days, published, archived, sales_page_url",
-    )
-    .eq("id", id)
-    .maybeSingle();
+  // Try the modern select (including columns from migration 0029). If the
+  // migration hasn't been applied to the live DB yet, those columns don't
+  // exist and the query errors with 42703 — fall back to a degraded select
+  // so the page still renders rather than 404-ing on a real program.
+  type ProgramDetailRow = {
+    id: string;
+    slug: string;
+    title: string;
+    description: string | null;
+    plan_access: string;
+    cover_image_url: string | null;
+    total_lessons: number;
+    total_tasks: number;
+    estimated_days: number;
+    published: boolean;
+    archived?: boolean | null;
+    sales_page_url?: string | null;
+  };
+
+  let program: ProgramDetailRow | null = null;
+  {
+    const first = await supabase
+      .from("programs")
+      .select(
+        "id, slug, title, description, plan_access, cover_image_url, total_lessons, total_tasks, estimated_days, published, archived, sales_page_url",
+      )
+      .eq("id", id)
+      .maybeSingle();
+
+    if (first.error && first.error.code !== "42703") {
+      console.error("[admin/programs/[id]] Detail query failed:", first.error);
+    }
+
+    if (first.data) {
+      program = first.data as ProgramDetailRow;
+    } else if (first.error && first.error.code === "42703") {
+      const fallback = await supabase
+        .from("programs")
+        .select(
+          "id, slug, title, description, plan_access, cover_image_url, total_lessons, total_tasks, estimated_days, published",
+        )
+        .eq("id", id)
+        .maybeSingle();
+      if (fallback.data) program = fallback.data as ProgramDetailRow;
+    }
+  }
 
   if (!program) notFound();
 
@@ -86,7 +125,7 @@ export default async function AdminProgramDetailPage({
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-display text-[34px] sm:text-[36px] text-ink-900 leading-tight">
+              <h1 className="text-h1 sm:text-[36px] text-ink-900 leading-tight">
                 Program Setup Guide
               </h1>
               <span
@@ -111,7 +150,7 @@ export default async function AdminProgramDetailPage({
             <ProgramHeaderActions
               programId={program.id}
               programTitle={program.title}
-              archived={program.archived}
+              archived={program.archived ?? false}
             />
           </div>
         </div>
@@ -167,7 +206,7 @@ export default async function AdminProgramDetailPage({
             <div className="space-y-3">
               <SalesPageEditor
                 programId={program.id}
-                currentUrl={program.sales_page_url}
+                currentUrl={program.sales_page_url ?? null}
               />
               <div className="rounded-[10px] bg-rose-50/60 border border-rose-100 px-3 py-2.5 flex items-center gap-2">
                 <Sparkles className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />

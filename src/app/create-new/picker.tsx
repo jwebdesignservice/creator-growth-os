@@ -104,7 +104,7 @@ export function CreateNewPicker() {
               className="inline-flex items-center gap-2.5 hover:opacity-90 transition-opacity"
             >
               <BrandMark size={32} />
-              <span className="font-display text-[18px] sm:text-[20px] text-ink-900 leading-none tracking-tight">
+              <span className="text-h4 sm:text-[20px] text-ink-900 leading-none tracking-tight">
                 {BRAND_NAME}
               </span>
             </Link>
@@ -112,7 +112,7 @@ export function CreateNewPicker() {
 
           {/* Heading */}
           <div>
-            <h1 className="font-display text-[30px] sm:text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
+            <h1 className="text-h1 text-ink-900 leading-tight mb-2">
               Choose what to create
             </h1>
             <p className="text-ink-500 text-[14px] sm:text-[15px] max-w-2xl leading-relaxed">
@@ -198,7 +198,7 @@ function OptionCard({
         {/* Title + description */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3 mb-2">
-            <h3 className="font-display text-[20px] sm:text-[22px] text-ink-900 leading-tight">
+            <h3 className="text-h4 sm:text-[22px] text-ink-900 leading-tight">
               {option.title}
             </h3>
             {option.recommended && (

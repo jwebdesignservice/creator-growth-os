@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
           className="relative z-10 inline-flex items-center gap-2.5 self-start hover:opacity-90 transition-opacity"
         >
           <BrandMark size={36} />
-          <span className="font-display text-[18px] text-ink-900 leading-none tracking-tight">
+          <span className="text-h4 text-ink-900 leading-none tracking-tight">
             {BRAND_NAME}
           </span>
         </Link>
@@ -77,13 +77,13 @@ export default function ForgotPasswordPage() {
           {/* Mobile brand — visible only when illustration panel is hidden. */}
           <div className="lg:hidden flex items-center gap-2.5 mb-8 mt-2">
             <BrandMark size={32} />
-            <span className="font-display text-[16px] text-ink-900 leading-none">
+            <span className="text-h5 text-ink-900 leading-none">
               {BRAND_NAME}
             </span>
           </div>
 
           <header className="mb-8 text-center">
-            <h1 className="font-display text-[34px] sm:text-[40px] text-ink-900 leading-tight mb-3">
+            <h1 className="text-h1 sm:text-[40px] text-ink-900 leading-tight mb-3">
               Forgot Password?
             </h1>
             <p className="text-ink-500 text-[14.5px] leading-relaxed">

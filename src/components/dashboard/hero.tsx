@@ -39,7 +39,7 @@ export function DashboardHero({
             <div className="text-rose-600 font-semibold text-[13.5px] mb-2.5 flex items-center gap-2">
               Welcome to Profluencer, {firstName}! <span aria-hidden>👋</span>
             </div>
-            <h1 className="font-display text-[clamp(1.9rem,5vw,2.6rem)] leading-[1.08] text-ink-900 mb-3">
+            <h1 className="text-h1 text-ink-900 mb-3">
               Let&apos;s launch your{" "}
               <span className="text-rose-600">influence</span> journey
             </h1>

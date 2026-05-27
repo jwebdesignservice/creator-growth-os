@@ -43,7 +43,7 @@ export function UpcomingContent({
     <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
       <header className="flex items-start justify-between gap-4 mb-4">
         <div className="min-w-0">
-          <h3 className="font-display text-[19px] text-ink-900 leading-tight">
+          <h3 className="text-h4 text-ink-900 leading-tight">
             Upcoming Content
           </h3>
           <p className="text-[12.5px] text-ink-500 leading-snug">

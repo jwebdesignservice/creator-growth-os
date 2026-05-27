@@ -20,7 +20,7 @@ export function FeaturedProgram(p: Props) {
           <span className="chip chip-rose mb-4">
             <span aria-hidden>✦</span> Featured Program
           </span>
-          <h2 className="font-display text-[22px] sm:text-[26px] lg:text-[30px] 2xl:text-[36px] leading-tight text-ink-900 mb-3">
+          <h2 className="text-h3 sm:text-[26px] lg:text-[30px] 2xl:text-[36px] leading-tight text-ink-900 mb-3">
             {p.title}
           </h2>
           <p className="text-ink-500 text-[14px] max-w-md mb-5 leading-relaxed">

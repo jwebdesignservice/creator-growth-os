@@ -57,7 +57,7 @@ export function StageStep({ draft, onChange }: Props) {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-display text-[34px] text-ink-900 leading-tight flex items-start gap-2 mb-2">
+        <h1 className="text-h1 text-ink-900 leading-tight flex items-start gap-2 mb-2">
           <span className="text-rose-500 mt-2">✦</span>
           Where are you in your creator journey?
         </h1>

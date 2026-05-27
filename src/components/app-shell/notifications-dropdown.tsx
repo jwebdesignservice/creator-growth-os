@@ -227,7 +227,7 @@ export function NotifDropdown({
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-ink-100">
             <div className="flex items-center gap-2">
-              <span className="font-display text-[15px] text-ink-900">Notifications</span>
+              <span className="text-h5 text-ink-900">Notifications</span>
               {unreadCount > 0 && (
                 <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-rose-100 text-[11px] font-bold text-rose-700">
                   {unreadCount}

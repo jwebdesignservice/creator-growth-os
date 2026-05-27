@@ -81,7 +81,7 @@ export function TodaysPlan({
     <div className="card h-full flex flex-col overflow-hidden">
       <div className="p-[var(--space-card-padding-sm)] flex-1">
         <header className="mb-4">
-          <h3 className="font-display text-[19px] text-ink-900">Today&apos;s Plan</h3>
+          <h3 className="text-h4 text-ink-900">Today&apos;s Plan</h3>
           <p className="text-[12.5px] text-ink-500">Your daily creator session</p>
         </header>
 

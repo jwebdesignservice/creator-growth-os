@@ -10,7 +10,7 @@ export function BestPostsJournal({ entries }: Props) {
   return (
     <section className="card p-5">
       <header className="flex items-center justify-between mb-4">
-        <h3 className="font-display text-[19px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Best Posts &amp; Lessons Journal
         </h3>
         <span className="text-[12px] text-ink-500">

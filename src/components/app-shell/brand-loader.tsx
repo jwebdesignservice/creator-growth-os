@@ -54,7 +54,7 @@ export function BrandLoader({
 
         {!compact && (
           <div className="text-center space-y-1.5 brand-fade-in">
-            <div className="font-display text-[20px] text-ink-900 tracking-tight">
+            <div className="text-h4 text-ink-900 tracking-tight">
               {BRAND_NAME}
             </div>
             <div className="text-[12.5px] text-ink-500">{tagline}</div>

@@ -149,7 +149,7 @@ function MissionsEmptyState() {
       <div className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-4 mx-auto">
         <Sparkles className="size-6" strokeWidth={1.8} aria-hidden />
       </div>
-      <h2 className="font-display text-[20px] sm:text-[22px] text-ink-900 mb-2">
+      <h2 className="text-h4 sm:text-[22px] text-ink-900 mb-2">
         No missions for today
       </h2>
       <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-6 leading-relaxed">

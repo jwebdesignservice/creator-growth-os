@@ -18,7 +18,7 @@ export default async function AdminAnnouncementsPage() {
   return (
     <div className="space-y-6 container-app">
       <header>
-        <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-1">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-1">
           Announcements
         </h1>
         <p className="text-ink-500 text-[14px]">
@@ -29,7 +29,7 @@ export default async function AdminAnnouncementsPage() {
 
       {/* Compose */}
       <section className="card p-6">
-        <h2 className="font-display text-[20px] text-ink-900 mb-4">
+        <h2 className="text-h4 text-ink-900 mb-4">
           New broadcast
         </h2>
         <ComposeForm />
@@ -38,7 +38,7 @@ export default async function AdminAnnouncementsPage() {
       {/* List */}
       <section className="card overflow-hidden">
         <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
-          <h2 className="font-display text-[20px] text-ink-900">Published</h2>
+          <h2 className="text-h4 text-ink-900">Published</h2>
           <span className="text-[12px] text-ink-500">
             {announcements.length} total
           </span>

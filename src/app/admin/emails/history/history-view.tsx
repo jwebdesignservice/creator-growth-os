@@ -247,7 +247,7 @@ export function HistoryView() {
       {/* ── Header ───────────────────────────────────────────────────── */}
       <header className="flex items-start justify-between gap-4 flex-wrap mb-6">
         <div>
-          <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-1">
+          <h1 className="text-h1 text-ink-900 leading-tight mb-1">
             History
           </h1>
           <p className="text-ink-500 text-[14px]">

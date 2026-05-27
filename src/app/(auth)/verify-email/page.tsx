@@ -36,7 +36,7 @@ export default async function VerifyEmailPage({
               <Mail className="size-7" strokeWidth={1.8} />
             </div>
 
-            <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-3">
+            <h1 className="text-h1 text-ink-900 leading-tight mb-3">
               {from === "sign-in"
                 ? "Confirm your email first"
                 : "Check your inbox"}

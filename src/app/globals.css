@@ -272,6 +272,20 @@ select.input {
   line-height:    var(--leading-snug);
   letter-spacing: var(--tracking-heading);
 }
+.text-h5 {
+  font-family:    var(--font-heading);
+  font-size:      var(--text-h5);
+  font-weight:    var(--weight-heading);
+  line-height:    var(--leading-snug);
+  letter-spacing: var(--tracking-heading);
+}
+.text-h6 {
+  font-family:    var(--font-heading);
+  font-size:      var(--text-h6);
+  font-weight:    var(--weight-heading);
+  line-height:    var(--leading-snug);
+  letter-spacing: var(--tracking-heading);
+}
 
 /* Sans page title — denser than h1, used for in-app pages
    (Settings, Billing, Notifications, ticket detail, etc.). */

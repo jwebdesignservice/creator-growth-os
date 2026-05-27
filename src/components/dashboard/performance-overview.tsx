@@ -26,7 +26,7 @@ export function PerformanceOverview({
   return (
     <section className="card p-[var(--space-card-padding)]">
       <header className="flex items-center justify-between mb-5">
-        <h3 className="font-display text-[20px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Performance Overview
         </h3>
         <span className="inline-flex items-center gap-1.5 px-3 h-9 rounded-[10px] bg-cream-100 border border-ink-100 text-[12.5px] font-medium text-ink-700">

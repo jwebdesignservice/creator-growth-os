@@ -183,7 +183,7 @@ export function TutorialLibrary({
 
       {/* Library header + sort */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="font-display text-[20px] sm:text-[22px] text-ink-900">
+        <h2 className="text-h4 sm:text-[22px] text-ink-900">
           Tutorial Library
         </h2>
         <div className="text-[12.5px] text-ink-500">

@@ -93,7 +93,7 @@ export function ProgramNav({
           strokeWidth={2}
           aria-hidden
         />
-        <span className="font-display text-[18px] text-rose-600 leading-none truncate">
+        <span className="text-h4 text-rose-600 leading-none truncate">
           {programTitle || "Program"}
         </span>
       </Link>

@@ -43,7 +43,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
       <section className="card p-6">
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div>
-            <h1 className="font-display text-[32px] text-ink-900 leading-tight mb-1">
+            <h1 className="text-h1 text-ink-900 leading-tight mb-1">
               {profile.full_name ?? profile.email.split("@")[0]}
             </h1>
             <div className="text-[14px] text-ink-500 mb-3">{profile.email}</div>
@@ -87,7 +87,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
 
       {/* Edit forms */}
       <section className="card p-6">
-        <h2 className="font-display text-[20px] text-ink-900 mb-4">
+        <h2 className="text-h4 text-ink-900 mb-4">
           Manage Access
         </h2>
         <UserEditForms
@@ -104,7 +104,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
 
       {/* Onboarding answers */}
       <section className="card p-6">
-        <h2 className="font-display text-[20px] text-ink-900 mb-4">
+        <h2 className="text-h4 text-ink-900 mb-4">
           Onboarding Answers
         </h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-[13px]">
@@ -151,7 +151,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
       {/* Subscription */}
       {subscription && (
         <section className="card p-6">
-          <h2 className="font-display text-[20px] text-ink-900 mb-4">
+          <h2 className="text-h4 text-ink-900 mb-4">
             Subscription
           </h2>
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 text-[13px]">
