@@ -39,9 +39,15 @@ import { ThumbnailTab } from "./thumbnail-tab";
 import { CreatorDrillTab } from "./creator-drill-tab";
 import type { DrillRow } from "./drill-actions";
 import { ControlsTab } from "./controls-tab";
+import type { LessonControls } from "./controls-types";
 import { OverviewTab, AtAGlanceCard } from "./overview-tab";
 import { LessonPathTab } from "./lesson-path-tab";
 import type { LessonChapter } from "./lesson-chapters-actions";
+import {
+  ResourcesTab,
+  ResourceHealthCard,
+  BestPracticesCard,
+} from "./resources-tab";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -61,6 +67,17 @@ export type TutorialEditorData = {
   published:       boolean;
   createdAt:       string;
   views:           number;
+
+  /* Editor-only fields (migration 0034). Defaults are filled in
+   *  server-side (see app/admin/tutorials/[id]/page.tsx) so the client
+   *  never has to deal with undefined / null. */
+  tags:                    string[];
+  visibility:              "public" | "unlisted" | "private";
+  internalNotes:           string;
+  ctaLink:                 string;
+  editorCategory:          string;
+  learningOutcomes:        string[];
+  publishingNotesInternal: string;
 };
 
 export type ProgramOption = { id: string; title: string };
@@ -116,12 +133,16 @@ export function TutorialEditor({
   initialDrill,
   drillTableMissing,
   initialChapters,
+  initialControls,
+  controlsTableMissing,
 }: {
   lesson: TutorialEditorData;
   programs: ProgramOption[];
   initialDrill: DrillRow | null;
   drillTableMissing: boolean;
   initialChapters: LessonChapter[];
+  initialControls: LessonControls;
+  controlsTableMissing: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -137,20 +158,31 @@ export function TutorialEditor({
   const activeTab: TabKey =
     tabParam && TAB_KEYS.has(tabParam) ? tabParam : DEFAULT_TAB;
 
-  /* ── Form state — seeded from DB row ─────────────────────────────── */
+  /* ── Form state — every field is seeded from the DB row ─────────── */
   const [title,        setTitle]        = useState(lesson.title);
   const [description,  setDescription]  = useState(lesson.description);
   const [programId,    setProgramId]    = useState(lesson.programId);
   const [planAccess,   setPlanAccess]   = useState<TutorialEditorData["planAccess"]>(lesson.planAccess);
 
-  /* Frontend-only fields (no DB columns yet) — keep them in state so the
-     UI is fully functional and they persist across tab switches. */
-  const [tags,          setTags]         = useState<string[]>(["Mansa", "Dance", "Routine", "Intermediate"]);
+  /* Migration 0034 backs all of these. We still keep them as React state
+     so the editor stays responsive between server round-trips, but Save
+     changes persists them through the existing `updateLesson` action. */
+  const [tags,          setTags]         = useState<string[]>(lesson.tags);
   const [tagDraft,      setTagDraft]     = useState("");
-  const [visibility,    setVisibility]   = useState<"public" | "private" | "unlisted">("public");
-  const [internalNotes, setInternalNotes]= useState("");
-  const [ctaLink,       setCtaLink]      = useState("");
-  const [category,      setCategory]     = useState("");
+  const [visibility,    setVisibility]   = useState<TutorialEditorData["visibility"]>(lesson.visibility);
+  const [internalNotes, setInternalNotes]= useState(lesson.internalNotes);
+  const [ctaLink,       setCtaLink]      = useState(lesson.ctaLink);
+  const [category,      setCategory]     = useState(lesson.editorCategory);
+
+  /* Overview-tab fields — also DB-backed via migration 0034. We track
+     them here (instead of inside <OverviewTab>) so the editor's single
+     Save changes button writes them with the rest of the form in one
+     server-action round-trip. */
+  const [learningOutcomes,        setLearningOutcomes]        = useState<string[]>(lesson.learningOutcomes);
+  const [publishingNotesInternal, setPublishingNotesInternal] = useState(lesson.publishingNotesInternal);
+
+  /* Frontend-only flags (no column yet). Chapters live in their own
+     table — `hasChapters` here just gates the rail "Add chapters" CTA. */
   const [hasChapters,   setHasChapters]  = useState(false);
 
   const TITLE_MAX = 100;
@@ -207,9 +239,22 @@ export function TutorialEditor({
     setSaveError(null);
     try {
       const result = await updateLesson(lesson.id, {
+        /* Core lesson fields — already wired since v1 of the editor. */
         title:       title.trim(),
         description: description.trim(),
         plan_access: planAccess,
+
+        /* Editor-only fields persisted by migration 0034. We always send
+         *  the full current value (rather than diffs) so the server's
+         *  validation has the freshest text. Empty strings collapse to
+         *  null inside `updateLesson`, which keeps the DB tidy. */
+        tags,
+        visibility,
+        internal_notes:            internalNotes,
+        cta_link:                  ctaLink,
+        editor_category:           category,
+        learning_outcomes:         learningOutcomes,
+        publishing_notes_internal: publishingNotesInternal,
       });
       if (!result.ok) {
         setSaveError(result.error);
@@ -364,7 +409,11 @@ export function TutorialEditor({
                 durationLabel={stats.duration}
               />
             ) : activeTab === "controls" ? (
-              <ControlsTab />
+              <ControlsTab
+                lessonId={lesson.id}
+                initialControls={initialControls}
+                tableMissing={controlsTableMissing}
+              />
             ) : activeTab === "overview" ? (
               <OverviewTab tutorialId={lesson.id} />
             ) : activeTab === "lesson-path" ? (
@@ -373,6 +422,8 @@ export function TutorialEditor({
                 initialChapters={initialChapters}
                 lastUpdatedAt={lesson.createdAt}
               />
+            ) : activeTab === "resources" ? (
+              <ResourcesTab />
             ) : (
               <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
             )}
@@ -394,6 +445,12 @@ export function TutorialEditor({
               onAddChapters={() => setHasChapters(true)}
             />
             {activeTab === "overview" && <AtAGlanceCard />}
+            {activeTab === "resources" && (
+              <>
+                <ResourceHealthCard total={6} external={2} missing={0} />
+                <BestPracticesCard />
+              </>
+            )}
           </aside>
         </div>
       )}
