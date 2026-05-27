@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { TutorialEditor, type TutorialEditorData, type ProgramOption } from "./tutorial-editor";
 import { loadDrill, type DrillRow } from "./drill-actions";
 import { getLessonChapters, type LessonChapter } from "./lesson-chapters-actions";
+import { getLessonControls } from "./controls-actions";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -37,7 +38,10 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
       supabase
         .from("lessons")
         .select(
-          "id, slug, title, description, program_id, plan_access, cover_image_url, video_url, duration_seconds, module_number, module_title, published, created_at",
+          // Core lesson fields + editor-only columns persisted by
+          // migration 0034 (tags, visibility, internal_notes, cta_link,
+          // editor_category, learning_outcomes, publishing_notes_internal).
+          "id, slug, title, description, program_id, plan_access, cover_image_url, video_url, duration_seconds, module_number, module_title, published, created_at, tags, visibility, internal_notes, cta_link, editor_category, learning_outcomes, publishing_notes_internal",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -67,6 +71,17 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     published:      Boolean(lesson.published),
     createdAt:      (lesson.created_at as string) ?? new Date().toISOString(),
     views:          views ?? 0,
+
+    // Editor-only metadata fields persisted by migration 0034.
+    // We coerce defensively so the editor never reads `undefined`
+    // even if a row pre-dates the migration.
+    tags:                    Array.isArray(lesson.tags) ? (lesson.tags as string[]) : [],
+    visibility:              ((lesson.visibility as string) ?? "public") as "public" | "unlisted" | "private",
+    internalNotes:           (lesson.internal_notes as string | null) ?? "",
+    ctaLink:                 (lesson.cta_link as string | null) ?? "",
+    editorCategory:          (lesson.editor_category as string | null) ?? "",
+    learningOutcomes:        Array.isArray(lesson.learning_outcomes) ? (lesson.learning_outcomes as string[]) : [],
+    publishingNotesInternal: (lesson.publishing_notes_internal as string | null) ?? "",
   };
 
   const programOptions: ProgramOption[] = (programs ?? []).map((p) => ({
@@ -85,6 +100,12 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
   // is missing or empty so the editor seeds its own demo on first run.
   const initialChapters: LessonChapter[] = await getLessonChapters(data.id);
 
+  // Load this tutorial's Controls panel state. Falls back to platform
+  // defaults when no row exists yet, and flags `tableMissing` so the
+  // Controls tab can surface a setup notice if migration 0033 is still
+  // pending.
+  const controlsResult = await getLessonControls(data.id);
+
   return (
     <TutorialEditor
       lesson={data}
@@ -92,6 +113,8 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
       initialDrill={initialDrill}
       drillTableMissing={drillTableMissing}
       initialChapters={initialChapters}
+      initialControls={controlsResult.controls}
+      controlsTableMissing={controlsResult.tableMissing}
     />
   );
 }
