@@ -56,6 +56,7 @@ export default async function PostingPage({
     } as const);
 
   const itemsForUI: PostingItem[] = items.length > 0 ? items : MOCK_ITEMS;
+  const isDemoItems = items.length === 0;
   const weeklyForUI =
     weekly.total > 0
       ? weekly
@@ -112,7 +113,7 @@ export default async function PostingPage({
             </section>
 
             {/* Planned Posts table */}
-            <PlannedPostsTable items={itemsForUI} />
+            <PlannedPostsTable items={itemsForUI} isDemo={isDemoItems} />
           </>
         ) : (
           <ContentCalendar
