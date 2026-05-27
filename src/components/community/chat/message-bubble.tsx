@@ -92,9 +92,14 @@ export function MessageBubble({
     });
   }
 
-  const time = new Date(message.created_at).toLocaleTimeString([], {
+  // Pin locale + hour12 so the server (often en-US 12-hour) and the client
+  // (whatever the user's browser locale is) render the same string. Without
+  // this, en-US server → "10:31 PM" mismatches an en-GB client → "22:31"
+  // and React triggers a hydration error on every message.
+  const time = new Date(message.created_at).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: true,
   });
 
   function handleDelete() {

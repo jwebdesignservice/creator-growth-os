@@ -14,6 +14,13 @@ import { ItemActionsMenu } from "./item-actions-menu";
 
 type Props = {
   items: PostingItem[];
+  /**
+   * When true, the rows are placeholder demo items (no plan exists yet).
+   * We hide the row actions so users don't try to change a status on a
+   * row that doesn't exist in the database — the update would silently
+   * affect 0 rows and the UI wouldn't change, looking like a bug.
+   */
+  isDemo?: boolean;
 };
 
 const STATUS_LABEL: Record<PostingItem["status"], string> = {
@@ -36,7 +43,7 @@ const STATUS_TONE: Record<PostingItem["status"], string> = {
   reviewed: "chip chip-success",
 };
 
-export function PlannedPostsTable({ items }: Props) {
+export function PlannedPostsTable({ items, isDemo = false }: Props) {
   return (
     <section className="card overflow-hidden">
       <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
@@ -48,6 +55,12 @@ export function PlannedPostsTable({ items }: Props) {
           View Calendar
         </Link>
       </header>
+      {isDemo && (
+        <div className="px-5 py-2.5 bg-rose-50/60 border-b border-rose-100 text-[12px] text-rose-700">
+          Demo data — create a posting plan to see your own items and use the
+          row actions.
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="p-10 text-center">
@@ -101,10 +114,12 @@ export function PlannedPostsTable({ items }: Props) {
                     </span>
                   </td>
                   <td className="py-3 px-5 text-right">
-                    <ItemActionsMenu
-                      itemId={item.id}
-                      currentStatus={item.status}
-                    />
+                    {!isDemo && (
+                      <ItemActionsMenu
+                        itemId={item.id}
+                        currentStatus={item.status}
+                      />
+                    )}
                   </td>
                 </tr>
               ))}
