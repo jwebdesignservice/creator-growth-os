@@ -108,9 +108,10 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
       hintBelow = synced
         ? `${followers} followers · synced ${synced}`
         : `${followers} followers`;
-      // Show the insights diagnostic only if it's not the clean
-      // "Insights OK" line — users don't need the happy path called out.
-      if (conn.insightsStatus && !conn.insightsStatus.startsWith("Insights OK")) {
+      // The sync writes "ok" as the sentinel for the happy path. Show
+      // any other diagnostic as a small italic line below — it'll be
+      // user-friendly copy, not raw API errors.
+      if (conn.insightsStatus && conn.insightsStatus !== "ok") {
         secondaryHint = conn.insightsStatus;
       }
     } else if (conn.lastSyncedAt) {
@@ -222,7 +223,7 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
         </div>
       )}
       {secondaryHint && (
-        <div className="px-3 pb-2.5 text-[10.5px] text-ink-400/80 leading-snug italic">
+        <div className="px-3 pb-2.5 text-[10.5px] text-ink-400 leading-snug">
           {secondaryHint}
         </div>
       )}

@@ -93,27 +93,26 @@ async function fetchIgProfile(igUserId: string, pageToken: string): Promise<IgPr
 }
 
 // ── Account-level insights (reach, profile views) ─────────────────────
+//
+// Graph API v22+ requires `metric_type=total_value` for many account
+// insights (incl. profile_views), and the response format switched from
+// a `values: [{value, end_time}]` array to a single `total_value: {value}`.
+// We request total_value for both metrics so the call works on both v18
+// and v22+ behavior.
 
 type InsightsResponse = {
   data?: Array<{
     name: string;
-    period: string;
-    values: Array<{ value: number; end_time?: string }>;
+    period?: string;
+    total_value?: { value: number };
+    values?: Array<{ value: number; end_time?: string }>;
   }>;
+  error?: { message?: string; code?: number; type?: string };
 };
 
-/**
- * Fetch daily account-level insights between two timestamps and sum them.
- * v18 supports `reach` and `profile_views` with period=day. `impressions`
- * was removed in v22 — we leave it out for forward compatibility.
- *
- * Returns a structured result so the caller can record diagnostic info
- * (status code, error message, raw response) into provider_data — this
- * is how we surface "no reach data" reasons in the UI later.
- */
 type InsightsResult =
-  | { ok: true; reach: number; profileViews: number; raw: InsightsResponse }
-  | { ok: false; status: number; errorBody: string };
+  | { ok: true; reach: number; profileViews: number }
+  | { ok: false; metaMessage: string | null; status: number };
 
 async function fetchInsightsTotals(
   igUserId: string,
@@ -123,6 +122,7 @@ async function fetchInsightsTotals(
 ): Promise<InsightsResult> {
   const url = new URL(`${GRAPH}/${igUserId}/insights`);
   url.searchParams.set("metric", "reach,profile_views");
+  url.searchParams.set("metric_type", "total_value");
   url.searchParams.set("period", "day");
   url.searchParams.set("since", String(Math.floor(sinceMs / 1000)));
   url.searchParams.set("until", String(Math.floor(untilMs / 1000)));
@@ -130,24 +130,36 @@ async function fetchInsightsTotals(
 
   const res = await fetch(url);
   const text = await res.text();
-  if (!res.ok) {
-    console.warn("[instagram-sync] insights fetch failed:", res.status, text);
-    return { ok: false, status: res.status, errorBody: text.slice(0, 500) };
-  }
-  let body: InsightsResponse;
+  let parsed: InsightsResponse = {};
   try {
-    body = JSON.parse(text) as InsightsResponse;
+    parsed = JSON.parse(text) as InsightsResponse;
   } catch {
-    return { ok: false, status: res.status, errorBody: "invalid_json" };
+    // fall through with empty parsed
   }
+
+  if (!res.ok) {
+    const metaMessage = parsed.error?.message ?? null;
+    // Full body to server logs only — never to the UI.
+    console.warn(
+      "[instagram-sync] insights HTTP",
+      res.status,
+      metaMessage ?? text.slice(0, 300),
+    );
+    return { ok: false, status: res.status, metaMessage };
+  }
+
   let reach = 0;
   let profileViews = 0;
-  for (const entry of body.data ?? []) {
-    const total = entry.values.reduce((acc, v) => acc + (v.value ?? 0), 0);
+  for (const entry of parsed.data ?? []) {
+    // Prefer total_value (v22+ shape) but fall back to summing daily
+    // values for forward+backward compatibility.
+    const total =
+      entry.total_value?.value ??
+      (entry.values ?? []).reduce((acc, v) => acc + (v.value ?? 0), 0);
     if (entry.name === "reach") reach = total;
     if (entry.name === "profile_views") profileViews = total;
   }
-  return { ok: true, reach, profileViews, raw: body };
+  return { ok: true, reach, profileViews };
 }
 
 // ── Recent media for engagement + post count ─────────────────────────
@@ -265,14 +277,17 @@ export async function syncInstagramAccount(
     const insights = insightsResult.ok ? insightsResult : null;
     const media = await fetchRecentMedia(igUserId, pageToken);
 
-    // Capture a human-readable diagnostic for the UI to surface when
-    // reach/engagement come back empty. Stored on provider_data so it
-    // survives across syncs and we can inspect history.
+    // Short, user-friendly diagnostic line. Raw API responses go to the
+    // server console only (see fetchInsightsTotals) — never to the UI.
     const insightsDiagnostic: string = insightsResult.ok
       ? insightsResult.reach === 0 && insightsResult.profileViews === 0
-        ? `Insights API returned 0 — usually means no posts this week or audience below Meta's reporting threshold.`
-        : `Insights OK: reach=${insightsResult.reach}, profile_views=${insightsResult.profileViews}.`
-      : `Insights API failed (HTTP ${insightsResult.status}): ${insightsResult.errorBody.slice(0, 200)}`;
+        ? "No reach yet this week — will populate as your account has activity."
+        : "ok"
+      : insightsResult.status === 400
+        ? "Insights data unavailable — Meta API rejected the request."
+        : insightsResult.status === 403 || insightsResult.status === 401
+          ? "Insights access denied — try reconnecting Instagram."
+          : `Insights temporarily unavailable (HTTP ${insightsResult.status}).`;
 
     // Posts published this week + their engagement totals.
     let postsThisWeek = 0;
