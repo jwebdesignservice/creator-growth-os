@@ -12,6 +12,7 @@ import {
 } from "@/lib/performance/queries";
 import { PerformanceKpiTiles } from "@/components/performance/kpi-tiles";
 import { ConnectSocialCard } from "@/components/performance/connect-social-card";
+import { AutoSyncOnMount } from "@/components/performance/auto-sync-on-mount";
 import { getSocialConnections } from "@/lib/social/queries";
 import { PerformanceEntryForm } from "@/components/performance/entry-form";
 import { TrendChart } from "@/components/performance/trend-chart";
@@ -101,6 +102,10 @@ export default async function PerformancePage({
 
         {/* Connect Social Accounts — real OAuth flow */}
         <ConnectSocialCard connections={socialConnections} />
+
+        {/* Silently re-syncs any connected platform whose last_synced_at
+            is older than 6h, so users see fresh numbers without clicking. */}
+        <AutoSyncOnMount connections={socialConnections} />
 
         {/* Weekly entry form */}
         <PerformanceEntryForm
