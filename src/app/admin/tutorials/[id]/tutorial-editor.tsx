@@ -36,6 +36,7 @@ import { Donut } from "@/components/dashboard/donut";
 import { updateLesson } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
 import { ThumbnailTab } from "./thumbnail-tab";
+import { CreatorDrillTab } from "./creator-drill-tab";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -305,54 +306,69 @@ export function TutorialEditor({
         </div>
       )}
 
-      {/* ── Body grid ────────────────────────────────────────────────── */}
+      {/* ── Body ─────────────────────────────────────────────────────── */}
       {/* Tab navigation lives in the middle admin sidebar — see
-          `app/admin/tutorials/tutorials-sidebar.tsx`. This grid is just
-          (content · video + readiness rail). */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5 items-start">
-        {/* ── LEFT: tab content ────────────────────────────────────── */}
-        <section className="min-w-0 space-y-5">
-          {activeTab === "metadata" ? (
-            <MetadataTab
-              title={title}                  setTitle={setTitle}
-              description={description}      setDescription={setDescription}
-              tags={tags}                    tagDraft={tagDraft}
-              setTagDraft={setTagDraft}      addTag={addTag} removeTag={removeTag}
-              visibility={visibility}        setVisibility={setVisibility}
-              internalNotes={internalNotes}  setInternalNotes={setInternalNotes}
-              planAccess={planAccess}        setPlanAccess={setPlanAccess}
-              ctaLink={ctaLink}              setCtaLink={setCtaLink}
-              category={category}            setCategory={setCategory}
-              programId={programId}          setProgramId={setProgramId}
-              programs={programs}
-              TITLE_MAX={TITLE_MAX} DESC_MAX={DESC_MAX} NOTE_MAX={NOTE_MAX}
-            />
-          ) : activeTab === "thumbnail" ? (
-            <ThumbnailTab
-              coverImageUrl={lesson.coverImageUrl}
+          `app/admin/tutorials/tutorials-sidebar.tsx`. Most tabs use the
+          standard (left tab content · right video + readiness rail) grid;
+          Creator drill owns its own internal layout so it can show its
+          drill-readiness card next to the video. */}
+      {activeTab === "creator-drill" ? (
+        <CreatorDrillTab
+          lessonTitle={lesson.title}
+          videoSlot={
+            <VideoPreviewCard
               videoUrl={lesson.videoUrl}
-              durationSeconds={lesson.durationSeconds}
+              coverImageUrl={lesson.coverImageUrl}
               durationLabel={stats.duration}
             />
-          ) : (
-            <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
-          )}
-        </section>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5 items-start">
+          {/* ── LEFT: tab content ────────────────────────────────────── */}
+          <section className="min-w-0 space-y-5">
+            {activeTab === "metadata" ? (
+              <MetadataTab
+                title={title}                  setTitle={setTitle}
+                description={description}      setDescription={setDescription}
+                tags={tags}                    tagDraft={tagDraft}
+                setTagDraft={setTagDraft}      addTag={addTag} removeTag={removeTag}
+                visibility={visibility}        setVisibility={setVisibility}
+                internalNotes={internalNotes}  setInternalNotes={setInternalNotes}
+                planAccess={planAccess}        setPlanAccess={setPlanAccess}
+                ctaLink={ctaLink}              setCtaLink={setCtaLink}
+                category={category}            setCategory={setCategory}
+                programId={programId}          setProgramId={setProgramId}
+                programs={programs}
+                TITLE_MAX={TITLE_MAX} DESC_MAX={DESC_MAX} NOTE_MAX={NOTE_MAX}
+              />
+            ) : activeTab === "thumbnail" ? (
+              <ThumbnailTab
+                coverImageUrl={lesson.coverImageUrl}
+                videoUrl={lesson.videoUrl}
+                durationSeconds={lesson.durationSeconds}
+                durationLabel={stats.duration}
+              />
+            ) : (
+              <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
+            )}
+          </section>
 
-        {/* ── RIGHT: video player + publishing readiness ───────────── */}
-        <aside className="space-y-4 min-w-0">
-          <VideoPreviewCard
-            videoUrl={lesson.videoUrl}
-            coverImageUrl={lesson.coverImageUrl}
-            durationLabel={stats.duration}
-          />
-          <PublishingReadinessCard
-            percent={readiness.percent}
-            checks={readiness.checks}
-            onAddChapters={() => setHasChapters(true)}
-          />
-        </aside>
-      </div>
+          {/* ── RIGHT: video player + publishing readiness ───────────── */}
+          <aside className="space-y-4 min-w-0">
+            <VideoPreviewCard
+              videoUrl={lesson.videoUrl}
+              coverImageUrl={lesson.coverImageUrl}
+              durationLabel={stats.duration}
+            />
+            <PublishingReadinessCard
+              percent={readiness.percent}
+              checks={readiness.checks}
+              onAddChapters={() => setHasChapters(true)}
+            />
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
