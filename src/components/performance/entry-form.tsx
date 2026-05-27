@@ -44,7 +44,12 @@ export function PerformanceEntryForm({
 
   // When the action returns ok we show a success state
   if (state.ok && !savedAt) {
-    setSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    setSavedAt(
+      new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+    );
   }
   const errMessage = state.ok ? null : state.error;
 
@@ -311,9 +316,13 @@ function RevenueField({
 
 function formatHumanDate(iso: string) {
   const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString(undefined, {
+  // Pin locale so server (en-US Linux default → "Sunday, May 24") and
+  // client (en-GB browser → "Sunday 24 May") render the same string.
+  // Without this, React throws a hydration mismatch on every render.
+  return d.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
 }

@@ -78,7 +78,7 @@ export function ContentCalendar({ items, weekStart }: Props) {
             Content Calendar
           </h3>
           <p className="text-[12px] text-ink-500 mt-1">
-            Week of {monday.toLocaleDateString(undefined, { month: "long", day: "numeric" })}
+            Week of {monday.toLocaleDateString("en-US", { month: "long", day: "numeric" })}
           </p>
         </div>
         <Link
@@ -103,7 +103,7 @@ export function ContentCalendar({ items, weekStart }: Props) {
             >
               <header className="mb-2">
                 <div className="text-[10px] uppercase tracking-wide text-ink-500 font-semibold">
-                  {d.toLocaleDateString(undefined, { weekday: "short" })}
+                  {d.toLocaleDateString("en-US", { weekday: "short" })}
                 </div>
                 <div
                   className={`text-[18px] font-display leading-none ${
@@ -162,7 +162,7 @@ export function ContentCalendar({ items, weekStart }: Props) {
 
 function CalendarItem({ item }: { item: PostingItem }) {
   const time = item.scheduled_for
-    ? new Date(item.scheduled_for).toLocaleTimeString([], {
+    ? new Date(item.scheduled_for).toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
       })

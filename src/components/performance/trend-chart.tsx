@@ -673,12 +673,12 @@ function formatCompact(n: number): string {
 
 function formatShortDate(iso: string): string {
   const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function formatLongDate(iso: string): string {
   const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 function metricLabel(m: MetricKey): string {

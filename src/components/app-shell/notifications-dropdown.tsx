@@ -342,7 +342,7 @@ function formatTime(iso: string): string {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   if (date >= todayStart) {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
   }
-  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
