@@ -109,7 +109,25 @@ export type LessonPatch = {
   module_number?: number;
   module_title?: string;
   sort_order?: number;
+
+  /* Editor-only fields backed by migration 0034. All optional so the
+   *  existing call sites (legacy /admin/lessons) keep working unchanged. */
+  tags?: string[];
+  visibility?: "public" | "unlisted" | "private";
+  internal_notes?: string | null;
+  cta_link?: string | null;
+  editor_category?: string | null;
+  learning_outcomes?: string[];
+  publishing_notes_internal?: string | null;
 };
+
+const VISIBILITY_VALUES = new Set(["public", "unlisted", "private"]);
+const TAG_MAX_LEN     = 40;
+const TAGS_MAX_COUNT  = 20;
+const OUTCOMES_MAX    = 20;
+const OUTCOME_MAX_LEN = 200;
+const NOTES_MAX_LEN   = 4000;
+const CTA_MAX_LEN     = 2000;
 
 /**
  * Partial update on a lesson. Empty text fields become null.
@@ -182,6 +200,69 @@ export async function updateLesson(
     update.sort_order = Math.floor(patch.sort_order);
   }
 
+  /* ── Editor fields (migration 0034) ─────────────────────────────── */
+
+  if (patch.tags !== undefined) {
+    if (!Array.isArray(patch.tags)) {
+      return { ok: false, error: "Tags must be a list of strings." };
+    }
+    const cleaned = patch.tags
+      .map((t) => String(t ?? "").slice(0, TAG_MAX_LEN).trim())
+      .filter((t) => t.length > 0)
+      .slice(0, TAGS_MAX_COUNT);
+    // De-duplicate case-insensitively while preserving original casing.
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const t of cleaned) {
+      const k = t.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      unique.push(t);
+    }
+    update.tags = unique;
+  }
+
+  if (patch.visibility !== undefined) {
+    if (!VISIBILITY_VALUES.has(patch.visibility)) {
+      return { ok: false, error: "Visibility must be public, unlisted, or private." };
+    }
+    update.visibility = patch.visibility;
+  }
+
+  if (patch.internal_notes !== undefined) {
+    const v = (patch.internal_notes ?? "").trim().slice(0, NOTES_MAX_LEN);
+    update.internal_notes = v.length > 0 ? v : null;
+  }
+
+  if (patch.cta_link !== undefined) {
+    const v = (patch.cta_link ?? "").trim().slice(0, CTA_MAX_LEN);
+    if (v && !/^https?:\/\//i.test(v)) {
+      return { ok: false, error: "CTA link must start with http(s)://" };
+    }
+    update.cta_link = v.length > 0 ? v : null;
+  }
+
+  if (patch.editor_category !== undefined) {
+    const v = (patch.editor_category ?? "").trim().slice(0, 60);
+    update.editor_category = v.length > 0 ? v : null;
+  }
+
+  if (patch.learning_outcomes !== undefined) {
+    if (!Array.isArray(patch.learning_outcomes)) {
+      return { ok: false, error: "Learning outcomes must be a list of strings." };
+    }
+    const cleaned = patch.learning_outcomes
+      .map((s) => String(s ?? "").slice(0, OUTCOME_MAX_LEN).trim())
+      .filter((s) => s.length > 0)
+      .slice(0, OUTCOMES_MAX);
+    update.learning_outcomes = cleaned;
+  }
+
+  if (patch.publishing_notes_internal !== undefined) {
+    const v = (patch.publishing_notes_internal ?? "").trim().slice(0, NOTES_MAX_LEN);
+    update.publishing_notes_internal = v.length > 0 ? v : null;
+  }
+
   if (Object.keys(update).length === 0) return { ok: true };
 
   const { data: lesson, error } = await ctx.supabase
@@ -194,6 +275,7 @@ export async function updateLesson(
 
   revalidatePath("/admin/lessons");
   revalidatePath("/admin/tutorials");
+  revalidatePath(`/admin/tutorials/${lessonId}`);
   if (lesson?.program_id) {
     revalidatePath(`/admin/programs/${lesson.program_id}`);
     revalidatePath(`/admin/programs/${lesson.program_id}/curriculum`);
