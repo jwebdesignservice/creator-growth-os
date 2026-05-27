@@ -1,14 +1,14 @@
 "use client";
 
 import { useTransition } from "react";
-import { Share2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Share2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import {
   InstagramIcon,
   TiktokIcon,
   YoutubeIcon,
 } from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
-import { disconnectPlatform } from "@/lib/social/actions";
+import { disconnectPlatform, syncPlatform } from "@/lib/social/actions";
 import type { SocialConnection } from "@/lib/social/queries";
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -79,14 +79,38 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
     });
   }
 
+  function sync() {
+    startTransition(async () => {
+      await syncPlatform(conn.platform);
+    });
+  }
+
   const Icon = iconFor(conn.platform);
   const statusText = statusLabel(conn);
-  // Hint shown below the status line for platforms with account-type
-  // requirements the user needs to know about before clicking Connect.
-  const requirementHint =
-    conn.connectionStatus !== "connected"
-      ? REQUIREMENT_HINT[conn.platform]
-      : null;
+
+  // Hint shown below the status line. For not-connected/setup-pending
+  // platforms we surface the account-type requirement so users know
+  // what they need before clicking Connect. For connected platforms we
+  // show sync state — either a "last synced N min ago" timestamp, the
+  // most recent sync error, or "followers: X" once a count is available.
+  let hintBelow: string | null = null;
+  let hintTone: "muted" | "error" = "muted";
+  if (conn.connectionStatus === "connected") {
+    if (conn.syncStatus === "error" && conn.syncError) {
+      hintBelow = conn.syncError;
+      hintTone = "error";
+    } else if (conn.followerCount != null) {
+      const followers = conn.followerCount.toLocaleString();
+      const synced = conn.lastSyncedAt ? relativeTime(conn.lastSyncedAt) : null;
+      hintBelow = synced
+        ? `${followers} followers · synced ${synced}`
+        : `${followers} followers`;
+    } else if (conn.lastSyncedAt) {
+      hintBelow = `Synced ${relativeTime(conn.lastSyncedAt)}`;
+    }
+  } else {
+    hintBelow = REQUIREMENT_HINT[conn.platform] ?? null;
+  }
 
   return (
     <li className="rounded-[12px] bg-cream-50 border border-ink-100 overflow-hidden">
@@ -129,14 +153,29 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
 
         {/* CTA */}
         {conn.connectionStatus === "connected" ? (
-          <button
-            type="button"
-            onClick={disconnect}
-            disabled={pending}
-            className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-white border border-ink-100 text-ink-700 hover:bg-cream-100 disabled:opacity-50"
-          >
-            {pending ? "…" : "Disconnect"}
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={sync}
+              disabled={pending}
+              aria-label={`Sync ${conn.label} now`}
+              title="Sync now"
+              className="inline-flex items-center justify-center size-8 rounded-[10px] text-ink-500 hover:text-ink-900 hover:bg-cream-100 disabled:opacity-50"
+            >
+              <RefreshCw
+                className={cn("size-3.5", pending && "animate-spin")}
+                strokeWidth={2}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={disconnect}
+              disabled={pending}
+              className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium bg-white border border-ink-100 text-ink-700 hover:bg-cream-100 disabled:opacity-50"
+            >
+              Disconnect
+            </button>
+          </div>
         ) : conn.connectionStatus === "not_connected" ? (
           <button
             type="button"
@@ -159,11 +198,18 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
         )}
       </div>
 
-      {/* Requirement hint: full-width second row so the text wraps to ~2
-          lines max instead of being squeezed between icon and button. */}
-      {requirementHint && (
-        <div className="px-3 pb-2.5 -mt-0.5 text-[10.5px] text-ink-400 leading-snug">
-          {requirementHint}
+      {/* Hint row: full-width below the main row so the text wraps cleanly.
+          - Not connected / setup pending → account-type requirement.
+          - Connected with metric         → "X followers · synced Yago".
+          - Connected with sync error     → red error message. */}
+      {hintBelow && (
+        <div
+          className={cn(
+            "px-3 pb-2.5 -mt-0.5 text-[10.5px] leading-snug",
+            hintTone === "error" ? "text-rose-600" : "text-ink-400",
+          )}
+        >
+          {hintBelow}
         </div>
       )}
     </li>
@@ -184,6 +230,21 @@ function statusLabel(c: SocialConnection): string {
     return "Setup pending (no credentials)";
   }
   return "Not connected";
+}
+
+// ── Relative-time formatter for "synced N minutes ago" ───────────────
+
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const seconds = Math.floor((now - then) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 // ── Per-platform account-requirement hints ───────────────────────────

@@ -117,6 +117,14 @@ export async function GET(
     return backTo(origin, "error", platform, "db_upsert_failed");
   }
 
+  // ── 4. Fire off platform-specific sync so the user lands on a
+  //      populated dashboard. Failures are recorded on social_accounts
+  //      (sync_error) — they don't block the OAuth success page.
+  if (platform === "instagram") {
+    const { syncInstagramAccount } = await import("@/lib/social/instagram");
+    await syncInstagramAccount(parsed.userId);
+  }
+
   return backTo(origin, "ok", platform);
 }
 

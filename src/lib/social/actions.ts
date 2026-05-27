@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getProvider, type ProviderKey } from "./providers";
+import { syncInstagramAccount } from "./instagram";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -42,4 +43,32 @@ export async function disconnectPlatform(
 
   revalidatePath("/performance");
   return { ok: true };
+}
+
+/**
+ * Manually trigger a sync for a connected platform. The actual fetch
+ * runs server-side and persists results to social_accounts +
+ * performance_entries — the caller just needs to wait and revalidate.
+ *
+ * Today only Instagram is implemented end-to-end. Other providers
+ * return early so the UI can still call this generically.
+ */
+export async function syncPlatform(platform: ProviderKey): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  if (platform === "instagram") {
+    const res = await syncInstagramAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    error: `Sync for ${platform} is not implemented yet.`,
+  };
 }
