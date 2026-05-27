@@ -81,6 +81,12 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
 
   const Icon = iconFor(conn.platform);
   const statusText = statusLabel(conn);
+  // Hint shown below the status line for platforms with account-type
+  // requirements the user needs to know about before clicking Connect.
+  const requirementHint =
+    conn.connectionStatus !== "connected"
+      ? REQUIREMENT_HINT[conn.platform]
+      : null;
 
   return (
     <li className="flex items-center gap-3 p-3 rounded-[12px] bg-cream-50 border border-ink-100">
@@ -117,6 +123,11 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
         >
           {statusText}
         </div>
+        {requirementHint && (
+          <div className="text-[10.5px] text-ink-400 mt-0.5 leading-snug">
+            {requirementHint}
+          </div>
+        )}
       </div>
 
       {/* CTA */}
@@ -168,6 +179,24 @@ function statusLabel(c: SocialConnection): string {
   }
   return "Not connected";
 }
+
+// ── Per-platform account-requirement hints ───────────────────────────
+// Shown as small grey text below the status line so users know what kind
+// of account they need *before* attempting to connect. Skip if the
+// platform has no special requirement (don't add noise).
+
+const REQUIREMENT_HINT: Partial<Record<SocialConnection["platform"], string>> = {
+  instagram:
+    "Requires a Business or Creator account linked to a Facebook Page.",
+  facebook:
+    "Requires a Page (personal profile data only without a managed Page).",
+  tiktok:
+    "Basic profile only — full analytics require partner approval.",
+  linkedin:
+    "Profile only — Page analytics require LinkedIn Marketing Partner access.",
+  snapchat: "Limited data (display name & avatar only).",
+  // YouTube has no special account-type requirement to show.
+};
 
 // ── Icon lookup ──────────────────────────────────────────────────────
 
