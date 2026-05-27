@@ -23,18 +23,14 @@ export type Kpi = {
   postsThisWeek: number;
   /** 7 values, Mon→Sun, for the Content Activity bars. */
   contentActivity: number[];
-  revenue: number;
-  revenueGoal: number;
+  /** Latest weekly revenue from performance_entries, or null when none. */
+  revenue: number | null;
 };
 
 export function KpiCards({ kpi }: { kpi: Kpi }) {
   const taskPct =
     kpi.tasksTotal > 0
       ? Math.round((kpi.tasksCompleted / kpi.tasksTotal) * 100)
-      : 0;
-  const revenuePct =
-    kpi.revenueGoal > 0
-      ? Math.min(100, Math.round((kpi.revenue / kpi.revenueGoal) * 100))
       : 0;
 
   return (
@@ -53,11 +49,7 @@ export function KpiCards({ kpi }: { kpi: Kpi }) {
         posts={kpi.postsThisWeek}
         activity={kpi.contentActivity}
       />
-      <RevenueGoalCard
-        revenue={kpi.revenue}
-        goal={kpi.revenueGoal}
-        percent={revenuePct}
-      />
+      <RevenueGoalCard revenue={kpi.revenue} />
     </section>
   );
 }
@@ -276,18 +268,34 @@ function WeekBars({ data }: { data: number[] }) {
 
 function RevenueGoalCard({
   revenue,
-  goal,
-  percent,
 }: {
-  revenue: number;
-  goal: number;
-  percent: number;
+  revenue: number | null;
 }) {
+  // Empty state when the user hasn't logged any revenue yet. Avoids
+  // a fake goal-progress number that would be wrong every time.
+  if (!revenue || revenue <= 0) {
+    return (
+      <div className="card p-5 flex flex-col">
+        <CardHeader
+          title="Revenue"
+          hint="Log your weekly revenue on the Performance page."
+        />
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 py-4">
+          <div className="text-[30px] font-semibold text-ink-300 leading-none tabular-nums">—</div>
+          <p className="text-[12.5px] text-ink-500 max-w-[28ch]">
+            No revenue logged yet. Add a weekly entry to start tracking your
+            income trend.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card p-5 flex flex-col">
       <CardHeader
-        title="Revenue Goal"
-        hint="Progress toward your monthly revenue goal."
+        title="Revenue"
+        hint="Latest weekly revenue from your Performance entries."
       />
 
       <div className="flex items-start justify-between gap-3">
@@ -295,37 +303,11 @@ function RevenueGoalCard({
           <div className="text-[30px] font-semibold text-ink-900 leading-none tabular-nums">
             ${formatCompact(revenue)}
           </div>
-          <div className="text-[12.5px] text-ink-500 mt-1.5">
-            of ${formatCompact(goal)} goal
-          </div>
+          <div className="text-[12.5px] text-ink-500 mt-1.5">this week</div>
         </div>
-        <Donut percent={percent} size={56} strokeWidth={6}>
-          <span className="text-[12px] font-semibold text-ink-900 tabular-nums">
-            {percent}%
-          </span>
-        </Donut>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-ink-100 flex-1 flex flex-col">
-        <div className="h-2 rounded-full bg-cream-200 overflow-hidden mb-3">
-          <div
-            className="h-full rounded-full bg-rose-500 transition-[width] duration-700"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-
-        <div className="flex items-start gap-2 mb-3">
-          <Sparkles className="size-4 text-rose-500 shrink-0 mt-0.5" strokeWidth={2} />
-          <div className="min-w-0">
-            <div className="text-[12.5px] font-semibold text-ink-900">
-              Keep going!
-            </div>
-            <p className="text-[11.5px] text-ink-500 leading-snug">
-              You&apos;re on track to reach your goal.
-            </p>
-          </div>
-        </div>
-
+      <div className="mt-4 pt-4 border-t border-ink-100 flex-1 flex flex-col justify-end">
         <CardCTA href="/monetization" label="View Monetization Hub" />
       </div>
     </div>

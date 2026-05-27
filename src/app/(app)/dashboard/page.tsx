@@ -84,7 +84,7 @@ export default async function DashboardPage() {
       .limit(8),
     supabase
       .from("performance_entries")
-      .select("week_start, followers, profile_visits, engagement_rate, clicks, posts_published")
+      .select("week_start, followers, profile_visits, engagement_rate, clicks, posts_published, revenue")
       .eq("user_id", user.id)
       .order("week_start", { ascending: false })
       .limit(26),
@@ -99,9 +99,9 @@ export default async function DashboardPage() {
   const followers =
     (socials.instagram ?? 0) + (socials.tiktok ?? 0) + (socials.youtube ?? 0);
   const postsThisWeek = postingItems?.length ?? 0;
-  // Revenue isn't tracked yet — placeholder goal until that data source lands.
-  const revenue = 1200;
-  const revenueGoal = 3000;
+  // Revenue: latest weekly entry's revenue (Pro feature). Null/0 → render
+  // "—" empty state in the KPI card instead of a fake number + goal.
+  const revenue = Number(performanceRows?.[0]?.revenue ?? 0) || null;
 
   // Compute real per-program progress for the user. We do this in a
   // separate round-trip on top of the parallel reads above so the
@@ -111,27 +111,25 @@ export default async function DashboardPage() {
     ? await getProgressForPrograms(dbPrograms.map((p) => p.id))
     : new Map();
 
-  const programs: ProgramCard[] = dbPrograms?.length
-    ? dbPrograms.map((p): ProgramCard => {
-        const prog = progressMap.get(p.id);
-        const percent = prog?.percent ?? 0;
-        const isProLocked = p.plan_access === "pro" && ctx.plan !== "pro";
-        const status: ProgramCard["status"] = isProLocked
-          ? "pro_only"
-          : percent >= 100
-            ? "completed"
-            : percent > 0
-              ? "in_progress"
-              : "not_started";
-        return {
-          slug: p.slug,
-          title: p.title,
-          subtitle: p.description ?? "",
-          status,
-          progress: percent,
-        };
-      })
-    : FALLBACK_PROGRAMS;
+  const programs: ProgramCard[] = (dbPrograms ?? []).map((p): ProgramCard => {
+    const prog = progressMap.get(p.id);
+    const percent = prog?.percent ?? 0;
+    const isProLocked = p.plan_access === "pro" && ctx.plan !== "pro";
+    const status: ProgramCard["status"] = isProLocked
+      ? "pro_only"
+      : percent >= 100
+        ? "completed"
+        : percent > 0
+          ? "in_progress"
+          : "not_started";
+    return {
+      slug: p.slug,
+      title: p.title,
+      subtitle: p.description ?? "",
+      status,
+      progress: percent,
+    };
+  });
 
   // ── Continue learning (DB-backed) ─────────────────────────────────────
   type ProgressLessonShape = {
@@ -144,23 +142,21 @@ export default async function DashboardPage() {
       programs?: { title: string } | null;
     } | null;
   };
-  const learning: Lesson[] =
-    progressRows && progressRows.length > 0
-      ? (progressRows as unknown as ProgressLessonShape[])
-          .filter((row) => row.lessons)
-          .map((row, i): Lesson => {
-            const lesson = row.lessons!;
-            const mins = Math.floor(lesson.duration_seconds / 60);
-            const secs = lesson.duration_seconds % 60;
-            return {
-              slug: lesson.slug,
-              title: lesson.title,
-              program_title: lesson.programs?.title ?? "Programs",
-              lesson_label: `Lesson ${i + 1}`,
-              duration: `${mins}:${String(secs).padStart(2, "0")}`,
-            };
-          })
-      : MOCK_LESSONS;
+  const learning: Lesson[] = (progressRows ?? [])
+    .map((row) => row as unknown as ProgressLessonShape)
+    .filter((row) => row.lessons)
+    .map((row, i): Lesson => {
+      const lesson = row.lessons!;
+      const mins = Math.floor(lesson.duration_seconds / 60);
+      const secs = lesson.duration_seconds % 60;
+      return {
+        slug: lesson.slug,
+        title: lesson.title,
+        program_title: lesson.programs?.title ?? "Programs",
+        lesson_label: `Lesson ${i + 1}`,
+        duration: `${mins}:${String(secs).padStart(2, "0")}`,
+      };
+    });
 
   // ── Upcoming content (DB-backed posting items) ────────────────────────
   // Tag each scheduled post with a day index (0 = today … 6) so the strip
@@ -193,8 +189,7 @@ export default async function DashboardPage() {
     })
     .filter((it) => it.dayIndex >= 0 && it.dayIndex <= 6);
 
-  const upcomingItems: UpcomingItem[] =
-    realUpcoming.length > 0 ? realUpcoming : UPCOMING_ITEMS;
+  const upcomingItems: UpcomingItem[] = realUpcoming;
 
   // Dots per day are just the per-day tally of the items above.
   const dayCounts = [0, 0, 0, 0, 0, 0, 0];
@@ -287,7 +282,6 @@ export default async function DashboardPage() {
           postsThisWeek,
           contentActivity,
           revenue,
-          revenueGoal,
         }}
       />
 
@@ -305,7 +299,7 @@ export default async function DashboardPage() {
       </section>
 
       <ThisWeeksOverview
-        entries={overviewEntries.length ? overviewEntries : FALLBACK_ENTRIES}
+        entries={overviewEntries}
         platforms={platformOptions}
       />
     </div>
@@ -313,108 +307,6 @@ export default async function DashboardPage() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Fallback data (shown until user has real entries)
-// ─────────────────────────────────────────────────────────────────────
-
-const FALLBACK_PROGRAMS: ProgramCard[] = [
-  {
-    slug: "influencer-blueprint",
-    title: "The Influencer Blueprint",
-    subtitle: "Build your brand from the ground up",
-    status: "in_progress",
-    progress: 68,
-  },
-  {
-    slug: "content-that-connects",
-    title: "Content That Connects",
-    subtitle: "Create content that attracts & converts",
-    status: "in_progress",
-    progress: 42,
-  },
-  {
-    slug: "monetize-your-influence",
-    title: "Monetize Your Influence",
-    subtitle: "Turn your audience into income",
-    status: "not_started",
-    progress: 0,
-  },
-  {
-    slug: "scale-and-automate",
-    title: "Scale & Automate",
-    subtitle: "Grow bigger, work smarter",
-    status: "pro_only",
-  },
-];
-
-// Fallback shown when the user has no lesson_progress rows yet. Slugs match
-// real lessons in 0003_lessons_seed.sql so links don't 404.
-const MOCK_LESSONS: Lesson[] = [
-  {
-    slug: "defining-niche-sweet-spot",
-    title: "Defining Your Niche Sweet Spot",
-    program_title: "The Influencer Blueprint",
-    lesson_label: "Lesson 3",
-    duration: "12:45",
-    progress: 75,
-  },
-  {
-    slug: "content-pillars-that-work",
-    title: "Content Pillars That Work",
-    program_title: "Content That Connects",
-    lesson_label: "Lesson 5",
-    duration: "15:30",
-    progress: 50,
-  },
-  {
-    slug: "hooks-that-stop-the-scroll",
-    title: "Hooks That Stop The Scroll",
-    program_title: "Content That Connects",
-    lesson_label: "Lesson 6",
-    duration: "11:20",
-    progress: 25,
-  },
-];
-
-// Fallback content for the week strip + cards, shown until the user has real
-// posting_plan_items. One distribution drives both the dots and the cards, so
-// today carries the three demo posts and the rest of the week shows the 1–4
-// range — clicking a day reveals exactly that many cards.
-const MOCK_DAY_COUNTS = [3, 2, 0, 1, 4, 0, 1];
-const MOCK_PLATFORMS = ["instagram", "tiktok", "youtube"] as const;
-const MOCK_LABELS: Record<(typeof MOCK_PLATFORMS)[number], string> = {
-  instagram: "Instagram Post",
-  tiktok: "TikTok Video",
-  youtube: "YouTube Short",
-};
-const MOCK_TIMES = ["10:00 AM", "1:00 PM", "6:00 PM", "8:30 PM"];
-
-const UPCOMING_ITEMS: UpcomingItem[] = MOCK_DAY_COUNTS.flatMap(
-  (count, dayIndex) =>
-    Array.from({ length: count }, (_, j): UpcomingItem => {
-      const platform = MOCK_PLATFORMS[j % MOCK_PLATFORMS.length];
-      return {
-        id: `mock-${dayIndex}-${j}`,
-        platform,
-        label: MOCK_LABELS[platform],
-        time: MOCK_TIMES[j % MOCK_TIMES.length],
-        dayIndex,
-      };
-    }),
-);
-
-// Demo weekly entries shown until the user logs real performance. Dated
-// relative to today so the calendar-window tabs (This Week / 7d / 30d) all
-// resolve to sensible, non-empty ranges out of the box.
-const FALLBACK_ENTRIES: OverviewEntry[] = Array.from({ length: 6 }, (_, i) => {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - (5 - i) * 7); // 6 weekly points up to today
-  const base = [820, 910, 1010, 1180, 1290, 1372][i];
-  return {
-    date: d.toISOString().slice(0, 10),
-    followers: base,
-    profileVisits: [220, 260, 240, 300, 340, 410][i],
-    engagementRate: [2.2, 2.4, 2.3, 2.6, 2.7, 2.8][i],
-    contentPublished: [3, 4, 4, 5, 6, 6][i],
-  };
-});
+// All mock-data fallbacks (programs, lessons, upcoming content, weekly
+// entries) were removed in the mock-data cleanup pass. Components now
+// render their own empty states when a user has no rows yet.

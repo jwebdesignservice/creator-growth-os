@@ -26,7 +26,6 @@ import {
   SUPPORT_PAGE_OPTIONS,
   SUPPORT_PRIORITY_OPTIONS,
   SUPPORT_DEVICE_OPTIONS,
-  SUPPORT_FORM_DRAFT,
   NEXT_STEPS,
   RESPONSE_TIMES,
 } from "./mock-data";
@@ -99,18 +98,18 @@ export function SupportPageClient({
   const [step, setStep] = useState<SupportStepKey>(initialStep);
   const [, startTransition] = useTransition();
 
-  // Form state — seeded from the draft so the layout feels alive on first
-  // load. Topic can also be deep-linked via /support/new?topic=<key>. Once a
-  // real ticket is submitted we reset on the success screen.
-  const [selectedTopic, setSelectedTopic] = useState<string>(
-    initialTopic ?? SUPPORT_FORM_DRAFT.selectedTopic,
-  );
-  const [subject,       setSubject]       = useState(SUPPORT_FORM_DRAFT.subject);
-  const [pageAffected,  setPageAffected]  = useState(SUPPORT_FORM_DRAFT.pageAffected);
-  const [priority,      setPriority]      = useState<string>(SUPPORT_FORM_DRAFT.priority);
-  const [device,        setDevice]        = useState(SUPPORT_FORM_DRAFT.device);
-  const [description,   setDescription]   = useState(SUPPORT_FORM_DRAFT.description);
-  const [ticketRef,     setTicketRef]     = useState(SUPPORT_FORM_DRAFT.ticketRef);
+  // Form state — empty by default. Topic can be deep-linked via
+  // /support/new?topic=<key>; other fields the user fills in fresh.
+  // (We used to seed every field from a mock draft to make the layout
+  // "feel alive", which left users staring at a pre-filled fake ticket
+  // about a "MacBook Pro Chrome upload issue" — confusing and wrong.)
+  const [selectedTopic, setSelectedTopic] = useState<string>(initialTopic ?? "");
+  const [subject,       setSubject]       = useState("");
+  const [pageAffected,  setPageAffected]  = useState("");
+  const [priority,      setPriority]      = useState<string>("medium");
+  const [device,        setDevice]        = useState("");
+  const [description,   setDescription]   = useState("");
+  const [ticketRef,     setTicketRef]     = useState("");
   const [attachment,    setAttachment]    = useState<File | null>(null);
 
   // Submission state.
@@ -235,11 +234,11 @@ export function SupportPageClient({
         {submitted ? (
           <SuccessCard publicId={submitted.publicId} onNew={() => {
             setSubmitted(null);
-            setSelectedTopic(SUPPORT_FORM_DRAFT.selectedTopic);
+            setSelectedTopic("");
             setSubject("");
-            setPageAffected(SUPPORT_FORM_DRAFT.pageAffected);
-            setPriority(SUPPORT_FORM_DRAFT.priority);
-            setDevice(SUPPORT_FORM_DRAFT.device);
+            setPageAffected("");
+            setPriority("medium");
+            setDevice("");
             setDescription("");
             setTicketRef("");
             setAttachment(null);
