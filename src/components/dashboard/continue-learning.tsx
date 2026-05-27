@@ -18,7 +18,7 @@ export function ContinueLearning({ lessons }: { lessons: Lesson[] }) {
           <GraduationCap className="size-[18px]" strokeWidth={1.9} />
         </span>
         <div className="min-w-0">
-          <h3 className="font-display text-[19px] text-ink-900 leading-tight">
+          <h3 className="text-h4 text-ink-900 leading-tight">
             Continue Learning
           </h3>
           <p className="text-[12.5px] text-ink-500 leading-snug">

@@ -443,7 +443,7 @@ function SummaryCard({ unreadCount }: { unreadCount: number }) {
       <div className="size-14 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-3">
         <Bell className="size-6 text-rose-600" strokeWidth={1.8} />
       </div>
-      <div className="font-display text-[36px] text-ink-900 leading-none">{unreadCount}</div>
+      <div className="text-h1 text-ink-900 leading-none">{unreadCount}</div>
       <div className="text-[13px] font-semibold text-ink-700 mt-1">Unread</div>
       <div className="text-[12px] text-ink-500 mt-0.5">
         {unreadCount === 0 ? "You're all caught up!" : "Stay on top of your updates."}

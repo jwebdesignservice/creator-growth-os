@@ -87,7 +87,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
 
       {/* Edit forms */}
       <section className="card p-6">
-        <h2 className="font-display text-[20px] text-ink-900 mb-4">
+        <h2 className="text-h4 text-ink-900 mb-4">
           Manage Access
         </h2>
         <UserEditForms
@@ -104,7 +104,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
 
       {/* Onboarding answers */}
       <section className="card p-6">
-        <h2 className="font-display text-[20px] text-ink-900 mb-4">
+        <h2 className="text-h4 text-ink-900 mb-4">
           Onboarding Answers
         </h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-[13px]">
@@ -151,7 +151,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
       {/* Subscription */}
       {subscription && (
         <section className="card p-6">
-          <h2 className="font-display text-[20px] text-ink-900 mb-4">
+          <h2 className="text-h4 text-ink-900 mb-4">
             Subscription
           </h2>
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 text-[13px]">

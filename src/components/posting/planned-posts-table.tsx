@@ -40,7 +40,7 @@ export function PlannedPostsTable({ items }: Props) {
   return (
     <section className="card overflow-hidden">
       <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
-        <h3 className="font-display text-[20px] text-ink-900">Planned Posts</h3>
+        <h3 className="text-h4 text-ink-900">Planned Posts</h3>
         <Link
           href="/posting?view=calendar"
           className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"

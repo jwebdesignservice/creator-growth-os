@@ -118,7 +118,7 @@ export function FeatureOverlayCard({
           <div className="h-2 bg-cream-200 rounded w-2/3" />
         </div>
         <div>
-          <h3 className="font-display text-[19px] text-ink-900 leading-tight mb-1">
+          <h3 className="text-h4 text-ink-900 leading-tight mb-1">
             {headline}
           </h3>
           <p className="text-[11.5px] text-ink-500 leading-snug">{blurb}</p>

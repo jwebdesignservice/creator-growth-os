@@ -165,7 +165,7 @@ export default async function TicketDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <h1 className="font-display text-[24px] sm:text-[30px] lg:text-[34px] text-ink-900 leading-tight tracking-tight">
+            <h1 className="text-h3 sm:text-[30px] lg:text-[34px] text-ink-900 leading-tight tracking-tight">
               {ticket.subject}
             </h1>
           </div>

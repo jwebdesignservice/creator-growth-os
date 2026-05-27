@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdminClient } from "@/lib/admin/require-admin";
 
 type Result = { ok: true } | { ok: false; error: string };
+type CreateResult = { ok: true; id: string; slug: string } | { ok: false; error: string };
 
 export async function createProgram(
   _prev: Result,
@@ -195,4 +196,100 @@ export async function archiveProgram(
   revalidatePath("/admin/programs");
   revalidatePath(`/admin/programs/${programId}`);
   return { ok: true };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Wizard-driven create
+   Used by /create-new/program — the 4-step "Create new" wizard sends the
+   collected fields here once the admin presses Publish / Save as draft /
+   Schedule. We map wizard concepts to real `programs` columns:
+     • tier            → plan_access  (diamond/undecided fall back to 'pro')
+     • thumbnailDataUrl → cover_image_url (data URLs stored inline for now;
+       a real upload to Supabase Storage can replace this without changing
+       the schema)
+     • publish flag    → published
+   The slug is auto-derived from the title — we re-try with a numeric
+   suffix on unique-constraint collisions so admins don't have to think
+   about slug uniqueness up-front.
+   ────────────────────────────────────────────────────────────────────────── */
+
+export type WizardProgramInput = {
+  title:             string;
+  description:       string;
+  audience:          string;   // free-form, stored in description prefix for now
+  level:             string;
+  goal:              string;
+  accessTier:        "free" | "basic" | "pro" | "diamond" | "undecided" | null;
+  thumbnailDataUrl:  string | null;
+  publish:           boolean;  // Publish vs Save-as-draft / Schedule
+};
+
+export async function createProgramFromWizard(
+  input: WizardProgramInput,
+): Promise<CreateResult> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return ctx;
+
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Title is required." };
+
+  // diamond / undecided don't map to a real subscription tier — collapse
+  // them onto the closest published tier so the row is always valid.
+  const planAccess: "free" | "basic" | "pro" =
+    input.accessTier === "free"
+      ? "free"
+      : input.accessTier === "pro" || input.accessTier === "diamond"
+        ? "pro"
+        : "basic";
+
+  const description = input.description.trim() || null;
+  const cover = input.thumbnailDataUrl?.trim() || null;
+  const baseSlug = slugify(title);
+
+  // Try `baseSlug`, then `baseSlug-2`, `baseSlug-3` … on collision.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
+    const { data, error } = await ctx.supabase
+      .from("programs")
+      .insert({
+        slug,
+        title,
+        description,
+        plan_access: planAccess,
+        cover_image_url: cover,
+        published: input.publish,
+        category_access: ["starter", "growth", "monetization", "scale"],
+      })
+      .select("id, slug")
+      .maybeSingle();
+
+    if (!error && data) {
+      revalidatePath("/admin/programs");
+      return { ok: true, id: data.id as string, slug: data.slug as string };
+    }
+    // 23505 = unique_violation (the slug is taken). Retry with a suffix.
+    if (error && error.code === "23505") continue;
+    if (error) return { ok: false, error: error.message };
+  }
+
+  return {
+    ok: false,
+    error:
+      "Could not find a unique slug for that title. Try a slightly different name.",
+  };
+}
+
+/** Lowercase, hyphenated, ASCII-safe slug. Falls back to "untitled-program"
+ *  so the insert never trips a NOT NULL constraint on `slug`. */
+function slugify(input: string): string {
+  const s = input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return s || "untitled-program";
 }

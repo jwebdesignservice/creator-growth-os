@@ -50,7 +50,7 @@ export default async function AdminPerformancePage() {
   return (
     <div className="space-y-6 container-app">
       <header>
-        <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-1">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-1">
           Performance
         </h1>
         <p className="text-ink-500 text-[14px]">
@@ -77,7 +77,7 @@ export default async function AdminPerformancePage() {
 
       <section className="card overflow-hidden">
         <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
-          <h2 className="font-display text-[20px] text-ink-900">
+          <h2 className="text-h4 text-ink-900">
             Recent submissions
           </h2>
           <span className="text-[12px] text-ink-500">
@@ -157,7 +157,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-[11px] text-ink-500 font-medium uppercase tracking-wide">
         {label}
       </div>
-      <div className="font-display text-[24px] text-ink-900 tabular-nums mt-1">
+      <div className="text-h3 text-ink-900 tabular-nums mt-1">
         {value}
       </div>
     </div>

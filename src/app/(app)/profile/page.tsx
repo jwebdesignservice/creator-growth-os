@@ -169,7 +169,7 @@ export default async function ProfilePage() {
         {/* Profile basics from onboarding */}
         <section className="card p-5 sm:p-6">
           <header className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-[18px] text-ink-900">
+            <h2 className="text-h4 text-ink-900">
               About my creator profile
             </h2>
             <Link

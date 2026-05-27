@@ -267,7 +267,7 @@ function DialogShell({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-[20px] text-ink-900">{title}</h3>
+          <h3 className="text-h4 text-ink-900">{title}</h3>
           <button
             type="button"
             onClick={onClose}

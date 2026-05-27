@@ -86,7 +86,7 @@ export default async function AdminProgramDetailPage({
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-display text-[34px] sm:text-[36px] text-ink-900 leading-tight">
+              <h1 className="text-h1 sm:text-[36px] text-ink-900 leading-tight">
                 Program Setup Guide
               </h1>
               <span

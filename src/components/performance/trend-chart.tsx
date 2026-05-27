@@ -128,7 +128,7 @@ function Header({
 }) {
   return (
     <header className="flex items-start justify-between gap-3 flex-wrap mb-4">
-      <h3 className="font-display text-[19px] text-ink-900">{title}</h3>
+      <h3 className="text-h4 text-ink-900">{title}</h3>
 
       <div className="flex items-center gap-2 flex-wrap">
         <div
@@ -523,7 +523,7 @@ function SingleValueState({
       <div className="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
         {metricLabel(metric)} · {formatLongDate(entry.week_start)}
       </div>
-      <div className="font-display text-[36px] text-ink-900 leading-none mb-2 tabular-nums">
+      <div className="text-h1 text-ink-900 leading-none mb-2 tabular-nums">
         {formatValue(metric, value)}
       </div>
       <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
@@ -548,7 +548,7 @@ function NoDataState() {
       <div className="size-11 rounded-full bg-rose-100 inline-flex items-center justify-center mb-3">
         <LineChart className="size-5 text-rose-600" strokeWidth={2} />
       </div>
-      <h4 className="font-display text-[17px] text-ink-900 mb-1">
+      <h4 className="text-h5 text-ink-900 mb-1">
         No performance data yet
       </h4>
       <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
@@ -594,7 +594,7 @@ function SparseWindowState({
         <LineChart className="size-5 text-rose-600" strokeWidth={2} />
       </div>
 
-      <h4 className="font-display text-[17px] text-ink-900 mb-1">
+      <h4 className="text-h5 text-ink-900 mb-1">
         No logs in the last {windowDays} days
       </h4>
       <p className="text-[13px] text-ink-500 max-w-sm mb-4 leading-relaxed">

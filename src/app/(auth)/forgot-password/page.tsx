@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
           className="relative z-10 inline-flex items-center gap-2.5 self-start hover:opacity-90 transition-opacity"
         >
           <BrandMark size={36} />
-          <span className="font-display text-[18px] text-ink-900 leading-none tracking-tight">
+          <span className="text-h4 text-ink-900 leading-none tracking-tight">
             {BRAND_NAME}
           </span>
         </Link>
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
           </div>
 
           <header className="mb-8 text-center">
-            <h1 className="font-display text-[34px] sm:text-[40px] text-ink-900 leading-tight mb-3">
+            <h1 className="text-h1 sm:text-[40px] text-ink-900 leading-tight mb-3">
               Forgot Password?
             </h1>
             <p className="text-ink-500 text-[14.5px] leading-relaxed">

@@ -205,7 +205,7 @@ export default async function ProgramLessonPage({
                 <div className="text-[12px] font-semibold uppercase tracking-wider text-rose-600 mb-1.5">
                   Module {moduleNumber} · {moduleTitle}
                 </div>
-                <h1 className="font-display text-[24px] sm:text-[28px] text-ink-900 leading-tight">
+                <h1 className="text-h3 sm:text-[28px] text-ink-900 leading-tight">
                   {title}
                 </h1>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -355,7 +355,7 @@ function LessonOverview({
           <BookOpen className="size-[20px]" strokeWidth={1.9} />
         </span>
         <div className="flex-1 min-w-0">
-          <h2 className="font-display text-[22px] sm:text-[24px] text-ink-900 leading-tight mb-1">
+          <h2 className="text-h3 sm:text-[24px] text-ink-900 leading-tight mb-1">
             Lesson Overview
           </h2>
           <p className="text-[12.5px] sm:text-[13px] text-ink-500 leading-snug max-w-2xl">

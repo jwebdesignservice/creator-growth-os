@@ -46,7 +46,7 @@ export default async function ResetPasswordPage() {
           className="relative z-10 inline-flex items-center gap-2.5 self-start hover:opacity-90 transition-opacity"
         >
           <BrandMark size={36} />
-          <span className="font-display text-[18px] text-ink-900 leading-none tracking-tight">
+          <span className="text-h4 text-ink-900 leading-none tracking-tight">
             {BRAND_NAME}
           </span>
         </Link>
@@ -91,7 +91,7 @@ export default async function ResetPasswordPage() {
           </div>
 
           <header className="mb-7 sm:mb-8">
-            <h1 className="font-display text-[28px] sm:text-[34px] lg:text-[40px] text-ink-900 leading-tight mb-2.5 sm:mb-3">
+            <h1 className="text-h2 sm:text-[34px] lg:text-[40px] text-ink-900 leading-tight mb-2.5 sm:mb-3">
               Set a new password
             </h1>
             <p className="text-ink-500 text-[14px] sm:text-[14.5px] leading-relaxed">

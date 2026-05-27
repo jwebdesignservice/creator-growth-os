@@ -63,7 +63,7 @@ export default async function TutorialDetailPage({
 
         {/* Title + meta row */}
         <header>
-          <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-2">
+          <h1 className="text-h1 text-ink-900 leading-tight mb-2">
             {lesson.title}
           </h1>
           <p className="text-ink-500 text-[14px] max-w-2xl">

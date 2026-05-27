@@ -155,7 +155,7 @@ export default async function SupportHubPage() {
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-rose-600 mb-2">
             Support Center
           </p>
-          <h1 className="font-display text-[28px] sm:text-[36px] text-ink-900 leading-tight">
+          <h1 className="text-h2 sm:text-[36px] text-ink-900 leading-tight">
             Help &amp; Support
           </h1>
           <p className="mt-2 text-[13.5px] sm:text-[14px] text-ink-500 leading-relaxed max-w-2xl">

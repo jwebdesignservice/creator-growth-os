@@ -44,7 +44,7 @@ export function NewPostForm({ spaces }: { spaces: SpaceOption[] }) {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display text-[18px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Start a discussion
         </h3>
         <button

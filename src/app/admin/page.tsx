@@ -35,7 +35,7 @@ export default async function AdminDashboardPage() {
       {/* Header */}
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-display text-[36px] text-ink-900 leading-tight mb-1">
+          <h1 className="text-h1 text-ink-900 leading-tight mb-1">
             Admin Dashboard
           </h1>
           <p className="text-ink-500 text-[14px]">
@@ -81,7 +81,7 @@ export default async function AdminDashboardPage() {
       {/* Recent signups */}
       <section className="card overflow-hidden">
         <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
-          <h3 className="font-display text-[19px] text-ink-900">
+          <h3 className="text-h4 text-ink-900">
             Recent Signups
           </h3>
           <Link
@@ -168,7 +168,7 @@ function DistributionCard({
 }) {
   return (
     <div className="card p-5">
-      <h3 className="font-display text-[19px] text-ink-900 mb-4">{title}</h3>
+      <h3 className="text-h4 text-ink-900 mb-4">{title}</h3>
       <ul className="space-y-3">
         {rows.map((r) => {
           const pct = total === 0 ? 0 : Math.round((r.count / total) * 100);

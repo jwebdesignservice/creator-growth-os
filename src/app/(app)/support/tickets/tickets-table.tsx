@@ -165,7 +165,7 @@ export function TicketsTable({ tickets }: { tickets: SupportTicket[] }) {
         {/* ── Header row ──────────────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-3 sm:gap-4 flex-wrap p-5 sm:p-6">
           <div className="min-w-0">
-            <h1 className="font-display text-[22px] sm:text-[26px] text-ink-900 leading-tight">
+            <h1 className="text-h3 sm:text-[26px] text-ink-900 leading-tight">
               Support tickets
             </h1>
             <p className="mt-1 text-[12.5px] sm:text-[13px] text-ink-500">

@@ -93,7 +93,7 @@ export function MediaKitBuilder({
     <div className="card p-[var(--space-card-padding)]">
       <header className="flex items-start justify-between gap-3 mb-5 flex-wrap">
         <div>
-          <h2 className="font-display text-[22px] text-ink-900 leading-tight">
+          <h2 className="text-h3 text-ink-900 leading-tight">
             Media Kit Builder
           </h2>
           <p className="text-[13px] text-ink-500 mt-1">

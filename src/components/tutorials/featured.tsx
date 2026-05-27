@@ -26,7 +26,7 @@ export function FeaturedTutorial({
             <Sparkles className="size-3" strokeWidth={2} />
             Featured Lesson
           </span>
-          <h2 className="font-display text-[22px] sm:text-[26px] lg:text-[30px] 2xl:text-[34px] text-ink-900 leading-tight mb-3">
+          <h2 className="text-h3 sm:text-[26px] lg:text-[30px] 2xl:text-[34px] text-ink-900 leading-tight mb-3">
             {title}
           </h2>
           <p className="text-ink-500 text-[14px] max-w-md mb-5 leading-relaxed">

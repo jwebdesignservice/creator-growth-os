@@ -40,7 +40,7 @@ export function ConnectSocialCard() {
             <Share2 className="size-[18px]" strokeWidth={1.8} />
           </span>
           <div className="min-w-0">
-            <h2 className="font-display text-[18px] text-ink-900 leading-tight">
+            <h2 className="text-h4 text-ink-900 leading-tight">
               Connect Social Accounts
             </h2>
             <p className="text-[13px] text-ink-500 mt-1 max-w-[58ch] leading-snug">

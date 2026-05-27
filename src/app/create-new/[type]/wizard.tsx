@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -34,11 +34,14 @@ import {
   Save,
   Rocket,
   Calendar,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND_NAME } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import type { WizardType } from "./types";
+import { createProgramFromWizard } from "@/app/admin/programs/actions";
 
 const TOTAL_STEPS = 4;
 
@@ -145,6 +148,8 @@ export function CreateWizard({ type }: { type: WizardType }) {
   const [accessTier, setAccessTier] = useState<AccessTier | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledFor, setScheduledFor] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canContinueStep1 = title.trim().length > 0 && description.trim().length > 0;
   const canContinueStep3 = accessTier !== null;
@@ -175,22 +180,62 @@ export function CreateWizard({ type }: { type: WizardType }) {
     goNext();
   }
 
-  /* ── Step 4 finalize actions ────────────────────────────────────────────
-     All three actions navigate to the matching admin list for now. Swap
-     each one for a real server action (createDraft / scheduleFor /
-     publishNow) when the persistence layer for this content type lands. */
-  function finishTo() {
-    router.push(COMPLETED_HREF[type]);
+  /* ── Step 4 finalize actions ──────────────────────────────────────────── */
+
+  /**
+   * Persist the program by calling the wizard create action, then route
+   * to its admin detail page (or back to the list if persistence isn't
+   * wired for the chosen content type yet).
+   *
+   * `publish` controls the published flag on the new row:
+   *   - "Publish"        → published: true
+   *   - "Save as draft"  → published: false
+   *   - "Schedule"       → published: false (no scheduler worker yet,
+   *                         so the row lives as a draft until the admin
+   *                         publishes manually).
+   */
+  function finalize(publish: boolean) {
+    setSubmitError(null);
+
+    // Persistence is currently only wired for the `program` type. Other
+    // types (video / task / posting-plan) still fall back to navigating
+    // to their list view until their respective backends are landed.
+    if (type !== "program") {
+      router.push(COMPLETED_HREF[type]);
+      return;
+    }
+
+    startTransition(async () => {
+      const res = await createProgramFromWizard({
+        title,
+        description,
+        audience,
+        level,
+        goal,
+        accessTier,
+        thumbnailDataUrl,
+        publish,
+      });
+      if (!res.ok) {
+        setSubmitError(res.error);
+        return;
+      }
+      // Open the new program's admin setup guide so the admin can keep
+      // building modules / lessons right after creating the program.
+      router.push(`/admin/programs/${res.id}`);
+    });
   }
+
   function saveAsDraft() {
-    finishTo();
+    finalize(false);
   }
   function publishNow() {
-    finishTo();
+    finalize(true);
   }
   function confirmSchedule() {
     if (!scheduledFor) return;
-    finishTo();
+    // Scheduling is treated as a draft until a scheduler worker exists.
+    finalize(false);
   }
 
   function onPrimaryAction() {
@@ -222,7 +267,7 @@ export function CreateWizard({ type }: { type: WizardType }) {
               className="inline-flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
               <BrandMark size={28} />
-              <span className="font-display text-[18px] sm:text-[20px] text-ink-900 leading-none tracking-tight">
+              <span className="text-h4 sm:text-[20px] text-ink-900 leading-none tracking-tight">
                 {BRAND_NAME}
               </span>
               <Sparkles className="size-4 text-rose-400" strokeWidth={2} aria-hidden />
@@ -314,20 +359,35 @@ export function CreateWizard({ type }: { type: WizardType }) {
 
             {step === TOTAL_STEPS ? (
               <div className="flex items-center gap-2.5 flex-wrap justify-end">
+                {submitError && (
+                  <span
+                    role="alert"
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-rose-50 border border-rose-200 text-[12.5px] text-rose-700"
+                  >
+                    <AlertCircle className="size-3.5" strokeWidth={2} />
+                    {submitError}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={saveAsDraft}
-                  className="inline-flex items-center gap-2 h-12 px-5 rounded-[14px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors"
+                  disabled={pending}
+                  className="inline-flex items-center gap-2 h-12 px-5 rounded-[14px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Save className="size-4" strokeWidth={1.9} />
+                  {pending ? (
+                    <Loader2 className="size-4 animate-spin" strokeWidth={1.9} />
+                  ) : (
+                    <Save className="size-4" strokeWidth={1.9} />
+                  )}
                   Save as Draft
                 </button>
                 <button
                   type="button"
                   onClick={() => setScheduleOpen((v) => !v)}
                   aria-pressed={scheduleOpen}
+                  disabled={pending}
                   className={cn(
-                    "inline-flex items-center gap-2 h-12 px-5 rounded-[14px] border text-[14px] font-medium transition-colors",
+                    "inline-flex items-center gap-2 h-12 px-5 rounded-[14px] border text-[14px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     scheduleOpen
                       ? "bg-rose-50 border-rose-300 text-rose-700"
                       : "bg-white border-ink-200 text-ink-900 hover:bg-cream-100",
@@ -339,10 +399,15 @@ export function CreateWizard({ type }: { type: WizardType }) {
                 <button
                   type="button"
                   onClick={publishNow}
-                  className="inline-flex items-center gap-2 h-12 px-7 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-semibold transition-colors shadow-sm"
+                  disabled={pending}
+                  className="inline-flex items-center gap-2 h-12 px-7 rounded-[14px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 disabled:cursor-not-allowed text-white text-[15px] font-semibold transition-colors shadow-sm"
                 >
-                  <Rocket className="size-4" strokeWidth={2} />
-                  Publish
+                  {pending ? (
+                    <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <Rocket className="size-4" strokeWidth={2} />
+                  )}
+                  {pending ? "Publishing…" : "Publish"}
                 </button>
               </div>
             ) : (
@@ -757,7 +822,7 @@ function ThumbnailUploadCard({
         <UploadCloud className="size-7" strokeWidth={1.8} aria-hidden />
       </div>
 
-      <h3 className="font-display text-[22px] sm:text-[24px] text-ink-900 leading-tight mt-4 mb-1.5">
+      <h3 className="text-h3 sm:text-[24px] text-ink-900 leading-tight mt-4 mb-1.5">
         Upload an image
       </h3>
       <p className="text-[13.5px] text-ink-500 leading-relaxed">
@@ -871,7 +936,7 @@ function ThumbnailSkipCard({ onSkip }: { onSkip: () => void }) {
         <ImageIcon className="size-7" strokeWidth={1.8} aria-hidden />
       </div>
 
-      <h3 className="font-display text-[22px] sm:text-[24px] text-ink-900 leading-tight mt-4 mb-1.5">
+      <h3 className="text-h3 sm:text-[24px] text-ink-900 leading-tight mt-4 mb-1.5">
         Choose one later
       </h3>
       <p className="text-[13.5px] text-ink-500 leading-relaxed">
@@ -989,7 +1054,7 @@ function TierRow({
 
         {/* Title + description */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-display text-[18px] sm:text-[20px] text-ink-900 leading-snug">
+          <h3 className="text-h4 sm:text-[20px] text-ink-900 leading-snug">
             {tier.title}
           </h3>
           <p className="text-[12.5px] sm:text-[13px] text-ink-500 leading-snug mt-0.5">
@@ -1092,7 +1157,7 @@ function Step4Finalize({
 
           {/* Title + description */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-display text-[22px] sm:text-[26px] text-ink-900 leading-tight">
+            <h3 className="text-h3 sm:text-[26px] text-ink-900 leading-tight">
               {title || `Untitled ${copy.noun}`}
             </h3>
             {description ? (

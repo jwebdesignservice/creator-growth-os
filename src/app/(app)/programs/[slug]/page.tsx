@@ -201,7 +201,7 @@ function ProgramHero({
     <section className="rounded-[24px] bg-cream-200 overflow-hidden relative">
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 p-8 lg:p-10">
         <div className="max-w-2xl relative z-10">
-          <h1 className="font-display text-[36px] lg:text-[40px] text-ink-900 leading-tight mb-3">
+          <h1 className="text-h1 lg:text-[40px] text-ink-900 leading-tight mb-3">
             {title}
           </h1>
           <p className="text-ink-700 text-[14.5px] leading-relaxed max-w-md mb-5">
@@ -344,7 +344,7 @@ function WhatYoullLearn({
               <BookOpen className="size-[22px]" strokeWidth={1.9} />
             </span>
             <div className="min-w-0">
-              <h2 className="font-display text-[24px] text-ink-900 leading-tight mb-1">
+              <h2 className="text-h3 text-ink-900 leading-tight mb-1">
                 What You&apos;ll Learn
               </h2>
               <p className="text-[13px] text-ink-500 leading-snug max-w-md">
@@ -430,7 +430,7 @@ function WhatYoullLearn({
             <p className="text-[12.5px] text-ink-500 mb-1.5">
               You&apos;re all set!
             </p>
-            <h3 className="font-display text-[24px] text-ink-900 leading-tight mb-3">
+            <h3 className="text-h3 text-ink-900 leading-tight mb-3">
               All lessons completed
             </h3>
             <p className="text-[12.5px] text-ink-500 leading-relaxed mb-5 max-w-[220px]">
@@ -443,7 +443,7 @@ function WhatYoullLearn({
             <p className="text-[12.5px] text-ink-500 mb-1.5">
               You&apos;re making progress!
             </p>
-            <h3 className="font-display text-[24px] text-ink-900 leading-tight mb-3 tabular-nums">
+            <h3 className="text-h3 text-ink-900 leading-tight mb-3 tabular-nums">
               {percent}% complete
             </h3>
             <p className="text-[12.5px] text-ink-500 leading-relaxed mb-5 max-w-[220px]">
@@ -713,7 +713,7 @@ function ResourcesPanel() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <TemplatesDownloads />
       <div className="card p-5">
-        <h3 className="font-display text-[18px] text-ink-900 mb-2">
+        <h3 className="text-h4 text-ink-900 mb-2">
           Replays &amp; Workshops
         </h3>
         <p className="text-[13px] text-ink-500">

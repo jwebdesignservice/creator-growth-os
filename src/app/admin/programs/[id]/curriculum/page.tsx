@@ -153,7 +153,7 @@ export default async function CurriculumEditorPage({
         </nav>
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <h1 className="font-display text-[34px] sm:text-[36px] text-ink-900 leading-tight">
+            <h1 className="text-h1 sm:text-[36px] text-ink-900 leading-tight">
               Curriculum
             </h1>
             <p className="mt-2 text-[14px] text-ink-500 max-w-2xl">

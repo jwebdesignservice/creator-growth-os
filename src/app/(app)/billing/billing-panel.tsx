@@ -97,10 +97,10 @@ export function BillingPageClient({
               Welcome back, {firstName}! <span aria-hidden>👋</span>
             </div>
           )}
-          <h1 className="font-display text-[var(--text-page-title)] text-ink-900 leading-tight">
+          <h1 className="font-display text-page-title text-ink-900 leading-tight">
             Billing
           </h1>
-          <p className="text-[var(--text-body-sm)] text-ink-500 mt-1">
+          <p className="text-body-sm text-ink-500 mt-1">
             Manage your subscription, payment methods, and invoices.
           </p>
           {!stripeReady && (
@@ -241,10 +241,10 @@ function CurrentPlanCard({
           />
         </div>
         <div>
-          <div className="font-display text-[var(--text-page-title)] text-ink-900 leading-none">
+          <div className="font-display text-page-title text-ink-900 leading-none">
             {info.label}
           </div>
-          <div className="text-[var(--text-body-sm)] text-ink-500 mt-1">
+          <div className="text-body-sm text-ink-500 mt-1">
             <span className="font-bold text-ink-900">{info.price}</span>
             <span className="ml-1">kr/month</span>
           </div>
@@ -259,16 +259,16 @@ function CurrentPlanCard({
           </span>
         </DetailRow>
         <DetailRow label="Next payment">
-          <span className="inline-flex items-center gap-1.5 text-[var(--text-small)] text-ink-700">
+          <span className="inline-flex items-center gap-1.5 text-small text-ink-700">
             <Calendar className="size-3.5 text-ink-400 shrink-0" strokeWidth={2} />
             {nextPaymentDate}
           </span>
         </DetailRow>
         <DetailRow label="Billing cycle">
-          <span className="text-[var(--text-small)] text-ink-700">Monthly</span>
+          <span className="text-small text-ink-700">Monthly</span>
         </DetailRow>
         <DetailRow label="Plan">
-          <span className="text-[var(--text-small)] text-ink-700 capitalize">
+          <span className="text-small text-ink-700 capitalize">
             {plan}
           </span>
         </DetailRow>
@@ -302,7 +302,7 @@ function CurrentPlanCard({
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 min-w-0">
-      <span className="text-[var(--text-small)] text-ink-500 shrink-0">{label}</span>
+      <span className="text-small text-ink-500 shrink-0">{label}</span>
       <div className="shrink-0">{children}</div>
     </div>
   );
@@ -379,7 +379,7 @@ function PlanCard({
       {/* Header */}
       <div className="mb-[var(--space-stack-md)]">
         <div className="flex items-center justify-between gap-1 mb-1 flex-wrap">
-          <span className="text-[var(--text-body-sm)] font-bold text-ink-900">
+          <span className="text-body-sm font-bold text-ink-900">
             {info.label}
           </span>
           {isCurrent && (
@@ -389,12 +389,12 @@ function PlanCard({
           )}
         </div>
         <div className="flex items-baseline gap-1">
-          <span className="font-display text-[var(--text-h4)] text-ink-900">
+          <span className="font-display text-h4 text-ink-900">
             {info.price}
           </span>
           <span className="text-[11px] text-ink-500">kr/month</span>
         </div>
-        <p className="text-[var(--text-tiny)] text-ink-500 mt-1 leading-snug">
+        <p className="text-tiny text-ink-500 mt-1 leading-snug">
           {info.description}
         </p>
       </div>
@@ -442,7 +442,7 @@ function PlanCard({
               className="size-3.5 text-rose-500 mt-[0.15rem] shrink-0"
               strokeWidth={2.5}
             />
-            <span className="text-[var(--text-tiny)] text-ink-700 leading-snug">
+            <span className="text-tiny text-ink-700 leading-snug">
               {f}
             </span>
           </li>

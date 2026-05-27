@@ -46,7 +46,7 @@ export function EmailNav({
         className="px-6 py-6 hover:opacity-90 transition-opacity"
         title="Admin"
       >
-        <span className="font-display text-[18px] text-rose-600 leading-none">
+        <span className="text-h4 text-rose-600 leading-none">
           profluencer
         </span>
       </Link>

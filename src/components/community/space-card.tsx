@@ -32,7 +32,7 @@ export function SpaceCard({
         className={`size-12 rounded-[12px] bg-gradient-to-br ${gradients[hue]} mb-4`}
       />
       <div className="flex items-start justify-between gap-2 mb-1">
-        <h3 className="font-display text-[19px] text-ink-900 leading-tight">
+        <h3 className="text-h4 text-ink-900 leading-tight">
           {name}
         </h3>
         {featured && (

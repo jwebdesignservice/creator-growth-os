@@ -132,7 +132,7 @@ function RecommendedForYou({ programs }: { programs: ProgramRow[] }) {
   return (
     <div className="card p-5">
       <header className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[18px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Recommended For You
         </h3>
         <Link
@@ -183,7 +183,7 @@ function CreatorDrills() {
   return (
     <div className="card p-5">
       <header className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-[18px] text-ink-900">
+        <h3 className="text-h4 text-ink-900">
           Creator Drills / Tutorials
         </h3>
         <Link
@@ -225,7 +225,7 @@ function UpgradeAccent() {
   return (
     <div className="rounded-[16px] bg-rose-50/80 border border-rose-100 p-5 flex flex-col">
       <Sparkles className="size-5 text-rose-500 mb-3" strokeWidth={2} />
-      <h3 className="font-display text-[20px] text-ink-900 leading-tight mb-2">
+      <h3 className="text-h4 text-ink-900 leading-tight mb-2">
         Unlock the Pro track
       </h3>
       <p className="text-[13px] text-ink-700 leading-snug mb-4 flex-1">

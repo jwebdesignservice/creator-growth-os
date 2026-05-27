@@ -38,7 +38,7 @@ export function CompleteStep({ firstName, onBack }: Props) {
             <Check className="size-16 text-success" strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="font-display text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
+            <h1 className="text-h1 lg:text-[42px] text-ink-900 leading-tight mb-2">
               {firstName
                 ? `You're all set, ${firstName}! 🎉`
                 : "Your personalized dashboard is ready 🎉"}

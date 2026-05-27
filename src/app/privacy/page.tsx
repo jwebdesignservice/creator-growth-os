@@ -36,7 +36,7 @@ export default function PrivacyPage() {
 
         <div className="space-y-6 text-[14.5px] text-ink-800 leading-relaxed">
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               1. What we collect
             </h2>
             <p>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               2. Why we collect it
             </h2>
             <p>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               3. Who processes it
             </h2>
             <p>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               4. Cookies & sessions
             </h2>
             <p>
@@ -91,7 +91,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               5. Your data, your control
             </h2>
             <p>You can at any time:</p>
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               6. Public information
             </h2>
             <p>
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               7. Children
             </h2>
             <p>
@@ -129,7 +129,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               8. Changes
             </h2>
             <p>
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-[22px] text-ink-900 mb-2">
+            <h2 className="text-h3 text-ink-900 mb-2">
               9. Contact
             </h2>
             <p>

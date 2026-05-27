@@ -366,7 +366,7 @@ function EmptyBuilds() {
       <span className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-3 mx-auto">
         <Sparkles className="size-6" strokeWidth={1.8} fill="currentColor" />
       </span>
-      <h2 className="font-display text-[22px] text-ink-900 mb-1">
+      <h2 className="text-h3 text-ink-900 mb-1">
         No program builds in flight
       </h2>
       <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-5">

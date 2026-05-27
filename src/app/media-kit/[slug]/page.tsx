@@ -101,7 +101,7 @@ export default async function MediaKitPublicPage({
                     <dt className="text-[11.5px] text-ink-500 capitalize">
                       {k.replace(/_/g, " ")}
                     </dt>
-                    <dd className="font-display text-[20px] text-ink-900 tabular-nums mt-1">
+                    <dd className="text-h4 text-ink-900 tabular-nums mt-1">
                       {Number(v).toLocaleString()}
                     </dd>
                   </div>

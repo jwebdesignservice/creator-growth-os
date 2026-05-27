@@ -74,7 +74,7 @@ export function ContentCalendar({ items, weekStart }: Props) {
     <section className="card overflow-hidden">
       <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
         <div>
-          <h3 className="font-display text-[20px] text-ink-900 leading-none">
+          <h3 className="text-h4 text-ink-900 leading-none">
             Content Calendar
           </h3>
           <p className="text-[12px] text-ink-500 mt-1">
