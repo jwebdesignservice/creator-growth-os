@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { PlayCircle, Plus } from "lucide-react";
 import {
   AdminSurfaceSidebar,
   type SurfaceSidebarItem,
@@ -12,11 +11,14 @@ import { getAdminContext } from "@/lib/admin/is-admin";
  * console's outer chrome and the page content, so every page under
  * /admin/tutorials/* (list, edit, new, …) gets the same inner nav.
  *
- * Adding more items here requires no per-page changes.
+ * Icon names are string keys (not component refs) because layouts are
+ * server components and React 19 blocks passing Lucide component
+ * references across the server→client boundary. The actual icons live
+ * in `surface-sidebar.tsx`.
  */
 const TUTORIALS_NAV: SurfaceSidebarItem[] = [
-  { label: "All tutorials", href: "/admin/tutorials",     icon: PlayCircle },
-  { label: "New tutorial",  href: "/admin/tutorials/new", icon: Plus },
+  { label: "All tutorials", href: "/admin/tutorials",     icon: "play-circle" },
+  { label: "New tutorial",  href: "/admin/tutorials/new", icon: "plus" },
 ];
 
 export default async function AdminTutorialsLayout({

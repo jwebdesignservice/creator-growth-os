@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, type LucideIcon } from "lucide-react";
+import {
+  ChevronDown,
+  PlayCircle,
+  Plus,
+  Mail,
+  FileText,
+  History,
+  Settings,
+  Workflow,
+  PenSquare,
+  Send,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -13,11 +25,40 @@ import { cn } from "@/lib/cn";
  *
  * To wire a new surface: create a section layout that calls this with
  * its own `sectionLabel`, `items`, and admin info.
+ *
+ * IMPORTANT: `icon` is a serializable string key — NOT a component
+ * reference. Layouts are server components in Next.js 16, and React 19
+ * forbids passing function/class objects (including Lucide icon
+ * components) across the server→client boundary. Add new icons to
+ * `ICONS` below and reference them by name in the layout's nav items.
  */
+export type SurfaceSidebarIconKey =
+  | "play-circle"
+  | "plus"
+  | "mail"
+  | "file-text"
+  | "history"
+  | "settings"
+  | "workflow"
+  | "pen-square"
+  | "send";
+
+const ICONS: Record<SurfaceSidebarIconKey, LucideIcon> = {
+  "play-circle": PlayCircle,
+  plus:          Plus,
+  mail:          Mail,
+  "file-text":   FileText,
+  history:       History,
+  settings:      Settings,
+  workflow:      Workflow,
+  "pen-square":  PenSquare,
+  send:          Send,
+};
+
 export type SurfaceSidebarItem = {
   label: string;
   href: string;
-  icon: LucideIcon;
+  icon: SurfaceSidebarIconKey;
 };
 
 type Props = {
@@ -67,7 +108,7 @@ export function AdminSurfaceSidebar({
         <ul className="space-y-1">
           {items.map((item) => {
             const active = isActive(pathname, item.href);
-            const Icon = item.icon;
+            const Icon = ICONS[item.icon];
             return (
               <li key={item.href}>
                 <Link
