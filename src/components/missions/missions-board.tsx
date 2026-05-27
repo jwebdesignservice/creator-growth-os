@@ -372,7 +372,7 @@ function ChallengeBanner() {
             Active Challenge · Day {completed} of {total}
           </span>
 
-          <h3 className="font-display text-[26px] sm:text-[32px] text-ink-900 leading-tight mt-3 mb-2">
+          <h3 className="text-h2 sm:text-[32px] text-ink-900 leading-tight mt-3 mb-2">
             7-Day Posting Challenge
           </h3>
           <p className="text-ink-500 text-[13.5px] leading-relaxed max-w-xl">

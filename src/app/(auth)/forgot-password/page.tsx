@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
           {/* Mobile brand — visible only when illustration panel is hidden. */}
           <div className="lg:hidden flex items-center gap-2.5 mb-8 mt-2">
             <BrandMark size={32} />
-            <span className="font-display text-[16px] text-ink-900 leading-none">
+            <span className="text-h5 text-ink-900 leading-none">
               {BRAND_NAME}
             </span>
           </div>

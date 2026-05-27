@@ -29,7 +29,7 @@ export function ReadinessScore({ snap }: { snap: ReadinessSnapshot }) {
             <TrendingUp className="size-3.5" strokeWidth={2} />
             Monetization Readiness
           </div>
-          <h2 className="font-display text-[26px] text-ink-900 leading-tight">
+          <h2 className="text-h2 text-ink-900 leading-tight">
             {tone} — {snap.score}/100
           </h2>
           <p className="text-[13px] text-ink-500 mt-1">

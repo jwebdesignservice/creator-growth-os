@@ -97,7 +97,7 @@ export default async function CommunityPage() {
                       Live now
                     </span>
                   </div>
-                  <h2 className="font-display text-[26px] lg:text-[32px] text-ink-900 leading-tight mb-1">
+                  <h2 className="text-h2 text-ink-900 leading-tight mb-1">
                     Community Chat
                   </h2>
                   <p className="text-[14px] text-ink-700 max-w-xl">

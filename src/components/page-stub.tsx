@@ -12,7 +12,7 @@ export function PageStub({ title, description, nextStep }: Props) {
     <PageShell>
     <div className="max-w-[1240px] mx-auto">
       <header className="mb-6">
-        <h1 className="font-display text-[40px] text-ink-900 leading-none mb-2">
+        <h1 className="text-h1 text-ink-900 leading-none mb-2">
           {title}
         </h1>
         <p className="text-ink-500 text-[14.5px]">{description}</p>

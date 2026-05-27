@@ -85,7 +85,7 @@ export default async function ResetPasswordPage() {
         <div className="w-full max-w-[440px]">
           <div className="lg:hidden flex items-center gap-2.5 mb-7 sm:mb-8">
             <BrandMark size={32} />
-            <span className="font-display text-[16px] text-ink-900 leading-none">
+            <span className="text-h5 text-ink-900 leading-none">
               {BRAND_NAME}
             </span>
           </div>

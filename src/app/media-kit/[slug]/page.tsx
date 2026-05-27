@@ -60,7 +60,7 @@ export default async function MediaKitPublicPage({
               {name.charAt(0).toUpperCase()}
             </div>
           )}
-          <h1 className="font-display text-[32px] text-ink-900 leading-tight">
+          <h1 className="text-h1 text-ink-900 leading-tight">
             {name}
           </h1>
           {typedKit.niche && (
@@ -124,7 +124,7 @@ export default async function MediaKitPublicPage({
                     <span className="text-[14px] text-ink-800 capitalize">
                       {k.replace(/_/g, " ")}
                     </span>
-                    <span className="font-display text-[16px] text-ink-900 tabular-nums">
+                    <span className="text-h5 text-ink-900 tabular-nums">
                       {Number(v).toLocaleString()} kr
                     </span>
                   </li>

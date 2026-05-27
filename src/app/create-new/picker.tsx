@@ -112,7 +112,7 @@ export function CreateNewPicker() {
 
           {/* Heading */}
           <div>
-            <h1 className="font-display text-[30px] sm:text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
+            <h1 className="text-h1 text-ink-900 leading-tight mb-2">
               Choose what to create
             </h1>
             <p className="text-ink-500 text-[14px] sm:text-[15px] max-w-2xl leading-relaxed">

@@ -166,7 +166,7 @@ export default async function ProgramLessonPage({
               <div className="text-[12px] font-semibold uppercase tracking-wider text-rose-600 mb-1.5">
                 Module {moduleNumber} · {moduleTitle}
               </div>
-              <h1 className="font-display text-[30px] sm:text-[36px] text-ink-900 leading-tight">
+              <h1 className="text-h1 text-ink-900 leading-tight">
                 {title}
               </h1>
             </header>

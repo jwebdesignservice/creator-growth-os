@@ -39,7 +39,7 @@ export function ReferralsPanel({ stats }: { stats: ReferralStats }) {
         </Link>
 
         <div>
-          <h1 className="font-display text-[32px] text-ink-900 leading-tight">
+          <h1 className="text-h1 text-ink-900 leading-tight">
             Invite friends, earn free months
           </h1>
           <p className="mt-2 text-ink-500 text-[14px] leading-relaxed">

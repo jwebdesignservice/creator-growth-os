@@ -23,7 +23,7 @@ export default function TermsPage() {
         <div className="text-[12px] text-ink-500 uppercase tracking-wide mb-2">
           Legal
         </div>
-        <h1 className="font-display text-[40px] lg:text-[48px] text-ink-900 leading-tight mb-2">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-2">
           Terms of Service
         </h1>
         <p className="text-[14px] text-ink-500 mb-10">

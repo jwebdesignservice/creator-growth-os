@@ -71,7 +71,7 @@ export function ActiveBuildsSection({
             />
           </span>
           <div className="min-w-0">
-            <h2 className="font-display text-[26px] text-ink-900 leading-tight mb-1">
+            <h2 className="text-h2 text-ink-900 leading-tight mb-1">
               Continue where you left off
             </h2>
             <p className="text-[13.5px] text-ink-500 leading-snug max-w-xl">

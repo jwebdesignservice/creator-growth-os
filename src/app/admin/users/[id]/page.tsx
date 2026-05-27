@@ -43,7 +43,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
       <section className="card p-6">
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div>
-            <h1 className="font-display text-[32px] text-ink-900 leading-tight mb-1">
+            <h1 className="text-h1 text-ink-900 leading-tight mb-1">
               {profile.full_name ?? profile.email.split("@")[0]}
             </h1>
             <div className="text-[14px] text-ink-500 mb-3">{profile.email}</div>

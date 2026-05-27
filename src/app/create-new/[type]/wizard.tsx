@@ -496,7 +496,7 @@ function Step1Details({
       {/* LEFT — form */}
       <div className="space-y-6 min-w-0">
         <header>
-          <h1 className="font-display text-[30px] sm:text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
+          <h1 className="text-h1 text-ink-900 leading-tight mb-2">
             Tell us about your {copy.noun}
           </h1>
           <p className="text-ink-500 text-[14px] sm:text-[15px] leading-relaxed">
@@ -714,7 +714,7 @@ function Step2Thumbnail({
   return (
     <div className="space-y-7">
       <header className="text-center max-w-2xl mx-auto">
-        <h1 className="font-display text-[30px] sm:text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-2">
           Add a thumbnail image
         </h1>
         <p className="text-ink-500 text-[14px] sm:text-[15px] leading-relaxed">
@@ -985,7 +985,7 @@ function Step3AccessTier({
   return (
     <div className="space-y-6">
       <header className="text-center max-w-2xl mx-auto">
-        <h1 className="font-display text-[30px] sm:text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-2">
           Choose who gets access
         </h1>
         <p className="text-ink-500 text-[14px] sm:text-[15px] leading-relaxed">
@@ -1115,7 +1115,7 @@ function Step4Finalize({
   return (
     <div className="space-y-6">
       <header className="text-center max-w-2xl mx-auto">
-        <h1 className="font-display text-[30px] sm:text-[36px] lg:text-[42px] text-ink-900 leading-tight mb-2">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-2">
           Ready to publish your {copy.noun}
         </h1>
         <p className="text-ink-500 text-[14px] sm:text-[15px] leading-relaxed">

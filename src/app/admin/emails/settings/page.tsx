@@ -52,7 +52,7 @@ export default async function EmailSettingsPage() {
 
       {/* Header */}
       <header className="mb-6">
-        <h1 className="font-display text-[32px] text-ink-900 leading-tight mb-1">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-1">
           Email settings
         </h1>
         <p className="text-ink-500 text-[14px]">
