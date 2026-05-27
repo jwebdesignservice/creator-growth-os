@@ -35,6 +35,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Donut } from "@/components/dashboard/donut";
 import { updateLesson } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
+import { ThumbnailTab } from "./thumbnail-tab";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -325,6 +326,13 @@ export function TutorialEditor({
               programId={programId}          setProgramId={setProgramId}
               programs={programs}
               TITLE_MAX={TITLE_MAX} DESC_MAX={DESC_MAX} NOTE_MAX={NOTE_MAX}
+            />
+          ) : activeTab === "thumbnail" ? (
+            <ThumbnailTab
+              coverImageUrl={lesson.coverImageUrl}
+              videoUrl={lesson.videoUrl}
+              durationSeconds={lesson.durationSeconds}
+              durationLabel={stats.duration}
             />
           ) : (
             <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
