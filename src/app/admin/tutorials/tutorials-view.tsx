@@ -386,7 +386,7 @@ function ViewToggle({
 /* ───────────────────────────────────────────────────────────────────── */
 
 function TutorialCard({ t }: { t: TutorialCardData }) {
-  const editHref = `/admin/tutorials/${t.id}/edit`;
+  const editHref = `/admin/tutorials/${t.id}`;
   const publicHref = `/tutorials/${t.slug}`;
   const [selected, setSelected] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -707,24 +707,16 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
           role="menu"
           className="absolute right-0 top-[calc(100%+6px)] w-48 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
-          {t.programId ? (
+          <MenuLink
+            icon={<Pencil className="size-3.5" strokeWidth={2} />}
+            label="Edit"
+            href={`/admin/tutorials/${t.id}/edit`}
+          />
+          {t.programId && (
             <MenuLink
               icon={<Pencil className="size-3.5" strokeWidth={2} />}
               label="Edit in curriculum"
               href={`/admin/programs/${t.programId}/curriculum`}
-            />
-          ) : (
-            <MenuItem
-              icon={<Pencil className="size-3.5" strokeWidth={2} />}
-              label="Edit"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setOpen(false);
-                alert(
-                  "This tutorial isn't attached to a program — assign it to a program first to edit it inline.",
-                );
-              }}
             />
           )}
           <MenuItem
@@ -834,7 +826,7 @@ function TutorialListRow({ t }: { t: TutorialCardData }) {
       </div>
       <div className="flex-1 min-w-0">
         <Link
-          href={`/tutorials/${t.slug}`}
+          href={`/admin/tutorials/${t.id}`}
           className="text-[14px] font-bold text-ink-900 hover:text-rose-700 transition-colors truncate block"
         >
           {t.title}

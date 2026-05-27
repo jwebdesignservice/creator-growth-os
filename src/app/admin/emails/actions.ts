@@ -1,6 +1,7 @@
 "use server";
 
 import "server-only";
+import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdminClient } from "@/lib/admin/require-admin";
@@ -28,10 +29,15 @@ export type ComposeInput = {
   message:      string;   // plain text + light markdown (**bold**, *italic*, [text](url))
   useTemplate:  boolean;
   trackOpens:   boolean;
+  templateId?:  string;   // optional reference back to the source template
 };
 
 export type SendResult =
-  | { ok: true;  sent: number; skipped: number; firstId?: string }
+  | { ok: true;  sent: number; skipped: number; firstId?: string; messageId?: string }
+  | { ok: false; error: string };
+
+export type SimpleResult =
+  | { ok: true;  id?: string }
   | { ok: false; error: string };
 
 /* ── Public actions ──────────────────────────────────────────────────────── */
@@ -39,6 +45,9 @@ export type SendResult =
 export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
   const guard = await requireAdminClient();
   if (!guard.ok) return { ok: false, error: guard.error };
+
+  const { data: { user: adminUser } } = await guard.supabase.auth.getUser();
+  const adminUserId = adminUser?.id ?? null;
 
   if (!input.subject.trim()) return { ok: false, error: "Subject is required." };
   if (!input.message.trim()) return { ok: false, error: "Message is required." };
@@ -73,17 +82,33 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
   const from = process.env.EMAIL_FROM ?? `${BRAND_NAME} <onboarding@resend.dev>`;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://creatorgrowth.app";
 
+  // Resolve sender + send-time values once — both are constant for the whole
+  // campaign loop, so doing it inside the per-recipient block would waste
+  // work and risk drift between recipients.
+  const senderName =
+    (adminUser?.user_metadata?.full_name as string | undefined) ??
+    (adminUser?.user_metadata?.display_name as string | undefined) ??
+    adminUser?.email?.split("@")[0] ??
+    "";
+  const currentDate = formatDateForEmail(new Date());
+
   let sent = 0;
   let skipped = 0;
   let firstId: string | undefined;
+  let firstError: string | undefined;
 
   for (const r of recipients) {
     const ctx: VariableContext = {
       first_name:    firstNameFrom(r.full_name) || "there",
       full_name:     r.full_name ?? "",
+      email:         r.email,
+      plan_name:     planLabel(r.plan),
       program_name:  programName,
       cta_link:      `${appUrl}/dashboard`,
       platform_name: BRAND_NAME,
+      sender_name:   senderName,
+      current_date:  currentDate,
+      custom_field:  "",
     };
     const subject = substituteVariables(input.subject, ctx);
     const text    = substituteVariables(input.message, ctx);
@@ -104,6 +129,7 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
       });
       if (res.error) {
         skipped += 1;
+        if (!firstError) firstError = res.error.message ?? String(res.error);
         console.error("[email/campaign] Resend error:", res.error);
         continue;
       }
@@ -111,11 +137,36 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
       sent += 1;
     } catch (err) {
       skipped += 1;
+      if (!firstError) firstError = err instanceof Error ? err.message : String(err);
       console.error("[email/campaign] Send failure:", err);
     }
   }
 
-  return { ok: true, sent, skipped, firstId };
+  // Persist a single row representing this campaign in email_messages so
+  // /admin/emails/history can list / resend / delete it. The History UI
+  // treats one campaign = one row; per-recipient detail is intentionally
+  // not tracked here (we only need aggregate counts).
+  const status: EmailMessageStatus = sent > 0 ? "sent" : "failed";
+  const messageId = await recordCampaignMessage(service, {
+    sent_by:              adminUserId,
+    template_id:          input.templateId ?? null,
+    audience:             input.audience,
+    program_id:           input.programId || null,
+    audience_label:       audienceLabel(input.audience, programName),
+    recipients_total:     recipients.length,
+    recipients_delivered: sent,
+    subject:              input.subject,
+    body:                 input.message,
+    status,
+    sent_at:              status === "sent" ? new Date().toISOString() : null,
+    use_branded_template: input.useTemplate,
+    track_opens:          input.trackOpens,
+    error_message:        status === "failed" ? (firstError ?? "All recipients failed to send.") : null,
+  });
+
+  revalidatePath("/admin/emails/history");
+
+  return { ok: true, sent, skipped, firstId, messageId };
 }
 
 export async function sendTestEmail(input: ComposeInput): Promise<SendResult> {
@@ -144,9 +195,14 @@ export async function sendTestEmail(input: ComposeInput): Promise<SendResult> {
   const ctx: VariableContext = {
     first_name:    adminFirstName,
     full_name:     adminFullName,
+    email:         user.email ?? "",
+    plan_name:     "Pro",
     program_name:  "Sample Program",
     cta_link:      `${process.env.NEXT_PUBLIC_APP_URL ?? "https://creatorgrowth.app"}/dashboard`,
     platform_name: BRAND_NAME,
+    sender_name:   adminFullName,
+    current_date:  formatDateForEmail(new Date()),
+    custom_field:  "",
   };
 
   const subject = `[TEST] ${substituteVariables(input.subject || "Untitled campaign", ctx)}`;
@@ -179,8 +235,19 @@ export async function sendTestEmail(input: ComposeInput): Promise<SendResult> {
 
 /* ── Audience resolution ─────────────────────────────────────────────────── */
 
-type DbRecipient = { id: string; email: string; full_name: string | null };
-type DbProfileRow = { id: string; email?: string | null; full_name?: string | null };
+type DbRecipient = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  /** "free" | "basic" | "pro" — surfaced so `{{ plan_name }}` can render. */
+  plan: string | null;
+};
+type DbProfileRow = {
+  id: string;
+  email?: string | null;
+  full_name?: string | null;
+  plan?: string | null;
+};
 
 async function resolveAudience(
   service: SupabaseClient,
@@ -217,7 +284,7 @@ async function fetchProfilesWithEmail(
   userIdFilter: string[] | null,
   activeOnly = false,
 ): Promise<DbRecipient[]> {
-  let q = service.from("profiles").select("id, full_name");
+  let q = service.from("profiles").select("id, full_name, plan");
   if (activeOnly) q = q.eq("onboarded", true);
   if (userIdFilter) q = q.in("id", userIdFilter);
   const { data } = await q;
@@ -243,6 +310,7 @@ async function fetchProfilesWithEmail(
       id: p.id,
       email,
       full_name: p.full_name ?? null,
+      plan: p.plan ?? null,
     });
   }
   return recipients;
@@ -253,6 +321,23 @@ async function fetchProfilesWithEmail(
 function firstNameFrom(full: string | null): string {
   if (!full) return "";
   return full.trim().split(/\s+/)[0] ?? "";
+}
+
+/** Title-case the plan column ("pro" → "Pro"). Returns "" when unknown
+ *  so an absent value renders as an empty token rather than "null". */
+function planLabel(plan: string | null): string {
+  if (!plan) return "";
+  return plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase();
+}
+
+/** Human-friendly send-time date — "May 27, 2026". Kept locale-pinned so
+ *  the rendered email is stable regardless of server locale. */
+function formatDateForEmail(d: Date): string {
+  return d.toLocaleDateString("en-US", {
+    year:  "numeric",
+    month: "long",
+    day:   "numeric",
+  });
 }
 
 function escapeHtml(s: string): string {
@@ -302,4 +387,381 @@ function renderEmailHtml({
 </body></html>`;
   }
   return `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;font-size:15px;line-height:1.6;padding:24px;">${html}</body></html>`;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Email message persistence (history page)
+   ────────────────────────────────────────────────────────────────────────── */
+
+export type EmailMessageStatus =
+  | "draft"
+  | "scheduled"
+  | "sending"
+  | "sent"
+  | "failed"
+  | "canceled";
+
+type EmailMessageInsert = {
+  sent_by:              string | null;
+  template_id:          string | null;
+  audience:             string;
+  program_id:           string | null;
+  audience_label:       string;
+  recipients_total:     number;
+  recipients_delivered: number;
+  subject:              string;
+  body:                 string;
+  status:               EmailMessageStatus;
+  scheduled_for?:       string | null;
+  sent_at?:             string | null;
+  canceled_at?:         string | null;
+  use_branded_template: boolean;
+  track_opens:          boolean;
+  error_message:        string | null;
+};
+
+/** Insert a single email_messages row and return its id (or undefined if
+ *  the insert fails — failures are non-fatal so we never block a send). */
+async function recordCampaignMessage(
+  service: SupabaseClient,
+  row: EmailMessageInsert,
+): Promise<string | undefined> {
+  const { data, error } = await service
+    .from("email_messages")
+    .insert(row)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("[email/history] Failed to record message:", error);
+    return undefined;
+  }
+  return (data?.id as string | undefined) ?? undefined;
+}
+
+/** Friendly label rendered in the History table's "Audience" cell. */
+function audienceLabel(audience: Audience, programName: string): string {
+  if (audience === "program") return programName ? `Program · ${programName}` : "Program members";
+  if (audience === "active") return "Active users";
+  return "All users";
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Draft / Schedule / Cancel / Resend / Delete
+   ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Save (or update) a campaign as a draft inside email_messages so the
+ * History page can list it under the "Draft" status. Drafts are server-
+ * side rows — distinct from the local-storage autosave the Composer
+ * uses for in-flight editing.
+ */
+export async function saveAsDraft(
+  input: ComposeInput,
+  draftId?: string,
+): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  if (!input.subject.trim() && !input.message.trim()) {
+    return { ok: false, error: "Nothing to save — write a subject or message first." };
+  }
+
+  const { data: { user: adminUser } } = await guard.supabase.auth.getUser();
+  const service = createServiceClient();
+
+  let programName = "";
+  if (input.programId) {
+    const { data: prog } = await service
+      .from("programs")
+      .select("title")
+      .eq("id", input.programId)
+      .maybeSingle();
+    programName = (prog?.title as string | undefined) ?? "";
+  }
+
+  const recipientsTotal = await estimateRecipients(service, input);
+
+  const payload = {
+    sent_by:              adminUser?.id ?? null,
+    template_id:          input.templateId ?? null,
+    audience:             input.audience,
+    program_id:           input.programId || null,
+    audience_label:       audienceLabel(input.audience, programName),
+    recipients_total:     recipientsTotal,
+    subject:              input.subject,
+    body:                 input.message,
+    status:               "draft" as EmailMessageStatus,
+    use_branded_template: input.useTemplate,
+    track_opens:          input.trackOpens,
+    error_message:        null,
+  };
+
+  if (draftId) {
+    const { error } = await service
+      .from("email_messages")
+      .update(payload)
+      .eq("id", draftId);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/admin/emails/history");
+    return { ok: true, id: draftId };
+  }
+
+  const { data, error } = await service
+    .from("email_messages")
+    .insert(payload)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/history");
+  return { ok: true, id: data?.id as string | undefined };
+}
+
+/**
+ * Persist a scheduled campaign. We don't yet have a cron worker that
+ * actually fires the send at `scheduledFor`, so this stores everything
+ * the row needs (status='scheduled', scheduled_for, snapshot of content)
+ * and surfaces it on the History page where an admin can Cancel or
+ * manually Resend after the scheduled time.
+ */
+export async function scheduleCampaign(
+  input: ComposeInput,
+  scheduledForIso: string,
+): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  if (!input.subject.trim()) return { ok: false, error: "Subject is required." };
+  if (!input.message.trim()) return { ok: false, error: "Message is required." };
+  if (!scheduledForIso) return { ok: false, error: "Pick a date and time first." };
+
+  const when = new Date(scheduledForIso);
+  if (Number.isNaN(when.getTime())) return { ok: false, error: "Invalid schedule time." };
+  if (when.getTime() <= Date.now()) {
+    return { ok: false, error: "Schedule time must be in the future." };
+  }
+
+  const { data: { user: adminUser } } = await guard.supabase.auth.getUser();
+  const service = createServiceClient();
+
+  let programName = "";
+  if (input.programId) {
+    const { data: prog } = await service
+      .from("programs")
+      .select("title")
+      .eq("id", input.programId)
+      .maybeSingle();
+    programName = (prog?.title as string | undefined) ?? "";
+  }
+
+  const recipientsTotal = await estimateRecipients(service, input);
+
+  const { data, error } = await service
+    .from("email_messages")
+    .insert({
+      sent_by:              adminUser?.id ?? null,
+      template_id:          input.templateId ?? null,
+      audience:             input.audience,
+      program_id:           input.programId || null,
+      audience_label:       audienceLabel(input.audience, programName),
+      recipients_total:     recipientsTotal,
+      subject:              input.subject,
+      body:                 input.message,
+      status:               "scheduled" as EmailMessageStatus,
+      scheduled_for:        when.toISOString(),
+      use_branded_template: input.useTemplate,
+      track_opens:          input.trackOpens,
+      error_message:        null,
+    })
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/history");
+  return { ok: true, id: data?.id as string | undefined };
+}
+
+/** Mark a scheduled message as canceled — keeps the row for audit history. */
+export async function cancelScheduledMessage(id: string): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const service = createServiceClient();
+  const { error } = await service
+    .from("email_messages")
+    .update({
+      status:       "canceled" as EmailMessageStatus,
+      canceled_at:  new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("status", "scheduled");
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/history");
+  return { ok: true };
+}
+
+/**
+ * Resend a previously sent (or failed) campaign. We re-run the send
+ * pipeline from the stored snapshot so the recipient list is recomputed
+ * "now" rather than reused from the original send.
+ */
+export async function resendCampaign(id: string): Promise<SendResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const service = createServiceClient();
+  const { data: row, error } = await service
+    .from("email_messages")
+    .select(
+      "audience, program_id, subject, body, use_branded_template, track_opens, template_id",
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!row) return { ok: false, error: "Original message not found." };
+
+  const audience = (row.audience as Audience | undefined) ?? "all";
+  return sendCampaign({
+    audience,
+    programId:   (row.program_id as string | null) ?? "",
+    subject:     row.subject as string,
+    message:     row.body as string,
+    useTemplate: Boolean(row.use_branded_template),
+    trackOpens:  Boolean(row.track_opens),
+    templateId:  (row.template_id as string | null) ?? undefined,
+  });
+}
+
+/** Permanently delete an email_messages row. */
+export async function deleteEmailMessage(id: string): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const service = createServiceClient();
+  const { error } = await service.from("email_messages").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/history");
+  return { ok: true };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Email templates CRUD
+   ────────────────────────────────────────────────────────────────────────── */
+
+export type EmailTemplateInput = {
+  name:                string;
+  subject:             string;
+  body:                string;
+  useBrandedTemplate?: boolean;
+  trackOpens?:         boolean;
+};
+
+export async function createEmailTemplate(
+  input: EmailTemplateInput,
+): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const name    = input.name.trim();
+  const subject = input.subject.trim();
+  const body    = input.body.trim();
+  if (!name)    return { ok: false, error: "Template name is required." };
+  if (!subject) return { ok: false, error: "Subject is required." };
+  if (!body)    return { ok: false, error: "Body is required." };
+
+  const { data: { user: adminUser } } = await guard.supabase.auth.getUser();
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("email_templates")
+    .insert({
+      name,
+      subject,
+      body,
+      use_branded_template: input.useBrandedTemplate ?? false,
+      track_opens:          input.trackOpens ?? true,
+      created_by:           adminUser?.id ?? null,
+    })
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/templates");
+  return { ok: true, id: data?.id as string | undefined };
+}
+
+export async function updateEmailTemplate(
+  id: string,
+  patch: Partial<EmailTemplateInput>,
+): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const update: Record<string, unknown> = {};
+  if (patch.name !== undefined) {
+    const n = patch.name.trim();
+    if (!n) return { ok: false, error: "Template name cannot be empty." };
+    update.name = n;
+  }
+  if (patch.subject !== undefined) {
+    const s = patch.subject.trim();
+    if (!s) return { ok: false, error: "Subject cannot be empty." };
+    update.subject = s;
+  }
+  if (patch.body !== undefined) {
+    const b = patch.body.trim();
+    if (!b) return { ok: false, error: "Body cannot be empty." };
+    update.body = b;
+  }
+  if (patch.useBrandedTemplate !== undefined) update.use_branded_template = patch.useBrandedTemplate;
+  if (patch.trackOpens !== undefined)         update.track_opens          = patch.trackOpens;
+
+  if (Object.keys(update).length === 0) return { ok: true, id };
+
+  const service = createServiceClient();
+  const { error } = await service.from("email_templates").update(update).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/templates");
+  return { ok: true, id };
+}
+
+export async function archiveEmailTemplate(
+  id: string,
+  archived: boolean,
+): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const service = createServiceClient();
+  const { error } = await service
+    .from("email_templates")
+    .update({ archived })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/templates");
+  return { ok: true, id };
+}
+
+export async function deleteEmailTemplate(id: string): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const service = createServiceClient();
+  const { error } = await service.from("email_templates").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/templates");
+  return { ok: true };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Recipient-count estimator (shared by draft + schedule actions so the
+   History row shows a meaningful "Recipients" number before send).
+   ────────────────────────────────────────────────────────────────────────── */
+
+async function estimateRecipients(
+  service: SupabaseClient,
+  input: ComposeInput,
+): Promise<number> {
+  try {
+    const recipients = await resolveAudience(service, input);
+    return recipients.length;
+  } catch {
+    return 0;
+  }
 }
