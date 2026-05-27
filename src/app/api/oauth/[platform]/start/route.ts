@@ -86,8 +86,20 @@ export async function GET(
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", creds.clientId);
   url.searchParams.set("redirect_uri", getRedirectUri(provider.key));
-  url.searchParams.set("scope", provider.scopes.join(provider.scopeSeparator));
   url.searchParams.set("state", state);
+
+  // Meta's Facebook Login for Business uses a "Configuration" that bakes
+  // scopes into a config_id. If the provider declares a configIdEnv and
+  // it's set, pass config_id and OMIT the scope param — scopes come from
+  // the configuration on Meta's side. Otherwise fall back to the classic
+  // scope list (used by Google, TikTok, LinkedIn, Snapchat).
+  const configId = provider.configIdEnv ? process.env[provider.configIdEnv] : undefined;
+  if (configId) {
+    url.searchParams.set("config_id", configId);
+  } else {
+    url.searchParams.set("scope", provider.scopes.join(provider.scopeSeparator));
+  }
+
   if (pkce) {
     url.searchParams.set("code_challenge", pkce.challenge);
     url.searchParams.set("code_challenge_method", "S256");

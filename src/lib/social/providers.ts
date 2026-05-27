@@ -29,6 +29,13 @@ export type ProviderConfig = {
   /** Env var names that must be set for this provider to be usable. */
   clientIdEnv: string;
   clientSecretEnv: string;
+  /**
+   * Optional env var holding a Meta "Facebook Login for Business"
+   * Configuration ID. When present at runtime, the OAuth start route
+   * passes `config_id=...` to the authorize URL and OMITS the `scope`
+   * param — scopes are baked into the Configuration on Meta's side.
+   */
+  configIdEnv?: string;
   /** Where the dev should go to register an app. */
   setupDocsUrl: string;
   /** Extra params to merge into the authorize URL. */
@@ -58,6 +65,7 @@ export const PROVIDERS: Record<ProviderKey, ProviderConfig> = {
     scopeSeparator: ",",
     clientIdEnv: "INSTAGRAM_CLIENT_ID",
     clientSecretEnv: "INSTAGRAM_CLIENT_SECRET",
+    configIdEnv: "INSTAGRAM_CONFIG_ID",
     setupDocsUrl: "https://developers.facebook.com/docs/instagram-api/getting-started",
   },
 
@@ -72,6 +80,7 @@ export const PROVIDERS: Record<ProviderKey, ProviderConfig> = {
     scopeSeparator: ",",
     clientIdEnv: "FACEBOOK_CLIENT_ID",
     clientSecretEnv: "FACEBOOK_CLIENT_SECRET",
+    configIdEnv: "FACEBOOK_CONFIG_ID",
     setupDocsUrl: "https://developers.facebook.com/docs/facebook-login/web",
   },
 
