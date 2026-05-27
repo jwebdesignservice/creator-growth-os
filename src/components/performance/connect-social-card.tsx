@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Share2, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { Share2, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   InstagramIcon,
   TiktokIcon,
@@ -89,76 +89,82 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
       : null;
 
   return (
-    <li className="flex items-center gap-3 p-3 rounded-[12px] bg-cream-50 border border-ink-100">
-      <span className="size-9 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-        <Icon className="text-rose-600" size={16} />
-      </span>
+    <li className="rounded-[12px] bg-cream-50 border border-ink-100 overflow-hidden">
+      {/* Main row: icon · label/status · CTA */}
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        <span className="size-9 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <Icon className="text-rose-600" size={16} />
+        </span>
 
-      <div className="flex-1 min-w-0">
-        <div className="text-[13.5px] font-semibold text-ink-900 leading-tight truncate flex items-center gap-1.5">
-          {conn.label}
-          {conn.connectionStatus === "connected" && (
-            <CheckCircle2
-              className="size-3.5 text-emerald-500 shrink-0"
-              strokeWidth={2.2}
-            />
-          )}
-          {conn.connectionStatus === "setup_pending" && (
-            <AlertCircle
-              className="size-3.5 text-amber-500 shrink-0"
-              strokeWidth={2.2}
-              aria-label="Setup pending"
-            />
-          )}
-        </div>
-        <div
-          className={cn(
-            "text-[11.5px] mt-0.5 truncate",
-            conn.connectionStatus === "connected"
-              ? "text-emerald-700"
-              : conn.connectionStatus === "setup_pending"
-                ? "text-amber-700"
-                : "text-ink-500",
-          )}
-        >
-          {statusText}
-        </div>
-        {requirementHint && (
-          <div className="text-[10.5px] text-ink-400 mt-0.5 leading-snug">
-            {requirementHint}
+        <div className="flex-1 min-w-0">
+          <div className="text-[13.5px] font-semibold text-ink-900 leading-tight truncate flex items-center gap-1.5">
+            {conn.label}
+            {conn.connectionStatus === "connected" && (
+              <CheckCircle2
+                className="size-3.5 text-emerald-500 shrink-0"
+                strokeWidth={2.2}
+              />
+            )}
+            {conn.connectionStatus === "setup_pending" && (
+              <AlertCircle
+                className="size-3.5 text-amber-500 shrink-0"
+                strokeWidth={2.2}
+                aria-label="Setup pending"
+              />
+            )}
           </div>
+          <div
+            className={cn(
+              "text-[11.5px] mt-0.5 truncate",
+              conn.connectionStatus === "connected"
+                ? "text-emerald-700"
+                : conn.connectionStatus === "setup_pending"
+                  ? "text-amber-700"
+                  : "text-ink-500",
+            )}
+          >
+            {statusText}
+          </div>
+        </div>
+
+        {/* CTA */}
+        {conn.connectionStatus === "connected" ? (
+          <button
+            type="button"
+            onClick={disconnect}
+            disabled={pending}
+            className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-white border border-ink-100 text-ink-700 hover:bg-cream-100 disabled:opacity-50"
+          >
+            {pending ? "…" : "Disconnect"}
+          </button>
+        ) : conn.connectionStatus === "not_connected" ? (
+          <button
+            type="button"
+            onClick={connect}
+            aria-label={`Connect ${conn.label}`}
+            className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-rose-600 hover:bg-rose-700 text-white"
+          >
+            Connect
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled
+            aria-disabled
+            title={`Admin: configure ${conn.label} OAuth credentials to enable.`}
+            className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-white border border-ink-100 text-ink-400 cursor-not-allowed"
+          >
+            Setup pending
+          </button>
         )}
       </div>
 
-      {/* CTA */}
-      {conn.connectionStatus === "connected" ? (
-        <button
-          type="button"
-          onClick={disconnect}
-          disabled={pending}
-          className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-white border border-ink-100 text-ink-700 hover:bg-cream-100 disabled:opacity-50"
-        >
-          {pending ? "…" : "Disconnect"}
-        </button>
-      ) : conn.connectionStatus === "not_connected" ? (
-        <button
-          type="button"
-          onClick={connect}
-          className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-rose-600 hover:bg-rose-700 text-white"
-        >
-          Connect
-          <ExternalLink className="size-3 ml-1.5" strokeWidth={2} />
-        </button>
-      ) : (
-        <button
-          type="button"
-          disabled
-          aria-disabled
-          title={`Admin: configure ${conn.label} OAuth credentials to enable.`}
-          className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-white border border-ink-100 text-ink-400 cursor-not-allowed"
-        >
-          Setup pending
-        </button>
+      {/* Requirement hint: full-width second row so the text wraps to ~2
+          lines max instead of being squeezed between icon and button. */}
+      {requirementHint && (
+        <div className="px-3 pb-2.5 -mt-0.5 text-[10.5px] text-ink-400 leading-snug">
+          {requirementHint}
+        </div>
       )}
     </li>
   );
