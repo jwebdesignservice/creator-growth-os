@@ -37,6 +37,7 @@ import { updateLesson } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
 import { ThumbnailTab } from "./thumbnail-tab";
 import { CreatorDrillTab } from "./creator-drill-tab";
+import { ControlsTab } from "./controls-tab";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -349,6 +350,8 @@ export function TutorialEditor({
                 durationSeconds={lesson.durationSeconds}
                 durationLabel={stats.duration}
               />
+            ) : activeTab === "controls" ? (
+              <ControlsTab />
             ) : (
               <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
             )}
