@@ -95,6 +95,9 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
   // most recent sync error, or "followers: X" once a count is available.
   let hintBelow: string | null = null;
   let hintTone: "muted" | "error" = "muted";
+  // Optional second-line diagnostic — e.g. "Insights API returned 0…"
+  // shown when the primary line is fine but a sub-metric came up empty.
+  let secondaryHint: string | null = null;
   if (conn.connectionStatus === "connected") {
     if (conn.syncStatus === "error" && conn.syncError) {
       hintBelow = conn.syncError;
@@ -105,6 +108,11 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
       hintBelow = synced
         ? `${followers} followers · synced ${synced}`
         : `${followers} followers`;
+      // Show the insights diagnostic only if it's not the clean
+      // "Insights OK" line — users don't need the happy path called out.
+      if (conn.insightsStatus && !conn.insightsStatus.startsWith("Insights OK")) {
+        secondaryHint = conn.insightsStatus;
+      }
     } else if (conn.lastSyncedAt) {
       hintBelow = `Synced ${relativeTime(conn.lastSyncedAt)}`;
     }
@@ -205,11 +213,17 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
       {hintBelow && (
         <div
           className={cn(
-            "px-3 pb-2.5 -mt-0.5 text-[10.5px] leading-snug",
+            "px-3 -mt-0.5 text-[10.5px] leading-snug",
+            secondaryHint ? "pb-0.5" : "pb-2.5",
             hintTone === "error" ? "text-rose-600" : "text-ink-400",
           )}
         >
           {hintBelow}
+        </div>
+      )}
+      {secondaryHint && (
+        <div className="px-3 pb-2.5 text-[10.5px] text-ink-400/80 leading-snug italic">
+          {secondaryHint}
         </div>
       )}
     </li>

@@ -18,6 +18,8 @@ export type SocialConnection = {
   followerCount: number | null;
   syncStatus: "idle" | "syncing" | "error" | null;
   syncError: string | null;
+  /** Most recent insights diagnostic, if the platform tracks one. */
+  insightsStatus: string | null;
   /** Whether the env vars are set for this provider. */
   configured: boolean;
 };
@@ -46,6 +48,7 @@ export async function getSocialConnections(): Promise<SocialConnection[]> {
       followerCount: null,
       syncStatus: null,
       syncError: null,
+      insightsStatus: null,
       configured: isConfigured(p),
     }));
   }
@@ -53,7 +56,7 @@ export async function getSocialConnections(): Promise<SocialConnection[]> {
   const { data: rows } = await supabase
     .from("social_accounts")
     .select(
-      "platform, handle, display_name, profile_url, access_token, connected_at, last_synced_at, follower_count, sync_status, sync_error",
+      "platform, handle, display_name, profile_url, access_token, connected_at, last_synced_at, follower_count, sync_status, sync_error, provider_data",
     )
     .eq("user_id", user.id);
 
@@ -64,6 +67,10 @@ export async function getSocialConnections(): Promise<SocialConnection[]> {
     const row = byPlatform.get(p.key);
     const configured = isConfigured(p);
     const connected = Boolean(row?.access_token);
+    const insightsStatus =
+      (row?.provider_data as Record<string, unknown> | null | undefined)?.[
+        "insights_last_status"
+      ];
     return {
       platform: p.key,
       label: p.label,
@@ -81,6 +88,8 @@ export async function getSocialConnections(): Promise<SocialConnection[]> {
       syncStatus:
         (row?.sync_status as SocialConnection["syncStatus"]) ?? null,
       syncError: row?.sync_error ?? null,
+      insightsStatus:
+        typeof insightsStatus === "string" ? insightsStatus : null,
       configured,
     };
   });

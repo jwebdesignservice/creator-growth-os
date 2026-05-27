@@ -107,14 +107,20 @@ type InsightsResponse = {
  * v18 supports `reach` and `profile_views` with period=day. `impressions`
  * was removed in v22 — we leave it out for forward compatibility.
  *
- * Returns null on any failure so the rest of the sync can still proceed.
+ * Returns a structured result so the caller can record diagnostic info
+ * (status code, error message, raw response) into provider_data — this
+ * is how we surface "no reach data" reasons in the UI later.
  */
+type InsightsResult =
+  | { ok: true; reach: number; profileViews: number; raw: InsightsResponse }
+  | { ok: false; status: number; errorBody: string };
+
 async function fetchInsightsTotals(
   igUserId: string,
   pageToken: string,
   sinceMs: number,
   untilMs: number,
-): Promise<{ reach: number; profileViews: number } | null> {
+): Promise<InsightsResult> {
   const url = new URL(`${GRAPH}/${igUserId}/insights`);
   url.searchParams.set("metric", "reach,profile_views");
   url.searchParams.set("period", "day");
@@ -123,11 +129,17 @@ async function fetchInsightsTotals(
   url.searchParams.set("access_token", pageToken);
 
   const res = await fetch(url);
+  const text = await res.text();
   if (!res.ok) {
-    console.warn("[instagram-sync] insights fetch failed:", res.status, await res.text());
-    return null;
+    console.warn("[instagram-sync] insights fetch failed:", res.status, text);
+    return { ok: false, status: res.status, errorBody: text.slice(0, 500) };
   }
-  const body = (await res.json()) as InsightsResponse;
+  let body: InsightsResponse;
+  try {
+    body = JSON.parse(text) as InsightsResponse;
+  } catch {
+    return { ok: false, status: res.status, errorBody: "invalid_json" };
+  }
   let reach = 0;
   let profileViews = 0;
   for (const entry of body.data ?? []) {
@@ -135,7 +147,7 @@ async function fetchInsightsTotals(
     if (entry.name === "reach") reach = total;
     if (entry.name === "profile_views") profileViews = total;
   }
-  return { reach, profileViews };
+  return { ok: true, reach, profileViews, raw: body };
 }
 
 // ── Recent media for engagement + post count ─────────────────────────
@@ -240,7 +252,48 @@ export async function syncInstagramAccount(
     const displayName = profile.name ?? null;
     const profileUrl = handle ? `https://instagram.com/${handle}` : null;
 
-    // Step 4: persist back to social_accounts.
+    // Step 5: aggregate this week's insights + media engagement.
+    //
+    // Window: start of current ISO week (Monday 00:00 local) → now.
+    // Reach + profile_views come from /insights summed across days in
+    // the window. Engagement_rate is computed from likes+comments on
+    // media posted within the window divided by current follower count.
+    const weekStart = new Date(`${currentMonday()}T00:00:00Z`).getTime();
+    const now = Date.now();
+
+    const insightsResult = await fetchInsightsTotals(igUserId, pageToken, weekStart, now);
+    const insights = insightsResult.ok ? insightsResult : null;
+    const media = await fetchRecentMedia(igUserId, pageToken);
+
+    // Capture a human-readable diagnostic for the UI to surface when
+    // reach/engagement come back empty. Stored on provider_data so it
+    // survives across syncs and we can inspect history.
+    const insightsDiagnostic: string = insightsResult.ok
+      ? insightsResult.reach === 0 && insightsResult.profileViews === 0
+        ? `Insights API returned 0 — usually means no posts this week or audience below Meta's reporting threshold.`
+        : `Insights OK: reach=${insightsResult.reach}, profile_views=${insightsResult.profileViews}.`
+      : `Insights API failed (HTTP ${insightsResult.status}): ${insightsResult.errorBody.slice(0, 200)}`;
+
+    // Posts published this week + their engagement totals.
+    let postsThisWeek = 0;
+    let likesThisWeek = 0;
+    let commentsThisWeek = 0;
+    for (const m of media) {
+      const t = new Date(m.timestamp).getTime();
+      if (t >= weekStart && t <= now) {
+        postsThisWeek += 1;
+        likesThisWeek += m.like_count ?? 0;
+        commentsThisWeek += m.comments_count ?? 0;
+      }
+    }
+    const engagement = likesThisWeek + commentsThisWeek;
+    const engagementRate =
+      followers && followers > 0 && engagement > 0
+        ? Math.min(100, (engagement / followers) * 100)
+        : null;
+
+    // Step 6: persist everything back to social_accounts, including the
+    // insights diagnostic so the UI can show it if reach is empty.
     const providerData = {
       ...(row.provider_data ?? {}),
       ig_business_account_id: igUserId,
@@ -250,6 +303,8 @@ export async function syncInstagramAccount(
       profile_picture_url: profile.profile_picture_url ?? null,
       media_count: profile.media_count ?? null,
       follows_count: profile.follows_count ?? null,
+      insights_last_status: insightsDiagnostic,
+      insights_last_checked_at: new Date().toISOString(),
     };
 
     await svc
@@ -270,37 +325,7 @@ export async function syncInstagramAccount(
       .eq("user_id", userId)
       .eq("platform", "instagram");
 
-    // Step 5: aggregate this week's insights + media engagement.
-    //
-    // Window: start of current ISO week (Monday 00:00 local) → now.
-    // Reach + profile_views come from /insights summed across days in
-    // the window. Engagement_rate is computed from likes+comments on
-    // media posted within the window divided by current follower count.
-    const weekStart = new Date(`${currentMonday()}T00:00:00Z`).getTime();
-    const now = Date.now();
-
-    const insights = await fetchInsightsTotals(igUserId, pageToken, weekStart, now);
-    const media = await fetchRecentMedia(igUserId, pageToken);
-
-    // Posts published this week + their engagement totals.
-    let postsThisWeek = 0;
-    let likesThisWeek = 0;
-    let commentsThisWeek = 0;
-    for (const m of media) {
-      const t = new Date(m.timestamp).getTime();
-      if (t >= weekStart && t <= now) {
-        postsThisWeek += 1;
-        likesThisWeek += m.like_count ?? 0;
-        commentsThisWeek += m.comments_count ?? 0;
-      }
-    }
-    const engagement = likesThisWeek + commentsThisWeek;
-    const engagementRate =
-      followers && followers > 0 && engagement > 0
-        ? Math.min(100, (engagement / followers) * 100)
-        : null;
-
-    // Step 6: upsert performance_entries with everything we got. Null
+    // Step 7: upsert performance_entries with everything we got. Null
     // fields are omitted so we don't clobber any value the user has
     // already entered manually for that week.
     const entryUpdates: Record<string, unknown> = {
