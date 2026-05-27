@@ -36,6 +36,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${dmSans.variable} ${cormorant.variable} ${caveat.variable} h-full antialiased`}
+      // Browser extensions (eg. password managers, ad-blockers) inject
+      // attributes like `data-arp` onto <html> before React hydrates,
+      // which produces a noisy "tree hydrated but attributes didn't
+      // match" warning. Suppressing on <html> only — children still get
+      // full hydration checks.
+      suppressHydrationWarning
     >
       <body className="min-h-full">{children}</body>
     </html>
