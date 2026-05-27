@@ -8,7 +8,7 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
   Pencil,
@@ -251,6 +251,56 @@ export function CurriculumEditor({
     });
   }
 
+  /* ── Deep-link handling ─────────────────────────────────────────────────
+     The Setup Guide page's kebab menus link here with query strings like
+     ?module=3, ?edit-lesson={slug}, ?add-lesson=3. Pick those up on mount
+     and either scroll to the anchor or open the matching modal. */
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const moduleParam = searchParams.get("module");
+    const editLessonSlug = searchParams.get("edit-lesson");
+    const addLessonModule = searchParams.get("add-lesson");
+
+    if (!moduleParam && !editLessonSlug && !addLessonModule) return;
+
+    if (editLessonSlug) {
+      const lesson = lessons.find((l) => l.slug === editLessonSlug);
+      if (lesson) setEditingLesson(lesson);
+    }
+
+    if (addLessonModule) {
+      const n = Number(addLessonModule);
+      const mod = modules.find((m) => m.number === n);
+      if (mod) setAddLessonForModule(mod);
+    }
+
+    // Always try to scroll to the matching anchor for visual context.
+    const anchorId = editLessonSlug
+      ? `lesson-${editLessonSlug}`
+      : moduleParam
+        ? `module-${moduleParam}`
+        : addLessonModule
+          ? `module-${addLessonModule}`
+          : null;
+    if (anchorId) {
+      // Defer until after the modal-state commit so the layout has
+      // settled and the element is paint-ready.
+      window.requestAnimationFrame(() => {
+        document.getElementById(anchorId)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+
+    // Clear the params so refreshing doesn't re-trigger the modal.
+    router.replace(`/admin/programs/${programId}/curriculum`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   return (
     <>
       {/* Toolbar */}
@@ -464,7 +514,7 @@ function ModuleCard({
   );
 
   return (
-    <div className="card overflow-hidden">
+    <div id={`module-${m.number}`} className="card overflow-hidden scroll-mt-6">
       <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5">
         <GripVertical
           className="size-4 text-ink-300 shrink-0"
@@ -682,8 +732,9 @@ function LessonItem({
 
   return (
     <li
+      id={`lesson-${lesson.slug}`}
       className={cn(
-        "flex items-center gap-3 px-4 sm:px-5 py-3 transition-colors",
+        "flex items-center gap-3 px-4 sm:px-5 py-3 transition-colors scroll-mt-6",
         pending ? "opacity-60" : "hover:bg-cream-50/70",
       )}
     >
