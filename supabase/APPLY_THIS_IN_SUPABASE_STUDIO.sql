@@ -343,3 +343,259 @@ drop trigger if exists trg_email_messages_updated_at on public.email_messages;
 create trigger trg_email_messages_updated_at
   before update on public.email_messages
   for each row execute function public.set_updated_at();
+-- ════════════════════════════════════════════════════════════════════════
+-- 0031_lesson_drills.sql
+--
+-- Backs the Creator drill tab on the admin tutorial editor
+-- (/admin/tutorials/[id]?tab=creator-drill). Each lesson can have at
+-- most ONE drill — the drill defines the hands-on action step learners
+-- complete after watching the lesson.
+--
+-- Design choice: task steps, success criteria, and attached resources
+-- live as `jsonb` arrays on this row rather than separate child tables.
+-- They are small (typically 3–8 items), tightly coupled to the drill,
+-- never queried independently, and the editor saves them as one unit
+-- on every Save — so a single upsert keeps the whole drill consistent.
+--
+-- RLS pattern matches the rest of the project: read by any authenticated
+-- user (so the public lesson page can show the drill to learners),
+-- write by admin only.
+-- ════════════════════════════════════════════════════════════════════════
+
+create table if not exists public.lesson_drills (
+  id                    uuid primary key default gen_random_uuid(),
+  lesson_id             uuid not null unique
+                          references public.lessons(id) on delete cascade,
+
+  -- Core content
+  title                 text not null default '',
+  linked_learning_point text not null default '',
+  objective             text not null default '',
+  instructions          text not null default '',
+
+  -- Mechanics
+  submission_type       text not null default 'text',   -- text|url|file|video|checkbox
+  difficulty            text not null default 'easy',   -- easy|medium|advanced
+  estimated_minutes     int  not null default 15,
+  reward_points         int  not null default 10,
+  required              boolean not null default true,
+
+  -- Ordered arrays of small objects:
+  --   task_steps        : [{ id: string, text: string }]
+  --   success_criteria  : [string]
+  --   resources         : [{ id, name, ext, size, url? }]
+  task_steps            jsonb not null default '[]'::jsonb,
+  success_criteria      jsonb not null default '[]'::jsonb,
+  resources             jsonb not null default '[]'::jsonb,
+
+  created_by            uuid references public.profiles(id) on delete set null,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now()
+);
+
+create index if not exists idx_lesson_drills_lesson
+  on public.lesson_drills (lesson_id);
+
+alter table public.lesson_drills enable row level security;
+
+drop policy if exists "lesson_drills_read" on public.lesson_drills;
+create policy "lesson_drills_read" on public.lesson_drills
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "lesson_drills_admin_write" on public.lesson_drills;
+create policy "lesson_drills_admin_write" on public.lesson_drills
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop trigger if exists trg_lesson_drills_updated_at on public.lesson_drills;
+create trigger trg_lesson_drills_updated_at
+  before update on public.lesson_drills
+  for each row execute function public.set_updated_at();
+-- =====================================================================
+-- Lesson chapters — the structured "Lesson path" inside a tutorial.
+-- Backs the /admin/tutorials/[id] editor's "Lesson path" tab.
+--
+-- Each row is a step in the learner's flow: an intro, a lesson, an
+-- activity, a closing, or a checkpoint. Position controls order; ids
+-- are server-side UUIDs so client-only ids are recreated on save.
+--
+-- Read-access is granted to any authenticated user for chapters that
+-- belong to a published lesson (so the learner-side flow can render).
+-- Write-access is admin-only.
+-- =====================================================================
+
+create table if not exists public.lesson_chapters (
+  id                uuid        primary key default gen_random_uuid(),
+  lesson_id         uuid        not null references public.lessons(id) on delete cascade,
+  position          integer     not null,
+  title             text        not null,
+  type              text        not null
+    check (type in ('intro','lesson','activity','closing','checkpoint')),
+  duration_minutes  integer     not null default 0 check (duration_minutes >= 0),
+  icon_key          text        not null default 'lightbulb',
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create index if not exists lesson_chapters_lesson_id_idx
+  on public.lesson_chapters (lesson_id);
+create index if not exists lesson_chapters_lesson_pos_idx
+  on public.lesson_chapters (lesson_id, position);
+
+-- updated_at autosync trigger ------------------------------------------
+create or replace function public.lesson_chapters_touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists lesson_chapters_set_updated_at on public.lesson_chapters;
+create trigger lesson_chapters_set_updated_at
+  before update on public.lesson_chapters
+  for each row execute function public.lesson_chapters_touch_updated_at();
+
+-- RLS ------------------------------------------------------------------
+alter table public.lesson_chapters enable row level security;
+
+-- Admins can do anything. `admin_users` already exists from earlier
+-- migrations and is the single source of truth for admin identity.
+drop policy if exists "lesson_chapters_admin_all" on public.lesson_chapters;
+create policy "lesson_chapters_admin_all"
+  on public.lesson_chapters
+  for all
+  to authenticated
+  using (
+    exists (
+      select 1 from public.admin_users au where au.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.admin_users au where au.user_id = auth.uid()
+    )
+  );
+
+-- Authenticated learners may read chapters for any published lesson, so
+-- the learner-side flow can render the same path the admin built.
+drop policy if exists "lesson_chapters_read_published" on public.lesson_chapters;
+create policy "lesson_chapters_read_published"
+  on public.lesson_chapters
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.lessons l
+      where l.id = lesson_chapters.lesson_id
+        and l.published = true
+    )
+  );
+-- =====================================================================
+-- Lesson controls — per-tutorial behavioural settings.
+-- Backs the /admin/tutorials/[id] editor's "Controls" tab.
+--
+-- One row per lesson (1:1 via UNIQUE on lesson_id). A row is created on
+-- demand the first time the admin opens the Controls tab; missing rows
+-- are treated by the client as the default values defined below.
+--
+-- Read-access is granted to any authenticated user for controls that
+-- belong to a published lesson (the learner-side player needs them).
+-- Write-access is admin-only.
+-- =====================================================================
+
+create table if not exists public.lesson_controls (
+  id                          uuid        primary key default gen_random_uuid(),
+  lesson_id                   uuid        not null unique references public.lessons(id) on delete cascade,
+
+  -- 1 · Playback
+  autoplay_next_chapter       boolean     not null default false,
+  allow_playback_speed        boolean     not null default true,
+  loop_preview                boolean     not null default false,
+  show_captions_default       boolean     not null default true,
+
+  -- 2 · Progress & completion
+  completion_threshold        integer     not null default 80
+    check (completion_threshold in (50, 60, 70, 80, 90, 100)),
+  require_chapters_in_order   boolean     not null default true,
+  resume_from_last_position   boolean     not null default true,
+  allow_skipping_ahead        boolean     not null default false,
+
+  -- 3 · Learner experience
+  show_chapter_list           boolean     not null default true,
+  enable_notes                boolean     not null default true,
+  enable_downloads            boolean     not null default true,
+  show_cta_at_end             boolean     not null default true,
+
+  -- 4 · Notifications & follow-ups
+  reminder_timing             text        not null default '3d'
+    check (reminder_timing in ('never','1d','3d','7d','14d')),
+  notify_on_completion        boolean     not null default true,
+  follow_up_task              text        not null default ''
+    check (follow_up_task in ('','feedback','next','checkin','review')),
+
+  -- Quick-status display-only fields. Authoring lives on other tabs
+  -- (Access tab and Lesson path tab), but the Controls quick-status
+  -- chips read them from here so a single GET hydrates the whole panel.
+  access_mode                 text        not null default 'open'
+    check (access_mode in ('open','private','scheduled')),
+  cta_trigger                 text        not null default 'final-chapter'
+    check (cta_trigger in ('immediate','final-chapter','after-completion')),
+
+  created_at                  timestamptz not null default now(),
+  updated_at                  timestamptz not null default now()
+);
+
+create index if not exists lesson_controls_lesson_id_idx
+  on public.lesson_controls (lesson_id);
+
+-- updated_at autosync trigger ------------------------------------------
+create or replace function public.lesson_controls_touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists lesson_controls_set_updated_at on public.lesson_controls;
+create trigger lesson_controls_set_updated_at
+  before update on public.lesson_controls
+  for each row execute function public.lesson_controls_touch_updated_at();
+
+-- RLS ------------------------------------------------------------------
+alter table public.lesson_controls enable row level security;
+
+-- Admins can do anything.
+drop policy if exists "lesson_controls_admin_all" on public.lesson_controls;
+create policy "lesson_controls_admin_all"
+  on public.lesson_controls
+  for all
+  to authenticated
+  using (
+    exists (
+      select 1 from public.admin_users au where au.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.admin_users au where au.user_id = auth.uid()
+    )
+  );
+
+-- Authenticated learners may read controls for any published lesson, so
+-- the learner-side player can honour them (autoplay, captions default,
+-- completion threshold, etc.).
+drop policy if exists "lesson_controls_read_published" on public.lesson_controls;
+create policy "lesson_controls_read_published"
+  on public.lesson_controls
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.lessons l
+      where l.id = lesson_controls.lesson_id
+        and l.published = true
+    )
+  );
