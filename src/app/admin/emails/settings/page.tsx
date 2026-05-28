@@ -11,6 +11,8 @@ import {
 import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin/is-admin";
 import { BRAND_NAME } from "@/lib/brand";
+import { getEmailUsage } from "../actions";
+import { getEmailSafetyConfig } from "@/lib/email/safety";
 import { ClientCopy } from "./client-copy";
 
 export const metadata = {
@@ -34,10 +36,12 @@ export default async function EmailSettingsPage() {
   const fromDomain = fromAddress.match(/@([^>]+?)>?$/)?.[1] ?? "resend.dev";
   const verified = fromDomain !== "resend.dev";
   const apiConfigured = Boolean(process.env.RESEND_API_KEY);
+  const safety = getEmailSafetyConfig(user.email);
 
-  // Demo numbers — these read from a real usage-tracking table once the
-  // email backend ships. Format matches the Compose page's banner copy.
-  const QUOTA = { used: 0, limit: 250 };
+  // Real 24h delivery count from email_messages. Limit mirrors the Resend
+  // free-tier daily cap; raise it in the Resend dashboard for launches.
+  const usage = await getEmailUsage();
+  const QUOTA = { used: usage.sent24h, limit: 250 };
 
   return (
     <div className="max-w-[920px] mx-auto">
@@ -100,6 +104,58 @@ export default async function EmailSettingsPage() {
             .
           </p>
         </div>
+      </section>
+
+      {/* ── Sending mode (safety) ──────────────────────────────────── */}
+      <section id="safety" className="card p-5 sm:p-6 mb-5">
+        <header className="flex items-center gap-2 mb-4">
+          <ShieldCheck className="size-4 text-rose-600" strokeWidth={2} />
+          <h2 className="text-[15px] font-bold text-ink-900">Sending mode</h2>
+        </header>
+        {safety.safeMode ? (
+          <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-center gap-2 text-[13.5px] font-bold text-amber-800 mb-1.5">
+              <ShieldCheck className="size-4" strokeWidth={2} />
+              Safe mode is ON — protected against accidental sends
+            </div>
+            <p className="text-[12.5px] text-ink-700 leading-relaxed">
+              Campaigns are redirected to your test inbox
+              {safety.testRecipients.length > 0 && (
+                <>
+                  {" "}(
+                  <span className="font-mono text-[11.5px]">
+                    {safety.testRecipients.join(", ")}
+                  </span>
+                  )
+                </>
+              )}{" "}
+              as a small preview instead of emailing real users. To send for real,
+              set{" "}
+              <code className="px-1.5 py-0.5 rounded-[4px] bg-cream-100 text-rose-700 text-[11px] font-mono">
+                EMAIL_SAFE_MODE=off
+              </code>{" "}
+              (after verifying a sender domain) and redeploy.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-[12px] border border-emerald-200 bg-emerald-50 p-4">
+            <div className="flex items-center gap-2 text-[13.5px] font-bold text-emerald-800 mb-1.5">
+              <CheckCircle2 className="size-4" strokeWidth={2} />
+              Live sending is ON
+            </div>
+            <p className="text-[12.5px] text-ink-700 leading-relaxed">
+              Campaigns deliver to real recipients, capped at{" "}
+              <strong className="text-ink-900 tabular-nums">
+                {safety.maxRecipients.toLocaleString()}
+              </strong>{" "}
+              recipients per send. Lower the cap with{" "}
+              <code className="px-1.5 py-0.5 rounded-[4px] bg-cream-100 text-rose-700 text-[11px] font-mono">
+                EMAIL_MAX_RECIPIENTS
+              </code>
+              .
+            </p>
+          </div>
+        )}
       </section>
 
       {/* ── Sender domain ──────────────────────────────────────────── */}

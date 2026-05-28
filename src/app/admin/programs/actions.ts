@@ -194,7 +194,17 @@ export async function archiveProgram(
     .from("programs")
     .update({ archived })
     .eq("id", programId);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // 42703 = `archived` column missing → migration 0029 not applied.
+    if (error.code === "42703") {
+      return {
+        ok: false,
+        error:
+          "Archiving needs database migration 0029 (admin_crud_columns) — run supabase/migrations/0029_admin_crud_columns.sql in the Supabase SQL editor to enable it.",
+      };
+    }
+    return { ok: false, error: error.message };
+  }
 
   revalidatePath("/admin/programs");
   revalidatePath(`/admin/programs/${programId}`);
@@ -267,7 +277,29 @@ export async function saveProgramAccess(
     })
     .eq("id", programId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // 42703 = undefined column → migration 0035 (program_access) isn't applied
+    // to this database yet. Rather than hard-failing with a raw DB error, save
+    // the effective tier (plan_access exists in the base schema) so the access
+    // level still updates, and return an actionable message naming the exact
+    // migration to run for the detailed rules.
+    if (error.code === "42703") {
+      const { error: tierErr } = await ctx.supabase
+        .from("programs")
+        .update({ plan_access: deriveLegacyPlanAccess(allowed) })
+        .eq("id", programId);
+      if (tierErr) return { ok: false, error: tierErr.message };
+      revalidatePath(`/admin/programs/${programId}/access`);
+      revalidatePath(`/admin/programs/${programId}`);
+      revalidatePath("/admin/programs");
+      return {
+        ok: false,
+        error:
+          "Access tier saved. The detailed access rules (allowed plans, timing, admin note) need database migration 0035 — run supabase/migrations/0035_program_access.sql in the Supabase SQL editor to persist them.",
+      };
+    }
+    return { ok: false, error: error.message };
+  }
 
   revalidatePath(`/admin/programs/${programId}/access`);
   revalidatePath(`/admin/programs/${programId}`);

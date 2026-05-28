@@ -52,6 +52,8 @@ export function CurriculumOutline({
   programId,
   programSlug,
   publishedByModule = {},
+  publishedBySlug = {},
+  idBySlug = {},
 }: {
   modules: ModuleItem[];
   programId: string;
@@ -59,6 +61,12 @@ export function CurriculumOutline({
   /* Per-module published state: true only when every lesson in the module
      is published. Drives the Publish/Unpublish menu item. */
   publishedByModule?: Record<number, boolean>;
+  /* Per-lesson published state keyed by slug — drives each lesson row's
+     real Draft/Published pill. */
+  publishedBySlug?: Record<string, boolean>;
+  /* Per-lesson id keyed by slug — lets "Edit video" deep-link to the
+     dedicated lesson editor at /curriculum/[lessonId]. */
+  idBySlug?: Record<string, string>;
 }) {
   // Default-expand the first module so admins land on something useful.
   const [expanded, setExpanded] = useState<Set<number>>(
@@ -184,13 +192,21 @@ export function CurriculumOutline({
                     <span className="text-[11.5px] text-ink-500 tabular-nums shrink-0">
                       {l.duration}
                     </span>
-                    <span className="inline-flex items-center h-5 px-1.5 rounded-[5px] bg-ink-100 text-ink-600 text-[10.5px] font-semibold shrink-0">
-                      Draft
+                    <span
+                      className={cn(
+                        "inline-flex items-center h-5 px-1.5 rounded-[5px] text-[10.5px] font-semibold shrink-0",
+                        publishedBySlug[l.slug]
+                          ? "bg-success-bg text-success"
+                          : "bg-ink-100 text-ink-600",
+                      )}
+                    >
+                      {publishedBySlug[l.slug] ? "Published" : "Draft"}
                     </span>
                     <LessonActionsMenu
                       programId={programId}
                       programSlug={programSlug}
                       lessonSlug={l.slug}
+                      lessonId={idBySlug[l.slug]}
                     />
                   </li>
                 ))}
@@ -481,10 +497,12 @@ function LessonActionsMenu({
   programId,
   programSlug,
   lessonSlug,
+  lessonId,
 }: {
   programId: string;
   programSlug: string;
   lessonSlug: string;
+  lessonId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -505,8 +523,12 @@ function LessonActionsMenu({
     };
   }, [open]);
 
-  const editHref =
-    `/admin/programs/${programId}/curriculum?edit-lesson=${lessonSlug}#lesson-${lessonSlug}`;
+  // "Edit video" opens the dedicated lesson editor — the same destination as
+  // the Curriculum tab's "Edit lesson". Falls back to the curriculum list if
+  // the lesson id is unknown.
+  const editHref = lessonId
+    ? `/admin/programs/${programId}/curriculum/${lessonId}`
+    : `/admin/programs/${programId}/curriculum`;
   const previewHref = `/programs/${programSlug}/${lessonSlug}`;
 
   return (

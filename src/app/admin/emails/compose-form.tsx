@@ -57,6 +57,9 @@ import {
 import {
   sendCampaign,
   sendTestEmail,
+  saveAsDraft,
+  scheduleCampaign,
+  createEmailTemplate,
   type ComposeInput,
   type SendResult,
 } from "./actions";
@@ -94,6 +97,9 @@ export function ComposeForm({
   const [verifyDismissed, setVerifyDismissed] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
+  /** Server-side draft row id — reused so repeated "Save draft" clicks update
+   *  one History row instead of creating a new draft each time. */
+  const [serverDraftId, setServerDraftId] = useState<string | null>(null);
 
   /* ── UI / async state ─────────────────────────────────────────────────── */
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -256,14 +262,59 @@ export function ComposeForm({
     });
   }
 
+  /** Persist the current compose state as a server-side draft so it shows on
+   *  the History page (status: Draft). Keeps the localStorage autosave too. */
+  function onSaveDraftServer() {
+    saveDraft(); // instant local autosave
+    startTransition(async () => {
+      const res = await saveAsDraft(buildInput(), serverDraftId ?? undefined);
+      if (!res.ok) {
+        setToast({ tone: "error", text: res.error });
+        return;
+      }
+      if (res.id) setServerDraftId(res.id);
+      setToast({ tone: "success", text: "Draft saved to History." });
+    });
+  }
+
   function onSchedule() {
     if (!scheduledFor) return;
-    saveDraft();
-    setToast({
-      tone: "info",
-      text: `Scheduled draft saved for ${formatLocalDateTime(scheduledFor)}. A delivery worker isn't wired yet — your draft is preserved.`,
+    const iso = new Date(scheduledFor).toISOString();
+    startTransition(async () => {
+      const res = await scheduleCampaign(buildInput(), iso);
+      if (!res.ok) {
+        setToast({ tone: "error", text: res.error });
+        return;
+      }
+      saveDraft();
+      setScheduleOpen(false);
+      setToast({
+        tone: "success",
+        text: `Scheduled for ${formatLocalDateTime(scheduledFor)}. It'll send automatically (or run it from History).`,
+      });
     });
-    setScheduleOpen(false);
+  }
+
+  /** Save the current subject/body as a reusable template. */
+  function onSaveAsTemplate() {
+    const name = typeof window !== "undefined"
+      ? window.prompt("Template name", subject.trim() || "Untitled template")
+      : null;
+    if (name === null) return; // cancelled
+    startTransition(async () => {
+      const res = await createEmailTemplate({
+        name: name.trim() || "Untitled template",
+        subject,
+        body: message,
+        useBrandedTemplate: useTemplate,
+        trackOpens,
+      });
+      if (!res.ok) {
+        setToast({ tone: "error", text: res.error });
+        return;
+      }
+      setToast({ tone: "success", text: "Saved to Templates." });
+    });
   }
 
   /* ── Insertion helpers (textarea + input cursor manipulation) ─────────── */
@@ -415,7 +466,7 @@ export function ComposeForm({
           </button>
           <button
             type="button"
-            onClick={saveDraft}
+            onClick={onSaveDraftServer}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-[12px] border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
           >
             <Save className="size-4" strokeWidth={2} />
@@ -714,10 +765,16 @@ export function ComposeForm({
                 Schedule
               </SecondaryButton>
               <SecondaryButton
-                onClick={saveDraft}
+                onClick={onSaveDraftServer}
                 icon={<Save className="size-4" strokeWidth={2} />}
               >
                 {draftSavedAt ? `Saved · ${draftSavedAt}` : "Save draft"}
+              </SecondaryButton>
+              <SecondaryButton
+                onClick={onSaveAsTemplate}
+                icon={<Copy className="size-4" strokeWidth={2} />}
+              >
+                Save as template
               </SecondaryButton>
             </div>
             <button

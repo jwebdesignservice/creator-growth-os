@@ -29,33 +29,31 @@ import { cn } from "@/lib/cn";
 /* ─────────────────────────────────────────────────────────────────────────
    Program → Students surface.
 
-   Fully interactive frontend: a deterministic 326-member dataset (the first
-   6 rows match the design mockup exactly) drives the table search / filter /
-   sort / pagination, the four headline metric cards, and the right-rail
-   distribution + completion + quick-action cards. Everything is derived from
-   the same dataset so the numbers stay internally consistent.
-
-   No backend yet — swap `ALL_MEMBERS` for a server query + pass counts as
-   props when a real enrollment table lands.
+   Real, plan-gated enrollment view. The server loader (`page.tsx`) builds the
+   `members` list from `profiles` (members whose plan grants access to this
+   program) with live progress aggregated from `lesson_progress` over the
+   program's `lessons`, then hands it down as a prop. This component owns the
+   interactive layer: search / filter / sort / pagination / CSV export and the
+   derived metric + distribution cards — all computed from the real `members`.
    ───────────────────────────────────────────────────────────────────────── */
 
-type Plan = "Free" | "Basic" | "Pro" | "Diamond";
-type MemberStatus =
+export type Plan = "Free" | "Basic" | "Pro" | "Diamond";
+export type MemberStatus =
   | "on-track"
   | "needs-attention"
   | "completed"
   | "inactive"
   | "at-risk";
 
-type Member = {
+export type Member = {
   id: string;
   name: string;
   email: string;
   plan: Plan;
   progress: number; // 0–100
   currentLesson: string;
-  tasksCompleted: number;
-  tasksTotal: number;
+  lessonsCompleted: number;
+  lessonsTotal: number;
   lastActiveDays: number; // 0 = today
   status: MemberStatus;
 };
@@ -114,15 +112,14 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "name-asc",      label: "Name (A–Z)"         },
   { key: "progress-desc", label: "Progress (high)"    },
   { key: "progress-asc",  label: "Progress (low)"     },
-  { key: "tasks-desc",    label: "Tasks completed"    },
+  { key: "tasks-desc",    label: "Lessons completed"  },
 ];
 
 /* ─────────────────────────────────────────────────────────────────────────
    Root
    ───────────────────────────────────────────────────────────────────────── */
 
-export function StudentsClient() {
-  const members = ALL_MEMBERS;
+export function StudentsClient({ members }: { members: Member[] }) {
 
   const [query, setQuery]         = useState("");
   const [statusTab, setStatusTab] = useState<StatusTab>("all");
@@ -156,19 +153,21 @@ export function StudentsClient() {
 
   /* ── Plan distribution (derived) ──────────────────────────────────── */
   const planDist = useMemo(() => {
+    const denom = members.length || 1;
     const order: Plan[] = ["Free", "Basic", "Pro", "Diamond"];
     return order.map((plan) => {
       const count = members.filter((m) => m.plan === plan).length;
-      return { plan, count, percent: Math.round((count / members.length) * 100) };
+      return { plan, count, percent: Math.round((count / denom) * 100) };
     });
   }, [members]);
 
   /* ── Completion overview (derived) ────────────────────────────────── */
   const completion = useMemo(() => {
+    const denom = members.length || 1;
     const completed  = members.filter((m) => m.status === "completed").length;
     const notStarted = members.filter((m) => m.status === "inactive").length;
     const inProgress = members.length - completed - notStarted;
-    const pct = (n: number) => Math.round((n / members.length) * 100);
+    const pct = (n: number) => Math.round((n / denom) * 100);
     return {
       completed,
       inProgress,
@@ -200,7 +199,7 @@ export function StudentsClient() {
         case "name-asc":      return a.name.localeCompare(b.name) * dir;
         case "progress-desc": return (b.progress - a.progress) * dir;
         case "progress-asc":  return (a.progress - b.progress) * dir;
-        case "tasks-desc":    return (b.tasksCompleted - a.tasksCompleted) * dir;
+        case "tasks-desc":    return (b.lessonsCompleted - a.lessonsCompleted) * dir;
         case "last-active":
         default:              return (a.lastActiveDays - b.lastActiveDays) * dir;
       }
@@ -218,7 +217,7 @@ export function StudentsClient() {
 
   /* ── Export current view as CSV ────────────────────────────────────── */
   function exportCsv() {
-    const cols = ["Name", "Email", "Plan", "Progress", "Current lesson", "Tasks", "Last active", "Status"];
+    const cols = ["Name", "Email", "Plan", "Progress", "Current lesson", "Lessons", "Last active", "Status"];
     const escape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
     const rows = filtered.map((m) =>
       [
@@ -227,7 +226,7 @@ export function StudentsClient() {
         m.plan,
         `${m.progress}%`,
         m.currentLesson,
-        `${m.tasksCompleted}/${m.tasksTotal}`,
+        `${m.lessonsCompleted}/${m.lessonsTotal}`,
         lastActiveLabel(m.lastActiveDays),
         STATUS_META[m.status].label,
       ].map(escape).join(","),
@@ -279,43 +278,31 @@ export function StudentsClient() {
         </div>
       </header>
 
-      {/* ── Metric cards ─────────────────────────────────────────────── */}
+      {/* ── Metric cards (live, derived from the real member list) ───── */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           icon={Users}
           label="Enrolled members"
           value={metrics.enrolled}
-          delta="12%"
-          deltaDir="up"
-          deltaGood
-          baseline="vs last 30 days"
+          baseline="with access to this program"
         />
         <MetricCard
           icon={Activity}
           label="Active this week"
           value={metrics.active}
-          delta="8%"
-          deltaDir="up"
-          deltaGood
-          baseline="vs last 7 days"
+          baseline="active in the last 7 days"
         />
         <MetricCard
           icon={Trophy}
           label="Completed program"
           value={metrics.completed}
-          delta="15%"
-          deltaDir="up"
-          deltaGood
-          baseline="vs last 30 days"
+          baseline="finished every lesson"
         />
         <MetricCard
           icon={TriangleAlert}
           label="At risk"
           value={metrics.atRisk}
-          delta="5%"
-          deltaDir="down"
-          deltaGood
-          baseline="vs last 7 days"
+          baseline="inactive 14+ days"
         />
       </section>
 
@@ -407,7 +394,7 @@ export function StudentsClient() {
                   <Th>Plan</Th>
                   <Th>Progress</Th>
                   <Th>Current lesson</Th>
-                  <Th>Tasks completed</Th>
+                  <Th>Lessons</Th>
                   <Th>Last active</Th>
                   <Th>Status</Th>
                   <Th className="text-right pr-2">Actions</Th>
@@ -476,18 +463,12 @@ function MetricCard({
   icon: Icon,
   label,
   value,
-  delta,
-  deltaDir,
-  deltaGood,
   baseline,
 }: {
   icon: LucideIcon;
   label: string;
   value: number;
-  delta: string;
-  deltaDir: "up" | "down";
-  deltaGood: boolean;
-  baseline: string;
+  baseline?: string;
 }) {
   return (
     <div className="card p-5">
@@ -505,17 +486,9 @@ function MetricCard({
           </div>
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-1.5 text-[12px]">
-        <span
-          className={cn(
-            "inline-flex items-center gap-0.5 font-semibold tabular-nums",
-            deltaGood ? "text-emerald-600" : "text-rose-600",
-          )}
-        >
-          {deltaDir === "up" ? "↗" : "↘"} {delta}
-        </span>
-        <span className="text-ink-400">{baseline}</span>
-      </div>
+      {baseline && (
+        <div className="mt-3 text-[12px] text-ink-400 leading-snug">{baseline}</div>
+      )}
     </div>
   );
 }
@@ -584,9 +557,9 @@ function MemberRow({
       {/* Current lesson */}
       <Td className="text-[12.5px] text-ink-700 whitespace-nowrap">{m.currentLesson}</Td>
 
-      {/* Tasks */}
+      {/* Lessons completed */}
       <Td className="text-[12.5px] text-ink-700 tabular-nums whitespace-nowrap">
-        {m.tasksCompleted}/{m.tasksTotal}
+        {m.lessonsCompleted}/{m.lessonsTotal}
       </Td>
 
       {/* Last active */}
@@ -1040,147 +1013,4 @@ function lastActiveLabel(days: number): string {
   if (days < 14) return "Last week";
   if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
   return `${Math.floor(days / 30)} months ago`;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Deterministic mock dataset (326 members).
-   First 6 rows mirror the design mockup exactly; the rest are generated so
-   that search / filter / sort / pagination operate on real volume and the
-   derived metrics + distributions match the reference figures.
-   ───────────────────────────────────────────────────────────────────────── */
-
-const ALL_MEMBERS: Member[] = buildMembers();
-
-function buildMembers(): Member[] {
-  const fixed: Member[] = [
-    { id: "m1", name: "Sophie Miller", email: "sophie.miller@email.com", plan: "Pro",     progress: 82,  currentLesson: "Lesson 6: Content Hooks",    tasksCompleted: 18, tasksTotal: 22, lastActiveDays: 0, status: "on-track" },
-    { id: "m2", name: "Daniel Kim",    email: "daniel.kim@email.com",    plan: "Basic",   progress: 46,  currentLesson: "Lesson 3: Positioning",      tasksCompleted: 9,  tasksTotal: 20, lastActiveDays: 2, status: "needs-attention" },
-    { id: "m3", name: "Emma Rossi",    email: "emma.rossi@email.com",    plan: "Diamond", progress: 100, currentLesson: "Completed",                  tasksCompleted: 22, tasksTotal: 22, lastActiveDays: 0, status: "completed" },
-    { id: "m4", name: "Marcus Lee",    email: "marcus.lee@email.com",    plan: "Free",    progress: 18,  currentLesson: "Lesson 1: Niche",            tasksCompleted: 3,  tasksTotal: 18, lastActiveDays: 5, status: "inactive" },
-    { id: "m5", name: "Olivia Brown",  email: "olivia.brown@email.com",  plan: "Basic",   progress: 67,  currentLesson: "Lesson 5: Outreach",         tasksCompleted: 14, tasksTotal: 20, lastActiveDays: 1, status: "on-track" },
-    { id: "m6", name: "Noah Patel",    email: "noah.patel@email.com",    plan: "Pro",     progress: 29,  currentLesson: "Lesson 2: Content Pillars",  tasksCompleted: 6,  tasksTotal: 19, lastActiveDays: 4, status: "at-risk" },
-  ];
-
-  const rng = mulberry32(20260528);
-
-  // Remaining plan + status pools to hit exact program-wide totals.
-  // Targets: Free 48 / Basic 112 / Pro 108 / Diamond 58 (= 326).
-  const planPool = shuffle(
-    [
-      ...Array<Plan>(47).fill("Free"),
-      ...Array<Plan>(110).fill("Basic"),
-      ...Array<Plan>(106).fill("Pro"),
-      ...Array<Plan>(57).fill("Diamond"),
-    ],
-    rng,
-  );
-  // Targets: completed 86 / inactive 29 / at-risk 29 / needs-attention 60 / on-track 122.
-  const statusPool = shuffle(
-    [
-      ...Array<MemberStatus>(85).fill("completed"),
-      ...Array<MemberStatus>(28).fill("inactive"),
-      ...Array<MemberStatus>(28).fill("at-risk"),
-      ...Array<MemberStatus>(59).fill("needs-attention"),
-      ...Array<MemberStatus>(120).fill("on-track"),
-    ],
-    rng,
-  );
-
-  const FIRST = ["Ava","Liam","Mia","Ethan","Zoe","Lucas","Aria","Mason","Ivy","Leo","Nora","Owen","Ella","Kai","Maya","Felix","Lena","Hugo","Isla","Theo","Ruby","Jonas","Clara","Milo","Sara","Elias","Tara","Noel","Vera","Axel","Nina","Remy","Cora","Otto","June","Pablo","Eve","Dario","Lola","Sven","Anika","Bo","Freya","Caleb","Suki","Diego","Yara","Finn","Mara","Reza"];
-  const LAST = ["Andersen","Bauer","Costa","Dubois","Eriksen","Fischer","Garcia","Haas","Ibarra","Jensen","Klein","Lindgren","Moreau","Novak","Olsen","Pereira","Quinn","Rossi","Schmidt","Tanaka","Ueda","Vargas","Weber","Xu","Yilmaz","Zhang","Adler","Berg","Cruz","Dahl"];
-  const LESSONS = [
-    "Lesson 1: Niche",
-    "Lesson 2: Content Pillars",
-    "Lesson 3: Positioning",
-    "Lesson 4: Storytelling",
-    "Lesson 5: Outreach",
-    "Lesson 6: Content Hooks",
-    "Lesson 7: Monetization",
-    "Lesson 8: Scaling",
-  ];
-
-  // Decide which non-inactive members count as "active this week" so the
-  // derived metric lands on 214 (6 fixed are all active → need 208 of 320).
-  // completed + on-track are always active; pick 3 more from the rest.
-  const generated: Member[] = [];
-  let extraActiveBudget = 3; // needs-attention/at-risk allowed to be "active"
-
-  for (let i = 0; i < 320; i++) {
-    const plan = planPool[i];
-    const status = statusPool[i];
-    const first = FIRST[Math.floor(rng() * FIRST.length)];
-    const last = LAST[Math.floor(rng() * LAST.length)];
-    const name = `${first} ${last}`;
-    const email = `${first.toLowerCase()}.${last.toLowerCase()}${i}@email.com`;
-
-    let progress: number;
-    let lessonIdx: number;
-    let active: boolean;
-
-    switch (status) {
-      case "completed":
-        progress = 100; lessonIdx = -1; active = true; break;
-      case "on-track":
-        progress = 55 + Math.floor(rng() * 40); lessonIdx = 4 + Math.floor(rng() * 3); active = true; break;
-      case "needs-attention":
-        progress = 40 + Math.floor(rng() * 20); lessonIdx = 2 + Math.floor(rng() * 2);
-        // Deterministically spend the small "active" budget on the first few
-        // needs-attention members so the derived "Active this week" metric
-        // lands on exactly 214 regardless of rng draws.
-        active = extraActiveBudget > 0; if (active) extraActiveBudget--; break;
-      case "at-risk":
-        progress = 20 + Math.floor(rng() * 25); lessonIdx = 1 + Math.floor(rng() * 2);
-        active = false; break;
-      case "inactive":
-      default:
-        progress = Math.floor(rng() * 18); lessonIdx = Math.floor(rng() * 2); active = false; break;
-    }
-
-    const lastActiveDays = active
-      ? (status === "completed" || status === "on-track"
-          ? Math.floor(rng() * 4)         // 0–3
-          : 4 + Math.floor(rng() * 4))    // 4–7
-      : 8 + Math.floor(rng() * 40);       // 8–47
-
-    const tasksTotal = 18 + Math.floor(rng() * 5); // 18–22
-    const tasksCompleted =
-      status === "completed" ? tasksTotal : Math.round((progress / 100) * tasksTotal);
-
-    generated.push({
-      id: `m${i + 7}`,
-      name,
-      email,
-      plan,
-      progress,
-      currentLesson: status === "completed" ? "Completed" : LESSONS[Math.max(0, lessonIdx)],
-      tasksCompleted,
-      tasksTotal,
-      lastActiveDays,
-      status,
-    });
-  }
-
-  return [...fixed, ...generated];
-}
-
-/* Seeded PRNG (mulberry32) — deterministic so SSR and client render the
-   identical dataset, avoiding hydration mismatch. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return function () {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), 1 | t);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffle<T>(arr: T[], rng: () => number): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }

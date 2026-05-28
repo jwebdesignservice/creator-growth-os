@@ -8,6 +8,10 @@ import {
   normalizeLearningPoints,
   type LearningPoint,
 } from "@/lib/programs/learning-content";
+import {
+  normalizeLessonTasks,
+  type LessonTask,
+} from "@/lib/programs/lesson-tasks";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Server actions for the dedicated program-video editor at
@@ -33,6 +37,8 @@ export type VideoLessonData = {
   coverImageUrl:   string | null;
   /** Structured "what you'll learn" cards — each may carry one action step. */
   learningPoints:  LearningPoint[];
+  /** Lesson tasks (section D) — persisted in the reused `action_steps` jsonb. */
+  tasks:           LessonTask[];
 };
 
 export type SaveResult =
@@ -62,13 +68,15 @@ export async function saveVideoLesson(
   };
 
   const learning = normalizeLearningPoints(data.learningPoints);
+  // Per-learning-point action steps live nested inside `learning_points`, so
+  // the legacy top-level `action_steps` column was freed — we reuse it to
+  // persist this lesson's Tasks (section D).
+  const tasks = normalizeLessonTasks(data.tasks);
 
-  // Try the full update (core + jsonb). Action steps now live nested inside
-  // each learning point, so the legacy top-level `action_steps` column is
-  // cleared to keep the model single-sourced.
+  // Try the full update (core + both jsonb columns).
   const full = await db
     .from("lessons")
-    .update({ ...core, learning_points: learning, action_steps: [] })
+    .update({ ...core, learning_points: learning, action_steps: tasks })
     .eq("id", lessonId);
 
   if (!full.error) {

@@ -690,10 +690,10 @@ function RecentInvoicesCard({ invoices }: { invoices: InvoiceRow[] }) {
               </div>
               {inv.invoice_pdf && (
                 <a
-                  href={inv.invoice_pdf}
+                  href={`/invoices/${inv.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  aria-label="Download invoice"
+                  aria-label="View invoice"
                   className="size-10 rounded-[10px] hover:bg-cream-200 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:outline-none shrink-0"
                 >
                   <Download className="size-4 text-ink-500" strokeWidth={2} />
@@ -762,10 +762,10 @@ function RecentInvoicesCard({ invoices }: { invoices: InvoiceRow[] }) {
                 </span>
                 {inv.invoice_pdf ? (
                   <a
-                    href={inv.invoice_pdf}
+                    href={`/invoices/${inv.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label="Download invoice"
+                    aria-label="View invoice"
                     className="size-9 sm:size-8 rounded-[8px] hover:bg-cream-200 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:outline-none"
                   >
                     <Download className="size-4 text-ink-500" strokeWidth={2} />

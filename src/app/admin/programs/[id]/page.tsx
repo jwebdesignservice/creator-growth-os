@@ -97,10 +97,15 @@ export default async function AdminProgramDetailPage({
   // legacy lessons with a NULL module_number are bucketed under Module 1 to
   // match the curriculum reader in lib/programs/queries.ts.
   const publishedByModule: Record<number, boolean> = {};
+  const publishedBySlug: Record<string, boolean> = {};
+  // Lesson id keyed by slug — lets the outline's "Edit video" deep-link to the
+  // dedicated lesson editor (/curriculum/[lessonId]), exactly like the
+  // Curriculum tab's "Edit lesson".
+  const idBySlug: Record<string, string> = {};
   {
     const { data: pubRows } = await supabase
       .from("lessons")
-      .select("module_number, published")
+      .select("id, slug, module_number, published")
       .eq("program_id", program.id);
     const agg = new Map<number, { total: number; published: number }>();
     for (const r of pubRows ?? []) {
@@ -109,6 +114,8 @@ export default async function AdminProgramDetailPage({
       entry.total += 1;
       if (r.published) entry.published += 1;
       agg.set(n, entry);
+      if (r.slug) publishedBySlug[r.slug as string] = !!r.published;
+      if (r.slug && r.id) idBySlug[r.slug as string] = r.id as string;
     }
     for (const [n, entry] of agg) {
       publishedByModule[n] = entry.total > 0 && entry.published === entry.total;
@@ -209,6 +216,8 @@ export default async function AdminProgramDetailPage({
               programId={program.id}
               programSlug={program.slug}
               publishedByModule={publishedByModule}
+              publishedBySlug={publishedBySlug}
+              idBySlug={idBySlug}
             />
           </StepCard>
 
