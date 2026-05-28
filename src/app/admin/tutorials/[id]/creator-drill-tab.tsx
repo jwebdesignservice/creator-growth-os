@@ -12,7 +12,12 @@ import {
 import {
   GraduationCap,
   Sparkles,
-  ChevronDown,
+  Info,
+  BookOpen,
+  Settings,
+  Upload,
+  Video,
+  ListChecks,
   Bold,
   Italic,
   Underline,
@@ -24,13 +29,9 @@ import {
   AlignRight,
   Code,
   Link2,
-  GripVertical,
-  Pencil,
   Trash2,
-  Plus,
   CheckCircle2,
   FileText,
-  FileSpreadsheet,
   MoreHorizontal,
   Star,
   Save,
@@ -48,8 +49,6 @@ import {
   deleteDrill,
   type DrillData,
   type DrillRow,
-  type DrillStep,
-  type DrillResource,
   type SubmissionType,
   type Difficulty,
 } from "./drill-actions";
@@ -66,12 +65,17 @@ import {
      "Apply migration" prompt instead of a half-functional form.
    ───────────────────────────────────────────────────────────────────────── */
 
-const SUBMISSION_OPTIONS: { value: SubmissionType; label: string; help: string }[] = [
-  { value: "text",     label: "Text response",        help: "Free-form text. Best for hooks, scripts, reflections." },
-  { value: "url",      label: "URL submission",       help: "A link to their work (Notion, Drive, social post)." },
-  { value: "file",     label: "File upload",          help: "PDF, DOCX, image, or video they create." },
-  { value: "video",    label: "Video submission",     help: "A direct video upload they record." },
-  { value: "checkbox", label: "Checkbox confirmation", help: "Just confirms they completed the task." },
+const SUBMISSION_OPTIONS: {
+  value: SubmissionType;
+  label: string;
+  help: string;
+  icon: LucideIcon;
+}[] = [
+  { value: "text",     label: "Text response", help: "Free-form text — hooks, scripts, reflections.",      icon: FileText },
+  { value: "url",      label: "URL link",      help: "A link to their work (Notion, Drive, social post).", icon: Link2 },
+  { value: "file",     label: "File upload",   help: "PDF, DOCX, image, or video they create.",            icon: Upload },
+  { value: "video",    label: "Video upload",  help: "A direct video upload they record.",                 icon: Video },
+  { value: "checkbox", label: "Confirmation",  help: "Just confirms they completed the task.",             icon: ListChecks },
 ];
 
 /* Sensible defaults for a brand-new drill — admins can edit anything. */
@@ -258,142 +262,8 @@ export function CreatorDrillTab({
       instructions:
         drill.instructions ||
         `Follow the steps below to apply what you just learned.\n\n1. Re-watch the lesson and note the single biggest takeaway.\n2. Translate that takeaway into your own context (your niche, your audience).\n3. Produce one tangible output — a script, post, page, plan, or asset.\n4. Compare against the success criteria and refine before submitting.`,
-      taskSteps:
-        drill.taskSteps.length > 0
-          ? drill.taskSteps
-          : [
-              { id: `s-${Date.now()}-1`, text: "Re-watch the key segment of the lesson" },
-              { id: `s-${Date.now()}-2`, text: "Draft your first version" },
-              { id: `s-${Date.now()}-3`, text: "Review against the success criteria" },
-              { id: `s-${Date.now()}-4`, text: "Submit your final output" },
-            ],
-      successCriteria:
-        drill.successCriteria.length > 0
-          ? drill.successCriteria
-          : [
-              "Output directly applies the lesson's core idea",
-              "It is specific to the learner's niche and audience",
-              "It is concrete and shareable, not abstract notes",
-            ],
     };
     setDrill(next);
-  }
-
-  /* ── Step CRUD ───────────────────────────────────────────────────────── */
-  const [addingStep, setAddingStep] = useState(false);
-  const [stepDraft, setStepDraft] = useState("");
-  const [editingStepId, setEditingStepId] = useState<string | null>(null);
-  const [editingStepText, setEditingStepText] = useState("");
-  const [dragStepId, setDragStepId] = useState<string | null>(null);
-
-  function addStep() {
-    const v = stepDraft.trim();
-    if (!v) return;
-    set("taskSteps", [
-      ...drill.taskSteps,
-      { id: `s-${Date.now()}`, text: v },
-    ]);
-    setStepDraft("");
-    setAddingStep(false);
-  }
-  function startEditStep(s: DrillStep) {
-    setEditingStepId(s.id);
-    setEditingStepText(s.text);
-  }
-  function commitEditStep() {
-    if (!editingStepId) return;
-    const v = editingStepText.trim();
-    if (!v) {
-      setEditingStepId(null);
-      return;
-    }
-    set(
-      "taskSteps",
-      drill.taskSteps.map((s) =>
-        s.id === editingStepId ? { ...s, text: v } : s,
-      ),
-    );
-    setEditingStepId(null);
-  }
-  function deleteStep(id: string) {
-    set(
-      "taskSteps",
-      drill.taskSteps.filter((s) => s.id !== id),
-    );
-  }
-  function reorderStep(fromId: string, toId: string) {
-    if (fromId === toId) return;
-    const fromIdx = drill.taskSteps.findIndex((s) => s.id === fromId);
-    const toIdx = drill.taskSteps.findIndex((s) => s.id === toId);
-    if (fromIdx < 0 || toIdx < 0) return;
-    const next = [...drill.taskSteps];
-    const [item] = next.splice(fromIdx, 1);
-    next.splice(toIdx, 0, item);
-    set("taskSteps", next);
-  }
-
-  /* ── Success-criteria CRUD ───────────────────────────────────────────── */
-  const [criterionDraft, setCriterionDraft] = useState("");
-  function addCriterion() {
-    const v = criterionDraft.trim();
-    if (!v) return;
-    set("successCriteria", [...drill.successCriteria, v]);
-    setCriterionDraft("");
-  }
-  function removeCriterion(idx: number) {
-    set(
-      "successCriteria",
-      drill.successCriteria.filter((_, i) => i !== idx),
-    );
-  }
-
-  /* ── Resource CRUD (data URL stored in `url`) ────────────────────────── */
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dragOver, setDragOver] = useState(false);
-
-  function onPickResource() {
-    fileInputRef.current?.click();
-  }
-
-  function ingestFile(file: File) {
-    const ext = (file.name.split(".").pop() ?? "").toLowerCase();
-    const safeExt: DrillResource["ext"] =
-      ext === "pdf" || ext === "docx" || ext === "xlsx" ? ext : "link";
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = typeof reader.result === "string" ? reader.result : undefined;
-      set("resources", [
-        ...drill.resources,
-        {
-          id:   `r-${Date.now()}`,
-          name: file.name.replace(/\.[^.]+$/, ""),
-          ext:  safeExt,
-          size: formatBytes(file.size),
-          url,
-        },
-      ]);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function onResourcePicked(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    for (const f of files) ingestFile(f);
-    e.target.value = "";
-  }
-
-  function onDropFiles(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setDragOver(false);
-    const files = Array.from(e.dataTransfer.files ?? []);
-    for (const f of files) ingestFile(f);
-  }
-
-  function removeResource(id: string) {
-    set(
-      "resources",
-      drill.resources.filter((r) => r.id !== id),
-    );
   }
 
   /* ── Rich-text helpers (lightweight markdown-style) ──────────────────── */
@@ -514,15 +384,23 @@ export function CreatorDrillTab({
             </div>
           </section>
 
-          {/* 2. Drill details (single-column form) */}
+          {/* 2. Core information */}
           <section className="card p-5 sm:p-6">
-            <header className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-              <h3 className="text-[14px] font-bold text-ink-900">Drill details</h3>
-              <DirtyChip dirty={isDirty} hasRow={!!initialDrill} />
-            </header>
-            {/* Single-column form — every field stacked one per row for clarity. */}
-            <div className="space-y-5">
-              <Field label="Drill title" required help="A short, action-led name learners will see.">
+            <SectionHeader
+              icon={Info}
+              title="Core information"
+              action={
+                isDirty ? (
+                  <DirtyChip dirty={isDirty} hasRow={!!initialDrill} />
+                ) : null
+              }
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <Field
+                label="Drill title"
+                required
+                help="A short, action-led name learners will see."
+              >
                 <CountedInput
                   value={drill.title}
                   onChange={(v) => set("title", v)}
@@ -536,17 +414,27 @@ export function CreatorDrillTab({
                 required
                 help="Which idea from the lesson does this drill reinforce?"
               >
-                <input
-                  type="text"
-                  value={drill.linkedLearningPoint}
-                  onChange={(e) =>
-                    set("linkedLearningPoint", e.target.value.slice(0, 200))
-                  }
-                  placeholder="e.g. Create hook-driven content that stops the scroll"
-                  className="w-full h-11 pl-3.5 pr-3.5 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-colors"
-                />
+                <div className="relative">
+                  <span
+                    aria-hidden
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 pointer-events-none"
+                  >
+                    <BookOpen className="size-3.5" strokeWidth={2} />
+                  </span>
+                  <input
+                    type="text"
+                    value={drill.linkedLearningPoint}
+                    onChange={(e) =>
+                      set("linkedLearningPoint", e.target.value.slice(0, 200))
+                    }
+                    placeholder="e.g. Create hook-driven content that stops the scroll"
+                    className="w-full h-11 pl-9 pr-3.5 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-colors"
+                  />
+                </div>
               </Field>
+            </div>
 
+            <div className="mt-5">
               <Field
                 label="Drill objective"
                 required
@@ -559,49 +447,62 @@ export function CreatorDrillTab({
                   max={OBJECTIVE_MAX}
                 />
               </Field>
+            </div>
+          </section>
 
+          {/* 3. Instructions */}
+          <section className="card p-5 sm:p-6">
+            <SectionHeader icon={BookOpen} title="Instructions" />
+            <Field
+              label="Detailed instructions"
+              required
+              help="Markdown is supported (**bold**, *italic*, lists, [links](url))."
+            >
+              <RichTextEditor
+                value={drill.instructions}
+                onChange={(v) => set("instructions", v)}
+                inputRef={instructionsRef}
+                onBold={() => wrapSelection("**", "**", "bold")}
+                onItalic={() => wrapSelection("*", "*", "italic")}
+                onUnderline={() => wrapSelection("__", "__", "underlined")}
+                onStrike={() => wrapSelection("~~", "~~", "strike")}
+                onBullet={() => prefixLine("- ")}
+                onOrdered={() => prefixLine("1. ")}
+                onCode={() => wrapSelection("`", "`", "code")}
+                onLink={() => wrapSelection("[", "](https://)")}
+                max={INSTRUCTIONS_MAX}
+              />
+            </Field>
+          </section>
+
+          {/* 4. Completion settings */}
+          <section className="card p-5 sm:p-6">
+            <SectionHeader icon={Settings} title="Completion settings" />
+            <div className="space-y-5">
               <Field
-                label="Detailed instructions"
+                label="Submission type"
                 required
-                help="Markdown is supported (**bold**, *italic*, lists, [links](url))."
+                help="How learners will submit their response."
               >
-                <RichTextEditor
-                  value={drill.instructions}
-                  onChange={(v) => set("instructions", v)}
-                  inputRef={instructionsRef}
-                  onBold={() => wrapSelection("**", "**", "bold")}
-                  onItalic={() => wrapSelection("*", "*", "italic")}
-                  onUnderline={() => wrapSelection("__", "__", "underlined")}
-                  onStrike={() => wrapSelection("~~", "~~", "strike")}
-                  onBullet={() => prefixLine("- ")}
-                  onOrdered={() => prefixLine("1. ")}
-                  onCode={() => wrapSelection("`", "`", "code")}
-                  onLink={() => wrapSelection("[", "](https://)")}
-                  max={INSTRUCTIONS_MAX}
-                />
-              </Field>
-
-              <div aria-hidden className="border-t border-ink-100" />
-
-              <Field label="Submission type" required help={
-                SUBMISSION_OPTIONS.find((o) => o.value === drill.submissionType)?.help
-              }>
-                <NativeSelect
+                <SubmissionTilePicker
                   value={drill.submissionType}
-                  onChange={(v) => set("submissionType", v as SubmissionType)}
-                  options={SUBMISSION_OPTIONS}
+                  onChange={(v) => set("submissionType", v)}
                 />
               </Field>
 
-              <Field label="Difficulty" required>
-                <DifficultyPicker
-                  value={drill.difficulty}
-                  onChange={(v) => set("difficulty", v)}
-                />
-              </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <Field
+                  label="Difficulty"
+                  required
+                  help="How challenging is this drill for learners?"
+                >
+                  <DifficultyPicker
+                    value={drill.difficulty}
+                    onChange={(v) => set("difficulty", v)}
+                  />
+                </Field>
 
-              <Field label="Estimated time">
-                <div className="max-w-[240px]">
+                <Field label="Estimated time" help="How long should this take?">
                   <SuffixedNumberInput
                     value={drill.estimatedMinutes}
                     onChange={(v) => set("estimatedMinutes", v)}
@@ -609,11 +510,12 @@ export function CreatorDrillTab({
                     min={1}
                     max={999}
                   />
-                </div>
-              </Field>
+                </Field>
 
-              <Field label="Reward / points">
-                <div className="max-w-[240px]">
+                <Field
+                  label="Reward / points"
+                  help="Incentive for completing this drill."
+                >
                   <SuffixedNumberInput
                     value={drill.rewardPoints}
                     onChange={(v) => set("rewardPoints", v)}
@@ -623,8 +525,8 @@ export function CreatorDrillTab({
                     min={0}
                     max={9999}
                   />
-                </div>
-              </Field>
+                </Field>
+              </div>
 
               <RequiredToggle
                 value={drill.required}
@@ -633,279 +535,6 @@ export function CreatorDrillTab({
             </div>
           </section>
 
-          {/* 3. Task steps + Success criteria + Resources */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-            {/* Task steps */}
-            <section className="card p-5 sm:p-6">
-              <header className="flex items-center justify-between gap-3 mb-3">
-                <div className="min-w-0">
-                  <h3 className="text-[14px] font-bold text-ink-900">Task steps</h3>
-                  <p className="mt-0.5 text-[12px] text-ink-500">
-                    Break the drill into clear, actionable steps. Drag to reorder.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAddingStep(true)}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors shrink-0"
-                >
-                  <Plus className="size-3.5" strokeWidth={2} />
-                  Add step
-                </button>
-              </header>
-
-              {drill.taskSteps.length === 0 && !addingStep && (
-                <EmptyState
-                  icon={List}
-                  title="No steps yet"
-                  body="Add the first step to break this drill into bite-sized actions."
-                  cta={
-                    <button
-                      type="button"
-                      onClick={() => setAddingStep(true)}
-                      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors"
-                    >
-                      <Plus className="size-3.5" strokeWidth={2.5} />
-                      Add first step
-                    </button>
-                  }
-                />
-              )}
-
-              <ul className="space-y-2">
-                {drill.taskSteps.map((s, i) => (
-                  <li
-                    key={s.id}
-                    draggable={editingStepId !== s.id}
-                    onDragStart={() => setDragStepId(s.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (dragStepId) reorderStep(dragStepId, s.id);
-                      setDragStepId(null);
-                    }}
-                    className={cn(
-                      "group flex items-center gap-2.5 px-2.5 py-2.5 rounded-[10px] border border-ink-100 bg-white hover:bg-cream-50/60 transition-colors",
-                      dragStepId === s.id && "opacity-50",
-                    )}
-                  >
-                    <GripVertical
-                      className="size-3.5 text-ink-300 shrink-0 cursor-grab"
-                      strokeWidth={2}
-                      aria-hidden
-                    />
-                    <span className="size-6 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
-                      {i + 1}
-                    </span>
-                    {editingStepId === s.id ? (
-                      <input
-                        autoFocus
-                        type="text"
-                        value={editingStepText}
-                        onChange={(e) => setEditingStepText(e.target.value)}
-                        onBlur={commitEditStep}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") commitEditStep();
-                          if (e.key === "Escape") setEditingStepId(null);
-                        }}
-                        className="flex-1 h-7 px-2 rounded-[6px] border border-rose-300 bg-white text-[13px] text-ink-900 focus:outline-none focus:ring-2 focus:ring-rose-100"
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => startEditStep(s)}
-                        className="flex-1 text-left text-[13px] text-ink-900 truncate hover:text-rose-700 transition-colors cursor-text"
-                      >
-                        {s.text}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => startEditStep(s)}
-                      aria-label={`Edit step ${i + 1}`}
-                      title="Edit step"
-                      className="size-7 rounded-[8px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-200 hover:text-ink-700"
-                    >
-                      <Pencil className="size-3.5" strokeWidth={2} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteStep(s.id)}
-                      aria-label={`Delete step ${i + 1}`}
-                      title="Delete step"
-                      className="size-7 rounded-[8px] inline-flex items-center justify-center text-ink-400 hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <Trash2 className="size-3.5" strokeWidth={2} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-
-              {addingStep && (
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={stepDraft}
-                    onChange={(e) => setStepDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") addStep();
-                      if (e.key === "Escape") {
-                        setAddingStep(false);
-                        setStepDraft("");
-                      }
-                    }}
-                    placeholder="New step…"
-                    className="flex-1 h-10 px-3 rounded-[10px] border border-ink-200 bg-white text-[13px] text-ink-900 focus:outline-none focus:border-rose-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={addStep}
-                    disabled={!stepDraft.trim()}
-                    className="inline-flex items-center h-10 px-3 rounded-[10px] bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700 disabled:bg-rose-300"
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingStep(false);
-                      setStepDraft("");
-                    }}
-                    className="inline-flex items-center h-10 px-3 rounded-[10px] border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </section>
-
-            {/* Success criteria + Resources */}
-            <div className="space-y-5">
-              <section className="card p-5 sm:p-6">
-                <header className="mb-3">
-                  <h3 className="text-[14px] font-bold text-ink-900">
-                    Success criteria
-                  </h3>
-                  <p className="mt-0.5 text-[12px] text-ink-500">
-                    What a great submission looks like.
-                  </p>
-                </header>
-
-                {drill.successCriteria.length === 0 && (
-                  <p className="text-[12.5px] text-ink-500 italic py-2 px-3 rounded-[8px] bg-cream-50">
-                    Add at least one criterion so learners know what success looks like.
-                  </p>
-                )}
-
-                <ul className="space-y-2">
-                  {drill.successCriteria.map((c, i) => (
-                    <li
-                      key={`${i}-${c}`}
-                      className="group flex items-start gap-2.5 text-[12.5px] text-ink-900"
-                    >
-                      <CheckCircle2
-                        className="size-4 text-success mt-[1px] shrink-0"
-                        strokeWidth={2}
-                      />
-                      <span className="flex-1 leading-snug">{c}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeCriterion(i)}
-                        aria-label="Remove criterion"
-                        title="Remove"
-                        className="opacity-0 group-hover:opacity-100 size-6 rounded-[6px] inline-flex items-center justify-center text-ink-400 hover:bg-rose-50 hover:text-rose-600 transition-opacity"
-                      >
-                        <X className="size-3" strokeWidth={2} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-3 flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={criterionDraft}
-                    onChange={(e) => setCriterionDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") addCriterion();
-                    }}
-                    placeholder="Add a success criterion…"
-                    className="flex-1 h-9 px-3 rounded-[10px] border border-ink-200 bg-white text-[12.5px] text-ink-900 focus:outline-none focus:border-rose-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={addCriterion}
-                    disabled={!criterionDraft.trim()}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-[10px] bg-rose-50 text-rose-700 text-[12.5px] font-semibold hover:bg-rose-100 disabled:opacity-50"
-                  >
-                    <Plus className="size-3" strokeWidth={2.5} />
-                    Add
-                  </button>
-                </div>
-              </section>
-
-              <section className="card p-5 sm:p-6">
-                <header className="mb-3">
-                  <h3 className="text-[14px] font-bold text-ink-900">
-                    Resources for this drill
-                  </h3>
-                  <p className="mt-0.5 text-[12px] text-ink-500">
-                    Drop templates, guides, or examples here to help learners.
-                  </p>
-                </header>
-
-                <ul className="space-y-2">
-                  {drill.resources.map((r) => (
-                    <ResourceRow
-                      key={r.id}
-                      resource={r}
-                      onRemove={() => removeResource(r.id)}
-                    />
-                  ))}
-                </ul>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.docx,.xlsx"
-                  multiple
-                  className="hidden"
-                  onChange={onResourcePicked}
-                />
-                <div
-                  onClick={onPickResource}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragOver(true);
-                  }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={onDropFiles}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onPickResource();
-                    }
-                  }}
-                  className={cn(
-                    "mt-3 w-full inline-flex flex-col items-center justify-center gap-1 h-20 rounded-[12px] border-2 border-dashed transition-colors cursor-pointer",
-                    dragOver
-                      ? "border-rose-400 bg-rose-50"
-                      : "border-rose-200 bg-rose-50/40 hover:bg-rose-50/70",
-                  )}
-                >
-                  <span className="inline-flex items-center gap-2 text-rose-700 text-[13px] font-semibold">
-                    <Plus className="size-4" strokeWidth={2} />
-                    {dragOver ? "Drop to upload" : "Add resource"}
-                  </span>
-                  <span className="text-[11px] text-ink-500">
-                    PDF · DOCX · XLSX — click or drag &amp; drop
-                  </span>
-                </div>
-              </section>
-            </div>
-          </div>
         {/* Footer action bar — Save / Preview live here now that the
             right rail (video + drill readiness + tips) has been removed.
             Cmd/Ctrl-S still saves while editing. */}
@@ -1217,38 +846,78 @@ function CountedInput({
   );
 }
 
-function NativeSelect({
-  value,
-  onChange,
-  options,
+function SectionHeader({
+  icon: Icon,
+  title,
+  action,
 }: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
+  icon: LucideIcon;
+  title: string;
+  action?: ReactNode;
 }) {
   return (
-    <div className="relative">
-      <span
-        aria-hidden
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none"
-      >
-        <FileText className="size-3.5" strokeWidth={2} />
-      </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none w-full h-11 pl-10 pr-10 rounded-[10px] border border-ink-200 bg-white text-[13.5px] font-medium text-ink-900 cursor-pointer focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-colors"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
-        strokeWidth={2}
-      />
+    <header className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="size-8 rounded-full bg-rose-50 text-rose-600 inline-flex items-center justify-center ring-1 ring-rose-100 shrink-0">
+          <Icon className="size-4" strokeWidth={2} />
+        </span>
+        <h3 className="text-[15px] font-bold text-ink-900 truncate">{title}</h3>
+      </div>
+      {action ?? null}
+    </header>
+  );
+}
+
+function SubmissionTilePicker({
+  value,
+  onChange,
+}: {
+  value: SubmissionType;
+  onChange: (v: SubmissionType) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+      {SUBMISSION_OPTIONS.map((o) => {
+        const active = value === o.value;
+        const Icon = o.icon;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            aria-pressed={active}
+            title={o.help}
+            className={cn(
+              "relative flex flex-col items-center justify-center gap-2 h-[96px] px-2.5 rounded-[12px] border text-center transition-colors",
+              active
+                ? "border-rose-300 bg-rose-50/70 shadow-[inset_0_0_0_1px_var(--rose-200,#fecdd3)]"
+                : "border-ink-200 bg-white hover:border-rose-200 hover:bg-rose-50/30",
+            )}
+          >
+            {active && (
+              <span className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-rose-500 text-white inline-flex items-center justify-center shadow-sm">
+                <Check className="size-3" strokeWidth={3} />
+              </span>
+            )}
+            <span
+              className={cn(
+                "size-9 rounded-[10px] inline-flex items-center justify-center shrink-0",
+                active ? "bg-rose-100 text-rose-600" : "bg-cream-100 text-ink-500",
+              )}
+            >
+              <Icon className="size-4" strokeWidth={2} />
+            </span>
+            <span
+              className={cn(
+                "text-[12px] font-semibold leading-tight",
+                active ? "text-rose-700" : "text-ink-700",
+              )}
+            >
+              {o.label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1480,71 +1149,6 @@ function Divider() {
   return <span aria-hidden className="w-px h-4 bg-ink-200 mx-1" />;
 }
 
-function ResourceRow({
-  resource,
-  onRemove,
-}: {
-  resource: DrillResource;
-  onRemove: () => void;
-}) {
-  const palette: Record<DrillResource["ext"], { bg: string; fg: string; icon: LucideIcon }> = {
-    pdf:  { bg: "bg-rose-50",    fg: "text-rose-600",    icon: FileText },
-    docx: { bg: "bg-blue-50",    fg: "text-blue-600",    icon: FileText },
-    xlsx: { bg: "bg-emerald-50", fg: "text-emerald-600", icon: FileSpreadsheet },
-    link: { bg: "bg-cream-100",  fg: "text-ink-700",     icon: Link2 },
-  };
-  const p = palette[resource.ext];
-  const Icon = p.icon;
-  return (
-    <li className="group flex items-center gap-3 px-3 py-2 rounded-[10px] border border-ink-100 bg-white hover:border-ink-200 transition-colors">
-      <span className={cn("size-9 rounded-[8px] inline-flex items-center justify-center shrink-0", p.bg, p.fg)}>
-        <Icon className="size-4" strokeWidth={2} />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="text-[12.5px] font-semibold text-ink-900 truncate">
-          {resource.name}
-        </div>
-        <div className="text-[11px] text-ink-500 tabular-nums">
-          {resource.ext.toUpperCase()}
-          {resource.size ? ` · ${resource.size}` : ""}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label="Remove resource"
-        title="Remove"
-        className="opacity-0 group-hover:opacity-100 size-7 rounded-[8px] inline-flex items-center justify-center text-ink-400 hover:bg-rose-50 hover:text-rose-600 transition-opacity"
-      >
-        <Trash2 className="size-3.5" strokeWidth={2} />
-      </button>
-    </li>
-  );
-}
-
-function EmptyState({
-  icon: Icon,
-  title,
-  body,
-  cta,
-}: {
-  icon: LucideIcon;
-  title: string;
-  body: string;
-  cta?: ReactNode;
-}) {
-  return (
-    <div className="text-center py-6 px-3 rounded-[12px] bg-cream-50/40 border border-dashed border-ink-200">
-      <span className="size-10 rounded-full bg-cream-100 text-ink-500 inline-flex items-center justify-center mb-2">
-        <Icon className="size-4" strokeWidth={2} />
-      </span>
-      <div className="text-[13px] font-semibold text-ink-900">{title}</div>
-      <p className="text-[12px] text-ink-500 mt-0.5 max-w-xs mx-auto">{body}</p>
-      {cta && <div className="mt-3 flex justify-center">{cta}</div>}
-    </div>
-  );
-}
-
 function DirtyChip({ dirty, hasRow }: { dirty: boolean; hasRow: boolean }) {
   if (!dirty && hasRow) {
     return (
@@ -1721,14 +1325,4 @@ function MigrationPendingBanner() {
       </a>
     </div>
   );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Utilities
-   ───────────────────────────────────────────────────────────────────────── */
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

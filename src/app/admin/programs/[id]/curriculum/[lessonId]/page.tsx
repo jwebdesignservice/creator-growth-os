@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { normalizeLearningPoints } from "@/lib/programs/learning-content";
+import { normalizeLessonTasks } from "@/lib/programs/lesson-tasks";
 import { VideoLessonEditor, type VideoLessonRow } from "./video-lesson-editor";
 
 export const metadata = { title: "Video lesson · Admin" };
@@ -68,6 +69,8 @@ export default async function ProgramVideoEditorPage({
     // both normalise into the structured shape (action steps now live
     // nested inside each learning point).
     learningPoints:  normalizeLearningPoints(row.learning_points),
+    // Lesson tasks (section D) reuse the freed `action_steps` jsonb column.
+    tasks:           normalizeLessonTasks(row.action_steps),
   };
 
   return (

@@ -10,6 +10,11 @@ import {
   substituteVariables,
   type VariableContext,
 } from "@/lib/email/variables";
+import {
+  planCampaignSend,
+  validateSendContent,
+  type Recipient as SafeRecipient,
+} from "@/lib/email/safety";
 import { BRAND_NAME } from "@/lib/brand";
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -33,7 +38,16 @@ export type ComposeInput = {
 };
 
 export type SendResult =
-  | { ok: true;  sent: number; skipped: number; firstId?: string; messageId?: string }
+  | {
+      ok: true;
+      sent: number;
+      skipped: number;
+      firstId?: string;
+      messageId?: string;
+      /** Present when the safety layer changed delivery (e.g. safe mode). */
+      notice?: string;
+      mode?: "live" | "safe";
+    }
   | { ok: false; error: string };
 
 export type SimpleResult =
@@ -49,8 +63,9 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
   const { data: { user: adminUser } } = await guard.supabase.auth.getUser();
   const adminUserId = adminUser?.id ?? null;
 
-  if (!input.subject.trim()) return { ok: false, error: "Subject is required." };
-  if (!input.message.trim()) return { ok: false, error: "Message is required." };
+  // Validate content before doing any audience resolution or sending.
+  const contentCheck = validateSendContent(input.subject, input.message);
+  if (!contentCheck.ok) return { ok: false, error: contentCheck.error };
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -78,6 +93,13 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
     programName = (prog?.title as string | undefined) ?? "";
   }
 
+  // ── SAFETY GATE ────────────────────────────────────────────────────────
+  // Decide the real delivery targets. In safe mode this redirects to the
+  // test inbox and caps the send; in live mode it validates + enforces the
+  // max-recipient cap. Either way nothing has been emailed yet.
+  const plan = planCampaignSend(recipients as SafeRecipient[], adminUser?.email);
+  if (!plan.ok) return { ok: false, error: plan.error };
+
   const resend = new Resend(apiKey);
   const from = process.env.EMAIL_FROM ?? `${BRAND_NAME} <onboarding@resend.dev>`;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://creatorgrowth.app";
@@ -97,7 +119,7 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
   let firstId: string | undefined;
   let firstError: string | undefined;
 
-  for (const r of recipients) {
+  for (const r of plan.targets) {
     const ctx: VariableContext = {
       first_name:    firstNameFrom(r.full_name) || "there",
       full_name:     r.full_name ?? "",
@@ -110,8 +132,8 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
       current_date:  currentDate,
       custom_field:  "",
     };
-    const subject = substituteVariables(input.subject, ctx);
-    const text    = substituteVariables(input.message, ctx);
+    const subject = plan.subjectPrefix + substituteVariables(input.subject, ctx);
+    const text    = (plan.bodyBanner ?? "") + substituteVariables(input.message, ctx);
     const html    = renderEmailHtml({
       subject,
       bodyText:    text,
@@ -143,17 +165,20 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
   }
 
   // Persist a single row representing this campaign in email_messages so
-  // /admin/emails/history can list / resend / delete it. The History UI
-  // treats one campaign = one row; per-recipient detail is intentionally
-  // not tracked here (we only need aggregate counts).
+  // /admin/emails/history can list / resend / delete it. recipients_total is
+  // the full resolved audience (what a live send would reach) so the History
+  // log stays honest even when safe mode redirected the actual delivery.
   const status: EmailMessageStatus = sent > 0 ? "sent" : "failed";
   const messageId = await recordCampaignMessage(service, {
     sent_by:              adminUserId,
     template_id:          input.templateId ?? null,
     audience:             input.audience,
     program_id:           input.programId || null,
-    audience_label:       audienceLabel(input.audience, programName),
-    recipients_total:     recipients.length,
+    audience_label:
+      plan.mode === "safe"
+        ? `${audienceLabel(input.audience, programName)} · Safe mode preview`
+        : audienceLabel(input.audience, programName),
+    recipients_total:     plan.audienceTotal,
     recipients_delivered: sent,
     subject:              input.subject,
     body:                 input.message,
@@ -166,7 +191,7 @@ export async function sendCampaign(input: ComposeInput): Promise<SendResult> {
 
   revalidatePath("/admin/emails/history");
 
-  return { ok: true, sent, skipped, firstId, messageId };
+  return { ok: true, sent, skipped, firstId, messageId, notice: plan.notice ?? undefined, mode: plan.mode };
 }
 
 export async function sendTestEmail(input: ComposeInput): Promise<SendResult> {
@@ -579,6 +604,160 @@ export async function scheduleCampaign(
   return { ok: true, id: data?.id as string | undefined };
 }
 
+export type ProcessResult =
+  | { ok: true; processed: number; sent: number; failed: number; skipped: number }
+  | { ok: false; error: string };
+
+/**
+ * Deliver every scheduled campaign whose time has arrived.
+ *
+ * Safe to call from:
+ *   - an admin (interactive "run now") — gated by requireAdminClient, OR
+ *   - the secured cron route (/api/admin/emails/run-scheduled) which has
+ *     already validated CRON_SECRET and passes { cronAuthorized: true }.
+ *
+ * Each due row is atomically claimed (status scheduled → sending via a
+ * conditional update) so two concurrent runs can't double-send, then routed
+ * through the same safety gate (planCampaignSend) as a manual send. The row
+ * is updated in place to sent/failed with real delivery counts.
+ */
+export async function processDueScheduledEmails(
+  opts?: { cronAuthorized?: boolean },
+): Promise<ProcessResult> {
+  if (!opts?.cronAuthorized) {
+    const guard = await requireAdminClient();
+    if (!guard.ok) return { ok: false, error: guard.error };
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, error: "Email backend not configured (RESEND_API_KEY missing)." };
+
+  const service = createServiceClient();
+  const nowIso = new Date().toISOString();
+
+  const { data: due, error } = await service
+    .from("email_messages")
+    .select("id, audience, program_id, subject, body, use_branded_template, track_opens, sent_by")
+    .eq("status", "scheduled")
+    .lte("scheduled_for", nowIso)
+    .order("scheduled_for", { ascending: true })
+    .limit(50);
+  if (error) return { ok: false, error: error.message };
+
+  const rows = due ?? [];
+  if (rows.length === 0) return { ok: true, processed: 0, sent: 0, failed: 0, skipped: 0 };
+
+  const resend = new Resend(apiKey);
+  const from = process.env.EMAIL_FROM ?? `${BRAND_NAME} <onboarding@resend.dev>`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://creatorgrowth.app";
+  const currentDate = formatDateForEmail(new Date());
+
+  let sentCount = 0;
+  let failedCount = 0;
+  let skippedClaims = 0;
+
+  for (const row of rows) {
+    // Atomic claim: only proceed if WE flipped scheduled → sending.
+    const { data: claimed } = await service
+      .from("email_messages")
+      .update({ status: "sending" as EmailMessageStatus })
+      .eq("id", row.id)
+      .eq("status", "scheduled")
+      .select("id")
+      .maybeSingle();
+    if (!claimed) {
+      skippedClaims += 1;
+      continue;
+    }
+
+    // Resolve the scheduler's email so safe mode can redirect to them.
+    let schedulerEmail: string | null = null;
+    if (row.sent_by) {
+      try {
+        const { data: au } = await service.auth.admin.getUserById(row.sent_by as string);
+        schedulerEmail = au?.user?.email ?? null;
+      } catch {
+        schedulerEmail = null;
+      }
+    }
+
+    const input: ComposeInput = {
+      audience:    (row.audience as Audience) ?? "all",
+      programId:   (row.program_id as string | null) ?? "",
+      subject:     row.subject as string,
+      message:     row.body as string,
+      useTemplate: Boolean(row.use_branded_template),
+      trackOpens:  Boolean(row.track_opens),
+    };
+
+    const recipients = await resolveAudience(service, input);
+    const plan = planCampaignSend(recipients as SafeRecipient[], schedulerEmail);
+    if (!plan.ok) {
+      await service
+        .from("email_messages")
+        .update({ status: "failed" as EmailMessageStatus, error_message: plan.error })
+        .eq("id", row.id);
+      failedCount += 1;
+      continue;
+    }
+
+    let programName = "";
+    if (input.programId) {
+      const { data: prog } = await service
+        .from("programs").select("title").eq("id", input.programId).maybeSingle();
+      programName = (prog?.title as string | undefined) ?? "";
+    }
+
+    let sent = 0;
+    let firstError: string | undefined;
+    for (const r of plan.targets) {
+      const ctx: VariableContext = {
+        first_name:    firstNameFrom(r.full_name) || "there",
+        full_name:     r.full_name ?? "",
+        email:         r.email,
+        plan_name:     planLabel(r.plan),
+        program_name:  programName,
+        cta_link:      `${appUrl}/dashboard`,
+        platform_name: BRAND_NAME,
+        sender_name:   "",
+        current_date:  currentDate,
+        custom_field:  "",
+      };
+      const subject = plan.subjectPrefix + substituteVariables(input.subject, ctx);
+      const text    = (plan.bodyBanner ?? "") + substituteVariables(input.message, ctx);
+      const html    = renderEmailHtml({ subject, bodyText: text, useTemplate: input.useTemplate, appUrl });
+      try {
+        const res = await resend.emails.send({ from, to: r.email, subject, html, text });
+        if (res.error) {
+          if (!firstError) firstError = res.error.message ?? String(res.error);
+          continue;
+        }
+        sent += 1;
+      } catch (err) {
+        if (!firstError) firstError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    const ok = sent > 0;
+    await service
+      .from("email_messages")
+      .update({
+        status:               (ok ? "sent" : "failed") as EmailMessageStatus,
+        recipients_total:     plan.audienceTotal,
+        recipients_delivered: sent,
+        sent_at:              ok ? new Date().toISOString() : null,
+        error_message:        ok ? null : (firstError ?? "All recipients failed to send."),
+      })
+      .eq("id", row.id);
+
+    if (ok) sentCount += 1;
+    else failedCount += 1;
+  }
+
+  revalidatePath("/admin/emails/history");
+  return { ok: true, processed: rows.length, sent: sentCount, failed: failedCount, skipped: skippedClaims };
+}
+
 /** Mark a scheduled message as canceled — keeps the row for audit history. */
 export async function cancelScheduledMessage(id: string): Promise<SimpleResult> {
   const guard = await requireAdminClient();
@@ -747,6 +926,69 @@ export async function deleteEmailTemplate(id: string): Promise<SimpleResult> {
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/emails/templates");
   return { ok: true };
+}
+
+/** Duplicate an existing template into a fresh "(copy)" row owned by the
+ *  calling admin. Returns the new template id. */
+export async function duplicateEmailTemplate(id: string): Promise<SimpleResult> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const { data: { user: adminUser } } = await guard.supabase.auth.getUser();
+  const service = createServiceClient();
+
+  const { data: src, error: readErr } = await service
+    .from("email_templates")
+    .select("name, subject, body, use_branded_template, track_opens")
+    .eq("id", id)
+    .maybeSingle();
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!src) return { ok: false, error: "Template not found." };
+
+  const { data, error } = await service
+    .from("email_templates")
+    .insert({
+      name:                 `${src.name as string} (copy)`,
+      subject:              src.subject as string,
+      body:                 src.body as string,
+      use_branded_template: Boolean(src.use_branded_template),
+      track_opens:          Boolean(src.track_opens),
+      created_by:           adminUser?.id ?? null,
+    })
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/emails/templates");
+  return { ok: true, id: data?.id as string | undefined };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Usage / quota — real 24h delivery numbers for Settings + Compose banners.
+   ────────────────────────────────────────────────────────────────────────── */
+
+export type EmailUsage = { sent24h: number; campaigns24h: number };
+
+/** Sum of recipients actually delivered across campaigns in the last 24h.
+ *  Read-only; safe to call from server components. Returns zeros on error so
+ *  a missing table never breaks the page. */
+export async function getEmailUsage(): Promise<EmailUsage> {
+  const guard = await requireAdminClient();
+  if (!guard.ok) return { sent24h: 0, campaigns24h: 0 };
+
+  const service = createServiceClient();
+  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await service
+    .from("email_messages")
+    .select("recipients_delivered")
+    .eq("status", "sent")
+    .gte("sent_at", sinceIso);
+  if (error || !data) return { sent24h: 0, campaigns24h: 0 };
+
+  const sent24h = data.reduce(
+    (sum, r) => sum + ((r.recipients_delivered as number | null) ?? 0),
+    0,
+  );
+  return { sent24h, campaigns24h: data.length };
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

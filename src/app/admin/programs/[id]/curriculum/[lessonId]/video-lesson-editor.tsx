@@ -41,11 +41,16 @@ import {
   Lightbulb,
   BookOpen,
   Zap,
+  Video,
+  Megaphone,
+  Heart,
+  DollarSign,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 import { saveVideoLesson, publishVideoLesson } from "./actions";
+import { LessonTaskComposer } from "./lesson-task-composer";
 import {
   LEARNING_ICON_KEYS,
   DEFAULT_LEARNING_ICON,
@@ -53,6 +58,15 @@ import {
   type LearningIconKey,
   type LearningActionStep,
 } from "@/lib/programs/learning-content";
+import {
+  LESSON_TASK_TYPES,
+  DEFAULT_TASK_TYPE,
+  TASK_TITLE_MAX,
+  TASK_DESC_MAX,
+  TASK_MINUTES_MAX,
+  type LessonTask,
+  type LessonTaskType,
+} from "@/lib/programs/lesson-tasks";
 
 /* Icon key → component map. Keys come from learning-content.ts; this map
    resolves them to lucide components for both the picker and the cards. */
@@ -67,6 +81,11 @@ const LEARNING_ICONS: Record<LearningIconKey, LucideIcon> = {
   "book-open":   BookOpen,
   sparkles:      Sparkles,
   zap:           Zap,
+  pencil:        Pencil,
+  video:         Video,
+  megaphone:     Megaphone,
+  heart:         Heart,
+  "dollar-sign": DollarSign,
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -89,6 +108,7 @@ export type VideoLessonRow = {
   moduleTitle:     string | null;
   published:       boolean;
   learningPoints:  LearningPoint[];
+  tasks:           LessonTask[];
 };
 
 const BUCKET = "lesson-media";
@@ -109,12 +129,16 @@ export function VideoLessonEditor({
   const [duration, setDuration]         = useState(lesson.durationSeconds);
   const [coverUrl, setCoverUrl]         = useState<string | null>(lesson.coverImageUrl);
   const [learning, setLearning]         = useState<LearningPoint[]>(lesson.learningPoints);
+  // `tasks` (legacy per-lesson model) is still persisted by saveVideoLesson so
+  // existing tasks are preserved; new tasks are authored via <LessonTaskComposer>
+  // into the unified task system. The old inline editor was removed.
+  const [tasks] = useState<LessonTask[]>(lesson.tasks);
   const [published, setPublished]       = useState(lesson.published);
   const [showTimeOnCover, setShowTime]  = useState(true);
 
   const snapshot = useMemo(
-    () => JSON.stringify({ description, videoUrl, duration, coverUrl, learning }),
-    [description, videoUrl, duration, coverUrl, learning],
+    () => JSON.stringify({ description, videoUrl, duration, coverUrl, learning, tasks }),
+    [description, videoUrl, duration, coverUrl, learning, tasks],
   );
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const isDirty = snapshot !== savedSnapshot;
@@ -143,6 +167,7 @@ export function VideoLessonEditor({
         durationSeconds: duration,
         coverImageUrl: coverUrl,
         learningPoints: learning,
+        tasks,
       });
       if (!res.ok) {
         setToast({ kind: "error", msg: res.error });
@@ -153,7 +178,7 @@ export function VideoLessonEditor({
     });
   }, [
     pending, lesson.id, programId, description, videoUrl, duration,
-    coverUrl, learning, snapshot,
+    coverUrl, learning, tasks, snapshot,
   ]);
 
   useEffect(() => {
@@ -285,6 +310,12 @@ export function VideoLessonEditor({
         <OverviewEditor value={description} onChange={setDescription} />
 
         <LearningList items={learning} onChange={setLearning} />
+
+        <LessonTaskComposer
+          lessonId={lesson.id}
+          programId={programId}
+          learningPoints={learning.map((p) => ({ id: p.id, title: p.title }))}
+        />
       </div>
     </div>
   );
@@ -853,6 +884,268 @@ function LearningList({
         />
       )}
     </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/*  D. Tasks  (action items the learner completes for this lesson —          */
+/*     title + details + type + required + time estimate)                    */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+const TASK_TYPE_META: Record<LessonTaskType, { label: string; icon: LucideIcon }> = {
+  action:     { label: "Action",     icon: Target },
+  reflection: { label: "Reflection", icon: Lightbulb },
+  upload:     { label: "Upload",     icon: UploadCloud },
+  quiz:       { label: "Quiz",       icon: Check },
+};
+
+function TaskList({
+  items,
+  onChange,
+}: {
+  items: LessonTask[];
+  onChange: (v: LessonTask[]) => void;
+}) {
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  function add() {
+    onChange([
+      ...items,
+      {
+        id: `lt-${Date.now()}`,
+        title: "",
+        description: "",
+        type: DEFAULT_TASK_TYPE,
+        required: false,
+        estimatedMinutes: 0,
+      },
+    ]);
+  }
+  function update(id: string, patch: Partial<LessonTask>) {
+    onChange(items.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }
+  function remove(id: string) {
+    onChange(items.filter((t) => t.id !== id));
+  }
+  function reorder(from: string, to: string) {
+    if (from === to) return;
+    const fi = items.findIndex((t) => t.id === from);
+    const ti = items.findIndex((t) => t.id === to);
+    if (fi < 0 || ti < 0) return;
+    const next = [...items];
+    const [m] = next.splice(fi, 1);
+    next.splice(ti, 0, m);
+    onChange(next);
+  }
+
+  const totalMinutes = items.reduce((sum, t) => sum + (t.estimatedMinutes || 0), 0);
+  const requiredCount = items.filter((t) => t.required).length;
+
+  return (
+    <Section
+      letter="D"
+      title="Tasks"
+      subtitle="Action items learners complete for this lesson. Each task has a title, optional details, a type, and an optional time estimate. Renders on the lesson page."
+      badge="Lesson page"
+    >
+      {items.length > 0 && (
+        <div className="mb-3 flex items-center gap-3 text-[12px] text-ink-500">
+          <span className="tabular-nums">
+            <strong className="text-ink-900">{items.length}</strong> task{items.length === 1 ? "" : "s"}
+          </span>
+          {requiredCount > 0 && (
+            <>
+              <span className="text-ink-300" aria-hidden>·</span>
+              <span className="tabular-nums">
+                <strong className="text-ink-900">{requiredCount}</strong> required
+              </span>
+            </>
+          )}
+          {totalMinutes > 0 && (
+            <>
+              <span className="text-ink-300" aria-hidden>·</span>
+              <span className="tabular-nums">~{totalMinutes} min total</span>
+            </>
+          )}
+        </div>
+      )}
+
+      <ul className="space-y-3">
+        {items.map((t, i) => (
+          <li
+            key={t.id}
+            draggable
+            onDragStart={() => setDragId(t.id)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => {
+              if (dragId) reorder(dragId, t.id);
+              setDragId(null);
+            }}
+            className={cn(
+              "group rounded-[14px] border border-ink-100 bg-white p-3.5",
+              dragId === t.id && "opacity-50",
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <GripVertical
+                className="size-4 text-ink-300 shrink-0 mt-2.5 cursor-grab"
+                strokeWidth={2}
+                aria-hidden
+              />
+              <span className="size-7 rounded-full bg-rose-600 text-white inline-flex items-center justify-center text-[12px] font-bold tabular-nums shrink-0 mt-1">
+                {i + 1}
+              </span>
+              <div className="flex-1 min-w-0 space-y-2">
+                <input
+                  value={t.title}
+                  onChange={(e) => update(t.id, { title: e.target.value.slice(0, TASK_TITLE_MAX) })}
+                  placeholder="Task title — e.g. Write down 3 audience pain points"
+                  className="w-full h-10 px-3 rounded-[10px] border border-ink-200 text-[13.5px] font-semibold text-ink-900 placeholder:font-normal placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+                />
+                <textarea
+                  value={t.description}
+                  onChange={(e) => update(t.id, { description: e.target.value.slice(0, TASK_DESC_MAX) })}
+                  rows={2}
+                  placeholder="Optional details — what exactly should they do?"
+                  className="w-full px-3 py-2 rounded-[10px] border border-ink-200 text-[13px] text-ink-700 resize-y focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+                />
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <TaskTypePicker value={t.type} onChange={(type) => update(t.id, { type })} />
+                  <TaskToggle
+                    checked={t.required}
+                    onChange={(required) => update(t.id, { required })}
+                    label="Required"
+                  />
+                  <TaskMinutes
+                    value={t.estimatedMinutes}
+                    onChange={(estimatedMinutes) => update(t.id, { estimatedMinutes })}
+                  />
+                </div>
+              </div>
+              <RowBtn icon={Trash2} label="Delete task" danger onClick={() => remove(t.id)} />
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {items.length === 0 && (
+        <p className="text-[13px] text-ink-500 mb-1">
+          No tasks yet — add steps learners should complete after watching.
+        </p>
+      )}
+
+      <AddButton label="Add task" onClick={add} />
+    </Section>
+  );
+}
+
+/* Compact type segmented control for a task. */
+function TaskTypePicker({
+  value,
+  onChange,
+}: {
+  value: LessonTaskType;
+  onChange: (t: LessonTaskType) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Task type"
+      className="inline-flex items-center gap-0.5 p-0.5 rounded-[10px] bg-cream-100 border border-ink-100"
+    >
+      {LESSON_TASK_TYPES.map((key) => {
+        const meta = TASK_TYPE_META[key];
+        const Icon = meta.icon;
+        const active = value === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(key)}
+            className={cn(
+              "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[8px] text-[12px] font-medium transition-colors",
+              active
+                ? "bg-white text-ink-900 shadow-sm"
+                : "text-ink-500 hover:text-ink-900",
+            )}
+          >
+            <Icon className="size-3.5" strokeWidth={2} aria-hidden />
+            {meta.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Required on/off pill toggle. */
+function TaskToggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "inline-flex items-center gap-2 h-8 px-3 rounded-[10px] border text-[12px] font-medium transition-colors",
+        checked
+          ? "bg-rose-50 border-rose-200 text-rose-700"
+          : "bg-white border-ink-200 text-ink-500 hover:text-ink-900",
+      )}
+    >
+      <span
+        className={cn(
+          "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors",
+          checked ? "bg-rose-500" : "bg-ink-200",
+        )}
+      >
+        <span
+          className={cn(
+            "inline-block size-3 rounded-full bg-white transition-transform",
+            checked ? "translate-x-[14px]" : "translate-x-0.5",
+          )}
+        />
+      </span>
+      {label}
+    </button>
+  );
+}
+
+/* Estimated-minutes number input. */
+function TaskMinutes({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-ink-200 bg-white text-[12px] text-ink-500 focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100">
+      <input
+        type="number"
+        min={0}
+        max={TASK_MINUTES_MAX}
+        value={value || ""}
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          onChange(Number.isFinite(n) ? Math.max(0, Math.min(TASK_MINUTES_MAX, Math.floor(n))) : 0);
+        }}
+        placeholder="0"
+        aria-label="Estimated minutes"
+        className="w-10 bg-transparent text-right text-[12.5px] font-semibold text-ink-900 tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      />
+      min
+    </label>
   );
 }
 
