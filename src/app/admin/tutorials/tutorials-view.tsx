@@ -24,12 +24,15 @@ import {
   Pin,
   Link2,
   Check,
+  Copy,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   toggleLessonPublished,
   deleteLesson,
   archiveLesson,
+  duplicateTutorial,
 } from "@/app/admin/lessons/actions";
 import { useRouter } from "next/navigation";
 
@@ -710,8 +713,9 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
           <MenuLink
             icon={<Pencil className="size-3.5" strokeWidth={2} />}
             label="Edit"
-            href={`/admin/tutorials/${t.id}/edit`}
+            href={`/admin/tutorials/${t.id}`}
           />
+          <DuplicateMenuItem id={t.id} />
           {t.programId && (
             <MenuLink
               icon={<Pencil className="size-3.5" strokeWidth={2} />}
@@ -750,6 +754,38 @@ function KebabMenu({ t }: { t: TutorialCardData }) {
         </div>
       )}
     </div>
+  );
+}
+
+function DuplicateMenuItem({ id }: { id: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function duplicate(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    startTransition(async () => {
+      const res = await duplicateTutorial(id);
+      if (res.ok && res.id) router.push(`/admin/tutorials/${res.id}`);
+      else if (!res.ok) window.alert(res.error);
+    });
+  }
+
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={duplicate}
+      disabled={pending}
+      className="w-full text-left flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-cream-100 cursor-pointer disabled:opacity-50"
+    >
+      {pending ? (
+        <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
+      ) : (
+        <Copy className="size-3.5" strokeWidth={2} />
+      )}
+      Duplicate
+    </button>
   );
 }
 
