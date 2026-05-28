@@ -281,6 +281,16 @@ export function TutorialEditor({
     }
   }
 
+  /* Which tabs get a right-hand rail. The video preview + publishing
+     readiness pair only belongs on Overview, Metadata and Thumbnail.
+     Resources keeps its own (health + best-practices) cards. Every other
+     tab — Lesson path, Controls, Access — runs full-width. */
+  const showVideoRail =
+    activeTab === "overview" ||
+    activeTab === "metadata" ||
+    activeTab === "thumbnail";
+  const hasRail = showVideoRail || activeTab === "resources";
+
   /* ── Render ───────────────────────────────────────────────────────── */
 
   return (
@@ -383,7 +393,12 @@ export function TutorialEditor({
           }
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5 items-start">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-5 items-start",
+            hasRail && "lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]",
+          )}
+        >
           {/* ── LEFT: tab content ────────────────────────────────────── */}
           <section className="min-w-0 space-y-5">
             {activeTab === "metadata" ? (
@@ -430,28 +445,35 @@ export function TutorialEditor({
           </section>
 
           {/* ── RIGHT rail ─────────────────────────────────────────────
-              Standard video + readiness pair. On the Overview tab we
-              add an "At a glance" stat strip underneath — same
-              swap-on-tab pattern used elsewhere in the editor. */}
-          <aside className="space-y-4 min-w-0">
-            <VideoPreviewCard
-              videoUrl={lesson.videoUrl}
-              coverImageUrl={lesson.coverImageUrl}
-              durationLabel={stats.duration}
-            />
-            <PublishingReadinessCard
-              percent={readiness.percent}
-              checks={readiness.checks}
-              onAddChapters={() => setHasChapters(true)}
-            />
-            {activeTab === "overview" && <AtAGlanceCard />}
-            {activeTab === "resources" && (
-              <>
-                <ResourceHealthCard total={6} external={2} missing={0} />
-                <BestPracticesCard />
-              </>
-            )}
-          </aside>
+              The video preview + publishing-readiness pair only shows on
+              Overview, Metadata and Thumbnail. Resources keeps its own
+              health + best-practices cards. Lesson path, Controls and
+              Access render full-width (no rail). */}
+          {hasRail && (
+            <aside className="space-y-4 min-w-0">
+              {showVideoRail && (
+                <>
+                  <VideoPreviewCard
+                    videoUrl={lesson.videoUrl}
+                    coverImageUrl={lesson.coverImageUrl}
+                    durationLabel={stats.duration}
+                  />
+                  <PublishingReadinessCard
+                    percent={readiness.percent}
+                    checks={readiness.checks}
+                    onAddChapters={() => setHasChapters(true)}
+                  />
+                </>
+              )}
+              {activeTab === "overview" && <AtAGlanceCard />}
+              {activeTab === "resources" && (
+                <>
+                  <ResourceHealthCard total={6} external={2} missing={0} />
+                  <BestPracticesCard />
+                </>
+              )}
+            </aside>
+          )}
         </div>
       )}
     </div>
