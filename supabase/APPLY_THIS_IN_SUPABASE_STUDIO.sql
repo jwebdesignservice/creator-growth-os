@@ -599,3 +599,170 @@ create policy "lesson_controls_read_published"
         and l.published = true
     )
   );
+-- =====================================================================
+-- Lesson editor fields — Metadata + Overview tab persistence
+-- Adds the columns the /admin/tutorials/[id] editor needs to actually
+-- save its Metadata + Overview tabs. Each is nullable / has a sensible
+-- default so existing rows keep working unchanged.
+--
+-- Read/write inherit the existing RLS policies on `lessons` (admin-only
+-- writes via service role; learner-side reads gated by `published`),
+-- so this migration is purely additive.
+-- Safe to re-run.
+-- =====================================================================
+
+alter table public.lessons
+  -- Free-form taxonomy tags shown in the Metadata "Tags" chip input.
+  add column if not exists tags text[] not null default '{}',
+
+  -- "public" | "unlisted" | "private". Drives the Visibility select.
+  -- Default 'public' so existing rows keep their current behavior.
+  add column if not exists visibility text not null default 'public',
+
+  -- Admin-only notes — never shown to learners.
+  add column if not exists internal_notes text,
+
+  -- Optional CTA link rendered next to the lesson in the player.
+  add column if not exists cta_link text,
+
+  -- Free-form editor category ("Growth", "Brand", "Dance", …). Distinct
+  -- from the strict `category` enum (creator_category) so we don't have
+  -- to evolve that enum every time the admin invents a new bucket.
+  add column if not exists editor_category text,
+
+  -- Overview tab — "What learners will get" bullet list.
+  add column if not exists learning_outcomes text[] not null default '{}',
+
+  -- Overview tab — "Publishing notes (internal)" body.
+  add column if not exists publishing_notes_internal text;
+
+-- Guard against bad visibility values via a check constraint. We can
+-- swap this for a proper enum later — `text` keeps the migration cheap
+-- without giving up validation.
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'lessons_visibility_chk'
+  ) then
+    alter table public.lessons
+      add constraint lessons_visibility_chk
+      check (visibility in ('public', 'unlisted', 'private'));
+  end if;
+end $$;
+
+-- Index for the most common Metadata-tab filter (find by visibility +
+-- published). Useful once the admin queue grows past a few hundred rows.
+create index if not exists idx_lessons_visibility_published
+  on public.lessons (visibility, published);
+
+-- Comments — makes the columns self-documenting in psql / DataGrip.
+comment on column public.lessons.tags                      is 'Free-form tags shown in the Metadata editor (Metadata tab).';
+comment on column public.lessons.visibility                is 'public | unlisted | private. Drives the Visibility select.';
+comment on column public.lessons.internal_notes            is 'Admin-only notes; never shown to learners (Metadata tab).';
+comment on column public.lessons.cta_link                  is 'Optional external CTA URL surfaced next to the lesson.';
+comment on column public.lessons.editor_category           is 'Free-form admin-side category label (Metadata tab dropdown).';
+comment on column public.lessons.learning_outcomes         is 'What learners will get — bullet list (Overview tab).';
+comment on column public.lessons.publishing_notes_internal is 'Internal publishing notes — admin-only (Overview tab).';
+-- =====================================================================
+-- Program access settings — powers /admin/programs/[id]/access
+-- Lets admins choose which membership tiers (Free / Basic / Pro /
+-- Diamond) can access a program, plus a few enrollment-behavior rules
+-- and an internal note.
+--
+-- `allowed_plans` is text[] (not the subscription_plan enum) on purpose:
+-- it has to carry 'diamond', which isn't a billing tier yet. The legacy
+-- single `plan_access` column is kept in sync by the save action (set to
+-- the lowest allowed tier) so the existing access gating keeps working.
+-- Safe to re-run.
+-- =====================================================================
+
+-- 1) Add allowed_plans nullable, backfill from the legacy plan_access tier
+--    (hierarchical: a tier sees its own content + everything below it, and
+--    Diamond — the top tier — sees everything), then lock it down.
+alter table public.programs
+  add column if not exists allowed_plans text[];
+
+update public.programs
+set allowed_plans = case plan_access
+    when 'free'  then array['free','basic','pro','diamond']
+    when 'basic' then array['basic','pro','diamond']
+    when 'pro'   then array['pro','diamond']
+    else array['free','basic','pro','diamond']
+  end
+where allowed_plans is null;
+
+alter table public.programs
+  alter column allowed_plans set default array['free','basic','pro','diamond']::text[];
+alter table public.programs
+  alter column allowed_plans set not null;
+
+-- 2) Enrollment-behavior rules + internal note. Booleans default true to
+--    match the "everything on" baseline the editor ships with.
+alter table public.programs
+  add column if not exists access_instant       boolean not null default true,
+  add column if not exists access_while_valid   boolean not null default true,
+  add column if not exists access_revoke_future boolean not null default true,
+  add column if not exists access_admin_note    text;
+
+-- 3) GIN index so "which programs can plan X access" stays cheap once the
+--    member-facing library starts filtering on it.
+create index if not exists idx_programs_allowed_plans
+  on public.programs using gin (allowed_plans);
+
+comment on column public.programs.allowed_plans        is 'Membership tiers that can access this program: free | basic | pro | diamond (Access tab).';
+comment on column public.programs.access_instant       is 'New members on eligible plans get access immediately.';
+comment on column public.programs.access_while_valid   is 'Access stays active while the member''s plan remains eligible.';
+comment on column public.programs.access_revoke_future is 'Losing an eligible plan hides future (not-yet-seen) lesson content.';
+comment on column public.programs.access_admin_note    is 'Internal-only note about this program''s access rules (Access tab).';
+-- ════════════════════════════════════════════════════════════════════════
+-- 0036_lesson_video_content.sql
+--
+-- Backs the dedicated program-video editor at
+-- /admin/programs/[id]/curriculum/[lessonId].
+--
+-- A program video IS a `lessons` row. The editor persists:
+--   • overview      → lessons.description        (already exists)
+--   • video         → lessons.video_url          (already exists)
+--   • thumbnail     → lessons.cover_image_url     (already exists)
+--   • duration      → lessons.duration_seconds    (already exists)
+--   • what-you'll-learn → lessons.learning_points  (NEW jsonb)
+--   • action steps      → lessons.action_steps     (NEW jsonb)
+--
+-- Shapes:
+--   learning_points : ["Understand X", "Set up Y", …]                 (string[])
+--   action_steps    : [{ id, title, description }]                    (object[])
+--
+-- Plus storage.objects RLS so admins can upload the lesson video +
+-- custom thumbnail to the public `lesson-media` bucket (the bucket is
+-- created in the dashboard / via the storage API; policies live here).
+-- ════════════════════════════════════════════════════════════════════════
+
+alter table public.lessons
+  add column if not exists learning_points jsonb not null default '[]'::jsonb,
+  add column if not exists action_steps    jsonb not null default '[]'::jsonb;
+
+-- ── lesson-media storage policies ───────────────────────────────────────
+-- Public read (bucket is public); admin-only write/update/delete.
+do $$ begin
+  -- Read: anyone (public bucket).
+  drop policy if exists "lesson_media_public_read" on storage.objects;
+  create policy "lesson_media_public_read" on storage.objects
+    for select using (bucket_id = 'lesson-media');
+
+  -- Insert / Update / Delete: admins only.
+  drop policy if exists "lesson_media_admin_insert" on storage.objects;
+  create policy "lesson_media_admin_insert" on storage.objects
+    for insert with check (bucket_id = 'lesson-media' and public.is_admin());
+
+  drop policy if exists "lesson_media_admin_update" on storage.objects;
+  create policy "lesson_media_admin_update" on storage.objects
+    for update using (bucket_id = 'lesson-media' and public.is_admin());
+
+  drop policy if exists "lesson_media_admin_delete" on storage.objects;
+  create policy "lesson_media_admin_delete" on storage.objects
+    for delete using (bucket_id = 'lesson-media' and public.is_admin());
+exception when others then
+  -- Some hosted environments restrict DDL on storage.objects; ignore so
+  -- the rest of the migration still applies. Configure the policies in
+  -- the dashboard if this block is skipped.
+  null;
+end $$;
