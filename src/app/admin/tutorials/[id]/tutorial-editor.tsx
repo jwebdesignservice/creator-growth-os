@@ -54,6 +54,7 @@ import { LessonPathTab } from "./lesson-path-tab";
 import type { LessonChapter } from "./lesson-chapters-actions";
 import { ResourcesTab } from "./resources-tab";
 import type { LessonResource } from "./resources-actions";
+import { AccessTab } from "./access-tab";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -525,6 +526,14 @@ export function TutorialEditor({
                 lessonId={lesson.id}
                 initialResources={initialResources}
                 tableMissing={resourcesTableMissing}
+              />
+            ) : activeTab === "access" ? (
+              <AccessTab
+                planAccess={planAccess}
+                setPlanAccess={setPlanAccess}
+                visibility={visibility}
+                setVisibility={setVisibility}
+                published={lesson.published}
               />
             ) : (
               <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />

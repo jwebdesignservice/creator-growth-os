@@ -24,6 +24,7 @@ import {
   Check,
   Copy,
   Loader2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -105,6 +106,65 @@ export function TutorialsView({
 
     return rows;
   }, [tutorials, tab, programId, search, sort]);
+
+  /* ── Bulk selection ──────────────────────────────────────────────────
+     Selection lives here (not per-card) so the action bar can publish,
+     unpublish or delete every checked tutorial in one pass. Each action
+     loops the existing, already-tested server actions over the selected
+     rows, then refreshes. Selection is pruned to the visible set whenever
+     the filters change so the count never references hidden rows. */
+  const router = useRouter();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPending, startBulk] = useTransition();
+
+  // Derive the acted-on rows from the visible set, so a selection made under
+  // one filter never targets a row that's currently hidden. Any stale ids
+  // left in `selectedIds` are harmless — counts and actions key off this.
+  const selectedRows = filtered.filter((t) => selectedIds.has(t.id));
+  const allVisibleSelected =
+    filtered.length > 0 && selectedRows.length === filtered.length;
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function runBulk(fn: (t: TutorialCardData) => Promise<unknown>) {
+    if (bulkPending || selectedRows.length === 0) return;
+    const rows = selectedRows.slice();
+    startBulk(async () => {
+      await Promise.all(rows.map((t) => fn(t)));
+      clearSelection();
+      router.refresh();
+    });
+  }
+  const bulkPublish = () =>
+    runBulk((t) =>
+      t.published ? Promise.resolve() : toggleLessonPublished(t.id, true),
+    );
+  const bulkUnpublish = () =>
+    runBulk((t) =>
+      t.published ? toggleLessonPublished(t.id, false) : Promise.resolve(),
+    );
+  function bulkDelete() {
+    if (
+      !confirm(
+        `Delete ${selectedRows.length} tutorial${
+          selectedRows.length === 1 ? "" : "s"
+        }? This permanently removes them and can't be undone.`,
+      )
+    ) {
+      return;
+    }
+    runBulk((t) => deleteLesson(t.id));
+  }
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -231,6 +291,22 @@ export function TutorialsView({
         </span>
       </div>
 
+      {/* ── Bulk action bar ──────────────────────────────────────────── */}
+      {selectedRows.length > 0 && (
+        <BulkActionBar
+          count={selectedRows.length}
+          allSelected={allVisibleSelected}
+          pending={bulkPending}
+          onSelectAll={() =>
+            setSelectedIds(new Set(filtered.map((t) => t.id)))
+          }
+          onClear={clearSelection}
+          onPublish={bulkPublish}
+          onUnpublish={bulkUnpublish}
+          onDelete={bulkDelete}
+        />
+      )}
+
       {/* ── Grid / List ──────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <EmptyState
@@ -240,14 +316,24 @@ export function TutorialsView({
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filtered.map((t) => (
-            <TutorialCard key={t.id} t={t} />
+            <TutorialCard
+              key={t.id}
+              t={t}
+              selected={selectedIds.has(t.id)}
+              onToggle={() => toggleSelect(t.id)}
+            />
           ))}
         </div>
       ) : (
         <div className="card overflow-hidden">
           <ul className="divide-y divide-ink-100">
             {filtered.map((t) => (
-              <TutorialListRow key={t.id} t={t} />
+              <TutorialListRow
+                key={t.id}
+                t={t}
+                selected={selectedIds.has(t.id)}
+                onToggle={() => toggleSelect(t.id)}
+              />
             ))}
           </ul>
         </div>
@@ -395,10 +481,123 @@ function ViewToggle({
 
 /* ───────────────────────────────────────────────────────────────────── */
 
-function TutorialCard({ t }: { t: TutorialCardData }) {
+function BulkActionBar({
+  count,
+  allSelected,
+  pending,
+  onSelectAll,
+  onClear,
+  onPublish,
+  onUnpublish,
+  onDelete,
+}: {
+  count: number;
+  allSelected: boolean;
+  pending: boolean;
+  onSelectAll: () => void;
+  onClear: () => void;
+  onPublish: () => void;
+  onUnpublish: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="sticky top-3 z-20 card border-rose-200 bg-white/95 backdrop-blur px-4 py-3 flex items-center gap-3 flex-wrap shadow-card">
+      <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-ink-900">
+        <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-rose-100 text-rose-700 text-[12px] tabular-nums">
+          {count}
+        </span>
+        selected
+      </span>
+      {!allSelected && (
+        <button
+          type="button"
+          onClick={onSelectAll}
+          disabled={pending}
+          className="text-[12.5px] font-medium text-rose-700 hover:text-rose-800 underline-offset-2 hover:underline disabled:opacity-50"
+        >
+          Select all
+        </button>
+      )}
+      <div className="ml-auto flex items-center gap-2">
+        <BulkButton
+          icon={<Eye className="size-4" strokeWidth={2} />}
+          label="Publish"
+          onClick={onPublish}
+          disabled={pending}
+        />
+        <BulkButton
+          icon={<EyeOff className="size-4" strokeWidth={2} />}
+          label="Unpublish"
+          onClick={onUnpublish}
+          disabled={pending}
+        />
+        <BulkButton
+          icon={<Trash2 className="size-4" strokeWidth={2} />}
+          label="Delete"
+          onClick={onDelete}
+          disabled={pending}
+          danger
+        />
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={pending}
+          aria-label="Clear selection"
+          className="inline-flex items-center justify-center size-9 rounded-[10px] border border-ink-200 bg-white text-ink-500 hover:bg-cream-100 hover:text-ink-900 disabled:opacity-50 transition-colors"
+        >
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+          ) : (
+            <X className="size-4" strokeWidth={2} />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BulkButton({
+  icon,
+  label,
+  onClick,
+  disabled,
+  danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex items-center gap-2 h-9 px-3.5 rounded-[10px] border text-[12.5px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+        danger
+          ? "border-rose-200 bg-white text-rose-600 hover:bg-rose-50"
+          : "border-ink-200 bg-white text-ink-900 hover:bg-cream-100",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function TutorialCard({
+  t,
+  selected,
+  onToggle,
+}: {
+  t: TutorialCardData;
+  selected: boolean;
+  onToggle: () => void;
+}) {
   const editHref = `/admin/tutorials/${t.id}`;
   const publicHref = `/tutorials/${t.slug}`;
-  const [selected, setSelected] = useState(false);
 
   return (
     <article
@@ -447,10 +646,7 @@ function TutorialCard({ t }: { t: TutorialCardData }) {
       {/* Hover overlays — checkbox top-left + action stack top-right.
           Rendered as siblings of the Link so their clicks aren't swallowed
           by the navigation. Each handler also stops propagation. */}
-      <HoverCheckbox
-        selected={selected}
-        onToggle={() => setSelected((v) => !v)}
-      />
+      <HoverCheckbox selected={selected} onToggle={onToggle} />
       <div
         className={cn(
           "absolute top-3 right-3 z-10 flex flex-col gap-1.5 transition-opacity",
@@ -806,9 +1002,36 @@ function MenuLink({
 
 /* ───────────────────────────────────────────────────────────────────── */
 
-function TutorialListRow({ t }: { t: TutorialCardData }) {
+function TutorialListRow({
+  t,
+  selected,
+  onToggle,
+}: {
+  t: TutorialCardData;
+  selected: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <li className="flex items-center gap-4 px-5 py-4 hover:bg-cream-50/60 transition-colors">
+    <li
+      className={cn(
+        "group flex items-center gap-4 px-5 py-4 transition-colors",
+        selected ? "bg-rose-50/60" : "hover:bg-cream-50/60",
+      )}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={selected}
+        aria-label={selected ? "Deselect tutorial" : "Select tutorial"}
+        className={cn(
+          "size-6 rounded-[6px] border-2 inline-flex items-center justify-center shrink-0 transition-all",
+          selected
+            ? "bg-rose-500 border-rose-500 text-white"
+            : "bg-white border-ink-300 text-transparent hover:border-rose-300",
+        )}
+      >
+        <Check className="size-3.5" strokeWidth={3} />
+      </button>
       <div className="relative w-[140px] aspect-video rounded-[10px] overflow-hidden bg-gradient-to-br from-rose-100 via-rose-50 to-cream-100 shrink-0">
         {t.coverImageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
