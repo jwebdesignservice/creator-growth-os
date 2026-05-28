@@ -1,62 +1,12 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
-export type LessonTaskTemplate = {
-  id: string;
-  title: string;
-  description: string | null;
-  task_type: string;
-  priority: string;
-  estimated_minutes: number;
-  points: number;
-  sort_order: number;
-};
-
-export type LessonTaskState = LessonTaskTemplate & {
-  /** True iff this template already has a generated mission for the current user. */
-  generated: boolean;
-};
-
-/**
- * Templates for one lesson, annotated with per-user generated state. Returns
- * [] when the lesson has no templates configured (rendered as "no task" in
- * the UI so we don't show empty cards).
- */
-export async function getLessonTaskStates(
-  lessonId: string,
-  userId: string | null,
-): Promise<LessonTaskState[]> {
-  const supabase = await createClient();
-
-  const { data: templates } = await supabase
-    .from("lesson_task_templates")
-    .select(
-      "id, title, description, task_type, priority, estimated_minutes, points, sort_order",
-    )
-    .eq("lesson_id", lessonId)
-    .order("sort_order", { ascending: true });
-
-  if (!templates || templates.length === 0) return [];
-
-  if (!userId) {
-    return templates.map((t) => ({ ...t, generated: false }));
-  }
-
-  const templateIds = templates.map((t) => t.id);
-  const { data: existing } = await supabase
-    .from("missions")
-    .select("lesson_template_id")
-    .eq("user_id", userId)
-    .in("lesson_template_id", templateIds);
-
-  const generated = new Set(
-    (existing ?? [])
-      .map((m) => m.lesson_template_id)
-      .filter((id): id is string => !!id),
-  );
-
-  return templates.map((t) => ({ ...t, generated: generated.has(t.id) }));
-}
+// LEGACY REMOVED: `getLessonTaskStates` + its types read the legacy
+// `lesson_task_templates` table. Program-video task display now uses the
+// unified task system — `getTaskTemplatesForSource("program_video", …)` +
+// `getUserTasks(…)` from `@/lib/tasks/queries` (see program-video-tasks.tsx).
+// `getProgramUserTasks` below still powers the program "Tasks" tab; it reads
+// the `missions` store directly, so it is unchanged.
 
 export type ProgramUserTask = {
   id: string;

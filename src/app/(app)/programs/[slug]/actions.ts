@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyMilestoneReached } from "@/lib/notifications/service";
-import { generateTasksForCompletedLesson } from "@/lib/programs/generate-lesson-tasks";
+import { assignTasksFromSource } from "@/lib/tasks/assign";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -50,13 +50,12 @@ export async function markLessonComplete(
   );
   if (error) return { ok: false, error: error.message };
 
-  // Generate the lesson's tasks into the user's mission list. Idempotent —
-  // re-completing the same lesson never duplicates rows.
+  // Assign this lesson's tasks via the ONE central engine. Idempotent —
+  // re-completing never duplicates. Templates whose trigger is "on_complete"
+  // are assigned here; "on_start" ones are assigned when the lesson opens.
   if (completed) {
-    await generateTasksForCompletedLesson(supabase, {
-      userId: user.id,
-      programId: lesson.program_id,
-      lessonId: lesson.id,
+    await assignTasksFromSource(user.id, "program_video", lesson.id, {
+      trigger: "on_complete",
     });
   }
 

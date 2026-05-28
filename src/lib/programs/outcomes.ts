@@ -91,7 +91,7 @@ export function getOutcomeForModule(moduleNumber: number): Outcome {
   return PROGRAM_OUTCOMES[idx] ?? PROGRAM_OUTCOMES[0]!;
 }
 
-// Per-lesson task templates now live in the DB (public.lesson_task_templates,
-// see migration 0027). The previous static `LESSON_TASKS` map + `getTaskForLesson`
-// helper were removed in that migration's commit — read templates via
-// `getLessonTaskStates` from `@/lib/programs/lesson-task-queries` instead.
+// Per-lesson tasks live in the unified task system (public.task_templates,
+// source_type='program_video', migration 0038), read via
+// `getTaskTemplatesForSource` from `@/lib/tasks/queries`. The legacy
+// `lesson_task_templates` table is kept read-only for old data only.
