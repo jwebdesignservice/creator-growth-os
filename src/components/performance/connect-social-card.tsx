@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Share2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import {
   InstagramIcon,
@@ -8,6 +8,7 @@ import {
   YoutubeIcon,
 } from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { disconnectPlatform, syncPlatform } from "@/lib/social/actions";
 import type { SocialConnection } from "@/lib/social/queries";
 
@@ -90,16 +91,17 @@ function PlatformRow({
   activeLabel: string | null;
 }) {
   const [pending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function connect() {
     // Hard navigation — let the browser do the OAuth dance.
     window.location.href = `/api/oauth/${conn.platform}/start`;
   }
 
-  function disconnect() {
-    if (!confirm(`Disconnect ${conn.label}?`)) return;
+  function runDisconnect() {
     startTransition(async () => {
       await disconnectPlatform(conn.platform);
+      setConfirmOpen(false);
     });
   }
 
@@ -208,7 +210,7 @@ function PlatformRow({
             </button>
             <button
               type="button"
-              onClick={disconnect}
+              onClick={() => setConfirmOpen(true)}
               disabled={pending}
               className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium bg-white border border-ink-100 text-ink-700 hover:bg-cream-100 disabled:opacity-50"
             >
@@ -269,6 +271,18 @@ function PlatformRow({
           {secondaryHint}
         </div>
       )}
+
+      {/* Custom in-app confirmation — replaces the native browser confirm()
+          dialog so the disconnect flow stays inside our design system. */}
+      <ConfirmDialog
+        open={confirmOpen}
+        title={`Disconnect ${conn.label}?`}
+        message="Your past analytics stay in the dashboard, but new data won't sync until you reconnect."
+        confirmLabel="Disconnect"
+        onConfirm={runDisconnect}
+        onCancel={() => setConfirmOpen(false)}
+        pending={pending}
+      />
     </li>
   );
 }
