@@ -12,10 +12,16 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getAllTutorials, type TutorialRow } from "@/lib/programs/tutorial-queries";
 import { TutorialLibrary } from "@/components/tutorials/library";
 import { FeaturedTutorial } from "@/components/tutorials/featured";
+import {
+  getOnboardingGate,
+  isGateActive,
+  readPreviewGate,
+} from "@/lib/onboarding/gate";
+import { OnboardingLockedNotice } from "@/components/onboarding/onboarding-locked-notice";
 
 export const metadata = { title: "Tutorials | Creator Growth OS" };
 
-type SearchParams = Promise<{ q?: string }>;
+type SearchParams = Promise<{ q?: string; previewGate?: string }>;
 
 export default async function TutorialsPage({
   searchParams,
@@ -25,7 +31,36 @@ export default async function TutorialsPage({
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
-  const { q = "" } = await searchParams;
+  const { q = "", previewGate } = await searchParams;
+
+  // Onboarding gate — the Tutorials library is locked until the user finishes
+  // the Start Here onboarding. Enforced server-side (direct URL included).
+  const gate = await getOnboardingGate();
+  if (isGateActive(gate, readPreviewGate(previewGate))) {
+    return (
+      <PageShell>
+        <div className="space-y-6 sm:space-y-7 max-w-[1600px] mx-auto">
+          <header>
+            <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
+              <Sparkles className="size-4" strokeWidth={2} />
+              Welcome back, {ctx.name.split(" ")[0]}!
+            </div>
+            <h1 className="text-h1 text-ink-900 mb-1">Tutorials</h1>
+            <p className="text-ink-500 text-[14px]">
+              Learn practical creator skills, drills, templates and assignments
+              to grow your influence.
+            </p>
+          </header>
+          <OnboardingLockedNotice
+            percent={gate.percent}
+            programSlug={gate.programSlug}
+            kind="tutorial"
+          />
+        </div>
+      </PageShell>
+    );
+  }
+
   const query = q.trim().toLowerCase();
 
   const all = await getAllTutorials();

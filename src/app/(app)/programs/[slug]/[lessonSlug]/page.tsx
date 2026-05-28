@@ -44,6 +44,13 @@ import { LessonActionRow } from "@/components/tutorials/action-row";
 import { ProgramVideoTasks } from "./program-video-tasks";
 import { AssignOnMount } from "@/components/tasks/assign-on-mount";
 import { cn } from "@/lib/cn";
+import {
+  getOnboardingGate,
+  isGateActive,
+  readPreviewGate,
+  ONBOARDING_PROGRAM_SLUG,
+} from "@/lib/onboarding/gate";
+import { OnboardingLockedNotice } from "@/components/onboarding/onboarding-locked-notice";
 
 /**
  * In-program lesson player — `/programs/[slug]/[lessonSlug]`.
@@ -64,6 +71,7 @@ import { cn } from "@/lib/cn";
  */
 
 type Params = Promise<{ slug: string; lessonSlug: string }>;
+type SearchParams = Promise<{ previewGate?: string }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { lessonSlug } = await params;
@@ -84,13 +92,46 @@ function prettySlug(slug: string) {
 
 export default async function ProgramLessonPage({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: SearchParams;
 }) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
   const { slug, lessonSlug } = await params;
+
+  // Onboarding gate — lessons in any program except Start Here are locked
+  // until onboarding is complete. Enforced here so direct URLs respect it.
+  const { previewGate } = await searchParams;
+  const gate = await getOnboardingGate();
+  if (
+    slug !== ONBOARDING_PROGRAM_SLUG &&
+    isGateActive(gate, readPreviewGate(previewGate))
+  ) {
+    return (
+      <PageShell>
+        <div className="max-w-[1360px] mx-auto space-y-4">
+          <nav className="text-[13px]">
+            <Link
+              href="/programs"
+              className="text-rose-600 hover:text-rose-700 font-medium"
+            >
+              Programs
+            </Link>
+            <span className="text-ink-400 mx-2">/</span>
+            <span className="text-ink-700">{prettySlug(slug)}</span>
+          </nav>
+          <OnboardingLockedNotice
+            percent={gate.percent}
+            programSlug={gate.programSlug}
+            kind="lesson"
+          />
+        </div>
+      </PageShell>
+    );
+  }
 
   const supabase = await createClient();
   const [{ data: dbProgram }, lessonRes] = await Promise.all([

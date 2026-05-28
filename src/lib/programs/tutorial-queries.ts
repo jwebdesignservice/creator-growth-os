@@ -9,6 +9,7 @@ export type TutorialRow = {
   durationSeconds: number;
   difficulty: string;
   contentType: string;
+  coverUrl: string | null;
   programSlug: string | null;
   programTitle: string | null;
   moduleNumber: number | null;
@@ -44,7 +45,7 @@ export async function getAllTutorials(): Promise<TutorialRow[]> {
   const { data: lessons } = await supabase
     .from("lessons")
     .select(
-      "id, slug, title, description, duration_seconds, difficulty, content_type, plan_access, module_number, module_title, sort_order, category, programs(slug, title, sort_order, category_access)",
+      "id, slug, title, description, duration_seconds, difficulty, content_type, cover_image_url, plan_access, module_number, module_title, sort_order, category, programs(slug, title, sort_order, category_access)",
     )
     .eq("published", true)
     .is("program_id", null)
@@ -80,6 +81,7 @@ export async function getAllTutorials(): Promise<TutorialRow[]> {
       durationSeconds: l.duration_seconds ?? 0,
       difficulty: l.difficulty ?? "Intermediate",
       contentType: l.content_type ?? "video",
+      coverUrl: l.cover_image_url ?? null,
       programSlug: program?.slug ?? null,
       programTitle: program?.title ?? null,
       moduleNumber: l.module_number ?? null,
