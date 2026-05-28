@@ -19,9 +19,16 @@ import {
   ArrowRight,
   CheckCircle2,
   Image as ImageIcon,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { createClient } from "@/lib/supabase/client";
+import {
+  createSignedMediaUpload,
+  publicMediaUrl,
+  createTutorial,
+} from "./actions";
 
 const MAX_BYTES = 4 * 1024 * 1024 * 1024; // 4 GB
 const ACCEPTED_EXTS = [".mp4", ".mov", ".avi", ".webm"];
@@ -41,6 +48,8 @@ export function TutorialUploadForm() {
   const [file, setFile]       = useState<File | null>(null);
   const [error, setError]     = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [stage, setStage] = useState<string>("");
 
   function pickFiles() {
     inputRef.current?.click();
@@ -87,12 +96,80 @@ export function TutorialUploadForm() {
     router.push("/admin/tutorials");
   }
 
-  function onContinue() {
-    if (!file) return;
-    // Frontend-only placeholder — real upload + step-2 page lands later.
-    // For now, send the admin to the existing create-video wizard so the
-    // flow ends somewhere real instead of a 404.
-    router.push("/create-new/video");
+  /** Read a video file's duration (seconds) via a throwaway <video>. */
+  function readDuration(f: File): Promise<number> {
+    return new Promise((resolve) => {
+      try {
+        const el = document.createElement("video");
+        el.preload = "metadata";
+        el.onloadedmetadata = () => {
+          const d = Number.isFinite(el.duration) ? Math.round(el.duration) : 0;
+          URL.revokeObjectURL(el.src);
+          resolve(d);
+        };
+        el.onerror = () => resolve(0);
+        el.src = URL.createObjectURL(f);
+      } catch {
+        resolve(0);
+      }
+    });
+  }
+
+  /** "module-1_final.mp4" → "Module 1 Final" so the editor opens with a
+   *  sensible draft title the admin can refine. */
+  function deriveTitle(name: string): string {
+    const base = name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+    if (!base) return "Untitled tutorial";
+    return base.replace(/\b\w/g, (c) => c.toUpperCase()).slice(0, 100);
+  }
+
+  async function onContinue() {
+    if (!file || uploading) return;
+    setError(null);
+    setUploading(true);
+    try {
+      // 1) Duration (best-effort) + a signed, one-time upload URL.
+      setStage("Preparing upload…");
+      const duration = await readDuration(file);
+      const signed = await createSignedMediaUpload(file.name, "video");
+      if (!signed.ok) {
+        setError(signed.error);
+        setUploading(false);
+        return;
+      }
+
+      // 2) Upload the bytes straight to Storage with the token.
+      setStage("Uploading video…");
+      const supabase = createClient();
+      const up = await supabase.storage
+        .from(signed.bucket)
+        .uploadToSignedUrl(signed.path, signed.token, file);
+      if (up.error) {
+        setError(up.error.message || "Video upload failed. Try again.");
+        setUploading(false);
+        return;
+      }
+
+      // 3) Resolve the public URL + create the tutorial row.
+      setStage("Creating tutorial…");
+      const videoUrl = await publicMediaUrl(signed.path);
+      const res = await createTutorial({
+        title: deriveTitle(file.name),
+        videoUrl,
+        durationSeconds: duration,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        setUploading(false);
+        return;
+      }
+
+      // 4) Into the editor to add details / thumbnail / publish.
+      router.push(`/admin/tutorials/${res.id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setUploading(false);
+    }
   }
 
   /* Checklist state derived from the file + (placeholder) future fields. */
@@ -304,26 +381,41 @@ export function TutorialUploadForm() {
             You can update title, thumbnail, and lesson details after upload.
           </p>
           <div className="flex items-center gap-2.5">
+            {uploading && stage && (
+              <span className="text-[12.5px] text-ink-500 tabular-nums mr-1">
+                {stage}
+              </span>
+            )}
             <button
               type="button"
               onClick={onCancel}
-              className="h-11 px-5 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors"
+              disabled={uploading}
+              className="h-11 px-5 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 disabled:opacity-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={onContinue}
-              disabled={!file}
+              disabled={!file || uploading}
               className={cn(
                 "inline-flex items-center gap-1.5 h-11 px-5 rounded-[12px] text-white text-[14px] font-semibold transition-colors shadow-sm",
-                file
+                file && !uploading
                   ? "bg-rose-600 hover:bg-rose-700"
                   : "bg-rose-300 cursor-not-allowed",
               )}
             >
-              Upload &amp; continue
-              <ArrowRight className="size-4" strokeWidth={2.2} />
+              {uploading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" strokeWidth={2.2} />
+                  Uploading…
+                </>
+              ) : (
+                <>
+                  Upload &amp; continue
+                  <ArrowRight className="size-4" strokeWidth={2.2} />
+                </>
+              )}
             </button>
           </div>
         </footer>
