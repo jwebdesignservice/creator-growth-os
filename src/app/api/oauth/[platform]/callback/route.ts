@@ -123,6 +123,9 @@ export async function GET(
   if (platform === "instagram") {
     const { syncInstagramAccount } = await import("@/lib/social/instagram");
     await syncInstagramAccount(parsed.userId);
+  } else if (platform === "facebook") {
+    const { syncFacebookAccount } = await import("@/lib/social/facebook");
+    await syncFacebookAccount(parsed.userId);
   }
 
   return backTo(origin, "ok", platform);

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getProvider, type ProviderKey } from "./providers";
 import { syncInstagramAccount } from "./instagram";
+import { syncFacebookAccount } from "./facebook";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -62,6 +63,13 @@ export async function syncPlatform(platform: ProviderKey): Promise<Result> {
 
   if (platform === "instagram") {
     const res = await syncInstagramAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  if (platform === "facebook") {
+    const res = await syncFacebookAccount(user.id);
     revalidatePath("/performance");
     if (!res.ok) return { ok: false, error: res.error };
     return { ok: true };
