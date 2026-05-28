@@ -481,6 +481,7 @@ export function TutorialEditor({
               />
             ) : activeTab === "thumbnail" ? (
               <ThumbnailTab
+                lessonId={lesson.id}
                 coverImageUrl={lesson.coverImageUrl}
                 videoUrl={lesson.videoUrl}
                 durationSeconds={lesson.durationSeconds}
