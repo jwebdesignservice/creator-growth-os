@@ -649,7 +649,7 @@ function OverviewEditor({
   }
 
   return (
-    <Section letter="B" title="Lesson overview" subtitle="This overview appears under the lesson for your learners.">
+    <Section letter="B" title="Lesson overview" subtitle="This overview appears under the lesson for your learners." badge="Lesson page">
       <div className="rounded-[10px] border border-ink-200 bg-white overflow-hidden focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100 transition-colors">
         <div className="flex items-center gap-1 px-2 py-1.5 border-b border-ink-100 bg-cream-50/60">
           <TBtn icon={Bold} label="Bold" onClick={() => wrap("**", "**", "bold")} />
@@ -717,7 +717,7 @@ function LearningList({
   }
 
   return (
-    <Section letter="C" title="What you will learn" subtitle="Add key learning outcomes for this lesson.">
+    <Section letter="C" title="What you will learn" subtitle="Key outcomes for this lesson — these render as cards on the lesson page, separate from the program overview's “What You'll Learn”." badge="Lesson page">
       <ul className="space-y-1.5">
         {items.map((it, i) => (
           <li
@@ -811,7 +811,7 @@ function ActionStepsList({
   }
 
   return (
-    <Section letter="D" title="Action steps" subtitle="List the actions learners should take after watching this lesson.">
+    <Section letter="D" title="Action steps" subtitle="Actions learners take after watching — shown under “What you'll learn” on the lesson page." badge="Lesson page">
       <ul className="space-y-2">
         {items.map((s, i) => (
           <li
@@ -941,7 +941,8 @@ function Section({
           <p className="mt-0.5 text-[12.5px] text-ink-500">{subtitle}</p>
         </div>
         {badge && (
-          <span className="inline-flex items-center px-2 h-6 rounded-full bg-cream-100 text-ink-600 text-[10.5px] font-semibold shrink-0">
+          <span className="inline-flex items-center gap-1 px-2.5 h-6 rounded-full bg-rose-50 text-rose-600 text-[10.5px] font-semibold shrink-0 whitespace-nowrap">
+            <Eye className="size-3" strokeWidth={2} aria-hidden />
             {badge}
           </span>
         )}
