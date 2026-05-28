@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   BookOpen,
   CheckCircle2,
@@ -17,6 +16,9 @@ import {
   Target,
   Flag,
   Square,
+  Image as ImageIcon,
+  Link2,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
@@ -39,9 +41,20 @@ type Chapter = {
   iconKey: string;
 };
 
+/** A real uploaded file / external link attached to this lesson. */
+export type LessonResourceItem = {
+  id: string;
+  kind: "file" | "link";
+  title: string;
+  url: string;
+  ext: string;
+  sizeBytes: number | null;
+};
+
 type Props = {
   description: string | null;
   chapters: Chapter[];
+  resources: LessonResourceItem[];
 };
 
 type TabKey = "overview" | "path" | "resources" | "notes";
@@ -64,6 +77,7 @@ const TAKEAWAYS = [
 export function LessonTabs({
   description,
   chapters,
+  resources,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -110,7 +124,7 @@ export function LessonTabs({
       <div className="p-5 sm:p-6">
         {tab === "overview" && <OverviewPanel description={description} />}
         {tab === "path" && <PathPanel chapters={chapters} />}
-        {tab === "resources" && <ResourcesPanel />}
+        {tab === "resources" && <ResourcesPanel resources={resources} />}
         {tab === "notes" && <NotesPanel />}
       </div>
     </section>
@@ -260,51 +274,99 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
 
 /* ─── Resources & templates ────────────────────────────────────────────── */
 
-function ResourcesPanel() {
-  const items = [
-    { title: "Hook Formula PDF", type: "PDF Guide", icon: FileText },
-    { title: "Caption Starter Sheet", type: "Google Sheet", icon: FileSpreadsheet },
-    { title: "Hook Swipe File", type: "Swipe File Library", icon: Files, pro: true },
-    { title: "Creator Checklist", type: "PDF Guide", icon: FileText },
-  ];
+const RESOURCE_EXT_META: Record<string, { label: string; icon: LucideIcon }> = {
+  pdf:  { label: "PDF",         icon: FileText        },
+  docx: { label: "Document",    icon: FileText        },
+  xlsx: { label: "Spreadsheet", icon: FileSpreadsheet },
+  png:  { label: "Image",       icon: ImageIcon       },
+  jpg:  { label: "Image",       icon: ImageIcon       },
+  zip:  { label: "Archive",     icon: Files           },
+  link: { label: "Link",        icon: Link2           },
+  file: { label: "File",        icon: FileText        },
+};
+
+function formatBytes(bytes: number | null): string | null {
+  if (!bytes || bytes <= 0) return null;
+  const units = ["B", "KB", "MB", "GB"];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${i === 0 || v >= 10 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
+}
+
+function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
+  if (resources.length === 0) {
+    return (
+      <div className="max-w-2xl text-center py-8 px-4 rounded-[12px] bg-cream-50 border border-dashed border-ink-200">
+        <Files
+          className="size-6 text-ink-400 mx-auto mb-2"
+          strokeWidth={1.8}
+          aria-hidden
+        />
+        <div className="text-[13px] font-semibold text-ink-900">
+          No resources yet
+        </div>
+        <p className="text-[12px] text-ink-500 mt-0.5">
+          The current tutorial does not have any resources.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[14px] font-semibold text-ink-900">
           Resources &amp; templates
         </h3>
-        <Link
-          href="/tutorials"
-          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
-        >
-          View all
-        </Link>
+        <span className="text-[11.5px] text-ink-500 tabular-nums">
+          {resources.length} {resources.length === 1 ? "item" : "items"}
+        </span>
       </div>
       <ul className="space-y-1">
-        {items.map((it) => {
-          const Icon = it.icon;
+        {resources.map((r) => {
+          const meta =
+            RESOURCE_EXT_META[r.ext] ??
+            RESOURCE_EXT_META[r.kind === "link" ? "link" : "file"];
+          const Icon = meta.icon;
+          const size = r.kind === "file" ? formatBytes(r.sizeBytes) : null;
           return (
-            <li key={it.title}>
-              <button
-                type="button"
+            <li key={r.id}>
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-3 w-full p-2 -mx-1 rounded-[10px] hover:bg-cream-100 transition-colors cursor-pointer text-left"
               >
                 <span className="size-9 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
                   <Icon className="size-4" strokeWidth={1.8} aria-hidden />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-ink-900 truncate flex items-center gap-1.5">
-                    {it.title}
-                    {it.pro && (
-                      <span className="chip chip-rose text-[9px]">PRO</span>
-                    )}
+                  <div className="text-[13px] font-medium text-ink-900 truncate">
+                    {r.title}
                   </div>
                 </div>
                 <span className="text-[11.5px] text-ink-500 hidden sm:inline">
-                  {it.type}
+                  {meta.label}
+                  {size ? ` · ${size}` : ""}
                 </span>
-                <ChevronRight className="size-3.5 text-ink-400 shrink-0" strokeWidth={2} aria-hidden />
-              </button>
+                {r.kind === "link" ? (
+                  <ExternalLink
+                    className="size-3.5 text-ink-400 shrink-0"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                ) : (
+                  <ChevronRight
+                    className="size-3.5 text-ink-400 shrink-0"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                )}
+              </a>
             </li>
           );
         })}
