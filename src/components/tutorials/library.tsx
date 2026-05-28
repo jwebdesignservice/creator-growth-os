@@ -286,6 +286,15 @@ function TutorialCard({
     >
       {/* Thumbnail — Loom-style tile with a corner duration badge */}
       <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-rose-100/60 via-cream-200 to-rose-100/30">
+        {/* Cover image — sits behind the overlay; gradient shows through when absent */}
+        {tutorial.coverUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={tutorial.coverUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        )}
         {/* Category + type badges (top-left) */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
           <span className="chip chip-rose text-[10px]">
