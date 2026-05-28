@@ -433,12 +433,14 @@ export function CurriculumEditor({
       {editingModule && (
         <EditModuleModal
           module={editingModule}
+          programId={programId}
           onClose={() => setEditingModule(null)}
         />
       )}
       {deletingModule && (
         <DeleteModuleModal
           module={deletingModule}
+          programId={programId}
           hasLessons={
             (lessonsByModule.get(deletingModule.number)?.length ?? 0) > 0
           }
@@ -1150,9 +1152,11 @@ function AddModuleModal({
 
 function EditModuleModal({
   module: m,
+  programId,
   onClose,
 }: {
   module: ModuleRow;
+  programId: string;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -1163,7 +1167,7 @@ function EditModuleModal({
   function save() {
     setError(null);
     startTransition(async () => {
-      const res = await renameModule(m.id, title);
+      const res = await renameModule(m.id, title, programId);
       if (!res.ok) {
         setError(res.error);
         return;
@@ -1212,10 +1216,12 @@ function EditModuleModal({
 
 function DeleteModuleModal({
   module: m,
+  programId,
   hasLessons,
   onClose,
 }: {
   module: ModuleRow;
+  programId: string;
   hasLessons: boolean;
   onClose: () => void;
 }) {
@@ -1227,7 +1233,7 @@ function DeleteModuleModal({
   function save() {
     setError(null);
     startTransition(async () => {
-      const res = await deleteModule(m.id, { keepLessons });
+      const res = await deleteModule(m.id, { keepLessons, programId });
       if (!res.ok) {
         setError(res.error);
         return;
