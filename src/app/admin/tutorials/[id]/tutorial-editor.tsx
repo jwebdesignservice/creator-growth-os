@@ -53,6 +53,7 @@ import { OverviewTab, AtAGlanceCard } from "./overview-tab";
 import { LessonPathTab } from "./lesson-path-tab";
 import type { LessonChapter } from "./lesson-chapters-actions";
 import { ResourcesTab } from "./resources-tab";
+import type { LessonResource } from "./resources-actions";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -140,6 +141,8 @@ export function TutorialEditor({
   initialChapters,
   initialControls,
   controlsTableMissing,
+  initialResources,
+  resourcesTableMissing,
 }: {
   lesson: TutorialEditorData;
   programs: ProgramOption[];
@@ -148,6 +151,8 @@ export function TutorialEditor({
   initialChapters: LessonChapter[];
   initialControls: LessonControls;
   controlsTableMissing: boolean;
+  initialResources: LessonResource[];
+  resourcesTableMissing: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -508,7 +513,11 @@ export function TutorialEditor({
                 lastUpdatedAt={lesson.createdAt}
               />
             ) : activeTab === "resources" ? (
-              <ResourcesTab />
+              <ResourcesTab
+                lessonId={lesson.id}
+                initialResources={initialResources}
+                tableMissing={resourcesTableMissing}
+              />
             ) : (
               <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
             )}

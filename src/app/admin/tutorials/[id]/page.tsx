@@ -4,6 +4,7 @@ import { TutorialEditor, type TutorialEditorData, type ProgramOption } from "./t
 import { loadDrill, type DrillRow } from "./drill-actions";
 import { getLessonChapters, type LessonChapter } from "./lesson-chapters-actions";
 import { getLessonControls } from "./controls-actions";
+import { getLessonResources } from "./resources-actions";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -121,6 +122,10 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
   // pending.
   const controlsResult = await getLessonControls(data.id);
 
+  // Resources for this tutorial (migration 0037). Degrades to empty + a
+  // "needs migration" flag the tab surfaces inline.
+  const resourcesResult = await getLessonResources(data.id);
+
   return (
     <TutorialEditor
       lesson={data}
@@ -130,6 +135,8 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
       initialChapters={initialChapters}
       initialControls={controlsResult.controls}
       controlsTableMissing={controlsResult.tableMissing}
+      initialResources={resourcesResult.resources}
+      resourcesTableMissing={resourcesResult.tableMissing}
     />
   );
 }
