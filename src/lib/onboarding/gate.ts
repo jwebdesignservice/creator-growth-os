@@ -12,24 +12,15 @@ import { createClient } from "@/lib/supabase/server";
 
    Bypass rules:
    • Admins (a row in admin_users) always bypass.
-   • Existing users — created before the gate launched — are grandfathered
-     in and never locked out.
    • The Start Here program (and its lessons) are never locked.
+   Every other non-admin user is gated until Start Here is 100% complete.
 
-   No schema change: "complete" is derived from real lesson_progress, and
-   "new vs existing" from profiles.created_at. Fail-open — if Start Here is
-   missing/unseeded we never lock anyone.
+   No schema change: "complete" is derived from real lesson_progress.
+   Fail-open — if Start Here is missing/unseeded we never lock anyone.
    ───────────────────────────────────────────────────────────────────────── */
 
 /** Slug of the onboarding program that unlocks the rest of the platform. */
 export const ONBOARDING_PROGRAM_SLUG = "start-here";
-
-/**
- * Users created on/after this instant are subject to the gate; everyone who
- * existed before is grandfathered. Set to the Phase-2 launch moment so no
- * current user is ever locked out.
- */
-export const ONBOARDING_GATE_LAUNCH = Date.parse("2026-05-28T00:00:00Z");
 
 export type OnboardingGate = {
   /** True when this specific user should have non-onboarding content locked. */
@@ -72,15 +63,6 @@ export const getOnboardingGate = cache(async (): Promise<OnboardingGate> => {
     .maybeSingle();
   const isAdmin = !!admin;
 
-  // Existing users (created before launch) are grandfathered.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("created_at")
-    .eq("id", user.id)
-    .maybeSingle();
-  const createdAt = profile?.created_at ? Date.parse(profile.created_at) : 0;
-  const isNewUser = Number.isFinite(createdAt) && createdAt >= ONBOARDING_GATE_LAUNCH;
-
   // Derive Start Here completion from real progress. Fail open if the program
   // isn't seeded or has no lessons — never lock everyone out.
   const { data: program } = await supabase
@@ -109,7 +91,7 @@ export const getOnboardingGate = cache(async (): Promise<OnboardingGate> => {
   const complete = completedCount >= total;
 
   return {
-    enabled: !isAdmin && isNewUser && !complete,
+    enabled: !isAdmin && !complete,
     complete,
     percent,
     isAdmin,
