@@ -55,10 +55,12 @@ import {
   duplicateLesson,
   duplicateModule,
   setLessonPreview,
-  createLessonTaskTemplate,
-  deleteLessonTaskTemplate,
-  updateLessonTaskTemplate,
 } from "./actions";
+import {
+  createTaskTemplate,
+  updateTaskTemplate,
+  deleteTaskTemplate,
+} from "@/lib/tasks/actions";
 import type { LessonRow, ModuleRow, TaskTemplate } from "./page";
 
 /* ────────────────────────────────────────────────────────────────────── */
@@ -698,34 +700,10 @@ function ModuleCard({
               New lesson
             </button>
             <FooterButton icon={Upload} label="Bulk upload" onClick={onBulkUpload} />
-            <FooterButton
-              icon={Sparkles}
-              label="Section summary"
-              onClick={() =>
-                window.alert(
-                  "Section summary — AI will draft a short overview of this section's lessons. Coming soon.",
-                )
-              }
-            />
-            <FooterButton
-              icon={LayoutTemplate}
-              label="Add from template"
-              onClick={() =>
-                window.alert(
-                  "Add from template — pick a pre-built lesson template. Coming soon.",
-                )
-              }
-            />
+            <FooterButton icon={Sparkles} label="Section summary" disabled />
+            <FooterButton icon={LayoutTemplate} label="Add from template" disabled />
             <span className="ml-auto">
-              <FooterButton
-                icon={Sparkles}
-                label="AI assist"
-                onClick={() =>
-                  window.alert(
-                    "AI assist — generate lesson drafts from a prompt. Coming soon.",
-                  )
-                }
-              />
+              <FooterButton icon={Sparkles} label="AI assist" disabled />
             </span>
           </div>
         </>
@@ -737,21 +715,19 @@ function ModuleCard({
 /* Header sub-components ─────────────────────────────────────────────── */
 
 function DripButton() {
-  const [on, setOn] = useState(false);
+  // Drip scheduling isn't part of this phase — render as clearly disabled
+  // rather than a fake toggle that does nothing.
   return (
     <button
       type="button"
-      onClick={() => {
-        setOn((v) => !v);
-        window.alert(
-          "Drip scheduling lets you release this section to learners on a delay after they enrol. Full scheduling UI is coming soon.",
-        );
-      }}
-      aria-pressed={on}
-      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-rose-200 bg-white text-rose-700 text-[12.5px] font-semibold hover:bg-rose-50 transition-colors shrink-0"
+      disabled
+      aria-disabled
+      title="Drip scheduling — coming soon"
+      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-100 bg-cream-50 text-ink-400 text-[12.5px] font-semibold cursor-not-allowed shrink-0"
     >
-      <Droplet className="size-3.5" strokeWidth={2} fill={on ? "currentColor" : "none"} />
+      <Droplet className="size-3.5" strokeWidth={2} />
       Drip
+      <span className="ml-0.5 text-[10px] uppercase tracking-wide">Soon</span>
     </button>
   );
 }
@@ -901,19 +877,29 @@ function FooterButton({
   icon: Icon,
   label,
   onClick,
+  disabled,
 }: {
   icon: typeof Upload;
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[12.5px] font-medium hover:bg-cream-100 transition-colors cursor-pointer"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      title={disabled ? "Coming soon" : undefined}
+      className={cn(
+        "inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border text-[12.5px] font-medium transition-colors",
+        disabled
+          ? "border-ink-100 bg-cream-50 text-ink-400 cursor-not-allowed"
+          : "border-ink-200 bg-white text-ink-700 hover:bg-cream-100 cursor-pointer",
+      )}
     >
-      <Icon className="size-3.5 text-ink-500" strokeWidth={2} />
+      <Icon className={cn("size-3.5", disabled ? "text-ink-300" : "text-ink-500")} strokeWidth={2} />
       {label}
+      {disabled && <span className="ml-0.5 text-[10px] uppercase tracking-wide text-ink-400">Soon</span>}
     </button>
   );
 }
@@ -1339,19 +1325,19 @@ function FilterDropdown({
 }
 
 function ImportContentButton() {
-  function handle() {
-    alert(
-      "Bulk import — paste a list of lesson titles (one per line) once we wire CSV/SCORM parsing. Coming soon.",
-    );
-  }
+  // Bulk CSV/SCORM import isn't part of this phase — clearly disabled rather
+  // than a fake button. Lessons can be created individually via "New lesson".
   return (
     <button
       type="button"
-      onClick={handle}
-      className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 transition-colors cursor-pointer"
+      disabled
+      aria-disabled
+      title="Bulk import — coming soon"
+      className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] bg-cream-50 border border-ink-100 text-[13px] font-medium text-ink-400 cursor-not-allowed"
     >
       <Upload className="size-3.5" strokeWidth={2} />
       Import content
+      <span className="ml-0.5 text-[10px] uppercase tracking-wide">Soon</span>
     </button>
   );
 }
@@ -2045,7 +2031,7 @@ function TaskTemplatesModal({
       open={true}
       onClose={onClose}
       title={`Tasks for: ${lesson.title}`}
-      description="When a learner completes this video, these tasks are generated in their Tasks tab — once, idempotently."
+      description="Authored in the unified task system. Each task is assigned to the learner per its trigger (on start by default) — once, with no duplicates."
       size="lg"
     >
       <div className="space-y-3">
@@ -2147,7 +2133,7 @@ function TemplateRow({
     )
       return;
     startTransition(async () => {
-      const res = await deleteLessonTaskTemplate(template.id);
+      const res = await deleteTaskTemplate(template.id);
       if (res.ok) onDeleted();
     });
   }
@@ -2172,7 +2158,16 @@ function TemplateRow({
             {template.task_type}
           </span>
           <span className="px-1.5 py-0.5 rounded bg-cream-100 text-ink-700 capitalize">
-            {template.priority}
+            {template.difficulty}
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-cream-100 text-ink-700">
+            {template.auto_assign_trigger === "on_complete"
+              ? "On complete"
+              : template.auto_assign_trigger === "on_unlock"
+                ? "On unlock"
+                : template.auto_assign_trigger === "manual"
+                  ? "Manual"
+                  : "On start"}
           </span>
           <span className="px-1.5 py-0.5 rounded bg-cream-100 text-ink-700">
             +{template.points} pts
@@ -2231,12 +2226,16 @@ function TemplateForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [taskType, setTaskType] = useState(initial?.task_type ?? "apply");
-  const [priority, setPriority] = useState<"low" | "normal" | "high">(
-    initial?.priority ?? "normal",
-  );
+  const [difficulty, setDifficulty] = useState(initial?.difficulty ?? "medium");
   const [points, setPoints] = useState((initial?.points ?? 10).toString());
   const [minutes, setMinutes] = useState(
     (initial?.estimated_minutes ?? 15).toString(),
+  );
+  const [dueAfterDays, setDueAfterDays] = useState(
+    initial?.due_after_days != null ? String(initial.due_after_days) : "",
+  );
+  const [trigger, setTrigger] = useState<TaskTemplate["auto_assign_trigger"]>(
+    initial?.auto_assign_trigger ?? "on_start",
   );
   const [isRequired, setIsRequired] = useState(initial?.is_required ?? true);
   const [error, setError] = useState<string | null>(null);
@@ -2245,23 +2244,31 @@ function TemplateForm({
   function save() {
     setError(null);
     startTransition(async () => {
-      const payload = {
+      const dueAfter =
+        dueAfterDays.trim() === ""
+          ? null
+          : Math.max(0, Math.floor(Number(dueAfterDays) || 0));
+      const common = {
         title,
         description,
-        task_type: taskType,
-        priority,
+        taskType,
+        difficulty,
         points: Number(points) || 0,
-        estimated_minutes: Number(minutes) || 0,
-        is_required: isRequired,
+        estimatedMinutes: Number(minutes) || 0,
+        dueAfterDays: dueAfter,
+        autoAssignTrigger: trigger,
+        isRequired,
       };
       const res =
         mode === "create"
-          ? await createLessonTaskTemplate({
+          ? await createTaskTemplate({
+              sourceType: "program_video",
+              sourceId: lessonId,
               programId,
               lessonId,
-              ...payload,
+              ...common,
             })
-          : await updateLessonTaskTemplate(initial!.id, payload);
+          : await updateTaskTemplate(initial!.id, common);
       if (!res.ok) {
         setError(res.error);
         return;
@@ -2303,15 +2310,13 @@ function TemplateForm({
           ))}
         </select>
         <select
-          value={priority}
-          onChange={(e) =>
-            setPriority(e.target.value as "low" | "normal" | "high")
-          }
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
           className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white"
         >
-          <option value="low">Low</option>
-          <option value="normal">Normal</option>
-          <option value="high">High</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="advanced">Advanced</option>
         </select>
         <input
           type="number"
@@ -2329,6 +2334,36 @@ function TemplateForm({
           placeholder="Minutes"
           className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white"
         />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
+          Assign trigger
+          <select
+            value={trigger}
+            onChange={(e) =>
+              setTrigger(
+                e.target.value as TaskTemplate["auto_assign_trigger"],
+              )
+            }
+            className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
+          >
+            <option value="on_start">When lesson starts</option>
+            <option value="on_complete">When lesson completes</option>
+            <option value="on_unlock">When lesson unlocks</option>
+            <option value="manual">Manual only</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
+          Due after (days)
+          <input
+            type="number"
+            min={0}
+            value={dueAfterDays}
+            onChange={(e) => setDueAfterDays(e.target.value)}
+            placeholder="No due date"
+            className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
+          />
+        </label>
       </div>
       <label className="inline-flex items-center gap-2 text-[12.5px] text-ink-700 cursor-pointer">
         <input

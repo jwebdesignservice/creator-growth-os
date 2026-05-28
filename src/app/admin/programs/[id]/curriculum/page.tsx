@@ -39,9 +39,11 @@ export type TaskTemplate = {
   title: string;
   description: string | null;
   task_type: string;
-  priority: "low" | "normal" | "high";
+  difficulty: string;
   estimated_minutes: number;
   points: number;
+  due_after_days: number | null;
+  auto_assign_trigger: "on_unlock" | "on_start" | "on_complete" | "manual";
   is_required: boolean;
   sort_order: number;
 };
@@ -156,18 +158,22 @@ export default async function CurriculumEditorPage({
       }));
   }
 
-  // ── Task templates (resilient) ──────────────────────────────────────────
-  // `lesson_task_templates` arrives with migration 0027. Missing → empty
-  // map; the editor's task modal shows a friendly "needs migration" note.
+  // ── Task templates (unified system) ─────────────────────────────────────
+  // Program-video tasks live in public.task_templates (source_type=
+  // 'program_video', migration 0038). Missing → empty; the modal shows a
+  // "needs migration" note. The legacy lesson_task_templates table is no
+  // longer read or written here.
   const lessonIds = lessons.map((l) => l.id);
   let templates: TaskTemplate[] = [];
   if (lessonIds.length > 0) {
     const tplQuery = await supabase
-      .from("lesson_task_templates")
+      .from("task_templates")
       .select(
-        "id, lesson_id, title, description, task_type, priority, estimated_minutes, points, is_required, sort_order",
+        "id, lesson_id, title, description, task_type, difficulty, estimated_minutes, points, due_after_days, auto_assign_trigger, is_required, sort_order",
       )
+      .eq("source_type", "program_video")
       .in("lesson_id", lessonIds)
+      .neq("status", "archived")
       .order("sort_order", { ascending: true });
 
     if (!tplQuery.error && tplQuery.data) {
@@ -176,10 +182,14 @@ export default async function CurriculumEditorPage({
         lesson_id: t.lesson_id as string,
         title: t.title as string,
         description: (t.description as string | null) ?? null,
-        task_type: t.task_type as string,
-        priority: (t.priority as "low" | "normal" | "high") ?? "normal",
+        task_type: (t.task_type as string) ?? "apply",
+        difficulty: (t.difficulty as string) ?? "medium",
         estimated_minutes: (t.estimated_minutes as number) ?? 15,
         points: (t.points as number) ?? 10,
+        due_after_days: (t.due_after_days as number | null) ?? null,
+        auto_assign_trigger:
+          (t.auto_assign_trigger as TaskTemplate["auto_assign_trigger"]) ??
+          "on_start",
         is_required: !!t.is_required,
         sort_order: (t.sort_order as number) ?? 0,
       }));
