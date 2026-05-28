@@ -86,7 +86,7 @@ from public.lessons l
 join (values
   ('defining-niche-sweet-spot',
     'Write your one-sentence niche statement',
-    'Distill who you help, how you help them, and the change they get into one tweet-length sentence.',
+    'Distill who you help, how you help them, and the change you create, in a single tweet-length sentence.',
     'strategy','normal',10,1,10),
   ('your-story-differentiator',
     'List 3 unique angles only you can bring',
@@ -98,7 +98,7 @@ join (values
     'strategy','normal',15,1,10),
   ('ideal-audience-deep-dive',
     'Capture 3 audience pain points',
-    'Write down three concrete struggles your ideal audience is dealing with — in their own words wherever possible.',
+    'Write down three concrete struggles your ideal audience is dealing with, in their own words wherever possible.',
     'research','high',15,1,15),
   ('content-pillars-that-work',
     'Draft your 3 content pillars',
