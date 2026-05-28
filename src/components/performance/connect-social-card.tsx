@@ -37,7 +37,7 @@ export function ConnectSocialCard({ connections }: Props) {
   const activeLabel = activeConnection?.label ?? null;
 
   return (
-    <section className="card p-5 sm:p-6">
+    <section id="connect-social" className="card p-5 sm:p-6 scroll-mt-24">
       <header className="flex items-start justify-between gap-4 flex-wrap mb-5">
         <div className="flex items-start gap-3 min-w-0">
           <span className="size-10 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">

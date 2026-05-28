@@ -527,13 +527,14 @@ function SingleValueState({
         {formatValue(metric, value)}
       </div>
       <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
-        Only one log in the last {windowDays} days. Log another entry to see your trend.
+        Only one data point in the last {windowDays} days. New numbers sync
+        weekly from your connected account.
       </p>
       <a
-        href="#performance-entry-form"
+        href="#connect-social"
         className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
       >
-        Log this week&apos;s performance
+        Manage connected account
         <ArrowRight className="size-3.5" strokeWidth={2} />
       </a>
     </div>
@@ -552,13 +553,13 @@ function NoDataState() {
         No performance data yet
       </h4>
       <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
-        Start logging weekly performance to see your trends here.
+        Connect a social account to start seeing weekly performance trends.
       </p>
       <a
-        href="#performance-entry-form"
+        href="#connect-social"
         className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
       >
-        Log performance
+        Connect a social account
         <ArrowRight className="size-3.5" strokeWidth={2} />
       </a>
     </div>
@@ -606,14 +607,15 @@ function SparseWindowState({
       </p>
 
       <p className="text-[13px] text-ink-700 mb-5">
-        You have {totalCount} weekly {logWord} total — log this week to start your {rangeLabel}.
+        You have {totalCount} weekly {logWord} total — reconnect or resync
+        your account to refresh your {rangeLabel}.
       </p>
 
       <a
-        href="#performance-entry-form"
+        href="#connect-social"
         className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
       >
-        Log this week&apos;s performance
+        Manage connected account
         <ArrowRight className="size-3.5" strokeWidth={2} />
       </a>
     </div>
