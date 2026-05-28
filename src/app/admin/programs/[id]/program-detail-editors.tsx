@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Loader2,
   CheckCircle2,
+  UploadCloud,
 } from "lucide-react";
 import {
   updateProgram,
@@ -40,12 +41,14 @@ function Modal({
   title,
   description,
   children,
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   description?: string;
   children: ReactNode;
+  size?: "md" | "lg";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -76,7 +79,10 @@ function Modal({
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md rounded-[18px] bg-white shadow-card border border-ink-100 p-6"
+        className={cn(
+          "relative w-full rounded-[18px] bg-white shadow-card border border-ink-100 p-6",
+          size === "lg" ? "max-w-lg" : "max-w-md",
+        )}
       >
         <header className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
@@ -326,6 +332,14 @@ export function EditDescriptionButton({
 /*  EditThumbnailButton                                                  */
 /* ────────────────────────────────────────────────────────────────────── */
 
+const ACCEPTED_IMAGE_MIME = "image/png,image/jpeg,image/webp";
+const ACCEPTED_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB raw before downscale
+
 export function EditThumbnailButton({
   programId,
   currentUrl,
@@ -334,15 +348,64 @@ export function EditThumbnailButton({
   currentUrl: string | null;
 }) {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(currentUrl ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [dragging, setDragging] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [showUrl, setShowUrl] = useState(false);
 
   function openDialog() {
     setValue(currentUrl ?? "");
     setError(null);
+    setShowUrl(false);
+    setDragging(false);
     setOpen(true);
+  }
+
+  function pickFile() {
+    inputRef.current?.click();
+  }
+
+  async function handleFile(f: File | null) {
+    setError(null);
+    if (!f) return;
+    if (!ACCEPTED_IMAGE_TYPES.has(f.type)) {
+      setError("Unsupported format. Use PNG, JPG, or WEBP.");
+      return;
+    }
+    if (f.size > MAX_IMAGE_BYTES) {
+      setError("That image is over 8 MB. Pick a smaller file.");
+      return;
+    }
+    setProcessing(true);
+    try {
+      const dataUrl = await fileToScaledDataUrl(f);
+      setValue(dataUrl);
+    } catch {
+      setError("Could not read that image. Try another file.");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    handleFile(e.target.files?.[0] ?? null);
+    e.target.value = "";
+  }
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    handleFile(e.dataTransfer.files?.[0] ?? null);
+  }
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(true);
+  }
+  function onDragLeave() {
+    setDragging(false);
   }
 
   function save(nextUrl?: string) {
@@ -359,6 +422,10 @@ export function EditThumbnailButton({
     });
   }
 
+  const hasImage = value.trim().length > 0;
+  const isData = value.startsWith("data:");
+  const dirty = value.trim() !== (currentUrl ?? "");
+
   return (
     <>
       <PencilTrigger onClick={openDialog} label="Edit thumbnail" />
@@ -366,74 +433,240 @@ export function EditThumbnailButton({
         open={open}
         onClose={() => setOpen(false)}
         title="Edit thumbnail"
-        description="Paste a public image URL — recommended 16:9, at least 1280×720."
+        description="Drop an image or browse — recommended 16:9, at least 1280×720."
+        size="lg"
       >
-        <div className="space-y-3">
-          {value.trim() && /^https?:\/\//i.test(value.trim()) && (
-            <div className="w-full aspect-video rounded-[10px] overflow-hidden border border-ink-100 bg-cream-100">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={value.trim()}
-                alt=""
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_IMAGE_MIME}
+          className="sr-only"
+          onChange={onInputChange}
+        />
+
+        <div className="space-y-4">
+          {hasImage ? (
+            /* ── Preview state — image set (current or freshly picked) ── */
+            <div className="space-y-3">
+              <div className="relative w-full aspect-video rounded-[14px] overflow-hidden border border-ink-100 bg-cream-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={value.trim()}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.opacity = "0";
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-ink-500">
+                  <CheckCircle2
+                    className="size-3.5 text-success"
+                    strokeWidth={2.2}
+                  />
+                  {isData ? "New image ready to save" : "Current thumbnail"}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={pickFile}
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors cursor-pointer"
+                  >
+                    <UploadCloud className="size-3.5" strokeWidth={2} />
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue("");
+                      setError(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[12.5px] font-medium text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="size-3.5" strokeWidth={2} />
+                    Remove
+                  </button>
+                </div>
+              </div>
             </div>
+          ) : (
+            /* ── Drop zone — mirrors the tutorial video upload design ── */
+            <button
+              type="button"
+              onClick={pickFile}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              aria-label="Drop image here or click to browse"
+              className={cn(
+                "w-full block rounded-[16px] border-2 border-dashed transition-colors px-6 py-9 text-center cursor-pointer",
+                dragging
+                  ? "border-rose-400 bg-rose-50"
+                  : "border-rose-200 bg-rose-50/40 hover:border-rose-300 hover:bg-rose-50",
+              )}
+            >
+              <div className="relative inline-block">
+                <div
+                  className="size-20 rounded-[18px] bg-rose-100 flex items-center justify-center mx-auto"
+                  aria-hidden
+                >
+                  <ImageMotif />
+                </div>
+                <span
+                  aria-hidden
+                  className="absolute -bottom-1 -right-1 size-9 rounded-full bg-rose-600 text-white inline-flex items-center justify-center shadow-md"
+                >
+                  <UploadCloud className="size-4" strokeWidth={2} />
+                </span>
+              </div>
+
+              <div className="mt-4 text-[18px] font-semibold text-ink-900">
+                {processing ? "Processing…" : "Drop your image here"}
+              </div>
+              <div className="mt-1.5 text-[13px] text-ink-500">
+                or{" "}
+                <span className="text-rose-600 font-semibold underline underline-offset-2">
+                  browse files
+                </span>
+              </div>
+              <div className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-ink-500">
+                <CheckCircle2 className="size-3.5 text-success" strokeWidth={2.2} />
+                PNG, JPG, WEBP
+                <span className="text-ink-300">·</span>
+                16:9 · 1280×720+
+              </div>
+
+              <div className="mt-5">
+                <span className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 text-white text-[14px] font-semibold shadow-sm pointer-events-none">
+                  <UploadCloud className="size-4" strokeWidth={2} />
+                  Choose image file
+                </span>
+              </div>
+            </button>
           )}
-          <label className="block">
-            <span className="text-[12px] font-medium text-ink-700 mb-1.5 block">
-              Image URL
-            </span>
-            <input
-              type="url"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              autoFocus
-              placeholder="https://…"
-              className="w-full h-11 px-3 rounded-[10px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[14px]"
-            />
-          </label>
+
+          {/* Secondary — paste a URL (keeps the original capability) */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setShowUrl((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-500 hover:text-ink-800 transition-colors cursor-pointer"
+            >
+              <Link2 className="size-3.5" strokeWidth={2} />
+              {showUrl ? "Hide URL field" : "or paste an image URL"}
+            </button>
+          </div>
+          {showUrl && (
+            <label className="block">
+              <span className="text-[12px] font-medium text-ink-700 mb-1.5 block">
+                Image URL
+              </span>
+              <input
+                type="url"
+                value={isData ? "" : value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="https://…"
+                className="w-full h-11 px-3 rounded-[10px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[14px]"
+              />
+            </label>
+          )}
+
           <ErrorBanner message={error} />
-          <div className="flex justify-between gap-2 pt-3">
-            {currentUrl && (
-              <button
-                type="button"
-                onClick={() => {
-                  setValue("");
-                  save("");
-                }}
-                disabled={pending}
-                className="h-10 px-3 rounded-[10px] text-[13px] font-medium text-rose-700 hover:bg-rose-50 cursor-pointer transition-colors"
-              >
-                Remove image
-              </button>
-            )}
-            <div className="ml-auto flex gap-2">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                disabled={pending}
-                className="h-10 px-4 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 disabled:opacity-50 cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => save()}
-                disabled={pending || value === (currentUrl ?? "")}
-                className="h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
-              >
-                {pending && <Loader2 className="size-3.5 animate-spin" />}
-                Save
-              </button>
-            </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={pending}
+              className="h-10 px-4 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 disabled:opacity-50 cursor-pointer transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => save()}
+              disabled={pending || processing || !dirty}
+              className="h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              {pending && <Loader2 className="size-3.5 animate-spin" />}
+              Save
+            </button>
           </div>
         </div>
       </Modal>
     </>
   );
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Thumbnail helpers — image motif + client-side downscale to data URL. */
+/* ────────────────────────────────────────────────────────────────────── */
+
+/** Picture-frame motif (rose tones) for the thumbnail drop zone — the
+ *  image-tab analogue of the video upload's play motif. */
+function ImageMotif() {
+  return (
+    <svg width="44" height="44" viewBox="0 0 46 46" fill="none" aria-hidden>
+      <rect x="6" y="9" width="34" height="28" rx="4" fill="#FEE2E2" />
+      <rect
+        x="6"
+        y="9"
+        width="34"
+        height="28"
+        rx="4"
+        stroke="#FECACA"
+        strokeWidth="1.5"
+      />
+      <circle cx="16" cy="18" r="3.2" fill="#E11D48" />
+      <path d="M10 33L19 24L25 30L31 21.5L36 33H10Z" fill="#E11D48" />
+    </svg>
+  );
+}
+
+/**
+ * Reads a picked image and downscales it via canvas so the stored data
+ * URL stays reasonable (matches the create-wizard's "data URLs stored
+ * inline for now" approach — a real Storage upload can replace this later
+ * without changing the schema). Falls back to the raw data URL if the
+ * canvas path is unavailable.
+ */
+async function fileToScaledDataUrl(
+  file: File,
+  maxW = 1280,
+  quality = 0.82,
+): Promise<string> {
+  const rawDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("read-failed"));
+    reader.readAsDataURL(file);
+  });
+
+  return new Promise<string>((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(rawDataUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, w, h);
+      try {
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch {
+        resolve(rawDataUrl);
+      }
+    };
+    img.onerror = () => resolve(rawDataUrl);
+    img.src = rawDataUrl;
+  });
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
