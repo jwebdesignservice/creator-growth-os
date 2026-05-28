@@ -41,6 +41,10 @@ import {
   Lightbulb,
   BookOpen,
   Zap,
+  Video,
+  Megaphone,
+  Heart,
+  DollarSign,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -67,6 +71,11 @@ const LEARNING_ICONS: Record<LearningIconKey, LucideIcon> = {
   "book-open":   BookOpen,
   sparkles:      Sparkles,
   zap:           Zap,
+  pencil:        Pencil,
+  video:         Video,
+  megaphone:     Megaphone,
+  heart:         Heart,
+  "dollar-sign": DollarSign,
 };
 
 /* ─────────────────────────────────────────────────────────────────────────

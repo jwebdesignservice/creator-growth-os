@@ -23,6 +23,11 @@ export const LEARNING_ICON_KEYS = [
   "book-open",
   "sparkles",
   "zap",
+  "pencil",
+  "video",
+  "megaphone",
+  "heart",
+  "dollar-sign",
 ] as const;
 
 export type LearningIconKey = (typeof LEARNING_ICON_KEYS)[number];
