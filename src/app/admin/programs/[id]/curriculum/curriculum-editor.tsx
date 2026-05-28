@@ -402,7 +402,9 @@ export function CurriculumEditor({
               onAddLesson={() => setAddLessonForModule(m)}
               onBulkUpload={() => setBulkEdit(true)}
               onEditLesson={(lesson) =>
-                router.push(`/admin/tutorials/${lesson.id}`)
+                router.push(
+                  `/admin/programs/${programId}/curriculum/${lesson.id}`,
+                )
               }
               onDeleteLesson={(lesson) => setDeletingLesson(lesson)}
               onManageTasks={(lesson) => setManagingTasksFor(lesson)}
@@ -619,14 +621,12 @@ function ModuleCard({
 
         <DripButton />
         <QuickActionsDropdown
-          onRename={onRenameModule}
-          onDuplicate={onDuplicateSection}
-          onDelete={onDeleteModule}
-        />
-        <ModuleUtilityKebab
           open={open}
           onToggle={() => setOpen((v) => !v)}
           onAddLesson={onAddLesson}
+          onRename={onRenameModule}
+          onDuplicate={onDuplicateSection}
+          onDelete={onDeleteModule}
         />
       </div>
 
@@ -757,82 +757,19 @@ function DripButton() {
 }
 
 function QuickActionsDropdown({
+  open,
+  onToggle,
+  onAddLesson,
   onRename,
   onDuplicate,
   onDelete,
 }: {
-  onRename: () => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    function click(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", click);
-    return () => document.removeEventListener("mousedown", click);
-  }, [open]);
-
-  return (
-    <div ref={wrapRef} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[12.5px] font-semibold hover:bg-cream-100 transition-colors"
-      >
-        Quick actions
-        <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-30 w-48 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
-        >
-          <MenuButton
-            onClick={() => {
-              setOpen(false);
-              onRename();
-            }}
-            icon={<Pencil className="size-3.5" strokeWidth={2} />}
-            label="Rename section"
-          />
-          <MenuButton
-            onClick={() => {
-              setOpen(false);
-              onDuplicate();
-            }}
-            icon={<Copy className="size-3.5" strokeWidth={2} />}
-            label="Duplicate section"
-          />
-          <div aria-hidden className="h-px my-1 bg-ink-100" />
-          <MenuButton
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-            icon={<Trash2 className="size-3.5" strokeWidth={2} />}
-            label="Delete section"
-            danger
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ModuleUtilityKebab({
-  open,
-  onToggle,
-  onAddLesson,
-}: {
   open: boolean;
   onToggle: () => void;
   onAddLesson: () => void;
+  onRename: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -845,6 +782,9 @@ function ModuleUtilityKebab({
     return () => document.removeEventListener("mousedown", click);
   }, [menuOpen]);
 
+  /* Single combined menu — folds the former kebab's Add lesson / Collapse
+     into the same dropdown as Rename / Duplicate / Delete so the header
+     has one action button instead of two. */
   return (
     <div ref={wrapRef} className="relative shrink-0">
       <button
@@ -852,15 +792,15 @@ function ModuleUtilityKebab({
         onClick={() => setMenuOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
-        aria-label="More section actions"
-        className="size-9 rounded-[10px] border border-ink-200 bg-white inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 cursor-pointer transition-colors"
+        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[12.5px] font-semibold hover:bg-cream-100 transition-colors"
       >
-        <MoreVertical className="size-4" strokeWidth={2} />
+        Quick actions
+        <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
       </button>
       {menuOpen && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-30 w-44 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+          className="absolute right-0 top-[calc(100%+4px)] z-30 w-52 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
           <MenuButton
             onClick={() => {
@@ -883,6 +823,33 @@ function ModuleUtilityKebab({
               )
             }
             label={open ? "Collapse section" : "Expand section"}
+          />
+          <div aria-hidden className="h-px my-1 bg-ink-100" />
+          <MenuButton
+            onClick={() => {
+              setMenuOpen(false);
+              onRename();
+            }}
+            icon={<Pencil className="size-3.5" strokeWidth={2} />}
+            label="Rename section"
+          />
+          <MenuButton
+            onClick={() => {
+              setMenuOpen(false);
+              onDuplicate();
+            }}
+            icon={<Copy className="size-3.5" strokeWidth={2} />}
+            label="Duplicate section"
+          />
+          <div aria-hidden className="h-px my-1 bg-ink-100" />
+          <MenuButton
+            onClick={() => {
+              setMenuOpen(false);
+              onDelete();
+            }}
+            icon={<Trash2 className="size-3.5" strokeWidth={2} />}
+            label="Delete section"
+            danger
           />
         </div>
       )}
