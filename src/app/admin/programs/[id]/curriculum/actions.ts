@@ -489,6 +489,171 @@ export async function addLessonToModule(
 }
 
 /* ═════════════════════════════════════════════════════════════════════ */
+/* Lesson + section duplication / preview                                 */
+/* ═════════════════════════════════════════════════════════════════════ */
+
+/** Duplicate a single lesson within its module. Copies every field, gives
+ *  it a unique slug + "(Copy)" title, and lands it right after the
+ *  original in sort order. */
+export async function duplicateLesson(lessonId: string): Promise<Result> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return ctx;
+
+  const { data: src, error: readErr } = await ctx.supabase
+    .from("lessons")
+    .select(
+      "program_id, title, description, video_url, cover_image_url, duration_seconds, plan_access, module_number, module_title, content_type, sort_order, difficulty, category",
+    )
+    .eq("id", lessonId)
+    .maybeSingle();
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!src) return { ok: false, error: "Lesson not found." };
+
+  const newTitle = `${src.title} (Copy)`;
+  const slug = await uniqueLessonSlug(ctx.supabase, newTitle);
+
+  const { error } = await ctx.supabase.from("lessons").insert({
+    program_id: src.program_id,
+    slug,
+    title: newTitle,
+    description: src.description ?? null,
+    video_url: src.video_url ?? null,
+    cover_image_url: src.cover_image_url ?? null,
+    duration_seconds: src.duration_seconds ?? 0,
+    plan_access: src.plan_access ?? "basic",
+    module_number: src.module_number,
+    module_title: src.module_title,
+    content_type: src.content_type ?? "video",
+    difficulty: src.difficulty ?? "intermediate",
+    category: src.category ?? null,
+    sort_order: ((src.sort_order as number | null) ?? 0) + 1,
+    published: false,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  if (src.program_id) {
+    revalidatePath(`/admin/programs/${src.program_id}/curriculum`);
+    revalidatePath(`/admin/programs/${src.program_id}`);
+  }
+  return { ok: true };
+}
+
+/** Duplicate an entire section/module: every lesson is copied into a brand
+ *  new module (next number), preserving order. Title gets "(Copy)". Works
+ *  in both backing stores. */
+export async function duplicateModule(
+  programId: string,
+  moduleId: string,
+): Promise<Result> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return ctx;
+  if (!programId) return { ok: false, error: "Missing program id." };
+
+  // Resolve the source module number + title.
+  let srcNumber: number;
+  let srcTitle: string;
+  const synth = parseSyntheticModule(moduleId);
+  if (synth !== null) {
+    srcNumber = synth;
+    const { data: sibling } = await ctx.supabase
+      .from("lessons")
+      .select("module_title")
+      .eq("program_id", programId)
+      .eq("module_number", synth)
+      .limit(1)
+      .maybeSingle();
+    srcTitle = (sibling?.module_title as string | null) ?? `Module ${synth}`;
+  } else {
+    const { data: mod, error: modErr } = await ctx.supabase
+      .from("program_modules")
+      .select("number, title")
+      .eq("id", moduleId)
+      .maybeSingle();
+    if (modErr) return { ok: false, error: modErr.message };
+    if (!mod) return { ok: false, error: "Module not found." };
+    srcNumber = mod.number as number;
+    srcTitle = mod.title as string;
+  }
+
+  const newNumber = await nextDenormModuleNumber(ctx.supabase, programId);
+  const newTitle = `${srcTitle} (Copy)`;
+
+  // If first-class table exists, mirror the module row too.
+  const probe = await ctx.supabase
+    .from("program_modules")
+    .insert({ program_id: programId, number: newNumber, title: newTitle })
+    .select("id")
+    .maybeSingle();
+  // Ignore missing-table errors — denormalized lessons carry the module.
+  if (probe.error && !isMissingTable(probe.error)) {
+    return { ok: false, error: probe.error.message };
+  }
+
+  // Copy lessons.
+  const { data: srcLessons, error: lErr } = await ctx.supabase
+    .from("lessons")
+    .select(
+      "title, description, video_url, cover_image_url, duration_seconds, plan_access, content_type, difficulty, category, sort_order",
+    )
+    .eq("program_id", programId)
+    .eq("module_number", srcNumber)
+    .order("sort_order", { ascending: true });
+  if (lErr) return { ok: false, error: lErr.message };
+
+  let order = 1;
+  for (const l of srcLessons ?? []) {
+    const slug = await uniqueLessonSlug(ctx.supabase, l.title as string);
+    const { error } = await ctx.supabase.from("lessons").insert({
+      program_id: programId,
+      slug,
+      title: l.title,
+      description: l.description ?? null,
+      video_url: l.video_url ?? null,
+      cover_image_url: l.cover_image_url ?? null,
+      duration_seconds: l.duration_seconds ?? 0,
+      plan_access: l.plan_access ?? "basic",
+      module_number: newNumber,
+      module_title: newTitle,
+      content_type: l.content_type ?? "video",
+      difficulty: l.difficulty ?? "intermediate",
+      category: l.category ?? null,
+      sort_order: order++,
+      published: false,
+    });
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath(`/admin/programs/${programId}/curriculum`);
+  revalidatePath(`/admin/programs/${programId}`);
+  return { ok: true };
+}
+
+/** "Set as public preview" — maps to plan_access. A preview lesson is
+ *  free (open) so non-members can watch it; un-setting returns it to
+ *  'basic'. */
+export async function setLessonPreview(
+  lessonId: string,
+  preview: boolean,
+): Promise<Result> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return ctx;
+
+  const { data, error } = await ctx.supabase
+    .from("lessons")
+    .update({ plan_access: preview ? "free" : "basic" })
+    .eq("id", lessonId)
+    .select("program_id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+
+  if (data?.program_id) {
+    revalidatePath(`/admin/programs/${data.program_id}/curriculum`);
+    revalidatePath(`/admin/programs/${data.program_id}`);
+  }
+  return { ok: true };
+}
+
+/* ═════════════════════════════════════════════════════════════════════ */
 /* Lesson task templates (per-video tasks)                                */
 /* ═════════════════════════════════════════════════════════════════════ */
 
