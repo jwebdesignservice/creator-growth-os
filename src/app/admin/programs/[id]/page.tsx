@@ -9,7 +9,6 @@ import {
   Layers,
   Check,
   Settings2,
-  Sparkles,
   BarChart3,
   type LucideIcon,
 } from "lucide-react";
@@ -23,7 +22,6 @@ import {
   EditDescriptionButton,
   EditThumbnailButton,
   PlanAccessPicker,
-  SalesPageEditor,
   ProgramHeaderActions,
   PreviewProgramLink,
 } from "./program-detail-editors";
@@ -100,7 +98,6 @@ export default async function AdminProgramDetailPage({
     { key: "curriculum", label: "Complete curriculum", done: lessonCount > 0 },
     { key: "thumbnail", label: "Add thumbnail", done: !!program.cover_image_url },
     { key: "access", label: "Choose access tier", done: !!program.plan_access },
-    { key: "sales", label: "Connect sales page", done: false },
   ];
   const completedChecks = checks.filter((c) => c.done).length;
   const readinessPct = Math.round((completedChecks / checks.length) * 100);
@@ -201,32 +198,6 @@ export default async function AdminProgramDetailPage({
               current={program.plan_access as "free" | "basic" | "pro"}
             />
           </StepCard>
-
-          <StepCard
-            n={3}
-            title="Sales flow"
-            subtitle="Connect your program to a sales page where members can discover and purchase."
-          >
-            <div className="space-y-3">
-              <SalesPageEditor
-                programId={program.id}
-                currentUrl={program.sales_page_url ?? null}
-              />
-              <div className="rounded-[10px] bg-rose-50/60 border border-rose-100 px-3 py-2.5 flex items-center gap-2">
-                <Sparkles className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
-                <p className="text-[12.5px] text-ink-700 leading-snug">
-                  A high-converting sales page can significantly increase program
-                  enrollments.{" "}
-                  <Link
-                    href="/support"
-                    className="text-rose-600 hover:text-rose-700 font-semibold"
-                  >
-                    Learn best practices →
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </StepCard>
         </div>
 
         {/* ── Right: sidebar ──────────────────────────────────────────── */}
@@ -294,17 +265,6 @@ export default async function AdminProgramDetailPage({
                   programId={program.id}
                   currentUrl={program.cover_image_url}
                 />
-              </li>
-
-              <li className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11.5px] text-ink-500 mb-0.5">
-                    Curriculum layout
-                  </div>
-                  <div className="text-[13px] font-semibold text-ink-900 truncate">
-                    Accordion
-                  </div>
-                </div>
               </li>
             </ul>
           </section>
