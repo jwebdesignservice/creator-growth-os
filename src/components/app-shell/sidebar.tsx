@@ -113,7 +113,12 @@ export function Sidebar({
         }}
         onMouseLeave={() => setHoverExpanded(false)}
         className={cn(
-          "hidden lg:flex flex-col fixed top-0 left-0 h-screen z-30",
+          // z-40 so the sidebar sits ABOVE the topbar (z-30). Without
+          // this, the sticky topbar paints over the sidebar's right
+          // edge — labels get clipped by the search bar, and during
+          // the hover-overlay state the expanded panel disappears
+          // behind the topbar entirely.
+          "hidden lg:flex flex-col fixed top-0 left-0 h-screen z-40",
           "border-r border-ink-100 bg-cream-100 overflow-hidden",
           "transition-[width,box-shadow] duration-200 ease-out",
           // Only shadow when in the floating-overlay mode — makes it
