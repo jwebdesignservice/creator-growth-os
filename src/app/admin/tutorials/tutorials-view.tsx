@@ -17,11 +17,9 @@ import {
   ExternalLink,
   Trash2,
   Pencil,
-  MessageSquare,
   Paperclip,
   PieChart,
   PlayCircle,
-  Pin,
   Link2,
   Check,
   Copy,
@@ -51,7 +49,6 @@ export type TutorialCardData = {
   updatedAt: string;
   views: number;
   completionPct: number | null;
-  comments: number;
   attachments: number;
 };
 
@@ -122,14 +119,18 @@ export function TutorialsView({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Folders + bulk import need their own schema — out of this phase.
+              Shown disabled so the surface reads complete without faking it. */}
           <HeaderButton
-            onClick={() => alert("New folder — coming soon.")}
+            disabled
+            title="Folders are coming in a later phase"
             icon={<FolderPlus className="size-4" strokeWidth={2} />}
           >
             New folder
           </HeaderButton>
           <HeaderButton
-            onClick={() => alert("Import — coming soon.")}
+            disabled
+            title="Bulk import is coming in a later phase"
             icon={<Upload className="size-4" strokeWidth={2} />}
           >
             Import
@@ -261,16 +262,22 @@ function HeaderButton({
   onClick,
   icon,
   children,
+  disabled,
+  title,
 }: {
-  onClick: () => void;
+  onClick?: () => void;
   icon: React.ReactNode;
   children: React.ReactNode;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 h-11 px-4 rounded-[14px] border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
+      disabled={disabled}
+      title={title}
+      className="inline-flex items-center gap-2 h-11 px-4 rounded-[14px] border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
     >
       {icon}
       {children}
@@ -392,7 +399,6 @@ function TutorialCard({ t }: { t: TutorialCardData }) {
   const editHref = `/admin/tutorials/${t.id}`;
   const publicHref = `/tutorials/${t.slug}`;
   const [selected, setSelected] = useState(false);
-  const [pinned, setPinned] = useState(false);
 
   return (
     <article
@@ -451,12 +457,6 @@ function TutorialCard({ t }: { t: TutorialCardData }) {
           selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
         )}
       >
-        <HoverIconButton
-          icon={<Pin className={cn("size-4", pinned && "fill-current")} strokeWidth={2} />}
-          label={pinned ? "Unpin tutorial" : "Pin tutorial"}
-          onClick={() => setPinned((v) => !v)}
-          pressed={pinned}
-        />
         <CopyLinkButton href={publicHref} />
         <KebabMenu t={t} />
       </div>
@@ -515,38 +515,6 @@ function HoverCheckbox({
   );
 }
 
-function HoverIconButton({
-  icon,
-  label,
-  onClick,
-  pressed,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  pressed?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClick();
-      }}
-      title={label}
-      aria-label={label}
-      aria-pressed={pressed}
-      className={cn(
-        "size-8 rounded-[8px] inline-flex items-center justify-center bg-white text-ink-700 hover:bg-cream-50 hover:text-ink-900 shadow-sm transition-colors",
-        pressed && "text-rose-600",
-      )}
-    >
-      {icon}
-    </button>
-  );
-}
-
 function CopyLinkButton({ href }: { href: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -588,15 +556,11 @@ function CopyLinkButton({ href }: { href: string }) {
 
 function CardStats({ t }: { t: TutorialCardData }) {
   return (
-    <div className="px-4 py-3 border-t border-ink-100 grid grid-cols-4 gap-2 text-[11.5px] text-ink-500">
+    <div className="px-4 py-3 border-t border-ink-100 grid grid-cols-3 gap-2 text-[11.5px] text-ink-500">
       <StatCell icon={<Eye className="size-3.5" strokeWidth={2} />} value={formatCount(t.views)} />
       <StatCell
         icon={<PieChart className="size-3.5" strokeWidth={2} />}
         value={t.completionPct != null ? `${t.completionPct}%` : "—"}
-      />
-      <StatCell
-        icon={<MessageSquare className="size-3.5" strokeWidth={2} />}
-        value={t.comments.toString()}
       />
       <StatCell
         icon={<Paperclip className="size-3.5" strokeWidth={2} />}
@@ -887,8 +851,8 @@ function TutorialListRow({ t }: { t: TutorialCardData }) {
           {t.completionPct != null ? `${t.completionPct}%` : "—"}
         </span>
         <span className="inline-flex items-center gap-1">
-          <MessageSquare className="size-3.5 text-ink-400" strokeWidth={2} />
-          {t.comments}
+          <Paperclip className="size-3.5 text-ink-400" strokeWidth={2} />
+          {t.attachments}
         </span>
       </div>
       <div className="relative shrink-0">

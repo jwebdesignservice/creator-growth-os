@@ -56,6 +56,22 @@ export default async function AdminTutorialsPage() {
       .eq("published", false),
   ]);
 
+  // Real attachment counts per lesson (lesson_resources, migration 0037).
+  // Degrades to an empty map when the table isn't applied yet.
+  const attachmentCount = new Map<string, number>();
+  {
+    const { data: resourceRows } = await supabase
+      .from("lesson_resources")
+      .select("lesson_id");
+    for (const r of resourceRows ?? []) {
+      if (!r.lesson_id) continue;
+      attachmentCount.set(
+        r.lesson_id as string,
+        (attachmentCount.get(r.lesson_id as string) ?? 0) + 1,
+      );
+    }
+  }
+
   // Build per-lesson view + completion stats.
   const watchCount = new Map<string, number>();
   const completeCount = new Map<string, number>();
@@ -95,8 +111,7 @@ export default async function AdminTutorialsPage() {
         updatedAt: l.created_at, // until we track real updated_at
         views,
         completionPct,
-        comments: 0,
-        attachments: 0,
+        attachments: attachmentCount.get(l.id) ?? 0,
       };
     },
   );
