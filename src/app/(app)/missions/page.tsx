@@ -8,6 +8,7 @@ import type { Mission } from "@/components/missions/mission-card";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { toggleMissionComplete } from "./actions";
+import { getUserTasks } from "@/lib/tasks/queries";
 
 export const metadata = { title: "Today's Missions · Creator Growth OS" };
 
@@ -34,7 +35,6 @@ export default async function MissionsPage({
   const supabase = await createClient();
 
   const today = new Date();
-  const todayIso = today.toISOString().slice(0, 10);
 
   // Past 7 days for streak / activity rail (Mon → today)
   const weekStart = new Date(today);
@@ -42,17 +42,10 @@ export default async function MissionsPage({
   weekStart.setHours(0, 0, 0, 0);
   const weekStartIso = weekStart.toISOString();
 
-  const [
-    { data: dbMissions },
-    { data: completedThisWeek },
-  ] = await Promise.all([
-    supabase
-      .from("missions")
-      .select("id, title, description, status, completed_at, due_date, template_id")
-      .eq("user_id", ctx.user.id)
-      .gte("due_date", todayIso)
-      .order("created_at", { ascending: true })
-      .limit(20),
+  const [userTasks, { data: completedThisWeek }] = await Promise.all([
+    // The unified task store — every task assigned to this user, with real
+    // fields and NO due-date filter (tasks without a due date still show).
+    getUserTasks(ctx.user.id),
     supabase
       .from("missions")
       .select("completed_at")
@@ -76,27 +69,35 @@ export default async function MissionsPage({
   }
   const activityCounts = dayBuckets;
 
-  const hasRealMissions = (dbMissions?.length ?? 0) > 0;
-  const missions: Mission[] = hasRealMissions
-    ? dbMissions!.map((m): Mission => ({
-        id: m.id,
-        title: m.title,
-        description: m.description ?? "",
-        // Without admin templates we can't infer richer metadata yet;
-        // sensible defaults until the templates surface is wired.
-        type: "posting",
-        difficulty: "medium",
-        minutes: 15,
-        points: 10,
-        completed: m.status === "completed",
-        completed_at: m.completed_at
-          ? new Date(m.completed_at).toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })
-          : null,
-      }))
-    : [];
+  // Map unified UserTasks → the Mission card shape, using REAL per-task
+  // metadata (difficulty / minutes / points) from the task template. Skipped
+  // tasks are hidden. `type` stays a generic bucket (the type filter is
+  // cosmetic) until task_type is surfaced through the query.
+  const DIFFICULTY: Record<string, Mission["difficulty"]> = {
+    easy: "easy",
+    medium: "medium",
+    advanced: "hard",
+    hard: "hard",
+  };
+  const missions: Mission[] = userTasks
+    .filter((t) => t.status !== "skipped")
+    .map((t): Mission => ({
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      type: "posting",
+      difficulty: DIFFICULTY[t.difficulty] ?? "medium",
+      minutes: t.estimatedMinutes,
+      points: t.points,
+      completed: t.status === "completed",
+      completed_at: t.completedAt
+        ? new Date(t.completedAt).toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : null,
+    }));
+  const hasRealMissions = missions.length > 0;
 
   const firstName = ctx.name.split(" ")[0];
   const formattedDate = today.toLocaleDateString(undefined, {
