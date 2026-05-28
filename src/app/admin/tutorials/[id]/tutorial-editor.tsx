@@ -451,6 +451,7 @@ export function TutorialEditor({
         <CreatorDrillTab
           lessonId={lesson.id}
           lessonTitle={lesson.title}
+          slug={lesson.slug}
           initialDrill={initialDrill}
           tableMissing={drillTableMissing}
           videoSlot={
@@ -496,6 +497,7 @@ export function TutorialEditor({
             ) : activeTab === "controls" ? (
               <ControlsTab
                 lessonId={lesson.id}
+                slug={lesson.slug}
                 initialControls={initialControls}
                 tableMissing={controlsTableMissing}
               />

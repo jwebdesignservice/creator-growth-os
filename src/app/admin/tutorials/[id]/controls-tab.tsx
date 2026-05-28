@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   SlidersHorizontal,
   Lock,
@@ -73,10 +73,12 @@ const CTA_LABELS: Record<LessonControls["ctaTrigger"], string> = {
 
 export function ControlsTab({
   lessonId,
+  slug,
   initialControls,
   tableMissing = false,
 }: {
   lessonId: string;
+  slug: string;
   initialControls: LessonControls;
   tableMissing?: boolean;
 }) {
@@ -88,6 +90,16 @@ export function ControlsTab({
   const [resetting,   startReset]     = useTransition();
   const [error,       setError]       = useState<string | null>(null);
   const [savedFlash,  setSavedFlash]  = useState<Date | null>(null);
+  const [recentlySaved, setRecentlySaved] = useState(false);
+
+  // Flip the "Saved" pill off ~5s after a save, without reading the clock
+  // during render (which would be impure). The boolean is set true in the
+  // save handlers; this only schedules the reset.
+  useEffect(() => {
+    if (!savedFlash) return;
+    const id = window.setTimeout(() => setRecentlySaved(false), 5000);
+    return () => window.clearTimeout(id);
+  }, [savedFlash]);
 
   const disabled = tableMissing || saving || resetting;
   const dirty    = useMemo(() => !shallowEqual(values, savedValues), [values, savedValues]);
@@ -114,6 +126,7 @@ export function ControlsTab({
       setValues(next);
       setSavedValues(next);
       setSavedFlash(new Date());
+      setRecentlySaved(true);
     });
   }
 
@@ -135,6 +148,7 @@ export function ControlsTab({
       setValues(DEFAULT_CONTROLS);
       setSavedValues(DEFAULT_CONTROLS);
       setSavedFlash(new Date());
+      setRecentlySaved(true);
     });
   }
 
@@ -144,10 +158,10 @@ export function ControlsTab({
   }
 
   function onPreview() {
+    // Open the real learner-facing tutorial page in a new tab — the same
+    // surface the editor header's Preview opens.
     if (typeof window !== "undefined") {
-      window.alert(
-        "Preview learner behavior — opens a learner-view simulation. Coming next.",
-      );
+      window.open(`/tutorials/${slug}`, "_blank", "noopener,noreferrer");
     }
   }
 
@@ -175,6 +189,7 @@ export function ControlsTab({
           tableMissing={tableMissing}
           dirty={dirty}
           savedFlash={savedFlash}
+          recentlySaved={recentlySaved}
         />
       </header>
 
@@ -418,8 +433,7 @@ export function ControlsTab({
           <button
             type="button"
             onClick={onPreview}
-            disabled={tableMissing}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13px] font-semibold hover:bg-cream-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13px] font-semibold hover:bg-cream-100 transition-colors"
           >
             <Eye className="size-4" strokeWidth={2} />
             Preview learner behavior
@@ -456,14 +470,13 @@ function StatusPill({
   tableMissing,
   dirty,
   savedFlash,
+  recentlySaved,
 }: {
   tableMissing: boolean;
   dirty: boolean;
   savedFlash: Date | null;
+  recentlySaved: boolean;
 }) {
-  const recentlySaved =
-    savedFlash !== null && Date.now() - savedFlash.getTime() < 5000;
-
   const base =
     "shrink-0 inline-flex items-center gap-2 h-9 px-3.5 rounded-full border text-[12px] font-medium";
 
