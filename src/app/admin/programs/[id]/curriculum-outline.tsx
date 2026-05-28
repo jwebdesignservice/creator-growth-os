@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   GripVertical,
   ChevronRight,
@@ -11,8 +12,20 @@ import {
   Pencil,
   Eye,
   Plus,
+  Rocket,
+  EyeOff,
+  Copy,
+  Trash2,
+  Loader2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import {
+  setModulePublished,
+  duplicateModule,
+  deleteModule,
+} from "./module-actions";
 
 type LessonItem = {
   slug: string;
@@ -28,19 +41,24 @@ type ModuleItem = {
 
 /* ─────────────────────────────────────────────────────────────────────────
    Expandable module/lesson outline shown in the admin program setup page.
-   Each row's kebab opens a real dropdown — Edit jumps into the curriculum
-   editor anchored to that exact module / lesson, Preview opens the public
-   page. Drag handles are visual; actual reorder lands when we wire DnD.
+   Each module's kebab now carries the full action set — Edit, Add lesson,
+   Publish/Unpublish, Duplicate, Preview, and Delete — wired to the
+   module-actions server actions. Drag handles are visual; actual reorder
+   lands when we wire DnD.
    ───────────────────────────────────────────────────────────────────────── */
 
 export function CurriculumOutline({
   modules,
   programId,
   programSlug,
+  publishedByModule = {},
 }: {
   modules: ModuleItem[];
   programId: string;
   programSlug: string;
+  /* Per-module published state: true only when every lesson in the module
+     is published. Drives the Publish/Unpublish menu item. */
+  publishedByModule?: Record<number, boolean>;
 }) {
   // Default-expand the first module so admins land on something useful.
   const [expanded, setExpanded] = useState<Set<number>>(
@@ -132,6 +150,9 @@ export function CurriculumOutline({
                 programId={programId}
                 programSlug={programSlug}
                 moduleNumber={m.number}
+                moduleTitle={m.title}
+                lessonCount={m.lessons.length}
+                published={publishedByModule[m.number] ?? false}
               />
             </div>
 
@@ -183,23 +204,31 @@ export function CurriculumOutline({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Module-level actions kebab. Edit → curriculum editor anchored to this
-   module. Add lesson → curriculum editor with `?add-lesson=N` so the
-   editor can open the matching modal on mount. Preview → public program
-   landing page (lessons inside are public-route children of the program
-   slug, so the program page already shows them grouped by module).
+   Module-level actions kebab. Navigation items (Edit, Add lesson, Preview)
+   are links; the mutating items (Publish/Unpublish, Duplicate, Delete) call
+   server actions and refresh. Delete is gated behind a confirm dialog that
+   names the module and shows how many lessons will be removed.
    ───────────────────────────────────────────────────────────────────────── */
 
 function ModuleActionsMenu({
   programId,
   programSlug,
   moduleNumber,
+  moduleTitle,
+  lessonCount,
+  published,
 }: {
   programId: string;
   programSlug: string;
   moduleNumber: number;
+  moduleTitle: string;
+  lessonCount: number;
+  published: boolean;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -223,6 +252,30 @@ function ModuleActionsMenu({
   const addLessonHref =
     `/admin/programs/${programId}/curriculum?add-lesson=${moduleNumber}#module-${moduleNumber}`;
 
+  function runPublishToggle() {
+    setOpen(false);
+    startTransition(async () => {
+      const res = await setModulePublished(programId, moduleNumber, !published);
+      if (!res.ok) {
+        window.alert(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function runDuplicate() {
+    setOpen(false);
+    startTransition(async () => {
+      const res = await duplicateModule(programId, moduleNumber);
+      if (!res.ok) {
+        window.alert(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   return (
     <div ref={wrapRef} className="relative shrink-0">
       <button
@@ -234,15 +287,20 @@ function ModuleActionsMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Module actions"
-        className="size-7 rounded-[8px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-200 hover:text-ink-700 cursor-pointer"
+        disabled={pending}
+        className="size-7 rounded-[8px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-200 hover:text-ink-700 disabled:opacity-50 cursor-pointer"
       >
-        <MoreVertical className="size-4" strokeWidth={2} />
+        {pending ? (
+          <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+        ) : (
+          <MoreVertical className="size-4" strokeWidth={2} />
+        )}
       </button>
       {open && (
         <div
           role="menu"
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 top-[calc(100%+6px)] z-30 w-52 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+          className="absolute right-0 top-[calc(100%+6px)] z-30 w-56 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
           <MenuLink href={editHref} icon={<Pencil className="size-3.5" strokeWidth={2} />}>
             Edit module
@@ -250,16 +308,165 @@ function ModuleActionsMenu({
           <MenuLink href={addLessonHref} icon={<Plus className="size-3.5" strokeWidth={2} />}>
             Add lesson
           </MenuLink>
+
           <div aria-hidden className="h-px my-1 bg-ink-100" />
+
+          <MenuButton
+            onClick={runPublishToggle}
+            icon={
+              published ? (
+                <EyeOff className="size-3.5" strokeWidth={2} />
+              ) : (
+                <Rocket className="size-3.5" strokeWidth={2} />
+              )
+            }
+          >
+            {published ? "Unpublish module" : "Publish module"}
+          </MenuButton>
+          <MenuButton
+            onClick={runDuplicate}
+            icon={<Copy className="size-3.5" strokeWidth={2} />}
+          >
+            Duplicate module
+          </MenuButton>
           <MenuLink
             href={`/programs/${programSlug}`}
             icon={<Eye className="size-3.5" strokeWidth={2} />}
             external
           >
-            Preview public page
+            Preview as student
           </MenuLink>
+
+          <div aria-hidden className="h-px my-1 bg-ink-100" />
+
+          <MenuButton
+            onClick={() => {
+              setOpen(false);
+              setConfirmDelete(true);
+            }}
+            icon={<Trash2 className="size-3.5" strokeWidth={2} />}
+            tone="danger"
+          >
+            Delete module
+          </MenuButton>
         </div>
       )}
+
+      <DeleteModuleDialog
+        open={confirmDelete}
+        moduleLabel={`Module ${moduleNumber}: ${moduleTitle}`}
+        lessonCount={lessonCount}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() =>
+          startTransition(async () => {
+            const res = await deleteModule(programId, moduleNumber);
+            if (!res.ok) {
+              window.alert(res.error);
+              return;
+            }
+            setConfirmDelete(false);
+            router.refresh();
+          })
+        }
+        pending={pending}
+      />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Confirm dialog for the destructive "Delete module" action. Mirrors the
+   program-level delete modal so the two read consistently.
+   ───────────────────────────────────────────────────────────────────────── */
+
+function DeleteModuleDialog({
+  open,
+  moduleLabel,
+  lessonCount,
+  onClose,
+  onConfirm,
+  pending,
+}: {
+  open: boolean;
+  moduleLabel: string;
+  lessonCount: number;
+  onClose: () => void;
+  onConfirm: () => void;
+  pending: boolean;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !pending) onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, pending, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-6 pt-[12vh]"
+      onClick={() => !pending && onClose()}
+    >
+      <div aria-hidden className="absolute inset-0 bg-ink-900/40 backdrop-blur-[2px]" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Delete module"
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md rounded-[18px] bg-white shadow-card border border-ink-100 p-6"
+      >
+        <header className="flex items-start gap-3 mb-4">
+          <span className="size-10 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+            <AlertTriangle className="size-5" strokeWidth={2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[17px] font-bold text-ink-900 leading-tight">
+              Delete this module?
+            </h3>
+            <p className="mt-1 text-[12.5px] text-ink-500 leading-snug">
+              This permanently deletes <strong>{moduleLabel}</strong> and its{" "}
+              {lessonCount} lesson{lessonCount === 1 ? "" : "s"}. This can&apos;t
+              be undone.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={pending}
+            aria-label="Close"
+            className="size-8 rounded-full hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-ink-900 shrink-0 disabled:opacity-50 cursor-pointer transition-colors"
+          >
+            <X className="size-4" strokeWidth={2} />
+          </button>
+        </header>
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={pending}
+            className="h-10 px-4 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 disabled:opacity-50 cursor-pointer transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={pending}
+            className="h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold inline-flex items-center gap-1.5 disabled:cursor-wait cursor-pointer transition-colors"
+          >
+            {pending && <Loader2 className="size-3.5 animate-spin" />}
+            Delete module
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -340,7 +547,9 @@ function LessonActionsMenu({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Shared menu link. `external` = new tab for preview routes. */
+   Shared menu primitives. `MenuLink` for navigation, `MenuButton` for
+   actions (supports a danger tone for destructive items).
+   ───────────────────────────────────────────────────────────────────────── */
 
 function MenuLink({
   href,
@@ -364,6 +573,35 @@ function MenuLink({
       {icon}
       {children}
     </Link>
+  );
+}
+
+function MenuButton({
+  onClick,
+  icon,
+  children,
+  tone = "default",
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  tone?: "default" | "danger";
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={cn(
+        "w-full text-left flex items-center gap-2 px-3 py-2 text-[12.5px] cursor-pointer",
+        tone === "danger"
+          ? "text-rose-600 hover:bg-rose-50"
+          : "text-ink-700 hover:bg-cream-100",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
   );
 }
 

@@ -185,6 +185,34 @@ export function TutorialEditor({
   const DESC_MAX  = 5000;
   const NOTE_MAX  = 2000;
 
+  /* ── Dirty tracking ──────────────────────────────────────────────────
+     Compare the live form against the last-saved snapshot so the Save
+     button + status line can reflect whether there are unsaved changes.
+     The baseline is the local form at save time (not the freshly-fetched
+     server row) so server-side trimming / tag de-duplication never leaves
+     the UI stuck showing "Unsaved changes". */
+  const snapshot = useMemo(
+    () =>
+      JSON.stringify({
+        title:       title.trim(),
+        description: description.trim(),
+        planAccess,
+        visibility,
+        internalNotes: internalNotes.trim(),
+        ctaLink:       ctaLink.trim(),
+        category:      category.trim(),
+        tags,
+        learningOutcomes,
+        publishingNotesInternal: publishingNotesInternal.trim(),
+      }),
+    [
+      title, description, planAccess, visibility, internalNotes,
+      ctaLink, category, tags, learningOutcomes, publishingNotesInternal,
+    ],
+  );
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const dirty = snapshot !== savedSnapshot;
+
   /* ── Derived values ──────────────────────────────────────────────── */
 
   const stats = useMemo(() => ({
@@ -256,6 +284,7 @@ export function TutorialEditor({
         setSaveError(result.error);
       } else {
         setSavedAt(new Date());
+        setSavedSnapshot(snapshot); // current form becomes the clean baseline
         startTransition(() => router.refresh());
       }
     } catch (err) {
@@ -330,11 +359,11 @@ export function TutorialEditor({
           <button
             type="button"
             onClick={onSave}
-            disabled={saving}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-[12px] bg-rose-50 border border-rose-100 text-rose-700 text-[13.5px] font-semibold hover:bg-rose-100 disabled:opacity-60 transition-colors"
+            disabled={saving || !dirty}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-[12px] bg-rose-50 border border-rose-100 text-rose-700 text-[13.5px] font-semibold hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
             <Save className="size-4" strokeWidth={2} />
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
           </button>
           <button
             type="button"
@@ -354,16 +383,26 @@ export function TutorialEditor({
         </div>
       </header>
 
-      {/* Save status line — quiet under the actions */}
-      {(savedAt || saveError) && (
+      {/* Save status line — quiet under the actions. Prioritizes an error,
+          then the live "unsaved" hint, then the last-saved confirmation. */}
+      {(dirty || savedAt || saveError) && (
         <div className="text-[12px] -mt-2 text-right">
           {saveError ? (
-            <span className="text-rose-600">{saveError}</span>
-          ) : (
-            <span className="text-success">
-              Saved {formatJustNow(savedAt!)}
+            <span className="inline-flex items-center gap-1.5 text-rose-600">
+              <Info className="size-3.5" strokeWidth={2.2} aria-hidden />
+              {saveError}
             </span>
-          )}
+          ) : dirty ? (
+            <span className="inline-flex items-center gap-1.5 text-amber-700">
+              <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
+              Unsaved changes
+            </span>
+          ) : savedAt ? (
+            <span className="inline-flex items-center gap-1.5 text-success">
+              <CheckCircle2 className="size-3.5" strokeWidth={2.2} aria-hidden />
+              Saved {formatJustNow(savedAt)}
+            </span>
+          ) : null}
         </div>
       )}
 
@@ -425,7 +464,13 @@ export function TutorialEditor({
                 tableMissing={controlsTableMissing}
               />
             ) : activeTab === "overview" ? (
-              <OverviewTab tutorialId={lesson.id} />
+              <OverviewTab
+                tutorialId={lesson.id}
+                learningOutcomes={learningOutcomes}
+                setLearningOutcomes={setLearningOutcomes}
+                publishingNotes={publishingNotesInternal}
+                setPublishingNotes={setPublishingNotesInternal}
+              />
             ) : activeTab === "lesson-path" ? (
               <LessonPathTab
                 lessonId={lesson.id}

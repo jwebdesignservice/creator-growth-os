@@ -202,6 +202,80 @@ export async function archiveProgram(
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+   Program access settings — backs /admin/programs/[id]/access.
+
+   `allowed_plans` is the new multi-tier source of truth (free/basic/pro/
+   diamond). We also keep the legacy single `plan_access` column in sync —
+   set to the lowest allowed tier — so the rest of the app's access gating
+   (curriculum locks, broadcast-on-publish) stays consistent without a
+   wider rewrite.
+   ────────────────────────────────────────────────────────────────────────── */
+
+const ACCESS_PLAN_VALUES = ["free", "basic", "pro", "diamond"] as const;
+type AccessPlan = (typeof ACCESS_PLAN_VALUES)[number];
+const ACCESS_NOTE_MAX = 2000;
+
+export type ProgramAccessPatch = {
+  allowedPlans: string[];
+  instant: boolean;
+  whileValid: boolean;
+  revokeFuture: boolean;
+  adminNote: string | null;
+};
+
+/** Lowest allowed tier → legacy plan_access. Diamond-only / empty collapse
+ *  onto 'pro' (the most restrictive real billing tier). */
+function deriveLegacyPlanAccess(plans: string[]): "free" | "basic" | "pro" {
+  if (plans.includes("free")) return "free";
+  if (plans.includes("basic")) return "basic";
+  return "pro"; // pro-only, diamond-only, or empty
+}
+
+export async function saveProgramAccess(
+  programId: string,
+  patch: ProgramAccessPatch,
+): Promise<Result> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return ctx;
+  if (!programId) return { ok: false, error: "Missing program id." };
+
+  if (!Array.isArray(patch.allowedPlans)) {
+    return { ok: false, error: "Allowed plans must be a list." };
+  }
+  // Clean + de-dupe, preserving the canonical tier order.
+  const set = new Set(
+    patch.allowedPlans.filter((p): p is AccessPlan =>
+      (ACCESS_PLAN_VALUES as readonly string[]).includes(p),
+    ),
+  );
+  const allowed = ACCESS_PLAN_VALUES.filter((p) => set.has(p));
+  if (allowed.length === 0) {
+    return { ok: false, error: "Select at least one membership tier." };
+  }
+
+  const note = (patch.adminNote ?? "").trim().slice(0, ACCESS_NOTE_MAX);
+
+  const { error } = await ctx.supabase
+    .from("programs")
+    .update({
+      allowed_plans:        allowed,
+      plan_access:          deriveLegacyPlanAccess(allowed),
+      access_instant:       Boolean(patch.instant),
+      access_while_valid:   Boolean(patch.whileValid),
+      access_revoke_future: Boolean(patch.revokeFuture),
+      access_admin_note:    note.length > 0 ? note : null,
+    })
+    .eq("id", programId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/admin/programs/${programId}/access`);
+  revalidatePath(`/admin/programs/${programId}`);
+  revalidatePath("/admin/programs");
+  return { ok: true };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
    Wizard-driven create
    Used by /create-new/program — the 4-step "Create new" wizard sends the
    collected fields here once the admin presses Publish / Save as draft /

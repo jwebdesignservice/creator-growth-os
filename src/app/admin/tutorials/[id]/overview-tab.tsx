@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -14,6 +15,9 @@ import {
   CheckCircle2,
   Lock,
   ChevronRight,
+  Plus,
+  X,
+  Check,
   Route as RouteIcon,
   GraduationCap,
   Folder,
@@ -21,9 +25,7 @@ import {
 } from "lucide-react";
 import {
   LESSON_OVERVIEW,
-  LEARNING_OUTCOMES,
   LESSON_COMPONENTS,
-  PUBLISHING_NOTE,
   AT_A_GLANCE,
   type AtAGlanceStat,
   type ComponentStatus,
@@ -57,18 +59,38 @@ const AT_A_GLANCE_ICON: Record<AtAGlanceStat["key"], LucideIcon> = {
 
 /* ─────────────────────────────────────────────────────────────────────────
    Root — 4 cards stacked top-to-bottom, exactly matching the mockup.
+   Outcomes + publishing notes are now controlled by the editor parent
+   so a single "Save changes" persists them via `updateLesson`.
    ───────────────────────────────────────────────────────────────────────── */
 
-export function OverviewTab({ tutorialId }: { tutorialId: string }) {
+export function OverviewTab({
+  tutorialId,
+  learningOutcomes,
+  setLearningOutcomes,
+  publishingNotes,
+  setPublishingNotes,
+}: {
+  tutorialId: string;
+  learningOutcomes: string[];
+  setLearningOutcomes: (v: string[]) => void;
+  publishingNotes: string;
+  setPublishingNotes: (v: string) => void;
+}) {
   return (
     <>
       <LessonOverviewCard />
-      <LearningOutcomesCard outcomes={LEARNING_OUTCOMES} />
+      <LearningOutcomesCard
+        outcomes={learningOutcomes}
+        onChange={setLearningOutcomes}
+      />
       <ConnectedComponentsCard
         components={LESSON_COMPONENTS}
         tutorialId={tutorialId}
       />
-      <PublishingNotesCard note={PUBLISHING_NOTE} />
+      <PublishingNotesCard
+        note={publishingNotes}
+        onChange={setPublishingNotes}
+      />
     </>
   );
 }
@@ -84,7 +106,13 @@ function LessonOverviewCard() {
       <SectionHeader
         icon={BookOpen}
         title="Lesson overview"
-        action={<CardActionButton icon={Pencil} label="Edit overview" />}
+        action={
+          <CardLinkButton
+            icon={Pencil}
+            label="Edit overview"
+            href="?tab=metadata"
+          />
+        }
       />
       <p className="text-[13.5px] text-ink-700 leading-relaxed">
         {ov.description}
@@ -129,32 +157,147 @@ function StatTile({
 
 /* ─────────────────────────────────────────────────────────────────────────
    Card 2 · What learners will get
+   Editable in-place. Outcomes live in editor state, so Done lifts the
+   cleaned array up — the editor's Save button persists it.
    ───────────────────────────────────────────────────────────────────────── */
 
-function LearningOutcomesCard({ outcomes }: { outcomes: string[] }) {
+function LearningOutcomesCard({
+  outcomes,
+  onChange,
+}: {
+  outcomes: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string[]>(outcomes);
+
+  function startEdit() {
+    setDraft(outcomes.length > 0 ? outcomes : [""]);
+    setEditing(true);
+  }
+  function cancelEdit() {
+    setEditing(false);
+  }
+  function saveEdit() {
+    const cleaned = draft.map((s) => s.trim()).filter((s) => s.length > 0);
+    onChange(cleaned);
+    setEditing(false);
+  }
+  function updateRow(i: number, v: string) {
+    setDraft(draft.map((s, idx) => (idx === i ? v : s)));
+  }
+  function removeRow(i: number) {
+    setDraft(draft.filter((_, idx) => idx !== i));
+  }
+  function addRow() {
+    setDraft([...draft, ""]);
+  }
+
   return (
     <section className="card p-5 sm:p-6">
-      <SectionHeader icon={Target} title="What learners will get" />
-      <ul className="space-y-2.5">
-        {outcomes.map((o, i) => (
-          <li
-            key={i}
-            className="flex items-start gap-2.5 text-[13.5px] text-ink-800"
-          >
-            <CheckCircle2
-              className="size-[18px] text-success shrink-0 mt-px"
-              strokeWidth={2.2}
-              aria-hidden
+      <SectionHeader
+        icon={Target}
+        title="What learners will get"
+        action={
+          editing ? (
+            <span className="inline-flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="inline-flex items-center h-9 px-3 rounded-[10px] bg-white border border-ink-200 text-ink-700 text-[12.5px] font-medium hover:bg-cream-100 transition-colors shrink-0"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-rose-50 border border-rose-100 text-rose-700 text-[12.5px] font-semibold hover:bg-rose-100 transition-colors shrink-0"
+              >
+                <Check className="size-3.5" strokeWidth={2.4} />
+                Done
+              </button>
+            </span>
+          ) : (
+            <CardActionButton
+              icon={Pencil}
+              label={outcomes.length > 0 ? "Edit outcomes" : "Add outcomes"}
+              onClick={startEdit}
             />
-            <span className="leading-snug">{o}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-4 flex justify-end">
-        <span className="inline-flex items-center px-2.5 h-[24px] rounded-full bg-cream-200 text-ink-700 text-[11.5px] font-semibold whitespace-nowrap">
-          {outcomes.length} learning outcome{outcomes.length === 1 ? "" : "s"}
-        </span>
-      </div>
+          )
+        }
+      />
+
+      {editing ? (
+        <div className="space-y-2">
+          {draft.map((row, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className="size-[18px] rounded-full bg-success-bg text-success inline-flex items-center justify-center shrink-0"
+              >
+                <CheckCircle2 className="size-[14px]" strokeWidth={2.4} />
+              </span>
+              <input
+                type="text"
+                value={row}
+                onChange={(e) => updateRow(i, e.target.value)}
+                placeholder="What will the learner walk away with?"
+                maxLength={200}
+                className="flex-1 min-w-0 h-9 px-3 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                aria-label="Remove outcome"
+                className="inline-flex items-center justify-center size-9 rounded-[10px] bg-white border border-ink-200 text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors shrink-0"
+              >
+                <X className="size-3.5" strokeWidth={2.2} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addRow}
+            disabled={draft.length >= 20}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-rose-50 border border-rose-100 text-rose-700 text-[12.5px] font-semibold hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <Plus className="size-3.5" strokeWidth={2.4} />
+            Add outcome
+          </button>
+          <p className="text-[11px] text-ink-500 pt-1">
+            Keep each line short, action-led, and learner-focused.
+          </p>
+        </div>
+      ) : outcomes.length > 0 ? (
+        <ul className="space-y-2.5">
+          {outcomes.map((o, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-2.5 text-[13.5px] text-ink-800"
+            >
+              <CheckCircle2
+                className="size-[18px] text-success shrink-0 mt-px"
+                strokeWidth={2.2}
+                aria-hidden
+              />
+              <span className="leading-snug">{o}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          title="No outcomes yet"
+          body="Add 3–5 outcomes so learners know exactly what they'll walk away with."
+        />
+      )}
+
+      {!editing && outcomes.length > 0 && (
+        <div className="mt-4 flex justify-end">
+          <span className="inline-flex items-center px-2.5 h-[24px] rounded-full bg-cream-200 text-ink-700 text-[11.5px] font-semibold whitespace-nowrap">
+            {outcomes.length} learning outcome{outcomes.length === 1 ? "" : "s"}
+          </span>
+        </div>
+      )}
     </section>
   );
 }
@@ -233,23 +376,97 @@ function ConnectedComponentsCard({
 
 /* ─────────────────────────────────────────────────────────────────────────
    Card 4 · Publishing notes (internal)
+   Editable in-place — click "Edit notes" → textarea → Done lifts up to
+   parent state so the editor's Save persists it.
    ───────────────────────────────────────────────────────────────────────── */
 
-function PublishingNotesCard({ note }: { note: string }) {
+function PublishingNotesCard({
+  note,
+  onChange,
+}: {
+  note: string;
+  onChange: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(note);
+
+  function startEdit() {
+    setDraft(note);
+    setEditing(true);
+  }
+  function cancelEdit() {
+    setEditing(false);
+  }
+  function saveEdit() {
+    onChange(draft.trim());
+    setEditing(false);
+  }
+
   return (
     <section className="card p-5 sm:p-6">
       <SectionHeader
         icon={FileText}
         title="Publishing notes (internal)"
-        action={<CardActionButton icon={Pencil} label="Edit notes" />}
+        action={
+          editing ? (
+            <span className="inline-flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="inline-flex items-center h-9 px-3 rounded-[10px] bg-white border border-ink-200 text-ink-700 text-[12.5px] font-medium hover:bg-cream-100 transition-colors shrink-0"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-rose-50 border border-rose-100 text-rose-700 text-[12.5px] font-semibold hover:bg-rose-100 transition-colors shrink-0"
+              >
+                <Check className="size-3.5" strokeWidth={2.4} />
+                Done
+              </button>
+            </span>
+          ) : (
+            <CardActionButton
+              icon={Pencil}
+              label={note.length > 0 ? "Edit notes" : "Add notes"}
+              onClick={startEdit}
+            />
+          )
+        }
       />
-      <p className="text-[13.5px] text-ink-700 leading-relaxed">
-        {note}
-      </p>
-      <footer className="mt-4 pt-3 border-t border-ink-100 inline-flex items-center gap-1.5 text-[11.5px] text-ink-500">
-        <Lock className="size-3.5 text-ink-400" strokeWidth={2} aria-hidden />
-        Internal notes are visible to admins only.
-      </footer>
+
+      {editing ? (
+        <div className="space-y-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={5}
+            maxLength={4000}
+            placeholder="Add any context the team should know before this lesson goes live…"
+            className="w-full min-h-[120px] p-3 rounded-[12px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 leading-relaxed focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 transition-colors resize-y"
+          />
+          <div className="flex items-center justify-between text-[11.5px] text-ink-500">
+            <span>Internal notes are visible to admins only.</span>
+            <span className="tabular-nums">{draft.length}/4000</span>
+          </div>
+        </div>
+      ) : note.length > 0 ? (
+        <>
+          <p className="text-[13.5px] text-ink-700 leading-relaxed whitespace-pre-wrap">
+            {note}
+          </p>
+          <footer className="mt-4 pt-3 border-t border-ink-100 inline-flex items-center gap-1.5 text-[11.5px] text-ink-500">
+            <Lock className="size-3.5 text-ink-400" strokeWidth={2} aria-hidden />
+            Internal notes are visible to admins only.
+          </footer>
+        </>
+      ) : (
+        <EmptyState
+          title="No internal notes yet"
+          body="Add context the team should know before this lesson goes live."
+        />
+      )}
     </section>
   );
 }
@@ -355,17 +572,55 @@ function SectionHeader({
 function CardActionButton({
   icon: Icon,
   label,
+  onClick,
 }: {
   icon: LucideIcon;
   label: string;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-white border border-ink-200 text-ink-900 text-[12.5px] font-medium hover:bg-cream-100 transition-colors shrink-0"
     >
       <Icon className="size-3.5 text-ink-500" strokeWidth={2} />
       {label}
     </button>
+  );
+}
+
+function CardLinkButton({
+  icon: Icon,
+  label,
+  href,
+}: {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-white border border-ink-200 text-ink-900 text-[12.5px] font-medium hover:bg-cream-100 transition-colors shrink-0"
+    >
+      <Icon className="size-3.5 text-ink-500" strokeWidth={2} />
+      {label}
+    </Link>
+  );
+}
+
+function EmptyState({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-[12px] border border-dashed border-ink-200 bg-cream-100/40 p-5 text-center">
+      <div className="text-[13.5px] font-semibold text-ink-900">{title}</div>
+      <p className="mt-1 text-[12.5px] text-ink-500 leading-snug">{body}</p>
+    </div>
   );
 }
