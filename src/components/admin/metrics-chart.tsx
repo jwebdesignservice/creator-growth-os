@@ -477,7 +477,7 @@ function groupSeries(
       const monthStart = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
       key = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
       sortKey = monthStart.getTime();
-      label = monthStart.toLocaleDateString(undefined, {
+      label = monthStart.toLocaleDateString("en-US", {
         month: "short",
         year: "numeric",
         timeZone: "UTC",
@@ -498,7 +498,7 @@ function startOfWeek(d: Date): Date {
 }
 
 function fmtDay(iso: string): string {
-  return new Date(iso + "T00:00:00Z").toLocaleDateString(undefined, {
+  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
     timeZone: "UTC",

@@ -611,7 +611,7 @@ function startOfWeekMs(ms: number): number {
 }
 
 function fmtDate(iso: string): string {
-  return new Date(iso + "T00:00:00Z").toLocaleDateString(undefined, {
+  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
     timeZone: "UTC",

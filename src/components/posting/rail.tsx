@@ -218,11 +218,11 @@ function PlatformGlyph({ platform }: { platform: string | null }) {
 function formatWhen(when: string | null): string {
   if (!when) return "Unscheduled";
   const d = new Date(when);
-  const datePart = d.toLocaleDateString(undefined, {
+  const datePart = d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
-  const timePart = d.toLocaleTimeString(undefined, {
+  const timePart = d.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
   });

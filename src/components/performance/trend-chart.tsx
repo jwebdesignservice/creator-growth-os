@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   LineChart,
   Minus,
@@ -525,9 +526,17 @@ function SingleValueState({
       <div className="text-h1 text-ink-900 leading-none mb-2 tabular-nums">
         {formatValue(metric, value)}
       </div>
-      <p className="text-[13px] text-ink-500 max-w-sm leading-relaxed">
-        Only one log in the last {windowDays} days. Log another entry to see your trend.
+      <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
+        Only one data point in the last {windowDays} days. New numbers sync
+        weekly from your connected account.
       </p>
+      <a
+        href="#connect-social"
+        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
+      >
+        Manage connected account
+        <ArrowRight className="size-3.5" strokeWidth={2} />
+      </a>
     </div>
   );
 }
@@ -543,9 +552,16 @@ function NoDataState() {
       <h4 className="text-h5 text-ink-900 mb-1">
         No performance data yet
       </h4>
-      <p className="text-[13px] text-ink-500 max-w-sm leading-relaxed">
-        Start logging weekly performance to see your trends here.
+      <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
+        Connect a social account to start seeing weekly performance trends.
       </p>
+      <a
+        href="#connect-social"
+        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
+      >
+        Connect a social account
+        <ArrowRight className="size-3.5" strokeWidth={2} />
+      </a>
     </div>
   );
 }
@@ -590,9 +606,18 @@ function SparseWindowState({
         ({daysSinceRecent} {dayWord} ago).
       </p>
 
-      <p className="text-[13px] text-ink-700">
-        You have {totalCount} weekly {logWord} total — log this week to start your {rangeLabel}.
+      <p className="text-[13px] text-ink-700 mb-5">
+        You have {totalCount} weekly {logWord} total — reconnect or resync
+        your account to refresh your {rangeLabel}.
       </p>
+
+      <a
+        href="#connect-social"
+        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
+      >
+        Manage connected account
+        <ArrowRight className="size-3.5" strokeWidth={2} />
+      </a>
     </div>
   );
 }
@@ -650,12 +675,12 @@ function formatCompact(n: number): string {
 
 function formatShortDate(iso: string): string {
   const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function formatLongDate(iso: string): string {
   const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 function metricLabel(m: MetricKey): string {

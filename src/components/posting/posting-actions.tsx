@@ -67,7 +67,7 @@ export function PostingActions({
 
 function NewPlanForm({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState(
-    `Content Plan – Week of ${new Date().toLocaleDateString(undefined, {
+    `Content Plan – Week of ${new Date().toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
     })}`,

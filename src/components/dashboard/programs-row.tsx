@@ -44,11 +44,22 @@ export function ProgramsRow({ programs }: { programs: ProgramCard[] }) {
         </Link>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[var(--space-grid-gap)]">
-        {shown.map((p) => (
-          <ProgramItem key={p.slug} program={p} />
-        ))}
-      </div>
+      {shown.length === 0 ? (
+        <div className="card p-6 text-center">
+          <p className="text-[14px] font-medium text-ink-900 mb-1">
+            No programs available yet
+          </p>
+          <p className="text-[12.5px] text-ink-500">
+            Check back soon — your team is building your first program.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[var(--space-grid-gap)]">
+          {shown.map((p) => (
+            <ProgramItem key={p.slug} program={p} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

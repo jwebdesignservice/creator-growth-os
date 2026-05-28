@@ -26,10 +26,11 @@ export function BestPostsJournal({ entries }: Props) {
         <ul className="space-y-4">
           {items.map((entry) => {
             const d = new Date(entry.week_start + "T00:00:00Z");
-            const label = d.toLocaleDateString(undefined, {
+            const label = d.toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",
               year: "numeric",
+              timeZone: "UTC",
             });
             return (
               <li

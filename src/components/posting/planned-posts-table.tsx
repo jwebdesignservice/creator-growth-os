@@ -144,12 +144,12 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
 function DateCell({ when }: { when: string | null }) {
   if (!when) return <span className="text-ink-400">—</span>;
   const d = new Date(when);
-  const datePart = d.toLocaleDateString(undefined, {
+  const datePart = d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-  const timePart = d.toLocaleTimeString(undefined, {
+  const timePart = d.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
   });

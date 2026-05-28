@@ -88,12 +88,15 @@ export default async function PostingPage({
         {/* Tabs */}
         <PostingTabs active={activeTab} />
 
-        {/* KPI tiles */}
+        {/* KPI tiles — only "This Week's Posts" is wired to real data
+            today; consistency / best-time / engagement goal need data
+            sources we haven't built yet, so the tiles render empty
+            states instead of fake numbers. */}
         <PostingKpiTiles
           thisWeekPlanned={weeklyForUI.total}
-          consistencyDaysPerWeek={5}
-          bestTime="7:00 PM"
-          engagementGoal={8}
+          consistencyDaysPerWeek={null}
+          bestTime={null}
+          engagementGoal={null}
         />
 
         {activeTab === "my_plans" ? (

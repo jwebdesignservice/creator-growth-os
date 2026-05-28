@@ -1,0 +1,157 @@
+// Generic OAuth start route: /api/oauth/[platform]/start
+// Reads provider config from the registry, generates state (+ PKCE if the
+// provider needs it), stashes both in a signed HTTP-only cookie, and
+// 302-redirects to the provider's authorize URL.
+
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getProvider,
+  getClientCredentials,
+  getRedirectUri,
+} from "@/lib/social/providers";
+
+export const runtime = "nodejs";
+
+type Params = { platform: string };
+
+const STATE_COOKIE_PREFIX = "social_oauth_state_";
+const STATE_TTL_SECONDS = 10 * 60; // 10 minutes
+
+function randomToken(bytes = 32): string {
+  // Base64URL — no padding — URL-safe for OAuth params and cookies.
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return Buffer.from(buf)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function pkcePair() {
+  const verifier = randomToken(48);
+  // SHA-256(verifier) → base64url for code_challenge
+  const data = new TextEncoder().encode(verifier);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  const challenge = Buffer.from(hash)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return { verifier, challenge };
+}
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<Params> },
+) {
+  const { platform } = await params;
+
+  const provider = getProvider(platform);
+  if (!provider) {
+    return NextResponse.json({ error: "Unknown platform" }, { status: 404 });
+  }
+
+  const creds = getClientCredentials(provider);
+  if (!creds) {
+    return NextResponse.json(
+      {
+        error: "Provider not configured",
+        message: `Set ${provider.clientIdEnv} and ${provider.clientSecretEnv} in env to enable ${provider.label}.`,
+        docsUrl: provider.setupDocsUrl,
+      },
+      { status: 503 },
+    );
+  }
+
+  // Must be signed in — we'll associate the resulting tokens with this user.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.redirect(
+      new URL("/sign-in?next=/performance", new URL(_req.url).origin),
+    );
+  }
+
+  // Single-platform rule: only one social account can be connected at a
+  // time. If the user already has a live access_token on any other
+  // platform, send them back with a clear "disconnect first" message.
+  // Reconnecting the SAME platform is allowed (refresh-token flow).
+  const { data: existing } = await supabase
+    .from("social_accounts")
+    .select("platform")
+    .eq("user_id", user.id)
+    .not("access_token", "is", null)
+    .neq("platform", provider.key)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    const origin = new URL(_req.url).origin;
+    const url = new URL("/performance", origin);
+    url.searchParams.set("connect", "blocked");
+    url.searchParams.set("p", provider.key);
+    url.searchParams.set("active", String(existing.platform));
+    return NextResponse.redirect(url);
+  }
+
+  // Generate state (CSRF protection) and optionally PKCE verifier.
+  const state = randomToken(32);
+  const pkce = provider.usePkce ? await pkcePair() : null;
+
+  // Build authorize URL.
+  const url = new URL(provider.authUrl);
+  url.searchParams.set("response_type", "code");
+  // TikTok is non-standard: uses `client_key` instead of `client_id`.
+  if (provider.key === "tiktok") {
+    url.searchParams.set("client_key", creds.clientId);
+  } else {
+    url.searchParams.set("client_id", creds.clientId);
+  }
+  url.searchParams.set("redirect_uri", getRedirectUri(provider.key));
+  url.searchParams.set("state", state);
+
+  // Meta's Facebook Login for Business uses a "Configuration" that bakes
+  // scopes into a config_id. If the provider declares a configIdEnv and
+  // it's set, pass config_id and OMIT the scope param — scopes come from
+  // the configuration on Meta's side. Otherwise fall back to the classic
+  // scope list (used by Google, TikTok, LinkedIn, Snapchat).
+  const configId = provider.configIdEnv ? process.env[provider.configIdEnv] : undefined;
+  if (configId) {
+    url.searchParams.set("config_id", configId);
+  } else {
+    url.searchParams.set("scope", provider.scopes.join(provider.scopeSeparator));
+  }
+
+  if (pkce) {
+    url.searchParams.set("code_challenge", pkce.challenge);
+    url.searchParams.set("code_challenge_method", "S256");
+  }
+  if (provider.extraAuthParams) {
+    for (const [k, v] of Object.entries(provider.extraAuthParams)) {
+      url.searchParams.set(k, v);
+    }
+  }
+
+  // Stash state + PKCE verifier in HTTP-only cookie. The callback validates
+  // them. Cookie is platform-scoped so simultaneous connects don't collide.
+  const cookieStore = await cookies();
+  const payload = JSON.stringify({
+    state,
+    verifier: pkce?.verifier ?? null,
+    userId: user.id,
+  });
+  cookieStore.set(`${STATE_COOKIE_PREFIX}${provider.key}`, payload, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: STATE_TTL_SECONDS,
+  });
+
+  return NextResponse.redirect(url);
+}

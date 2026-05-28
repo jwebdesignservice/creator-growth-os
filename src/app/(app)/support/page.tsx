@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
+import { createClient } from "@/lib/supabase/server";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { cn } from "@/lib/cn";
 
@@ -105,26 +106,54 @@ const TOPICS: { key: string; icon: LucideIcon; title: string; sub: string; href:
   { key: "growth",    icon: TrendingUp,    title: "Growth Tips",      sub: "Best practices",         href: "/tutorials"                   },
 ];
 
-const GUIDES: { key: string; icon: LucideIcon; title: string; cat: string; read: string; href: string }[] = [
-  { key: "g1", icon: FileText,   title: "How to upload videos to Posting Plans", cat: "Posting Plans · Step-by-step guide",  read: "5 min read", href: "/tutorials" },
-  { key: "g2", icon: Wrench,     title: "Fixing common upload issues",           cat: "Technical Issues · Troubleshooting",  read: "4 min read", href: "/tutorials" },
-  { key: "g3", icon: CreditCard, title: "Managing your subscription",            cat: "Billing · Account & Plans",           read: "6 min read", href: "/tutorials" },
-  { key: "g4", icon: Lock,       title: "How to access your Pro features",        cat: "Account & Login · Getting Started",   read: "3 min read", href: "/tutorials" },
+// Static topic links — no fake "N min read" labels; they were misleading
+// because none of the URLs go to a specific article.
+const GUIDES: { key: string; icon: LucideIcon; title: string; cat: string; href: string }[] = [
+  { key: "g1", icon: FileText,   title: "How to upload videos to Posting Plans", cat: "Posting Plans",     href: "/tutorials" },
+  { key: "g2", icon: Wrench,     title: "Fixing common upload issues",           cat: "Technical Issues",  href: "/tutorials" },
+  { key: "g3", icon: CreditCard, title: "Managing your subscription",            cat: "Billing",           href: "/tutorials" },
+  { key: "g4", icon: Lock,       title: "How to access your Pro features",       cat: "Account & Login",   href: "/tutorials" },
 ];
 
-type TicketStatus = "Open" | "Waiting" | "Resolved";
+type TicketStatus = "Open" | "Waiting" | "In progress" | "Resolved" | "Closed";
 
-const RECENT_TICKETS: { id: string; subject: string; status: TicketStatus; updated: string }[] = [
-  { id: "TK-48291", subject: "Videos not uploading on Posting Plans", status: "Open",     updated: "2 days ago"  },
-  { id: "TK-48102", subject: "Need help accessing Pro Plan",          status: "Waiting",  updated: "4 days ago"  },
-  { id: "TK-46877", subject: "Billing question about annual plan",    status: "Resolved", updated: "10 days ago" },
-];
+type TicketRow = {
+  id: string;
+  subject: string;
+  status: TicketStatus;
+  updated: string;
+};
 
 const TICKET_PILL: Record<TicketStatus, string> = {
-  Open:     "bg-rose-100 text-rose-700",
-  Waiting:  "bg-gold-500/15 text-gold-500",
-  Resolved: "bg-success-bg text-success",
+  Open:           "bg-rose-100 text-rose-700",
+  Waiting:        "bg-gold-500/15 text-gold-500",
+  "In progress":  "bg-rose-50 text-rose-600",
+  Resolved:       "bg-success-bg text-success",
+  Closed:         "bg-cream-200 text-ink-500",
 };
+
+function statusLabel(s: string): TicketStatus {
+  switch (s) {
+    case "open":         return "Open";
+    case "waiting":      return "Waiting";
+    case "in_progress":  return "In progress";
+    case "resolved":     return "Resolved";
+    case "closed":       return "Closed";
+    default:             return "Open";
+  }
+}
+
+function relativeUpdated(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86_400_000);
+  if (days <= 0) {
+    const hours = Math.floor(ms / 3_600_000);
+    if (hours <= 0) return "just now";
+    return `${hours}h ago`;
+  }
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+}
 
 type StepState = "current" | "upcoming";
 
@@ -146,6 +175,23 @@ const QUICK_LINKS: { label: string; href: string }[] = [
 export default async function SupportHubPage() {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
+
+  // Fetch the user's most-recent support tickets — replaces the previous
+  // RECENT_TICKETS hardcoded list. Cap at 5 for the hub preview.
+  const supabase = await createClient();
+  const { data: ticketRows } = await supabase
+    .from("support_tickets")
+    .select("public_id, subject, status, updated_at, created_at")
+    .eq("user_id", ctx.user.id)
+    .order("updated_at", { ascending: false })
+    .limit(5);
+
+  const recentTickets: TicketRow[] = (ticketRows ?? []).map((t) => ({
+    id: t.public_id,
+    subject: t.subject,
+    status: statusLabel(t.status),
+    updated: relativeUpdated(t.updated_at ?? t.created_at),
+  }));
 
   return (
     <PageShell>
@@ -249,9 +295,11 @@ export default async function SupportHubPage() {
                             {g.cat}
                           </span>
                         </span>
-                        <span className="text-[11.5px] text-ink-400 shrink-0 tabular-nums">
-                          {g.read}
-                        </span>
+                        <ArrowRight
+                          className="size-4 text-ink-300 shrink-0"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
                       </Link>
                     </li>
                   ))}
@@ -282,41 +330,52 @@ export default async function SupportHubPage() {
                   <span className="w-4" aria-hidden />
                 </div>
 
-                <ul className="divide-y divide-ink-100">
-                  {RECENT_TICKETS.map((t) => (
-                    <li key={t.id}>
-                      <Link
-                        href="/support/tickets"
-                        className="group flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 rounded-[10px] px-2 py-3 hover:bg-cream-100 transition-colors"
-                      >
-                        <span className="sm:w-[80px] text-[12.5px] font-medium text-ink-700 tabular-nums shrink-0">
-                          {t.id}
-                        </span>
-                        <span className="flex-1 min-w-0 text-[12.5px] text-ink-900 truncate group-hover:text-rose-700 transition-colors">
-                          {t.subject}
-                        </span>
-                        <span className="sm:w-[84px] shrink-0">
-                          <span
-                            className={cn(
-                              "inline-flex items-center px-2 h-[22px] rounded-full text-[11px] font-semibold",
-                              TICKET_PILL[t.status],
-                            )}
-                          >
-                            {t.status}
+                {recentTickets.length === 0 ? (
+                  <div className="rounded-[12px] border border-dashed border-ink-200 px-4 py-8 text-center">
+                    <p className="text-[13px] text-ink-700 font-medium mb-1">
+                      No tickets yet
+                    </p>
+                    <p className="text-[12px] text-ink-500 max-w-[40ch] mx-auto">
+                      Once you contact support, your past tickets will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-ink-100">
+                    {recentTickets.map((t) => (
+                      <li key={t.id}>
+                        <Link
+                          href="/support/tickets"
+                          className="group flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 rounded-[10px] px-2 py-3 hover:bg-cream-100 transition-colors"
+                        >
+                          <span className="sm:w-[80px] text-[12.5px] font-medium text-ink-700 tabular-nums shrink-0">
+                            {t.id}
                           </span>
-                        </span>
-                        <span className="sm:w-[84px] text-[12px] text-ink-500 shrink-0">
-                          {t.updated}
-                        </span>
-                        <ArrowRight
-                          className="hidden sm:block size-4 text-ink-300 group-hover:text-rose-600 transition-colors shrink-0"
-                          strokeWidth={2}
-                          aria-hidden
-                        />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                          <span className="flex-1 min-w-0 text-[12.5px] text-ink-900 truncate group-hover:text-rose-700 transition-colors">
+                            {t.subject}
+                          </span>
+                          <span className="sm:w-[84px] shrink-0">
+                            <span
+                              className={cn(
+                                "inline-flex items-center px-2 h-[22px] rounded-full text-[11px] font-semibold",
+                                TICKET_PILL[t.status],
+                              )}
+                            >
+                              {t.status}
+                            </span>
+                          </span>
+                          <span className="sm:w-[84px] text-[12px] text-ink-500 shrink-0">
+                            {t.updated}
+                          </span>
+                          <ArrowRight
+                            className="hidden sm:block size-4 text-ink-300 group-hover:text-rose-600 transition-colors shrink-0"
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </section>
             </div>
 

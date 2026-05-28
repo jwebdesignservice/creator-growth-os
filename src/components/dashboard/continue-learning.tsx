@@ -27,7 +27,16 @@ export function ContinueLearning({ lessons }: { lessons: Lesson[] }) {
         </div>
       </header>
 
-      <ul className="space-y-3 flex-1">
+      {lessons.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center py-6 gap-2">
+          <p className="text-[13px] text-ink-700 font-medium">No lessons in progress</p>
+          <p className="text-[12px] text-ink-500 max-w-[28ch] leading-snug">
+            Start a tutorial to track your progress here.
+          </p>
+        </div>
+      ) : null}
+
+      <ul className={`space-y-3 ${lessons.length === 0 ? "hidden" : "flex-1"}`}>
         {lessons.map((l) => {
           const progress = Math.min(100, Math.max(0, l.progress ?? 0));
           return (

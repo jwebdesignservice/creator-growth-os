@@ -9,6 +9,8 @@ import {
 } from "@/lib/performance/queries";
 import { PerformanceKpiTiles } from "@/components/performance/kpi-tiles";
 import { ConnectSocialCard } from "@/components/performance/connect-social-card";
+import { AutoSyncOnMount } from "@/components/performance/auto-sync-on-mount";
+import { getSocialConnections } from "@/lib/social/queries";
 import { TrendChart } from "@/components/performance/trend-chart";
 import { BestPostsJournal } from "@/components/performance/journal";
 import { PerformanceRail } from "@/components/performance/rail";
@@ -19,7 +21,10 @@ export default async function PerformancePage() {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
-  const recent = await getRecentEntries(12);
+  const [recent, socialConnections] = await Promise.all([
+    getRecentEntries(12),
+    getSocialConnections(),
+  ]);
 
   const tiles = computeKpiTiles(recent);
   const streak = getLoggingStreak(recent);
@@ -77,8 +82,12 @@ export default async function PerformancePage() {
         {/* KPI tiles */}
         <PerformanceKpiTiles tiles={tiles} plan={ctx.plan} />
 
-        {/* Connect Social Accounts — frontend-only placeholder card */}
-        <ConnectSocialCard />
+        {/* Connect Social Accounts — real OAuth flow */}
+        <ConnectSocialCard connections={socialConnections} />
+
+        {/* Silently re-syncs any connected platform whose last_synced_at
+            is older than 6h, so users see fresh numbers without clicking. */}
+        <AutoSyncOnMount connections={socialConnections} />
 
         {/* Trend + Journal */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">

@@ -1,0 +1,98 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { getProvider, type ProviderKey } from "./providers";
+import { syncInstagramAccount } from "./instagram";
+import { syncFacebookAccount } from "./facebook";
+import { syncYouTubeAccount } from "./youtube";
+import { syncTikTokAccount } from "./tiktok";
+
+type Result = { ok: true } | { ok: false; error: string };
+
+/**
+ * Disconnect a platform: clear tokens, scopes, and connected_at. The row is
+ * kept (so any historical follower_count / metrics stay) but the user must
+ * re-authorize before further syncs.
+ */
+export async function disconnectPlatform(
+  platform: ProviderKey,
+): Promise<Result> {
+  const provider = getProvider(platform);
+  if (!provider) return { ok: false, error: "Unknown platform" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  // RLS already restricts to the calling user; the .eq is belt-and-suspenders.
+  const { error } = await supabase
+    .from("social_accounts")
+    .update({
+      access_token: null,
+      refresh_token: null,
+      token_expires_at: null,
+      scopes: null,
+      connected_at: null,
+      sync_status: "idle",
+      sync_error: null,
+    })
+    .eq("user_id", user.id)
+    .eq("platform", platform);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/performance");
+  return { ok: true };
+}
+
+/**
+ * Manually trigger a sync for a connected platform. The actual fetch
+ * runs server-side and persists results to social_accounts +
+ * performance_entries — the caller just needs to wait and revalidate.
+ *
+ * Today only Instagram is implemented end-to-end. Other providers
+ * return early so the UI can still call this generically.
+ */
+export async function syncPlatform(platform: ProviderKey): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  if (platform === "instagram") {
+    const res = await syncInstagramAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  if (platform === "facebook") {
+    const res = await syncFacebookAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  if (platform === "youtube") {
+    const res = await syncYouTubeAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  if (platform === "tiktok") {
+    const res = await syncTikTokAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    error: `Sync for ${platform} is not implemented yet.`,
+  };
+}
