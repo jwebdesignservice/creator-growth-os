@@ -37,11 +37,11 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     await Promise.all([
       supabase
         .from("lessons")
+        // Core columns ONLY. These predate the editor migration and are
+        // guaranteed to exist, so this query — the one that decides whether
+        // the page 404s — can never be poisoned by an optional column.
         .select(
-          // Core lesson fields + editor-only columns persisted by
-          // migration 0034 (tags, visibility, internal_notes, cta_link,
-          // editor_category, learning_outcomes, publishing_notes_internal).
-          "id, slug, title, description, program_id, plan_access, cover_image_url, video_url, duration_seconds, module_number, module_title, published, created_at, tags, visibility, internal_notes, cta_link, editor_category, learning_outcomes, publishing_notes_internal",
+          "id, slug, title, description, program_id, plan_access, cover_image_url, video_url, duration_seconds, module_number, module_title, published, created_at",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -56,6 +56,21 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     ]);
 
   if (!lesson) notFound();
+
+  // Editor-only fields (tags, visibility, internal notes, CTA link, category,
+  // learning outcomes, publishing notes) live behind migration 0034. Fetch
+  // them in a SEPARATE query so a *pending* migration degrades gracefully to
+  // defaults instead of 404-ing the whole page: PostgREST fails an entire
+  // select if any single column is unknown. When the columns are missing this
+  // query just returns an error + null data, and `ed` falls back to `{}`.
+  const { data: editorRow } = await supabase
+    .from("lessons")
+    .select(
+      "tags, visibility, internal_notes, cta_link, editor_category, learning_outcomes, publishing_notes_internal",
+    )
+    .eq("id", id)
+    .maybeSingle();
+  const ed = (editorRow ?? {}) as Record<string, unknown>;
 
   const data: TutorialEditorData = {
     id:             lesson.id as string,
@@ -72,16 +87,16 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     createdAt:      (lesson.created_at as string) ?? new Date().toISOString(),
     views:          views ?? 0,
 
-    // Editor-only metadata fields persisted by migration 0034.
-    // We coerce defensively so the editor never reads `undefined`
-    // even if a row pre-dates the migration.
-    tags:                    Array.isArray(lesson.tags) ? (lesson.tags as string[]) : [],
-    visibility:              ((lesson.visibility as string) ?? "public") as "public" | "unlisted" | "private",
-    internalNotes:           (lesson.internal_notes as string | null) ?? "",
-    ctaLink:                 (lesson.cta_link as string | null) ?? "",
-    editorCategory:          (lesson.editor_category as string | null) ?? "",
-    learningOutcomes:        Array.isArray(lesson.learning_outcomes) ? (lesson.learning_outcomes as string[]) : [],
-    publishingNotesInternal: (lesson.publishing_notes_internal as string | null) ?? "",
+    // Editor-only metadata fields persisted by migration 0034. Read from the
+    // optional `ed` row so a pending migration just yields empty defaults
+    // rather than crashing the page.
+    tags:                    Array.isArray(ed.tags) ? (ed.tags as string[]) : [],
+    visibility:              ((ed.visibility as string) ?? "public") as "public" | "unlisted" | "private",
+    internalNotes:           (ed.internal_notes as string | null) ?? "",
+    ctaLink:                 (ed.cta_link as string | null) ?? "",
+    editorCategory:          (ed.editor_category as string | null) ?? "",
+    learningOutcomes:        Array.isArray(ed.learning_outcomes) ? (ed.learning_outcomes as string[]) : [],
+    publishingNotesInternal: (ed.publishing_notes_internal as string | null) ?? "",
   };
 
   const programOptions: ProgramOption[] = (programs ?? []).map((p) => ({

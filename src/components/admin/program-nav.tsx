@@ -5,15 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ClipboardCheck,
   Layers,
-  LayoutTemplate,
-  Award,
-  Info,
-  Tag,
-  Globe,
-  Code2,
-  Ticket,
-  TrendingUp,
-  MessageSquare,
+  KeyRound,
   GraduationCap,
   BarChart3,
   ChevronLeft,
@@ -36,30 +28,24 @@ type NavItem = {
  * footer — so the two surfaces feel like the same "compact-shell + inner
  * panel" idiom rather than two different patterns.
  *
- * Groups are separated by a hairline divider (no header label) to give the
- * 13 items a scannable rhythm without adding extra chrome.
+ * Pared down to the items that map to real platform concepts:
+ *   • Build group — Setup guide, Curriculum, Access (membership-tier gate)
+ *   • Audience group — Students, Reports
+ * Program-level commerce (pricing / sales pages / coupons / upsell / embed)
+ * and the design-template / certificate / comments surfaces were removed:
+ * access is governed by the member's plan (Free / Basic / Pro / Diamond),
+ * not per-program sales, so those tabs don't belong here.
  */
 
-const SETUP_NAV = (id: string): NavItem[] => [
-  { label: "Setup guide",     href: `/admin/programs/${id}`,                  icon: ClipboardCheck, exact: true },
-  { label: "Curriculum",      href: `/admin/programs/${id}/curriculum`,       icon: Layers       },
-  { label: "Design templates",href: `/admin/programs/${id}/design`,           icon: LayoutTemplate },
-  { label: "Certificates",    href: `/admin/programs/${id}/certificates`,     icon: Award        },
-  { label: "Information",     href: `/admin/programs/${id}/information`,      icon: Info         },
+const BUILD_NAV = (id: string): NavItem[] => [
+  { label: "Setup guide", href: `/admin/programs/${id}`,            icon: ClipboardCheck, exact: true },
+  { label: "Curriculum",  href: `/admin/programs/${id}/curriculum`, icon: Layers         },
+  { label: "Access",      href: `/admin/programs/${id}/access`,     icon: KeyRound       },
 ];
 
-const SALES_NAV = (id: string): NavItem[] => [
-  { label: "Pricing",      href: `/admin/programs/${id}/pricing`,      icon: Tag        },
-  { label: "Sales pages",  href: `/admin/programs/${id}/sales-pages`,  icon: Globe      },
-  { label: "Embed",        href: `/admin/programs/${id}/embed`,        icon: Code2      },
-  { label: "Coupons",      href: `/admin/programs/${id}/coupons`,      icon: Ticket     },
-  { label: "Upsell funnel",href: `/admin/programs/${id}/upsell`,       icon: TrendingUp },
-];
-
-const COMMUNITY_NAV = (id: string): NavItem[] => [
-  { label: "Comments", href: `/admin/programs/${id}/comments`, icon: MessageSquare  },
-  { label: "Students", href: `/admin/programs/${id}/students`, icon: GraduationCap  },
-  { label: "Reports",  href: `/admin/programs/${id}/reports`,  icon: BarChart3      },
+const AUDIENCE_NAV = (id: string): NavItem[] => [
+  { label: "Students", href: `/admin/programs/${id}/students`, icon: GraduationCap },
+  { label: "Reports",  href: `/admin/programs/${id}/reports`,  icon: BarChart3     },
 ];
 
 export function ProgramNav({
@@ -74,9 +60,8 @@ export function ProgramNav({
   adminEmail: string;
 }) {
   const pathname = usePathname();
-  const setup     = SETUP_NAV(programId);
-  const sales     = SALES_NAV(programId);
-  const community = COMMUNITY_NAV(programId);
+  const build    = BUILD_NAV(programId);
+  const audience = AUDIENCE_NAV(programId);
 
   return (
     <aside className="hidden lg:flex flex-col w-[240px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
@@ -105,13 +90,11 @@ export function ProgramNav({
         </span>
       </div>
 
-      {/* Nav items — 3 groups separated by hairlines. */}
+      {/* Nav items — 2 groups separated by a hairline. */}
       <nav className="flex-1 px-3 overflow-y-auto">
-        <NavGroup items={setup}     pathname={pathname} />
+        <NavGroup items={build}    pathname={pathname} />
         <Divider />
-        <NavGroup items={sales}     pathname={pathname} />
-        <Divider />
-        <NavGroup items={community} pathname={pathname} />
+        <NavGroup items={audience} pathname={pathname} />
       </nav>
 
       {/* Admin chip — same component-level structure as EmailNav's footer */}

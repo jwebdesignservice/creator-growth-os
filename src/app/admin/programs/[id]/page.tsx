@@ -92,6 +92,29 @@ export default async function AdminProgramDetailPage({
   const lessonCount = modules.reduce((sum, m) => sum + m.lessons.length, 0);
   const totalTasks = program.total_tasks ?? 0;
 
+  // Per-module published state for the curriculum outline's action menu.
+  // A module is "published" only when every lesson inside it is published;
+  // legacy lessons with a NULL module_number are bucketed under Module 1 to
+  // match the curriculum reader in lib/programs/queries.ts.
+  const publishedByModule: Record<number, boolean> = {};
+  {
+    const { data: pubRows } = await supabase
+      .from("lessons")
+      .select("module_number, published")
+      .eq("program_id", program.id);
+    const agg = new Map<number, { total: number; published: number }>();
+    for (const r of pubRows ?? []) {
+      const n = (r.module_number as number | null) ?? 1;
+      const entry = agg.get(n) ?? { total: 0, published: 0 };
+      entry.total += 1;
+      if (r.published) entry.published += 1;
+      agg.set(n, entry);
+    }
+    for (const [n, entry] of agg) {
+      publishedByModule[n] = entry.total > 0 && entry.published === entry.total;
+    }
+  }
+
   // Setup checklist — derived from program completeness
   const checks: { key: string; label: string; done: boolean }[] = [
     { key: "title", label: "Add program title", done: !!program.title?.trim() },
@@ -185,6 +208,7 @@ export default async function AdminProgramDetailPage({
               modules={modules}
               programId={program.id}
               programSlug={program.slug}
+              publishedByModule={publishedByModule}
             />
           </StepCard>
 

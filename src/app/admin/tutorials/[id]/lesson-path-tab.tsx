@@ -24,26 +24,28 @@ import {
   ChevronDown,
   Trash2,
   Square,
+  Loader2,
+  AlertCircle,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import {
+  saveLessonChapters,
+  type LessonChapter,
+  type ChapterType,
+  type IconKey,
+} from "./lesson-chapters-actions";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Chapter model + icon registry. Local-only for now — when a
-   `lesson_chapters` table lands, swap the initial seed and the
-   `setChapters` callsites for a server action.
+   Lesson path editor.
+
+   State of the world lives in `chapters`. Every mutation is local-first;
+   a debounced effect ships the whole array to `saveLessonChapters`
+   ~800ms after the user stops typing/dragging. The header shows live
+   "Saving…/Saved/Retry" status so the admin always knows where they
+   stand. New chapters get client-side ids that the server replaces
+   with real UUIDs on the next reload.
    ───────────────────────────────────────────────────────────────────────── */
-
-type ChapterType = "intro" | "lesson" | "activity" | "closing" | "checkpoint";
-type IconKey = "hand" | "lightbulb" | "monitor" | "pencil" | "target" | "flag" | "square";
-
-type Chapter = {
-  id: string;
-  title: string;
-  type: ChapterType;
-  durationMinutes: number;
-  iconKey: IconKey;
-};
 
 const ICON_BY_KEY: Record<IconKey, LucideIcon> = {
   hand: Hand,
@@ -71,8 +73,12 @@ const DEFAULT_ICON_FOR_TYPE: Record<ChapterType, IconKey> = {
   checkpoint: "flag",
 };
 
-/* Seed matches the reference image exactly. */
-const INITIAL_CHAPTERS: Chapter[] = [
+const TYPE_OPTIONS: ChapterType[] = [
+  "intro", "lesson", "activity", "closing", "checkpoint",
+];
+
+/* Sample seed offered on the empty state — matches the original demo. */
+const SAMPLE_CHAPTERS: LessonChapter[] = [
   { id: "c1", title: "Welcome",          type: "intro",    durationMinutes: 1, iconKey: "hand" },
   { id: "c2", title: "Core Concept",     type: "lesson",   durationMinutes: 2, iconKey: "lightbulb" },
   { id: "c3", title: "Walkthrough",      type: "lesson",   durationMinutes: 5, iconKey: "monitor" },
@@ -80,35 +86,76 @@ const INITIAL_CHAPTERS: Chapter[] = [
   { id: "c5", title: "CTA / Next step",  type: "closing",  durationMinutes: 1, iconKey: "target" },
 ];
 
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "saved"; at: number }
+  | { kind: "error"; message: string };
+
 export function LessonPathTab({
-  lastUpdatedAt,
-  // Accepted for forward-compat with the server-side chapters loader
-  // (lesson-chapters-actions). Not yet wired into save/load — the
-  // component falls back to its INITIAL_CHAPTERS seed when nothing is
-  // passed in, and when chapters ARE passed in we use them as the
-  // initial state so a refresh shows what was last persisted.
+  lessonId,
   initialChapters,
+  lastUpdatedAt,
 }: {
+  lessonId: string;
+  initialChapters: LessonChapter[];
   lastUpdatedAt: string;
-  lessonId?: string;
-  initialChapters?: Chapter[];
 }) {
-  const [chapters, setChapters] = useState<Chapter[]>(
-    initialChapters && initialChapters.length > 0 ? initialChapters : INITIAL_CHAPTERS,
-  );
+  const [chapters, setChapters] = useState<LessonChapter[]>(initialChapters);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
 
+  /* Autosave plumbing -------------------------------------------------- */
+  // Skip the very first run so hydrating from the server doesn't trigger
+  // a redundant write back. Subsequent mutations debounce by 800ms.
+  const skipNextSaveRef = useRef(true);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inflightTokenRef = useRef(0);
+
+  const runSave = useCallback(
+    async (snapshot: LessonChapter[]) => {
+      const token = ++inflightTokenRef.current;
+      setSaveState({ kind: "saving" });
+      const res = await saveLessonChapters(lessonId, snapshot);
+      // Bail if a newer save started while this one was in flight.
+      if (token !== inflightTokenRef.current) return;
+      if (res.ok) {
+        setSaveState({ kind: "saved", at: Date.now() });
+      } else {
+        setSaveState({ kind: "error", message: res.error });
+      }
+    },
+    [lessonId],
+  );
+
+  useEffect(() => {
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      void runSave(chapters);
+    }, 800);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [chapters, runSave]);
+
+  /* Derived values ----------------------------------------------------- */
   const totalMinutes = useMemo(
     () => chapters.reduce((sum, c) => sum + c.durationMinutes, 0),
     [chapters],
   );
 
   const lastUpdatedLabel = useMemo(() => {
+    const ref =
+      saveState.kind === "saved" ? new Date(saveState.at).toISOString() : lastUpdatedAt;
     try {
-      return new Date(lastUpdatedAt).toLocaleDateString(undefined, {
+      return new Date(ref).toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -116,8 +163,9 @@ export function LessonPathTab({
     } catch {
       return "—";
     }
-  }, [lastUpdatedAt]);
+  }, [lastUpdatedAt, saveState]);
 
+  /* Mutations ---------------------------------------------------------- */
   const insertAt = useCallback((index: number, type: ChapterType = "lesson") => {
     setChapters((prev) => {
       const next = prev.slice();
@@ -164,6 +212,19 @@ export function LessonPathTab({
     setChapters((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
   }, []);
 
+  const setType = useCallback((id: string, type: ChapterType) => {
+    setChapters((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, type, iconKey: DEFAULT_ICON_FOR_TYPE[type] } : c,
+      ),
+    );
+  }, []);
+
+  const setDuration = useCallback((id: string, minutes: number) => {
+    const safe = Math.max(0, Math.min(999, Math.round(minutes || 0)));
+    setChapters((prev) => prev.map((c) => (c.id === id ? { ...c, durationMinutes: safe } : c)));
+  }, []);
+
   const onDragStart = useCallback((index: number) => {
     setDraggingIndex(index);
   }, []);
@@ -183,6 +244,15 @@ export function LessonPathTab({
 
   const onDragEnd = useCallback(() => setDraggingIndex(null), []);
 
+  const useSample = useCallback(() => {
+    setChapters(SAMPLE_CHAPTERS.map((c) => ({ ...c, id: makeId() })));
+  }, []);
+
+  const retrySave = useCallback(() => {
+    void runSave(chapters);
+  }, [chapters, runSave]);
+
+  /* Render ------------------------------------------------------------- */
   return (
     <>
       <section className="card p-5 sm:p-7 lg:p-8 space-y-6">
@@ -190,14 +260,18 @@ export function LessonPathTab({
           <span className="size-12 rounded-[12px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
             <Route className="size-[22px]" strokeWidth={1.8} />
           </span>
-          <div className="min-w-0">
-            <h2 className="font-display text-[24px] sm:text-[28px] text-ink-900 leading-tight mb-1">
-              Lesson path
-            </h2>
-            <p className="text-[13.5px] text-ink-500 leading-relaxed">
-              Organize your tutorial into a clear, logical flow. A
-              well-structured path improves learner experience and completion.
-            </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <h2 className="font-display text-[24px] sm:text-[28px] text-ink-900 leading-tight mb-1">
+                  Lesson path
+                </h2>
+                <p className="text-[13.5px] text-ink-500 leading-relaxed">
+                  Organize your tutorial into a clear, logical flow. Changes save automatically.
+                </p>
+              </div>
+              <SaveIndicator state={saveState} onRetry={retrySave} />
+            </div>
           </div>
         </header>
 
@@ -210,47 +284,49 @@ export function LessonPathTab({
           </div>
         </div>
 
-        <ol className="space-y-2">
-          {chapters.map((chapter, index) => (
-            <li key={chapter.id} className="relative">
-              <ChapterRow
-                chapter={chapter}
-                index={index}
-                total={chapters.length}
-                isFirst={index === 0}
-                isLast={index === chapters.length - 1}
-                isEditing={editingId === chapter.id}
-                isDragging={draggingIndex === index}
-                onStartEdit={() => setEditingId(chapter.id)}
-                onStopEdit={() => setEditingId(null)}
-                onRename={(t) => rename(chapter.id, t)}
-                onDuplicate={() => duplicate(chapter.id)}
-                onRemove={() => remove(chapter.id)}
-                onMove={(dir) => move(chapter.id, dir)}
-                onDragStart={() => onDragStart(index)}
-                onDragEnter={() => onDragEnter(index)}
-                onDragEnd={onDragEnd}
-              />
-              {index < chapters.length - 1 && (
-                <button
-                  type="button"
-                  onClick={() => insertAt(index + 1)}
-                  aria-label={"Insert chapter after " + chapter.title}
-                  className="absolute right-3 -bottom-2 z-10 size-7 rounded-full inline-flex items-center justify-center bg-rose-500 text-white hover:bg-rose-600 shadow-sm transition-colors"
-                >
-                  <Plus className="size-3.5" strokeWidth={2.5} />
-                </button>
-              )}
-            </li>
-          ))}
-          {chapters.length === 0 && (
-            <li className="rounded-[12px] border border-dashed border-ink-200 px-5 py-10 text-center text-[13px] text-ink-500">
-              No chapters yet — add the first one below.
-            </li>
-          )}
-        </ol>
+        {chapters.length === 0 ? (
+          <EmptyState onAdd={() => append("intro")} onUseSample={useSample} />
+        ) : (
+          <ol className="space-y-2">
+            {chapters.map((chapter, index) => (
+              <li key={chapter.id} className="relative">
+                <ChapterRow
+                  chapter={chapter}
+                  index={index}
+                  total={chapters.length}
+                  isFirst={index === 0}
+                  isLast={index === chapters.length - 1}
+                  isEditing={editingId === chapter.id}
+                  isDragging={draggingIndex === index}
+                  onStartEdit={() => setEditingId(chapter.id)}
+                  onStopEdit={() => setEditingId(null)}
+                  onRename={(t) => rename(chapter.id, t)}
+                  onSetType={(t) => setType(chapter.id, t)}
+                  onSetDuration={(m) => setDuration(chapter.id, m)}
+                  onDuplicate={() => duplicate(chapter.id)}
+                  onRemove={() => remove(chapter.id)}
+                  onMove={(dir) => move(chapter.id, dir)}
+                  onDragStart={() => onDragStart(index)}
+                  onDragEnter={() => onDragEnter(index)}
+                  onDragEnd={onDragEnd}
+                />
+                {index < chapters.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => insertAt(index + 1)}
+                    aria-label={"Insert chapter after " + chapter.title}
+                    title="Insert chapter here"
+                    className="absolute right-3 -bottom-2 z-10 size-7 rounded-full inline-flex items-center justify-center bg-rose-500 text-white hover:bg-rose-600 shadow-sm transition-colors"
+                  >
+                    <Plus className="size-3.5" strokeWidth={2.5} />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
 
-        {!calloutDismissed && (
+        {!calloutDismissed && chapters.length > 0 && (
           <div className="rounded-[14px] bg-rose-50/70 border border-rose-100 px-4 py-3.5 flex items-start gap-3">
             <span className="size-9 rounded-[10px] bg-rose-100/80 text-rose-500 inline-flex items-center justify-center shrink-0">
               <Sparkles className="size-4" strokeWidth={2} />
@@ -275,32 +351,34 @@ export function LessonPathTab({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <button
-            type="button"
-            onClick={() => append("lesson")}
-            className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm"
-          >
-            <Plus className="size-4" strokeWidth={2.5} />
-            Add chapter
-          </button>
-          <button
-            type="button"
-            onClick={() => append("checkpoint")}
-            className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13.5px] font-semibold hover:bg-cream-100 transition-colors"
-          >
-            <Flag className="size-4" strokeWidth={2} />
-            Add checkpoint
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreviewOpen(true)}
-            className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13.5px] font-semibold hover:bg-cream-100 transition-colors"
-          >
-            <Eye className="size-4" strokeWidth={2} />
-            Preview learner flow
-          </button>
-        </div>
+        {chapters.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button
+              type="button"
+              onClick={() => append("lesson")}
+              className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm"
+            >
+              <Plus className="size-4" strokeWidth={2.5} />
+              Add chapter
+            </button>
+            <button
+              type="button"
+              onClick={() => append("checkpoint")}
+              className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13.5px] font-semibold hover:bg-cream-100 transition-colors"
+            >
+              <Flag className="size-4" strokeWidth={2} />
+              Add checkpoint
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13.5px] font-semibold hover:bg-cream-100 transition-colors"
+            >
+              <Eye className="size-4" strokeWidth={2} />
+              Preview learner flow
+            </button>
+          </div>
+        )}
       </section>
 
       {previewOpen && (
@@ -314,12 +392,98 @@ export function LessonPathTab({
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────────── */
+
+function SaveIndicator({
+  state,
+  onRetry,
+}: {
+  state: SaveState;
+  onRetry: () => void;
+}) {
+  if (state.kind === "idle") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[12px] text-ink-400 h-7 px-2.5 rounded-full">
+        <span className="size-1.5 rounded-full bg-ink-300" aria-hidden />
+        All changes saved
+      </span>
+    );
+  }
+  if (state.kind === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[12px] text-ink-500 h-7 px-2.5 rounded-full bg-cream-100">
+        <Loader2 className="size-3.5 animate-spin" strokeWidth={2} aria-hidden />
+        Saving…
+      </span>
+    );
+  }
+  if (state.kind === "saved") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[12px] text-success h-7 px-2.5 rounded-full bg-success/10">
+        <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+        Saved
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onRetry}
+      title={state.message}
+      className="inline-flex items-center gap-1.5 text-[12px] text-rose-700 h-7 px-2.5 rounded-full bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors"
+    >
+      <AlertCircle className="size-3.5" strokeWidth={2} aria-hidden />
+      Save failed — retry
+    </button>
+  );
+}
+
+function EmptyState({
+  onAdd,
+  onUseSample,
+}: {
+  onAdd: () => void;
+  onUseSample: () => void;
+}) {
+  return (
+    <div className="rounded-[14px] border border-dashed border-ink-200 px-6 py-10 text-center bg-cream-50/40">
+      <span className="mx-auto size-12 rounded-[12px] bg-rose-50 text-rose-600 inline-flex items-center justify-center mb-3">
+        <Route className="size-[22px]" strokeWidth={1.8} />
+      </span>
+      <h3 className="text-[15px] font-semibold text-ink-900 mb-1">Start building your lesson path</h3>
+      <p className="text-[12.5px] text-ink-500 leading-relaxed max-w-[420px] mx-auto mb-5">
+        Break your tutorial into clear chapters — intros, lessons,
+        activities and closings — so learners always know what&apos;s next.
+      </p>
+      <div className="inline-flex flex-wrap items-center justify-center gap-2.5">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold transition-colors shadow-sm"
+        >
+          <Plus className="size-4" strokeWidth={2.5} />
+          Add first chapter
+        </button>
+        <button
+          type="button"
+          onClick={onUseSample}
+          className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13px] font-semibold hover:bg-cream-100 transition-colors"
+        >
+          <Sparkles className="size-4" strokeWidth={2} />
+          Use sample path
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ChapterRow({
   chapter, index, total, isFirst, isLast, isEditing, isDragging,
-  onStartEdit, onStopEdit, onRename, onDuplicate, onRemove, onMove,
+  onStartEdit, onStopEdit, onRename, onSetType, onSetDuration,
+  onDuplicate, onRemove, onMove,
   onDragStart, onDragEnter, onDragEnd,
 }: {
-  chapter: Chapter;
+  chapter: LessonChapter;
   index: number;
   total: number;
   isFirst: boolean;
@@ -329,6 +493,8 @@ function ChapterRow({
   onStartEdit: () => void;
   onStopEdit: () => void;
   onRename: (t: string) => void;
+  onSetType: (t: ChapterType) => void;
+  onSetDuration: (m: number) => void;
   onDuplicate: () => void;
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
@@ -338,7 +504,11 @@ function ChapterRow({
 }) {
   const Icon = ICON_BY_KEY[chapter.iconKey];
   const [menuOpen, setMenuOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [durationOpen, setDurationOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const typeRef = useRef<HTMLDivElement>(null);
+  const durationRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -346,13 +516,16 @@ function ChapterRow({
   }, [isEditing]);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !typeOpen && !durationOpen) return;
     function onClickOutside(e: MouseEvent) {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      const t = e.target as Node;
+      if (menuOpen && !menuRef.current?.contains(t)) setMenuOpen(false);
+      if (typeOpen && !typeRef.current?.contains(t)) setTypeOpen(false);
+      if (durationOpen && !durationRef.current?.contains(t)) setDurationOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [menuOpen]);
+  }, [menuOpen, typeOpen, durationOpen]);
 
   return (
     <div
@@ -374,6 +547,7 @@ function ChapterRow({
       <button
         type="button"
         aria-label="Drag to reorder"
+        title="Drag to reorder"
         className="size-6 inline-flex items-center justify-center text-ink-300 hover:text-ink-600 cursor-grab active:cursor-grabbing"
       >
         <GripVertical className="size-4" strokeWidth={2} />
@@ -414,15 +588,99 @@ function ChapterRow({
           </button>
         )}
         <div className="flex items-center gap-2 text-[11.5px] text-ink-500 mt-0.5 flex-wrap">
-          <span className="inline-flex items-center gap-1">
-            <span className="size-1.5 rounded-full bg-rose-400" aria-hidden />
-            {TYPE_LABEL[chapter.type]}
-          </span>
+          <div ref={typeRef} className="relative">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setTypeOpen((v) => !v); }}
+              className={cn(
+                "inline-flex items-center gap-1 px-1.5 py-0.5 -mx-1.5 rounded-md transition-colors",
+                typeOpen ? "bg-cream-100 text-ink-900" : "hover:bg-cream-100 hover:text-ink-700",
+              )}
+              aria-haspopup="menu"
+              aria-expanded={typeOpen}
+              title="Change chapter type"
+            >
+              <span className="size-1.5 rounded-full bg-rose-400" aria-hidden />
+              {TYPE_LABEL[chapter.type]}
+              <ChevronDown className="size-3 opacity-60" strokeWidth={2} aria-hidden />
+            </button>
+            {typeOpen && (
+              <div role="menu" className="absolute left-0 top-[calc(100%+4px)] z-30 w-40 rounded-[10px] bg-white border border-ink-100 shadow-card py-1">
+                {TYPE_OPTIONS.map((t) => {
+                  const TIcon = ICON_BY_KEY[DEFAULT_ICON_FOR_TYPE[t]];
+                  const active = t === chapter.type;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={active}
+                      onClick={() => { setTypeOpen(false); onSetType(t); }}
+                      className={cn(
+                        "w-full text-left flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors",
+                        active ? "text-rose-700 bg-rose-50/60" : "text-ink-700 hover:bg-cream-100",
+                      )}
+                    >
+                      <TIcon className="size-3.5" strokeWidth={2} />
+                      {TYPE_LABEL[t]}
+                      {active && <Check className="size-3.5 ml-auto" strokeWidth={2.5} />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <span aria-hidden>·</span>
-          <span className="inline-flex items-center gap-1 tabular-nums">
-            <Clock className="size-3" strokeWidth={2} aria-hidden />
-            ~{chapter.durationMinutes} min
-          </span>
+          <div ref={durationRef} className="relative">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setDurationOpen((v) => !v); }}
+              className={cn(
+                "inline-flex items-center gap-1 px-1.5 py-0.5 -mx-1.5 rounded-md tabular-nums transition-colors",
+                durationOpen ? "bg-cream-100 text-ink-900" : "hover:bg-cream-100 hover:text-ink-700",
+              )}
+              aria-haspopup="dialog"
+              aria-expanded={durationOpen}
+              title="Edit estimated duration"
+            >
+              <Clock className="size-3" strokeWidth={2} aria-hidden />
+              ~{chapter.durationMinutes} min
+            </button>
+            {durationOpen && (
+              <div className="absolute left-0 top-[calc(100%+4px)] z-30 w-44 rounded-[10px] bg-white border border-ink-100 shadow-card p-2.5">
+                <label className="block text-[11px] font-semibold text-ink-500 mb-1">
+                  Minutes
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    max={999}
+                    defaultValue={chapter.durationMinutes}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        onSetDuration(Number((e.target as HTMLInputElement).value));
+                        setDurationOpen(false);
+                      }
+                      if (e.key === "Escape") setDurationOpen(false);
+                    }}
+                    onBlur={(e) => {
+                      onSetDuration(Number(e.target.value));
+                    }}
+                    className="flex-1 min-w-0 h-8 rounded-[8px] border border-ink-200 px-2 text-[13px] tabular-nums focus:outline-none focus:border-rose-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDurationOpen(false)}
+                    className="h-8 px-2 rounded-[8px] bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-semibold transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -544,7 +802,7 @@ function PreviewModal({
   totalMinutes,
   onClose,
 }: {
-  chapters: Chapter[];
+  chapters: LessonChapter[];
   totalMinutes: number;
   onClose: () => void;
 }) {
@@ -584,33 +842,39 @@ function PreviewModal({
             This is how a learner moves through the tutorial — top to bottom.
             Estimated total: ~{totalMinutes} min.
           </p>
-          <ol className="space-y-2">
-            {chapters.map((c, i) => {
-              const Icon = ICON_BY_KEY[c.iconKey];
-              return (
-                <li key={c.id} className="flex items-center gap-3 rounded-[10px] border border-ink-100 px-3.5 py-2.5">
-                  <span className="size-7 rounded-full bg-rose-500 text-white inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
-                    {i + 1}
-                  </span>
-                  <span className="size-8 rounded-[8px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
-                    <Icon className="size-[15px]" strokeWidth={1.9} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-semibold text-ink-900 truncate">{c.title}</div>
-                    <div className="text-[11.5px] text-ink-500 leading-tight">
-                      {TYPE_LABEL[c.type]} · ~{c.durationMinutes} min
-                    </div>
-                  </div>
-                  {i === chapters.length - 1 && (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-success font-semibold">
-                      <Check className="size-3.5" strokeWidth={2.5} />
-                      End
+          {chapters.length === 0 ? (
+            <div className="rounded-[10px] border border-dashed border-ink-200 px-4 py-8 text-center text-[12.5px] text-ink-500">
+              Add a chapter to preview the learner flow.
+            </div>
+          ) : (
+            <ol className="space-y-2">
+              {chapters.map((c, i) => {
+                const Icon = ICON_BY_KEY[c.iconKey];
+                return (
+                  <li key={c.id} className="flex items-center gap-3 rounded-[10px] border border-ink-100 px-3.5 py-2.5">
+                    <span className="size-7 rounded-full bg-rose-500 text-white inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
+                      {i + 1}
                     </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+                    <span className="size-8 rounded-[8px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+                      <Icon className="size-[15px]" strokeWidth={1.9} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-semibold text-ink-900 truncate">{c.title}</div>
+                      <div className="text-[11.5px] text-ink-500 leading-tight">
+                        {TYPE_LABEL[c.type]} · ~{c.durationMinutes} min
+                      </div>
+                    </div>
+                    {i === chapters.length - 1 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-success font-semibold">
+                        <Check className="size-3.5" strokeWidth={2.5} />
+                        End
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
         </div>
       </div>
     </div>
@@ -624,7 +888,7 @@ function makeId(): string {
   return "c-" + Math.random().toString(36).slice(2, 9);
 }
 
-function makeChapter(type: ChapterType): Chapter {
+function makeChapter(type: ChapterType): LessonChapter {
   return {
     id: makeId(),
     title: type === "checkpoint" ? "New checkpoint" : "New chapter",

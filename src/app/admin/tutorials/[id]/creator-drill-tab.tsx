@@ -507,122 +507,122 @@ export function CreatorDrillTab({
             </div>
           </section>
 
-          {/* 2. Drill details (2-col form) */}
+          {/* 2. Drill details (single-column form) */}
           <section className="card p-5 sm:p-6">
             <header className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <h3 className="text-[14px] font-bold text-ink-900">Drill details</h3>
               <DirtyChip dirty={isDirty} hasRow={!!initialDrill} />
             </header>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-5">
-              {/* LEFT column */}
-              <div className="space-y-5 min-w-0">
-                <Field label="Drill title" required help="A short, action-led name learners will see.">
-                  <CountedInput
-                    value={drill.title}
-                    onChange={(v) => set("title", v)}
-                    placeholder="Give the drill a clear, action-led title"
-                    max={TITLE_MAX}
-                  />
-                </Field>
-
-                <Field
-                  label="Linked learning point"
-                  required
-                  help="Which idea from the lesson does this drill reinforce?"
-                >
-                  <input
-                    type="text"
-                    value={drill.linkedLearningPoint}
-                    onChange={(e) =>
-                      set("linkedLearningPoint", e.target.value.slice(0, 200))
-                    }
-                    placeholder="e.g. Create hook-driven content that stops the scroll"
-                    className="w-full h-11 pl-3.5 pr-3.5 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-colors"
-                  />
-                </Field>
-
-                <Field
-                  label="Drill objective"
-                  required
-                  help="One sentence — the outcome learners walk away with."
-                >
-                  <CountedInput
-                    value={drill.objective}
-                    onChange={(v) => set("objective", v)}
-                    placeholder="What outcome should learners walk away with?"
-                    max={OBJECTIVE_MAX}
-                  />
-                </Field>
-
-                <Field
-                  label="Detailed instructions"
-                  required
-                  help="Markdown is supported (**bold**, *italic*, lists, [links](url))."
-                >
-                  <RichTextEditor
-                    value={drill.instructions}
-                    onChange={(v) => set("instructions", v)}
-                    inputRef={instructionsRef}
-                    onBold={() => wrapSelection("**", "**", "bold")}
-                    onItalic={() => wrapSelection("*", "*", "italic")}
-                    onUnderline={() => wrapSelection("__", "__", "underlined")}
-                    onStrike={() => wrapSelection("~~", "~~", "strike")}
-                    onBullet={() => prefixLine("- ")}
-                    onOrdered={() => prefixLine("1. ")}
-                    onCode={() => wrapSelection("`", "`", "code")}
-                    onLink={() => wrapSelection("[", "](https://)")}
-                    max={INSTRUCTIONS_MAX}
-                  />
-                </Field>
-              </div>
-
-              {/* RIGHT column */}
-              <div className="space-y-5 min-w-0">
-                <Field label="Submission type" required help={
-                  SUBMISSION_OPTIONS.find((o) => o.value === drill.submissionType)?.help
-                }>
-                  <NativeSelect
-                    value={drill.submissionType}
-                    onChange={(v) => set("submissionType", v as SubmissionType)}
-                    options={SUBMISSION_OPTIONS}
-                  />
-                </Field>
-
-                <Field label="Difficulty" required>
-                  <DifficultyPicker
-                    value={drill.difficulty}
-                    onChange={(v) => set("difficulty", v)}
-                  />
-                </Field>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Estimated time">
-                    <SuffixedNumberInput
-                      value={drill.estimatedMinutes}
-                      onChange={(v) => set("estimatedMinutes", v)}
-                      suffix="min"
-                      min={1}
-                      max={999}
-                    />
-                  </Field>
-                  <Field label="Reward / points">
-                    <SuffixedNumberInput
-                      value={drill.rewardPoints}
-                      onChange={(v) => set("rewardPoints", v)}
-                      suffix="pts"
-                      leadingIcon={<Star className="size-3.5 text-amber-500" strokeWidth={2} fill="currentColor" />}
-                      showPlus
-                      min={0}
-                      max={9999}
-                    />
-                  </Field>
-                </div>
-
-                <RequiredToggle
-                  value={drill.required}
-                  onChange={(v) => set("required", v)}
+            {/* Single-column form — every field stacked one per row for clarity. */}
+            <div className="space-y-5">
+              <Field label="Drill title" required help="A short, action-led name learners will see.">
+                <CountedInput
+                  value={drill.title}
+                  onChange={(v) => set("title", v)}
+                  placeholder="Give the drill a clear, action-led title"
+                  max={TITLE_MAX}
                 />
-              </div>
+              </Field>
+
+              <Field
+                label="Linked learning point"
+                required
+                help="Which idea from the lesson does this drill reinforce?"
+              >
+                <input
+                  type="text"
+                  value={drill.linkedLearningPoint}
+                  onChange={(e) =>
+                    set("linkedLearningPoint", e.target.value.slice(0, 200))
+                  }
+                  placeholder="e.g. Create hook-driven content that stops the scroll"
+                  className="w-full h-11 pl-3.5 pr-3.5 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-colors"
+                />
+              </Field>
+
+              <Field
+                label="Drill objective"
+                required
+                help="One sentence — the outcome learners walk away with."
+              >
+                <CountedInput
+                  value={drill.objective}
+                  onChange={(v) => set("objective", v)}
+                  placeholder="What outcome should learners walk away with?"
+                  max={OBJECTIVE_MAX}
+                />
+              </Field>
+
+              <Field
+                label="Detailed instructions"
+                required
+                help="Markdown is supported (**bold**, *italic*, lists, [links](url))."
+              >
+                <RichTextEditor
+                  value={drill.instructions}
+                  onChange={(v) => set("instructions", v)}
+                  inputRef={instructionsRef}
+                  onBold={() => wrapSelection("**", "**", "bold")}
+                  onItalic={() => wrapSelection("*", "*", "italic")}
+                  onUnderline={() => wrapSelection("__", "__", "underlined")}
+                  onStrike={() => wrapSelection("~~", "~~", "strike")}
+                  onBullet={() => prefixLine("- ")}
+                  onOrdered={() => prefixLine("1. ")}
+                  onCode={() => wrapSelection("`", "`", "code")}
+                  onLink={() => wrapSelection("[", "](https://)")}
+                  max={INSTRUCTIONS_MAX}
+                />
+              </Field>
+
+              <div aria-hidden className="border-t border-ink-100" />
+
+              <Field label="Submission type" required help={
+                SUBMISSION_OPTIONS.find((o) => o.value === drill.submissionType)?.help
+              }>
+                <NativeSelect
+                  value={drill.submissionType}
+                  onChange={(v) => set("submissionType", v as SubmissionType)}
+                  options={SUBMISSION_OPTIONS}
+                />
+              </Field>
+
+              <Field label="Difficulty" required>
+                <DifficultyPicker
+                  value={drill.difficulty}
+                  onChange={(v) => set("difficulty", v)}
+                />
+              </Field>
+
+              <Field label="Estimated time">
+                <div className="max-w-[240px]">
+                  <SuffixedNumberInput
+                    value={drill.estimatedMinutes}
+                    onChange={(v) => set("estimatedMinutes", v)}
+                    suffix="min"
+                    min={1}
+                    max={999}
+                  />
+                </div>
+              </Field>
+
+              <Field label="Reward / points">
+                <div className="max-w-[240px]">
+                  <SuffixedNumberInput
+                    value={drill.rewardPoints}
+                    onChange={(v) => set("rewardPoints", v)}
+                    suffix="pts"
+                    leadingIcon={<Star className="size-3.5 text-amber-500" strokeWidth={2} fill="currentColor" />}
+                    showPlus
+                    min={0}
+                    max={9999}
+                  />
+                </div>
+              </Field>
+
+              <RequiredToggle
+                value={drill.required}
+                onChange={(v) => set("required", v)}
+              />
             </div>
           </section>
 
