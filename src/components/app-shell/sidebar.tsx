@@ -126,24 +126,24 @@ export function Sidebar({
         )}
         style={{ width: railWidth }}
       >
-        {/* Logo — `shrink-0` on the BrandMark wrapper so flex can't
-            squeeze it down when the rail is narrow (without this the
-            icon ends up ~4px wide and effectively invisible). */}
+        {/* Logo — BrandMark stays a fixed size; wordmark only renders
+            when there's room. When collapsed we center the icon
+            horizontally so it lines up with the nav icons below. */}
         <Link
           href="/dashboard"
-          className="flex items-center gap-3 px-5 py-5 hover:opacity-90 transition-opacity shrink-0"
+          className={cn(
+            "flex items-center hover:opacity-90 transition-opacity shrink-0 py-5",
+            expanded ? "gap-3 px-5" : "justify-center px-0",
+          )}
         >
           <span className="shrink-0">
             <BrandMark size={30} />
           </span>
-          <span
-            className={cn(
-              "text-[16px] font-semibold tracking-tight text-ink-900 whitespace-nowrap transition-opacity duration-150",
-              expanded ? "opacity-100" : "opacity-0",
-            )}
-          >
-            profluencer
-          </span>
+          {expanded && (
+            <span className="text-[16px] font-semibold tracking-tight text-ink-900 whitespace-nowrap">
+              profluencer
+            </span>
+          )}
         </Link>
 
         {/* Nav — explicit overflow-x-hidden prevents a horizontal
@@ -194,14 +194,9 @@ export function Sidebar({
                   className="size-[18px] text-rose-300 shrink-0"
                   strokeWidth={1.8}
                 />
-                <span
-                  className={cn(
-                    "flex-1 whitespace-nowrap transition-opacity duration-150",
-                    expanded ? "opacity-100" : "opacity-0 w-0",
-                  )}
-                >
-                  Admin Console
-                </span>
+                {expanded && (
+                  <span className="flex-1 whitespace-nowrap">Admin Console</span>
+                )}
               </Link>
             </div>
           )}
@@ -222,14 +217,9 @@ export function Sidebar({
                   className="size-[18px] text-[#7AA9FF] shrink-0"
                   strokeWidth={1.8}
                 />
-                <span
-                  className={cn(
-                    "flex-1 whitespace-nowrap transition-opacity duration-150",
-                    expanded ? "opacity-100" : "opacity-0 w-0",
-                  )}
-                >
-                  Dev Console
-                </span>
+                {expanded && (
+                  <span className="flex-1 whitespace-nowrap">Dev Console</span>
+                )}
               </Link>
             </div>
           )}
@@ -266,15 +256,18 @@ function NavLink({
 }) {
   const Icon = item.icon;
   return (
-    <li>
+    <li className={cn(!expanded && "flex justify-center")}>
       <Link
         href={item.href}
         title={!expanded ? item.label : undefined}
         className={cn(
-          "group flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13.5px] font-medium transition-colors",
+          "group flex items-center rounded-[10px] text-[13.5px] font-medium transition-[background-color,padding] duration-150",
           active
             ? "bg-rose-100 text-rose-700"
             : "text-ink-700 hover:bg-cream-200 hover:text-ink-900",
+          expanded
+            ? "gap-3 px-3 py-2 w-full"
+            : "size-10 justify-center",
         )}
       >
         <Icon
@@ -284,26 +277,22 @@ function NavLink({
           )}
           strokeWidth={1.8}
         />
-        <span
-          className={cn(
-            "flex-1 whitespace-nowrap transition-opacity duration-150",
-            expanded ? "opacity-100" : "opacity-0",
-          )}
-        >
-          {item.label}
-        </span>
-        {typeof item.badge === "number" && (
-          <span
-            className={cn(
-              "inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold transition-opacity duration-150",
-              active
-                ? "bg-rose-600 text-white"
-                : "bg-rose-100 text-rose-700",
-              expanded ? "opacity-100" : "opacity-0",
+        {expanded && (
+          <>
+            <span className="flex-1 whitespace-nowrap">{item.label}</span>
+            {typeof item.badge === "number" && (
+              <span
+                className={cn(
+                  "inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold",
+                  active
+                    ? "bg-rose-600 text-white"
+                    : "bg-rose-100 text-rose-700",
+                )}
+              >
+                {item.badge}
+              </span>
             )}
-          >
-            {item.badge}
-          </span>
+          </>
         )}
       </Link>
     </li>
