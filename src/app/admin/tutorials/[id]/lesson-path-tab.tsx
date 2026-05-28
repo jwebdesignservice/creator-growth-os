@@ -86,7 +86,7 @@ const SAMPLE_CHAPTERS: LessonChapter[] = [
   { id: "c5", title: "CTA / Next step",  type: "closing",  durationMinutes: 1, iconKey: "target" },
 ];
 
-type SaveState =
+export type SaveState =
   | { kind: "idle" }
   | { kind: "saving" }
   | { kind: "saved"; at: number }
@@ -96,10 +96,19 @@ export function LessonPathTab({
   lessonId,
   initialChapters,
   lastUpdatedAt,
+  onSaveStateChange,
+  saveSignal,
 }: {
   lessonId: string;
   initialChapters: LessonChapter[];
   lastUpdatedAt: string;
+  /** Bubbles the autosave status up so the page header's Save button can
+   *  reflect it (this tab autosaves; the header would otherwise sit on a
+   *  permanently-disabled "Saved"). */
+  onSaveStateChange?: (s: SaveState) => void;
+  /** Parent increments this to request an immediate save (header "Save"
+   *  click) — flushes the debounce and writes now. */
+  saveSignal?: number;
 }) {
   const [chapters, setChapters] = useState<LessonChapter[]>(initialChapters);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
@@ -119,16 +128,17 @@ export function LessonPathTab({
     async (snapshot: LessonChapter[]) => {
       const token = ++inflightTokenRef.current;
       setSaveState({ kind: "saving" });
+      onSaveStateChange?.({ kind: "saving" });
       const res = await saveLessonChapters(lessonId, snapshot);
       // Bail if a newer save started while this one was in flight.
       if (token !== inflightTokenRef.current) return;
-      if (res.ok) {
-        setSaveState({ kind: "saved", at: Date.now() });
-      } else {
-        setSaveState({ kind: "error", message: res.error });
-      }
+      const next: SaveState = res.ok
+        ? { kind: "saved", at: Date.now() }
+        : { kind: "error", message: res.error };
+      setSaveState(next);
+      onSaveStateChange?.(next);
     },
-    [lessonId],
+    [lessonId, onSaveStateChange],
   );
 
   useEffect(() => {
@@ -144,6 +154,25 @@ export function LessonPathTab({
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [chapters, runSave]);
+
+  // Keep a live ref of chapters so a parent-triggered save always writes the
+  // latest set without re-subscribing the signal effect on every edit.
+  const chaptersRef = useRef(chapters);
+  useEffect(() => {
+    chaptersRef.current = chapters;
+  }, [chapters]);
+
+  // Parent (header Save button) requests an immediate save via `saveSignal`.
+  // Skip the initial mount value so we don't write on first render.
+  const firstSignalRef = useRef(true);
+  useEffect(() => {
+    if (firstSignalRef.current) {
+      firstSignalRef.current = false;
+      return;
+    }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    void runSave(chaptersRef.current);
+  }, [saveSignal, runSave]);
 
   /* Derived values ----------------------------------------------------- */
   const totalMinutes = useMemo(

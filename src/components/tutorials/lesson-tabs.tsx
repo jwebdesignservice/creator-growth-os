@@ -6,13 +6,17 @@ import {
   BookOpen,
   CheckCircle2,
   CalendarDays,
-  Play,
   FileText,
   FileSpreadsheet,
   Files,
   ChevronRight,
   Lightbulb,
   Pencil,
+  Hand,
+  Monitor,
+  Target,
+  Flag,
+  Square,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
@@ -27,19 +31,17 @@ import { cn } from "@/lib/cn";
  * gives the user one clear place to look for each thing.
  */
 
-type ModuleLesson = {
-  slug: string;
+type Chapter = {
+  id: string;
   title: string;
-  duration: string;
-  isCurrent: boolean;
-  completed: boolean;
+  type: string;
+  durationMinutes: number;
+  iconKey: string;
 };
 
 type Props = {
   description: string | null;
-  moduleNumber: number;
-  moduleTitle: string;
-  moduleLessons: ModuleLesson[];
+  chapters: Chapter[];
 };
 
 type TabKey = "overview" | "path" | "resources" | "notes";
@@ -61,9 +63,7 @@ const TAKEAWAYS = [
 
 export function LessonTabs({
   description,
-  moduleNumber,
-  moduleTitle,
-  moduleLessons,
+  chapters,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -109,13 +109,7 @@ export function LessonTabs({
       {/* Active panel */}
       <div className="p-5 sm:p-6">
         {tab === "overview" && <OverviewPanel description={description} />}
-        {tab === "path" && (
-          <PathPanel
-            moduleNumber={moduleNumber}
-            moduleTitle={moduleTitle}
-            lessons={moduleLessons}
-          />
-        )}
+        {tab === "path" && <PathPanel chapters={chapters} />}
         {tab === "resources" && <ResourcesPanel />}
         {tab === "notes" && <NotesPanel />}
       </div>
@@ -176,76 +170,89 @@ function OverviewPanel({ description }: { description: string | null }) {
   );
 }
 
-/* ─── Lesson path (module lessons) ─────────────────────────────────────── */
+/* ─── Lesson path (admin-authored chapters) ────────────────────────────── */
 
-function PathPanel({
-  moduleNumber,
-  moduleTitle,
-  lessons,
-}: {
-  moduleNumber: number;
-  moduleTitle: string;
-  lessons: ModuleLesson[];
-}) {
-  const totalDuration = lessons.reduce(
-    (sum, l) => sum + parseMinutes(l.duration),
+const CHAPTER_ICONS: Record<string, LucideIcon> = {
+  hand:      Hand,
+  lightbulb: Lightbulb,
+  monitor:   Monitor,
+  pencil:    Pencil,
+  target:    Target,
+  flag:      Flag,
+  square:    Square,
+};
+
+const CHAPTER_TYPE_LABEL: Record<string, string> = {
+  intro:      "Intro",
+  lesson:     "Lesson",
+  activity:   "Activity",
+  closing:    "Closing",
+  checkpoint: "Checkpoint",
+};
+
+function PathPanel({ chapters }: { chapters: Chapter[] }) {
+  if (chapters.length === 0) {
+    return (
+      <div className="max-w-2xl text-center py-8 px-4 rounded-[12px] bg-cream-50 border border-dashed border-ink-200">
+        <CalendarDays
+          className="size-6 text-ink-400 mx-auto mb-2"
+          strokeWidth={1.8}
+          aria-hidden
+        />
+        <div className="text-[13px] font-semibold text-ink-900">
+          No lesson path yet
+        </div>
+        <p className="text-[12px] text-ink-500 mt-0.5">
+          This tutorial hasn&apos;t been broken into chapters yet.
+        </p>
+      </div>
+    );
+  }
+
+  const totalDuration = chapters.reduce(
+    (sum, c) => sum + (c.durationMinutes || 0),
     0,
   );
+
   return (
     <div className="max-w-2xl">
       <div className="flex items-end justify-between gap-3 mb-3">
-        <div>
-          <div className="text-[14px] font-semibold text-ink-900">
-            Module {moduleNumber}
-          </div>
-          <div className="text-[12px] text-ink-500">{moduleTitle}</div>
+        <div className="text-[14px] font-semibold text-ink-900">
+          Lesson path
         </div>
         <span className="text-[11.5px] text-ink-500 tabular-nums shrink-0">
-          {lessons.length} lessons · ~{totalDuration} min
+          {chapters.length} chapter{chapters.length === 1 ? "" : "s"} · ~
+          {totalDuration} min
         </span>
       </div>
-      <ul className="space-y-1">
-        {lessons.map((l) => (
-          <li key={l.slug}>
-            <Link
-              href={`/tutorials/${l.slug}`}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-[10px] transition-colors",
-                l.isCurrent
-                  ? "bg-rose-50 border border-rose-200"
-                  : "hover:bg-cream-100",
-              )}
+      <ul className="space-y-1.5">
+        {chapters.map((c, i) => {
+          const Icon = CHAPTER_ICONS[c.iconKey] ?? Square;
+          return (
+            <li
+              key={c.id}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] border border-ink-100 bg-white"
             >
-              <span
-                className={cn(
-                  "size-5 rounded-full inline-flex items-center justify-center shrink-0",
-                  l.completed
-                    ? "bg-rose-100 text-rose-600"
-                    : l.isCurrent
-                      ? "bg-rose-500 text-white"
-                      : "border border-ink-300",
-                )}
-              >
-                {l.completed ? (
-                  <CheckCircle2 className="size-3" strokeWidth={3} />
-                ) : l.isCurrent ? (
-                  <Play className="size-2.5 ml-0.5" fill="currentColor" />
-                ) : null}
+              <span className="size-6 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
+                {i + 1}
               </span>
-              <span
-                className={cn(
-                  "flex-1 text-[12.5px] truncate",
-                  l.isCurrent ? "font-semibold text-ink-900" : "text-ink-700",
-                )}
-              >
-                {l.title}
+              <span className="size-8 rounded-[9px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+                <Icon className="size-4" strokeWidth={1.9} aria-hidden />
               </span>
-              <span className="text-[11px] text-ink-500 tabular-nums">
-                {l.duration}
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-medium text-ink-900 truncate">
+                  {c.title}
+                </div>
+                <div className="text-[11px] text-ink-500">
+                  {CHAPTER_TYPE_LABEL[c.type] ?? c.type}
+                </div>
+              </div>
+              <span className="text-[11px] text-ink-500 tabular-nums shrink-0">
+                ~{c.durationMinutes} min
               </span>
-            </Link>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -327,12 +334,4 @@ function NotesPanel() {
       </div>
     </div>
   );
-}
-
-/* ─── Helpers ──────────────────────────────────────────────────────────── */
-
-function parseMinutes(duration: string): number {
-  const [m] = duration.split(":");
-  const n = parseInt(m ?? "0", 10);
-  return Number.isFinite(n) ? n : 0;
 }

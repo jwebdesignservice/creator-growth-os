@@ -10,6 +10,7 @@ import {
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
+import { getLessonChapters } from "@/app/admin/tutorials/[id]/lesson-chapters-actions";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { LessonTabs } from "@/components/tutorials/lesson-tabs";
@@ -35,6 +36,9 @@ export default async function TutorialDetailPage({
   const { slug } = await params;
   const lesson = await getTutorialDetail(slug);
   if (!lesson) notFound();
+
+  // The Lesson Path tab renders the admin-authored chapters for this tutorial.
+  const chapters = await getLessonChapters(lesson.id);
 
   const proLocked = lesson.planAccess === "pro" && ctx.plan !== "pro";
 
@@ -124,6 +128,7 @@ export default async function TutorialDetailPage({
             title={lesson.title}
             duration={lesson.duration}
             videoUrl={lesson.videoUrl}
+            coverUrl={lesson.coverUrl}
           />
         )}
 
@@ -139,9 +144,7 @@ export default async function TutorialDetailPage({
             Resources / Notes) instead of a stack of cards. */}
         <LessonTabs
           description={lesson.description}
-          moduleNumber={lesson.moduleNumber ?? 1}
-          moduleTitle={lesson.moduleTitle ?? "Module"}
-          moduleLessons={lesson.moduleLessons}
+          chapters={chapters}
         />
       </div>
     </PageShell>

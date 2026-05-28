@@ -47,7 +47,7 @@ import { ThumbnailTab } from "./thumbnail-tab";
 import { ControlsTab } from "./controls-tab";
 import type { LessonControls } from "./controls-types";
 import { OverviewTab, AtAGlanceCard } from "./overview-tab";
-import { LessonPathTab } from "./lesson-path-tab";
+import { LessonPathTab, type SaveState as PathSaveState } from "./lesson-path-tab";
 import type { LessonChapter } from "./lesson-chapters-actions";
 import { ResourcesTab } from "./resources-tab";
 import type { LessonResource } from "./resources-actions";
@@ -152,6 +152,10 @@ export function TutorialEditor({
   const [, startTransition] = useTransition();
   const [saving, setSaving]   = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  // Lesson-path tab autosaves on its own; it reports status here so the
+  // header Save button is truthful on that tab, and a click force-saves.
+  const [pathSave, setPathSave] = useState<PathSaveState>({ kind: "idle" });
+  const [pathSaveSignal, setPathSaveSignal] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   /* The active section is URL-driven (`?tab=…`) so the middle admin
@@ -332,6 +336,25 @@ export function TutorialEditor({
     activeTab === "metadata" ||
     activeTab === "thumbnail";
 
+  /* The header Save button is tab-aware. On the Lesson path tab it mirrors
+     that tab's autosave status and a click force-saves (flushes the
+     debounce); on every other tab it saves the form fields as before. */
+  const isPathTab = activeTab === "lesson-path";
+  const saveBtnBusy = isPathTab ? pathSave.kind === "saving" : saving;
+  const saveBtnDisabled = isPathTab ? saveBtnBusy : saving || !dirty;
+  const saveBtnLabel = isPathTab
+    ? saveBtnBusy
+      ? "Saving…"
+      : pathSave.kind === "error"
+        ? "Retry save"
+        : "Saved"
+    : saving
+      ? "Saving…"
+      : dirty
+        ? "Save changes"
+        : "Saved";
+  const onSaveClick = isPathTab ? () => setPathSaveSignal((n) => n + 1) : onSave;
+
   /* ── Render ───────────────────────────────────────────────────────── */
 
   return (
@@ -375,12 +398,16 @@ export function TutorialEditor({
           </button>
           <button
             type="button"
-            onClick={onSave}
-            disabled={saving || !dirty}
+            onClick={onSaveClick}
+            disabled={saveBtnDisabled}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-[12px] bg-rose-50 border border-rose-100 text-rose-700 text-[13.5px] font-semibold hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
-            <Save className="size-4" strokeWidth={2} />
-            {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
+            {saveBtnBusy ? (
+              <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+            ) : (
+              <Save className="size-4" strokeWidth={2} />
+            )}
+            {saveBtnLabel}
           </button>
           <button
             type="button"
@@ -493,6 +520,8 @@ export function TutorialEditor({
                 lessonId={lesson.id}
                 initialChapters={initialChapters}
                 lastUpdatedAt={lesson.createdAt}
+                onSaveStateChange={setPathSave}
+                saveSignal={pathSaveSignal}
               />
             ) : activeTab === "resources" ? (
               <ResourcesTab
