@@ -7,16 +7,36 @@ type Props = {
   title: string;
   duration: string;
   videoUrl?: string | null;
+  coverUrl?: string | null;
 };
 
 /**
- * Stylized lesson-player container matching the design comps. The real
- * <video> embed will land when admin uploads files; for now this renders
- * a polished placeholder with the proper transport controls UI.
+ * Lesson player. When the admin has uploaded a video for this lesson we
+ * render a real native <video> embed, using the chosen cover frame as the
+ * poster. Lessons with no video yet fall back to the polished placeholder.
  */
-export function LessonVideoPlayer({ title, duration, videoUrl }: Props) {
+export function LessonVideoPlayer({ title, duration, videoUrl, coverUrl }: Props) {
   const [playing, setPlaying] = useState(false);
 
+  // Real uploaded video → native HTML5 player + admin-chosen cover poster.
+  if (videoUrl) {
+    return (
+      <section className="rounded-[18px] overflow-hidden border border-ink-100 bg-black relative aspect-video">
+        <video
+          key={videoUrl}
+          src={videoUrl}
+          poster={coverUrl ?? undefined}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={title}
+          className="absolute inset-0 h-full w-full bg-black object-contain"
+        />
+      </section>
+    );
+  }
+
+  // No video uploaded yet → decorative placeholder (design comp).
   return (
     <section className="rounded-[18px] overflow-hidden border border-ink-100 bg-cream-200 relative aspect-video">
       {/* Decorative cover */}
@@ -71,9 +91,6 @@ export function LessonVideoPlayer({ title, duration, videoUrl }: Props) {
           <Maximize2 className="size-4" strokeWidth={2} />
         </div>
       </div>
-
-      {/* Hide unused-prop warning */}
-      <span hidden>{videoUrl}</span>
     </section>
   );
 }

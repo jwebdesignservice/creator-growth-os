@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
-import { DashboardHero } from "@/components/dashboard/hero";
+import { DashboardHero, type HeroJourney } from "@/components/dashboard/hero";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import {
   ProgramsRow,
@@ -267,6 +267,48 @@ export default async function DashboardPage() {
     contentActivity[wd] += 1;
   }
 
+  // ── Welcome-hero journey stage (start → continue → next program → done).
+  // Derived from the user's real program progress so the hero evolves with
+  // where they are. Falls back to "start" when no real programs are seeded.
+  const hasRealPrograms = (dbPrograms?.length ?? 0) > 0;
+  const recent = progressRows?.[0] as unknown as ProgressLessonShape | undefined;
+  const recentLessonSlug = recent?.lessons?.slug ?? null;
+  const recentProgramTitle = recent?.lessons?.programs?.title ?? null;
+
+  const inProgressPrograms = programs.filter((p) => p.status === "in_progress");
+  const continueProgram =
+    inProgressPrograms.find((p) => p.title === recentProgramTitle) ??
+    inProgressPrograms[0] ??
+    null;
+  const hasCompleted = programs.some((p) => p.status === "completed");
+  const nextProgram = programs.find((p) => p.status === "not_started") ?? null;
+
+  let journey: HeroJourney;
+  if (hasRealPrograms && continueProgram) {
+    const href =
+      recentLessonSlug && continueProgram.title === recentProgramTitle
+        ? `/programs/${continueProgram.slug}/${recentLessonSlug}`
+        : `/programs/${continueProgram.slug}`;
+    journey = {
+      stage: "continue",
+      programTitle: continueProgram.title,
+      percent: continueProgram.progress ?? 0,
+      primaryHref: href,
+      secondaryHref: "/missions",
+    };
+  } else if (hasRealPrograms && hasCompleted && nextProgram) {
+    journey = {
+      stage: "next",
+      programTitle: nextProgram.title,
+      primaryHref: `/programs/${nextProgram.slug}`,
+      secondaryHref: "/missions",
+    };
+  } else if (hasRealPrograms && hasCompleted) {
+    journey = { stage: "done", primaryHref: "/tutorials", secondaryHref: "/missions" };
+  } else {
+    journey = { stage: "start", primaryHref: "/programs", secondaryHref: "/missions" };
+  }
+
   return (
     <PageShell>
     <div className="space-y-[var(--mobile-section-gap)] lg:space-y-[var(--space-section-gap)] max-w-[var(--container-dashboard)] mx-auto">
@@ -275,6 +317,7 @@ export default async function DashboardPage() {
         plan={ctx.plan}
         profileCompletion={ctx.railProfile.profile_completion}
         avatarUrl={ctx.railProfile.avatar_url}
+        journey={journey}
       />
 
       <KpiCards

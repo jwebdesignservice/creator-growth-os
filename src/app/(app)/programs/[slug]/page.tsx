@@ -18,6 +18,18 @@ import {
   Sparkles,
   Star,
   Library,
+  Target,
+  Layers,
+  Anchor,
+  TrendingUp,
+  Lightbulb,
+  Rocket,
+  Zap,
+  Pencil,
+  Video,
+  Megaphone,
+  Heart,
+  DollarSign,
   type LucideIcon,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
@@ -29,12 +41,34 @@ import { DetailTabs } from "@/components/programs/detail-tabs";
 import {
   getCurriculumForProgram,
   getProgramProgress,
+  getProgramLearningPoints,
 } from "@/lib/programs/queries";
 import { PROGRAM_OUTCOMES } from "@/lib/programs/outcomes";
 import {
   getProgramUserTasks,
   type ProgramUserTask,
 } from "@/lib/programs/lesson-task-queries";
+
+/* Learning-point icon keys → lucide components. Keys come from
+   learning-content.ts; mirrors the lesson page's map so the program overview
+   can render the aggregated per-lesson points. */
+const LEARNING_ICONS: Record<string, LucideIcon> = {
+  target: Target,
+  layers: Layers,
+  anchor: Anchor,
+  users: Users,
+  "trending-up": TrendingUp,
+  lightbulb: Lightbulb,
+  rocket: Rocket,
+  "book-open": BookOpen,
+  sparkles: Sparkles,
+  zap: Zap,
+  pencil: Pencil,
+  video: Video,
+  megaphone: Megaphone,
+  heart: Heart,
+  "dollar-sign": DollarSign,
+};
 
 type Params = Promise<{ slug: string }>;
 
@@ -118,6 +152,21 @@ export default async function ProgramDetailPage({
     ? await getProgramUserTasks(programUuid, ctx.user.id)
     : [];
 
+  // Program "What You'll Learn" — aggregated from every lesson's authored
+  // learning points (admin section C). Falls back to the static outcomes when
+  // no lesson has any yet, so the section is never empty.
+  const aggregatedPoints = programUuid
+    ? await getProgramLearningPoints(programUuid)
+    : [];
+  const learnOutcomes =
+    aggregatedPoints.length > 0
+      ? aggregatedPoints.map((lp) => ({
+          icon: LEARNING_ICONS[lp.icon] ?? Target,
+          title: lp.title,
+          desc: lp.description,
+        }))
+      : PROGRAM_OUTCOMES.map((o) => ({ icon: o.icon, title: o.title, desc: o.desc }));
+
   // This-week subset for the Overview card: due within the next 7 days (or no due date).
   const weekHorizon = new Date();
   weekHorizon.setDate(weekHorizon.getDate() + 7);
@@ -155,6 +204,7 @@ export default async function ProgramDetailPage({
           overview={
             <div className="space-y-5">
               <WhatYoullLearn
+                outcomes={learnOutcomes}
                 percent={effectivePercent}
                 continueHref={continueHref}
               />
@@ -321,15 +371,14 @@ function NotebookOrnament() {
 }
 
 function WhatYoullLearn({
+  outcomes,
   percent,
   continueHref,
 }: {
+  outcomes: { icon: LucideIcon; title: string; desc: string }[];
   percent: number;
   continueHref: string;
 }) {
-  // Single source of truth — same outcomes power the in-lesson "Lesson
-  // Overview" so what you'll learn stays connected to where you are.
-  const outcomes = PROGRAM_OUTCOMES;
   const total = outcomes.length;
   const completed = Math.min(total, Math.round((percent / 100) * total));
   const allDone = completed >= total;
@@ -447,8 +496,8 @@ function WhatYoullLearn({
               {percent}% complete
             </h3>
             <p className="text-[12.5px] text-ink-500 leading-relaxed mb-5 max-w-[220px]">
-              Stick with it — every lesson moves you closer to mastering all
-              five outcomes.
+              Stick with it — every lesson moves you closer to mastering all{" "}
+              {total} outcomes.
             </p>
           </>
         )}

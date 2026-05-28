@@ -19,7 +19,7 @@ export default async function ProgramsPage() {
   const { data: dbPrograms } = await supabase
     .from("programs")
     .select(
-      "id, slug, title, description, plan_access, category_access, total_lessons, total_tasks, estimated_days",
+      "id, slug, title, description, plan_access, category_access, total_lessons, total_tasks, estimated_days, cover_image_url",
     )
     .eq("published", true)
     .order("sort_order", { ascending: true });
@@ -59,6 +59,7 @@ export default async function ProgramsPage() {
           total_tasks: p.total_tasks ?? undefined,
           estimated_days: p.estimated_days ?? undefined,
           cover_hue: i % 3 === 0 ? "rose" : i % 3 === 1 ? "cream" : "warm",
+          cover_image_url: p.cover_image_url ?? null,
         };
       })
     : FALLBACK;

@@ -128,8 +128,8 @@ export async function getDropdownNotifications(): Promise<
     .or(
       "expires_at.is.null,expires_at.gt." + new Date().toISOString(),
     )
-    .order("priority",   { ascending: true  })
     .order("created_at", { ascending: false })
+    .order("priority",   { ascending: true  })
     .limit(5);
 
   if (error) {

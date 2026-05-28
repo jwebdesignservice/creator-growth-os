@@ -52,10 +52,12 @@ export function Sidebar({
   plan = "free",
   isAdmin = false,
   isDev = false,
+  taskCount = 0,
 }: {
   plan?: "free" | "basic" | "pro";
   isAdmin?: boolean;
   isDev?: boolean;
+  taskCount?: number;
 }) {
   const pathname = usePathname();
   return (
@@ -75,7 +77,15 @@ export function Sidebar({
       <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto">
         <ul className="space-y-1">
           {PRIMARY.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+            <NavLink
+              key={item.href}
+              item={
+                item.href === "/missions" && taskCount > 0
+                  ? { ...item, badge: taskCount }
+                  : item
+              }
+              active={isActive(pathname, item.href)}
+            />
           ))}
         </ul>
 

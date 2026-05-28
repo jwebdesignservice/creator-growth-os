@@ -10,6 +10,7 @@ export type Lesson = {
   title: string;
   duration: string;
   status: "completed" | "current" | "todo" | "locked";
+  coverUrl?: string | null;
 };
 
 export type Module = {

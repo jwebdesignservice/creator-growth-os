@@ -44,9 +44,9 @@ type Props = {
 
 type TabKey = "overview" | "path" | "resources" | "notes";
 
-const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
+const TABS: { key: TabKey; label: string; icon: LucideIcon; beta?: boolean }[] = [
   { key: "overview",  label: "Overview",     icon: BookOpen     },
-  { key: "path",      label: "Lesson Path",  icon: CalendarDays },
+  { key: "path",      label: "Lesson Path",  icon: CalendarDays, beta: true },
   { key: "resources", label: "Resources",    icon: Files        },
   { key: "notes",     label: "Notes",        icon: Pencil       },
 ];
@@ -90,6 +90,11 @@ export function LessonTabs({
             >
               <t.icon className="size-4" strokeWidth={1.9} aria-hidden />
               {t.label}
+              {t.beta && (
+                <span className="ml-0.5 inline-flex items-center rounded-full bg-rose-100 text-rose-700 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 leading-none">
+                  Beta
+                </span>
+              )}
               {active && (
                 <span
                   aria-hidden

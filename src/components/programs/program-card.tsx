@@ -19,6 +19,7 @@ export type ProgramRow = {
   title: string;
   description: string;
   cover_hue?: "rose" | "cream" | "warm";
+  cover_image_url?: string | null;
   category_label?: string;
   status: "in_progress" | "not_started" | "pro_only" | "completed";
   progress?: number;
@@ -47,7 +48,11 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
     <Link href={href} className="group flex flex-col gap-3">
       {/* ── Thumbnail ─────────────────────────────────────────────── */}
       <div className="relative aspect-video rounded-xl overflow-hidden">
-        <CoverArt hue={program.cover_hue} status={program.status} />
+        <CoverArt
+          hue={program.cover_hue}
+          status={program.status}
+          coverImageUrl={program.cover_image_url}
+        />
 
         {/* Status badge (top-left) — only for states worth calling out. */}
         {isInProgress && (
@@ -139,9 +144,11 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
 export function CoverArt({
   hue = "cream",
   status,
+  coverImageUrl,
 }: {
   hue?: "rose" | "cream" | "warm";
   status: ProgramRow["status"];
+  coverImageUrl?: string | null;
 }) {
   const palette =
     hue === "rose"
@@ -151,6 +158,30 @@ export function CoverArt({
         : "from-cream-200 via-cream-100 to-rose-100/40";
 
   const isPro = status === "pro_only";
+
+  // Real uploaded cover image → fill the thumbnail with it. Supabase covers
+  // can be storage URLs or inline data URLs, so a plain <img> keeps both
+  // working without next/image domain config.
+  if (coverImageUrl) {
+    return (
+      <div className="absolute inset-0 transition-[filter,transform] duration-300 group-hover:brightness-[0.98]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={coverImageUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {isPro && (
+          <div className="absolute inset-0 flex items-center justify-center bg-ink-900/20">
+            <div className="size-14 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-soft">
+              <Lock className="size-6 text-rose-600" strokeWidth={2} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(

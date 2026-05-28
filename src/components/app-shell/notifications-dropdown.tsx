@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getDropdownNotifications,
   markAllNotificationsRead,
+  markNotificationRead,
 } from "@/app/(app)/notifications/actions";
 import type { NotificationCategory, NotificationType } from "@/lib/notifications/types";
 
@@ -264,8 +265,25 @@ export function NotifDropdown({
               items.map((n) => {
                 const isRead = allRead || n.status !== "unread";
                 return (
-                  <div
+                  <Link
                     key={n.id}
+                    href={n.action_url ?? "/notifications"}
+                    onClick={() => {
+                      setOpen(false);
+                      if (n.status === "unread") {
+                        setUnread((c) => Math.max(0, c - 1));
+                        setItems((prev) =>
+                          prev
+                            ? prev.map((x) =>
+                                x.id === n.id ? { ...x, status: "read" } : x,
+                              )
+                            : prev,
+                        );
+                        startTransition(() => {
+                          void markNotificationRead(n.id);
+                        });
+                      }
+                    }}
                     className={cn(
                       "flex items-center gap-3 pl-3 pr-4 py-3 border-l-2 transition-colors hover:bg-cream-50 cursor-pointer",
                       !isRead ? BORDER[n.category] : "border-l-transparent",
@@ -310,7 +328,7 @@ export function NotifDropdown({
                         {n.title}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })
             )}

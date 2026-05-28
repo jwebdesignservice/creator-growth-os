@@ -37,11 +37,15 @@ export default async function AdminTutorialsPage() {
     { count: totalCount },
     { count: draftsCount },
   ] = await Promise.all([
+    // Tutorials are STANDALONE lessons only (program_id IS NULL). Lessons that
+    // belong to a program live in the Program → Curriculum flow and must not
+    // leak into the Tutorials library.
     supabase
       .from("lessons")
       .select(
         "id, slug, title, description, program_id, plan_access, cover_image_url, video_url, duration_seconds, module_number, module_title, published, created_at",
       )
+      .is("program_id", null)
       .order("created_at", { ascending: false })
       .limit(500),
     supabase
@@ -49,10 +53,14 @@ export default async function AdminTutorialsPage() {
       .select("id, slug, title")
       .order("sort_order", { ascending: true }),
     supabase.from("lesson_progress").select("lesson_id, completed"),
-    supabase.from("lessons").select("id", { count: "exact", head: true }),
     supabase
       .from("lessons")
       .select("id", { count: "exact", head: true })
+      .is("program_id", null),
+    supabase
+      .from("lessons")
+      .select("id", { count: "exact", head: true })
+      .is("program_id", null)
       .eq("published", false),
   ]);
 
@@ -123,11 +131,6 @@ export default async function AdminTutorialsPage() {
   return (
     <TutorialsView
       tutorials={tutorials}
-      programs={(programs ?? []).map((p) => ({
-        id: p.id,
-        slug: p.slug,
-        title: p.title,
-      }))}
       counts={{
         all: total,
         drafts,

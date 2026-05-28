@@ -48,6 +48,21 @@ export const getShellContext = cache(async () => {
     // notifications table may not exist yet (pre-migration); safe to ignore
   }
 
+  // Open (unfinished) task/mission count for the sidebar "Tasks" badge — one
+  // cheap COUNT query. Counts missions that aren't completed yet. Defaults to
+  // 0 on error so a missing missions table never breaks the shell.
+  let openTaskCount = 0;
+  try {
+    const { count } = await supabase
+      .from("missions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .neq("status", "completed");
+    openTaskCount = count ?? 0;
+  } catch {
+    // missions table may not exist yet; safe to ignore
+  }
+
   // Real per-platform follower counts from social_accounts.
   // Platforms not yet connected render as undefined (shown as — in the UI).
   const { data: socialRows } = await supabase
@@ -82,7 +97,7 @@ export const getShellContext = cache(async () => {
     socials,
   };
 
-  return { user, profile, name, plan, unreadNotificationCount, topUser, railProfile };
+  return { user, profile, name, plan, unreadNotificationCount, openTaskCount, topUser, railProfile };
 });
 
 function computeProfileCompletion(

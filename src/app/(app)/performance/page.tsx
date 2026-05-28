@@ -3,43 +3,23 @@ import { Sparkles } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import {
-  getEntryForWeek,
   getRecentEntries,
   computeKpiTiles,
   getLoggingStreak,
-  mondayOfWeek,
-  addWeeks,
 } from "@/lib/performance/queries";
 import { PerformanceKpiTiles } from "@/components/performance/kpi-tiles";
 import { ConnectSocialCard } from "@/components/performance/connect-social-card";
-import { PerformanceEntryForm } from "@/components/performance/entry-form";
 import { TrendChart } from "@/components/performance/trend-chart";
 import { BestPostsJournal } from "@/components/performance/journal";
 import { PerformanceRail } from "@/components/performance/rail";
 
 export const metadata = { title: "Performance · Creator Growth OS" };
 
-type Search = Promise<{ week?: string }>;
-
-export default async function PerformancePage({
-  searchParams,
-}: {
-  searchParams: Search;
-}) {
+export default async function PerformancePage() {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
-  const sp = await searchParams;
-  const currentMonday = mondayOfWeek();
-  const week = /^\d{4}-\d{2}-\d{2}$/.test(sp.week ?? "")
-    ? (sp.week as string)
-    : currentMonday;
-  const isCurrentWeek = week === currentMonday;
-
-  const [entry, recent] = await Promise.all([
-    getEntryForWeek(week),
-    getRecentEntries(12),
-  ]);
+  const recent = await getRecentEntries(12);
 
   const tiles = computeKpiTiles(recent);
   const streak = getLoggingStreak(recent);
@@ -99,16 +79,6 @@ export default async function PerformancePage({
 
         {/* Connect Social Accounts — frontend-only placeholder card */}
         <ConnectSocialCard />
-
-        {/* Weekly entry form */}
-        <PerformanceEntryForm
-          entry={entry}
-          plan={ctx.plan}
-          weekStart={week}
-          prevWeek={addWeeks(week, -1)}
-          nextWeek={addWeeks(week, 1)}
-          isCurrentWeek={isCurrentWeek}
-        />
 
         {/* Trend + Journal */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">

@@ -155,6 +155,7 @@ export default async function ProgramLessonPage({
   const duration = detail?.duration ?? curr!.duration;
   const description = detail?.description ?? null;
   const videoUrl = detail?.videoUrl ?? null;
+  const coverUrl = detail?.coverUrl ?? null;
   const completed = detail?.completed ?? curr?.status === "completed";
   const moduleNumber = detail?.moduleNumber ?? curr?.moduleNumber ?? 1;
   const moduleTitle = detail?.moduleTitle ?? curr?.moduleTitle ?? "Module";
@@ -239,6 +240,7 @@ export default async function ProgramLessonPage({
                 title={title}
                 duration={duration}
                 videoUrl={videoUrl}
+                coverUrl={coverUrl}
               />
 
               {/* Title + meta — sits below the player, YouTube-style */}
@@ -558,7 +560,13 @@ function ProgramPathRail({
   programSlug: string;
   moduleNumber: number;
   moduleTitle: string;
-  lessons: { slug: string; title: string; duration: string; status: string }[];
+  lessons: {
+    slug: string;
+    title: string;
+    duration: string;
+    status: string;
+    coverUrl?: string | null;
+  }[];
   currentSlug: string;
 }) {
   const totalMin = lessons.reduce((sum, l) => {
@@ -596,6 +604,14 @@ function ProgramPathRail({
             >
               {/* Thumbnail */}
               <div className="relative w-[150px] shrink-0 aspect-video rounded-[10px] overflow-hidden bg-gradient-to-br from-cream-200 via-cream-100 to-rose-100/50">
+                {l.coverUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={l.coverUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span
                     className={cn(

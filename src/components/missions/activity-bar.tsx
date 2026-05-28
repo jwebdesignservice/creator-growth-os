@@ -19,7 +19,7 @@ export function ActivityBar({ counts }: Props) {
           {total} this week
         </span>
       </div>
-      <div className="flex items-end gap-1.5 h-20">
+      <div className="flex items-end gap-1.5 h-36">
         {counts.map((c, i) => (
           <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
             <div
@@ -27,7 +27,7 @@ export function ActivityBar({ counts }: Props) {
                 "w-full rounded-md transition-all",
                 c > 0 ? "bg-rose-400" : "bg-cream-200",
               )}
-              style={{ height: `${(c / max) * 64 + 4}px` }}
+              style={{ height: `${(c / max) * 112 + 6}px` }}
               title={`${DAY_LABELS[i]}: ${c} missions`}
             />
             <span className="text-[10px] text-ink-500 font-medium">

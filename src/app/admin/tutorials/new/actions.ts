@@ -65,7 +65,6 @@ export async function createTutorial(input: {
   title: string;
   videoUrl: string | null;
   durationSeconds: number;
-  programId?: string | null;
 }): Promise<CreateResult> {
   const guard = await requireAdminClient();
   if (!guard.ok) return { ok: false, error: guard.error };
@@ -87,7 +86,10 @@ export async function createTutorial(input: {
         published: false,
         video_url: input.videoUrl,
         duration_seconds: Math.max(0, Math.floor(input.durationSeconds || 0)),
-        program_id: input.programId ?? null,
+        // Tutorials are ALWAYS standalone — a tutorial that belongs to a
+        // program would be a program lesson, which is created in the
+        // Program → Curriculum flow instead.
+        program_id: null,
         sort_order: 0,
       })
       .select("id, slug")

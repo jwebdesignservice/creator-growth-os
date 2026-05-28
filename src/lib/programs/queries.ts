@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Module, Lesson as UILesson } from "@/components/programs/curriculum-accordion";
 import { FALLBACK_MODULES } from "./fallback-modules";
+import { normalizeLearningPoints, type LearningPoint } from "./learning-content";
 
 type RawLesson = {
   id: string;
@@ -12,6 +13,7 @@ type RawLesson = {
   module_title: string | null;
   plan_access: "free" | "basic" | "pro";
   sort_order: number;
+  cover_image_url: string | null;
 };
 
 type RawProgress = {
@@ -55,7 +57,7 @@ export async function getCurriculumForProgram(
   const { data: lessons } = await supabase
     .from("lessons")
     .select(
-      "id, slug, title, duration_seconds, module_number, module_title, plan_access, sort_order",
+      "id, slug, title, duration_seconds, module_number, module_title, plan_access, sort_order, cover_image_url",
     )
     .eq("program_id", program.id)
     .order("sort_order", { ascending: true });
@@ -123,6 +125,7 @@ export async function getCurriculumForProgram(
         title: l.title,
         duration: formatDuration(l.duration_seconds ?? 0),
         status,
+        coverUrl: l.cover_image_url ?? null,
       };
     });
 
@@ -298,4 +301,48 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Aggregate every lesson's authored "What you'll learn" points (section C,
+ * `lessons.learning_points`) across a whole program — ordered by module then
+ * sort_order, de-duplicated by title. Powers the program overview's
+ * "What You'll Learn" so it reflects the real per-lesson content.
+ *
+ * Returns [] when no lesson has points yet, or when the `learning_points`
+ * column isn't applied (42703) — the caller then falls back to the static
+ * PROGRAM_OUTCOMES so the section is never empty.
+ */
+export async function getProgramLearningPoints(
+  programId: string,
+): Promise<LearningPoint[]> {
+  if (!programId) return [];
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("lessons")
+    .select("learning_points, module_number, sort_order")
+    .eq("program_id", programId)
+    .order("module_number", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) return [];
+
+  const seen = new Set<string>();
+  const out: LearningPoint[] = [];
+  for (const row of data) {
+    const points = normalizeLearningPoints(
+      (row as { learning_points?: unknown }).learning_points,
+    );
+    // One outcome per lesson: take the first learning point we haven't
+    // already shown (deduped by title across the program), then move on.
+    for (const lp of points) {
+      const key = lp.title.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(lp);
+      break;
+    }
+  }
+  return out;
 }

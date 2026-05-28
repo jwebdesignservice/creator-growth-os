@@ -92,6 +92,8 @@ export type SurfaceSidebarItem = {
    * tabs via search params (e.g. the tutorial editor's `?tab=…`).
    */
   active?: boolean;
+  /** Shows a small "Beta" pill next to the label — for experimental sections. */
+  beta?: boolean;
 };
 
 type Props = {
@@ -161,6 +163,11 @@ export function AdminSurfaceSidebar({
                     strokeWidth={2}
                   />
                   <span className="flex-1">{item.label}</span>
+                  {item.beta && (
+                    <span className="inline-flex items-center rounded-full bg-rose-600 text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 leading-none shrink-0">
+                      Beta
+                    </span>
+                  )}
                 </Link>
               </li>
             );

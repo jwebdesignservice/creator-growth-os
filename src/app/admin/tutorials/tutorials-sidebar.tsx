@@ -28,11 +28,12 @@ const EDITOR_TABS: ReadonlyArray<{
   key: string;
   label: string;
   icon: SurfaceSidebarItem["icon"];
+  beta?: boolean;
 }> = [
   { key: "overview",      label: "Overview",      icon: "info" },
   { key: "metadata",      label: "Metadata",      icon: "sparkles" },
   { key: "thumbnail",     label: "Thumbnail",     icon: "image" },
-  { key: "lesson-path",   label: "Lesson path",   icon: "route" },
+  { key: "lesson-path",   label: "Lesson path",   icon: "route", beta: true },
   { key: "resources",     label: "Resources",     icon: "folder" },
   { key: "controls",      label: "Controls",      icon: "sliders-horizontal" },
   { key: "access",        label: "Access",        icon: "lock" },
@@ -79,6 +80,7 @@ export function TutorialsSidebar({
       href:   `${editorBase}?tab=${t.key}`,
       icon:   t.icon,
       active: currentTab === t.key,
+      beta:   t.beta,
     })),
   ];
 

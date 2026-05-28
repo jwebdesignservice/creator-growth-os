@@ -1019,11 +1019,6 @@ function LessonItem({
         </div>
       </div>
 
-      {/* content-type pill */}
-      <span className="hidden sm:inline-flex items-center px-2.5 h-6 rounded-full bg-rose-50 text-rose-700 text-[11px] font-semibold shrink-0">
-        {typeLabel}
-      </span>
-
       {/* status pill */}
       <span
         className={cn(
@@ -1034,6 +1029,17 @@ function LessonItem({
         <span aria-hidden className={cn("size-1.5 rounded-full", status.dot)} />
         {status.label}
       </span>
+
+      {/* edit button */}
+      <button
+        type="button"
+        onClick={onEdit}
+        title="Edit lesson"
+        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[12.5px] font-semibold shrink-0 hover:bg-cream-100 hover:text-ink-900 transition-colors"
+      >
+        <Pencil className="size-3.5" strokeWidth={2} />
+        Edit
+      </button>
 
       {/* publish button */}
       <button

@@ -7,7 +7,6 @@ import {
   Upload,
   Plus,
   Search,
-  Briefcase,
   ChevronDown,
   LayoutGrid,
   List,
@@ -53,24 +52,19 @@ export type TutorialCardData = {
   attachments: number;
 };
 
-type Program = { id: string; slug: string; title: string };
-
 type Tab = "all" | "drafts" | "published" | "archived";
 type Sort = "newest" | "oldest" | "alpha" | "views";
 type View = "grid" | "list";
 
 export function TutorialsView({
   tutorials,
-  programs,
   counts,
 }: {
   tutorials: TutorialCardData[];
-  programs: Program[];
   counts: { all: number; drafts: number; published: number; archived: number };
 }) {
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
-  const [programId, setProgramId] = useState<string>("");
   const [sort, setSort] = useState<Sort>("newest");
   const [view, setView] = useState<View>("grid");
 
@@ -82,17 +76,10 @@ export function TutorialsView({
     else if (tab === "published") rows = rows.filter((r) => r.published);
     else if (tab === "archived") rows = []; // no archived field yet
 
-    // Program
-    if (programId) rows = rows.filter((r) => r.programId === programId);
-
     // Search
     const q = search.trim().toLowerCase();
     if (q) {
-      rows = rows.filter(
-        (r) =>
-          r.title.toLowerCase().includes(q) ||
-          (r.programTitle ?? "").toLowerCase().includes(q),
-      );
+      rows = rows.filter((r) => r.title.toLowerCase().includes(q));
     }
 
     // Sort
@@ -105,7 +92,7 @@ export function TutorialsView({
     });
 
     return rows;
-  }, [tutorials, tab, programId, search, sort]);
+  }, [tutorials, tab, search, sort]);
 
   /* ── Bulk selection ──────────────────────────────────────────────────
      Selection lives here (not per-card) so the action bar can publish,
@@ -175,7 +162,8 @@ export function TutorialsView({
             Tutorials
           </h1>
           <p className="text-ink-500 text-[14px]">
-            Create, organize, and manage lesson videos for your programs.
+            Standalone short-form how-to videos. Program lessons live in each
+            program&apos;s Curriculum, not here.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -249,16 +237,6 @@ export function TutorialsView({
         </div>
 
         <FilterSelect
-          icon={<Briefcase className="size-3.5 text-ink-500" strokeWidth={2} />}
-          value={programId}
-          onChange={setProgramId}
-          options={[
-            { value: "", label: "All programs" },
-            ...programs.map((p) => ({ value: p.id, label: p.title })),
-          ]}
-        />
-
-        <FilterSelect
           value={sort}
           onChange={(v) => setSort(v as Sort)}
           options={[
@@ -311,7 +289,7 @@ export function TutorialsView({
       {filtered.length === 0 ? (
         <EmptyState
           tab={tab}
-          hasFilters={Boolean(search || programId)}
+          hasFilters={Boolean(search)}
         />
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -1098,7 +1076,7 @@ function EmptyState({
     tab === "archived"
       ? "No archived tutorials yet. When you archive a tutorial it'll show up here."
       : hasFilters
-        ? "No tutorials match your filters. Try clearing search or program."
+        ? "No tutorials match your search. Try clearing it."
         : "No tutorials yet — start by creating one.";
   return (
     <div className="card p-12 text-center">

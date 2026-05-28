@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import {
   ArrowDown,
-  ArrowRight,
   ArrowUp,
   LineChart,
   Minus,
@@ -526,16 +525,9 @@ function SingleValueState({
       <div className="text-h1 text-ink-900 leading-none mb-2 tabular-nums">
         {formatValue(metric, value)}
       </div>
-      <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
+      <p className="text-[13px] text-ink-500 max-w-sm leading-relaxed">
         Only one log in the last {windowDays} days. Log another entry to see your trend.
       </p>
-      <a
-        href="#performance-entry-form"
-        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
-      >
-        Log this week&apos;s performance
-        <ArrowRight className="size-3.5" strokeWidth={2} />
-      </a>
     </div>
   );
 }
@@ -551,16 +543,9 @@ function NoDataState() {
       <h4 className="text-h5 text-ink-900 mb-1">
         No performance data yet
       </h4>
-      <p className="text-[13px] text-ink-500 max-w-sm mb-5 leading-relaxed">
+      <p className="text-[13px] text-ink-500 max-w-sm leading-relaxed">
         Start logging weekly performance to see your trends here.
       </p>
-      <a
-        href="#performance-entry-form"
-        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
-      >
-        Log performance
-        <ArrowRight className="size-3.5" strokeWidth={2} />
-      </a>
     </div>
   );
 }
@@ -605,17 +590,9 @@ function SparseWindowState({
         ({daysSinceRecent} {dayWord} ago).
       </p>
 
-      <p className="text-[13px] text-ink-700 mb-5">
+      <p className="text-[13px] text-ink-700">
         You have {totalCount} weekly {logWord} total — log this week to start your {rangeLabel}.
       </p>
-
-      <a
-        href="#performance-entry-form"
-        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium shadow-sm transition-colors"
-      >
-        Log this week&apos;s performance
-        <ArrowRight className="size-3.5" strokeWidth={2} />
-      </a>
     </div>
   );
 }

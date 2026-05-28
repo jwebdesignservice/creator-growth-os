@@ -49,8 +49,8 @@ export async function getUserNotifications(
     .eq("user_id", userId)
     .neq("status", "archived")
     .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
-    .order("priority",   { ascending: true  })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("priority",   { ascending: true  });
 
   if (filter === "unread") {
     query = query.eq("status", "unread");
@@ -107,8 +107,8 @@ export async function getNotificationSummaries(
     .eq("user_id", userId)
     .neq("status", "archived")
     .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
-    .order("priority",   { ascending: true  })
     .order("created_at", { ascending: false })
+    .order("priority",   { ascending: true  })
     .limit(limit);
 
   if (error) {

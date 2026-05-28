@@ -253,7 +253,11 @@ function NotificationsMain({
           {GROUPS.map(({ label, key }) => {
             const groupItems = filtered
               .filter((n) => n.group === key)
-              .sort((a, b) => a.priority - b.priority);
+              .sort(
+                (a, b) =>
+                  new Date(b.created_at).getTime() -
+                  new Date(a.created_at).getTime(),
+              );
             if (groupItems.length === 0) return null;
             return (
               <div key={key}>

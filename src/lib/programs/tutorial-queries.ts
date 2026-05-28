@@ -39,12 +39,15 @@ export async function getAllTutorials(): Promise<TutorialRow[]> {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Tutorials are STANDALONE lessons only (program_id IS NULL). Program
+  // lessons are delivered inside the Program → Curriculum flow, never here.
   const { data: lessons } = await supabase
     .from("lessons")
     .select(
       "id, slug, title, description, duration_seconds, difficulty, content_type, plan_access, module_number, module_title, sort_order, category, programs(slug, title, sort_order, category_access)",
     )
     .eq("published", true)
+    .is("program_id", null)
     .order("sort_order", { ascending: true });
 
   if (!lessons || lessons.length === 0) return [];
