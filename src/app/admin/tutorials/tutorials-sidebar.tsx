@@ -33,7 +33,6 @@ const EDITOR_TABS: ReadonlyArray<{
   { key: "metadata",      label: "Metadata",      icon: "sparkles" },
   { key: "thumbnail",     label: "Thumbnail",     icon: "image" },
   { key: "lesson-path",   label: "Lesson path",   icon: "route" },
-  { key: "creator-drill", label: "Creator drill", icon: "graduation-cap" },
   { key: "resources",     label: "Resources",     icon: "folder" },
   { key: "controls",      label: "Controls",      icon: "sliders-horizontal" },
   { key: "access",        label: "Access",        icon: "lock" },

@@ -19,7 +19,6 @@ import {
   X,
   Check,
   Route as RouteIcon,
-  GraduationCap,
   Folder,
   type LucideIcon,
 } from "lucide-react";
@@ -33,18 +32,18 @@ import { cn } from "@/lib/cn";
    ───────────────────────────────────────────────────────────────────────── */
 
 type ComponentStatus = "Ready" | "Draft" | "Empty";
-type LessonComponentKey = "lesson-path" | "creator-drill" | "resources";
+type LessonComponentKey = "lesson-path" | "resources";
 
 type LessonComponentRow = {
   key:    LessonComponentKey;
   label:  string;
   hint:   string;
   status: ComponentStatus;
-  tab:    "lesson-path" | "creator-drill" | "resources";
+  tab:    "lesson-path" | "resources";
 };
 
 type AtAGlanceStat = {
-  key:   "creator-drill" | "resources" | "runtime";
+  key:   "resources" | "runtime";
   value: string;
   label: string;
 };
@@ -70,7 +69,6 @@ function titleCase(s: string): string {
    Empty otherwise). */
 function buildComponents(
   chapterCount: number,
-  hasDrill: boolean,
   resourceCount: number,
 ): LessonComponentRow[] {
   return [
@@ -82,13 +80,6 @@ function buildComponents(
         : "No steps yet",
       status: chapterCount > 0 ? "Ready" : "Empty",
       tab:    "lesson-path",
-    },
-    {
-      key:    "creator-drill",
-      label:  "Creator drill",
-      hint:   hasDrill ? "1 practical task" : "No drill yet",
-      status: hasDrill ? "Ready" : "Empty",
-      tab:    "creator-drill",
     },
     {
       key:    "resources",
@@ -116,12 +107,10 @@ const STATUS_PILL: Record<ComponentStatus, string> = {
 
 const COMPONENT_ICON: Record<LessonComponentRow["key"], LucideIcon> = {
   "lesson-path":   RouteIcon,
-  "creator-drill": GraduationCap,
   "resources":     Folder,
 };
 
 const AT_A_GLANCE_ICON: Record<AtAGlanceStat["key"], LucideIcon> = {
-  "creator-drill": GraduationCap,
   "resources":     Folder,
   "runtime":       Clock,
 };
@@ -139,7 +128,6 @@ export function OverviewTab({
   category,
   runtimeLabel,
   chapterCount,
-  hasDrill,
   resourceCount,
   learningOutcomes,
   setLearningOutcomes,
@@ -152,14 +140,13 @@ export function OverviewTab({
   category: string;
   runtimeLabel: string;
   chapterCount: number;
-  hasDrill: boolean;
   resourceCount: number;
   learningOutcomes: string[];
   setLearningOutcomes: (v: string[]) => void;
   publishingNotes: string;
   setPublishingNotes: (v: string) => void;
 }) {
-  const components = buildComponents(chapterCount, hasDrill, resourceCount);
+  const components = buildComponents(chapterCount, resourceCount);
   return (
     <>
       <LessonOverviewCard
@@ -585,16 +572,13 @@ function PublishingNotesCard({
    ───────────────────────────────────────────────────────────────────────── */
 
 export function AtAGlanceCard({
-  hasDrill,
   resourceCount,
   runtimeLabel,
 }: {
-  hasDrill: boolean;
   resourceCount: number;
   runtimeLabel: string;
 }) {
   const stats: AtAGlanceStat[] = [
-    { key: "creator-drill", value: hasDrill ? "1" : "0",     label: "Creator drill" },
     { key: "resources",     value: String(resourceCount),    label: "Resources"     },
     { key: "runtime",       value: runtimeLabel,             label: "Runtime"       },
   ];
@@ -603,7 +587,7 @@ export function AtAGlanceCard({
       <header className="flex items-center justify-between mb-4">
         <h3 className="text-[14px] font-bold text-ink-900">At a glance</h3>
       </header>
-      <ul className="grid grid-cols-3 gap-3 mb-4">
+      <ul className="grid grid-cols-2 gap-3 mb-4">
         {stats.map((s) => {
           const Icon = AT_A_GLANCE_ICON[s.key];
           return (
