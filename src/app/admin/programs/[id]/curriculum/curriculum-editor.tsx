@@ -38,6 +38,7 @@ import {
   Globe,
   LayoutTemplate,
   Clock,
+  SquarePen,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -400,7 +401,9 @@ export function CurriculumEditor({
               onDeleteModule={() => setDeletingModule(m)}
               onAddLesson={() => setAddLessonForModule(m)}
               onBulkUpload={() => setBulkEdit(true)}
-              onEditLesson={(lesson) => setEditingLesson(lesson)}
+              onEditLesson={(lesson) =>
+                router.push(`/admin/tutorials/${lesson.id}`)
+              }
               onDeleteLesson={(lesson) => setDeletingLesson(lesson)}
               onManageTasks={(lesson) => setManagingTasksFor(lesson)}
             />
@@ -1097,6 +1100,7 @@ function LessonItem({
 
       <LessonKebab
         lesson={lesson}
+        onEdit={onEdit}
         onRename={() => setRenaming(true)}
         onDelete={onDelete}
         pending={pending}
@@ -1120,11 +1124,13 @@ function LessonItem({
 
 function LessonKebab({
   lesson,
+  onEdit,
   onRename,
   onDelete,
   pending,
 }: {
   lesson: LessonRow;
+  onEdit: () => void;
   onRename: () => void;
   onDelete: () => void;
   pending: boolean;
@@ -1183,8 +1189,17 @@ function LessonKebab({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-30 w-52 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+          className="absolute right-0 top-[calc(100%+4px)] z-30 w-56 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
+          <MenuButton
+            onClick={() => {
+              setOpen(false);
+              onEdit();
+            }}
+            icon={<SquarePen className="size-3.5" strokeWidth={2} />}
+            label="Edit lesson"
+          />
+          <div aria-hidden className="h-px my-1 bg-ink-100" />
           <MenuButton
             onClick={doSetPreview}
             icon={<Globe className="size-3.5" strokeWidth={2} />}
