@@ -186,7 +186,7 @@ export function Sidebar({
                 className={cn(
                   "flex items-center rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors",
                   expanded
-                    ? "gap-3 px-3 py-2.5 w-full"
+                    ? "gap-3 px-3 h-10 w-full"
                     : "size-10 justify-center",
                 )}
               >
@@ -209,7 +209,7 @@ export function Sidebar({
                 className={cn(
                   "flex items-center rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]",
                   expanded
-                    ? "gap-3 px-3 py-2.5 w-full"
+                    ? "gap-3 px-3 h-10 w-full"
                     : "size-10 justify-center",
                 )}
               >
@@ -265,11 +265,12 @@ function NavLink({
           active
             ? "bg-rose-100 text-rose-700"
             : "text-ink-700 hover:bg-cream-200 hover:text-ink-900",
-          // Collapsed: square 40x40 with icon centered. Expanded: full
-          // row with left-aligned icon + label. A small x-shift between
-          // states is unavoidable when going from "square" to "row".
+          // Both states are 40px tall (h-10 / size-10) so toggling the
+          // sidebar doesn't shift rows vertically. Collapsed is a 40x40
+          // square; expanded is a 40-tall row with left-aligned icon
+          // + label. A small x-shift across states is unavoidable.
           expanded
-            ? "gap-3 px-3 py-2 w-full"
+            ? "gap-3 px-3 h-10 w-full"
             : "size-10 justify-center",
         )}
       >
@@ -372,7 +373,7 @@ function CtaRow({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-2.5 px-3 py-2.5 rounded-[12px] hover:bg-white transition-colors"
+      className="group flex items-center gap-2.5 px-3 h-10 rounded-[12px] hover:bg-white transition-colors"
     >
       <Icon
         className="size-[18px] text-rose-600 shrink-0"
