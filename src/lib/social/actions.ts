@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProvider, type ProviderKey } from "./providers";
 import { syncInstagramAccount } from "./instagram";
 import { syncFacebookAccount } from "./facebook";
+import { syncYouTubeAccount } from "./youtube";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -70,6 +71,13 @@ export async function syncPlatform(platform: ProviderKey): Promise<Result> {
 
   if (platform === "facebook") {
     const res = await syncFacebookAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  if (platform === "youtube") {
+    const res = await syncYouTubeAccount(user.id);
     revalidatePath("/performance");
     if (!res.ok) return { ok: false, error: res.error };
     return { ok: true };
