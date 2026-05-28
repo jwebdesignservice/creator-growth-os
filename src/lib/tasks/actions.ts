@@ -258,7 +258,16 @@ export async function assignForCurrentUser(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
-  return assignTasksFromSource(user.id, sourceType, sourceId, { trigger });
+  const result = await assignTasksFromSource(user.id, sourceType, sourceId, {
+    trigger,
+  });
+  // When new tasks were actually assigned, refresh the missions page and the
+  // cached app-shell layout so the sidebar "Tasks" badge reflects them at once.
+  if (result.ok && result.assigned.length > 0) {
+    revalidatePath("/missions");
+    revalidatePath("/", "layout");
+  }
+  return result;
 }
 
 /* ── User: task lifecycle (start / complete / skip) ─────────────────────── */
@@ -302,6 +311,7 @@ export async function startUserTask(missionId: string): Promise<Result> {
 
   await logUserEvent(user.id, missionId, row, "started");
   revalidatePath("/missions");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -332,6 +342,7 @@ export async function completeUserTask(
   }
   revalidatePath("/missions");
   revalidatePath("/dashboard");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -349,6 +360,7 @@ export async function skipUserTask(missionId: string): Promise<Result> {
 
   await logUserEvent(user.id, missionId, row, "skipped");
   revalidatePath("/missions");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
