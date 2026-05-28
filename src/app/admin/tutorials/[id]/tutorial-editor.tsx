@@ -193,10 +193,6 @@ export function TutorialEditor({
   const [learningOutcomes,        setLearningOutcomes]        = useState<string[]>(lesson.learningOutcomes);
   const [publishingNotesInternal, setPublishingNotesInternal] = useState(lesson.publishingNotesInternal);
 
-  /* Frontend-only flags (no column yet). Chapters live in their own
-     table — `hasChapters` here just gates the rail "Add chapters" CTA. */
-  const [hasChapters,   setHasChapters]  = useState(false);
-
   const TITLE_MAX = 100;
   const DESC_MAX  = 5000;
   const NOTE_MAX  = 2000;
@@ -238,13 +234,16 @@ export function TutorialEditor({
     uploaded:   formatUploadedDate(lesson.createdAt),
   }), [lesson.views, lesson.durationSeconds, lesson.createdAt]);
 
-  /* Publishing readiness — derived from the form state so it updates live. */
+  /* Publishing readiness — derived from real data + live form state so it
+     updates as the tutorial is built out. Every check reflects something
+     that actually exists (cover, description, video, persisted chapters,
+     CTA) — no placeholder toggles. */
   const readiness = useMemo(() => {
     const checks = [
       { key: "thumbnail",   label: "Thumbnail added",     done: !!lesson.coverImageUrl },
       { key: "description", label: "Description complete", done: description.trim().length >= 24 },
-      { key: "captions",    label: "Captions uploaded",    done: !!lesson.videoUrl }, // proxy: any video implies captions step done
-      { key: "chapters",    label: "Chapters added",       done: hasChapters },
+      { key: "video",       label: "Video uploaded",      done: !!lesson.videoUrl },
+      { key: "chapters",    label: "Chapters added",       done: initialChapters.length > 0 },
       { key: "cta",         label: "CTA added",            done: ctaLink.trim().length > 0 || lesson.published },
     ];
     const done = checks.filter((c) => c.done).length;
@@ -254,7 +253,7 @@ export function TutorialEditor({
       total:   checks.length,
       percent: Math.round((done / checks.length) * 100),
     };
-  }, [lesson.coverImageUrl, lesson.videoUrl, lesson.published, description, hasChapters, ctaLink]);
+  }, [lesson.coverImageUrl, lesson.videoUrl, lesson.published, description, initialChapters, ctaLink]);
 
   /* ── Handlers ─────────────────────────────────────────────────────── */
 
@@ -555,7 +554,9 @@ export function TutorialEditor({
               <PublishingReadinessCard
                 percent={readiness.percent}
                 checks={readiness.checks}
-                onAddChapters={() => setHasChapters(true)}
+                onAddChapters={() =>
+                  router.push(`/admin/tutorials/${lesson.id}?tab=lesson-path`)
+                }
               />
               {activeTab === "overview" && (
                 <AtAGlanceCard
