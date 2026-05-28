@@ -106,7 +106,12 @@ export async function GET(
   // Build authorize URL.
   const url = new URL(provider.authUrl);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("client_id", creds.clientId);
+  // TikTok is non-standard: uses `client_key` instead of `client_id`.
+  if (provider.key === "tiktok") {
+    url.searchParams.set("client_key", creds.clientId);
+  } else {
+    url.searchParams.set("client_id", creds.clientId);
+  }
   url.searchParams.set("redirect_uri", getRedirectUri(provider.key));
   url.searchParams.set("state", state);
 

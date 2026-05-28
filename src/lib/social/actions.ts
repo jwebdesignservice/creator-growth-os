@@ -6,6 +6,7 @@ import { getProvider, type ProviderKey } from "./providers";
 import { syncInstagramAccount } from "./instagram";
 import { syncFacebookAccount } from "./facebook";
 import { syncYouTubeAccount } from "./youtube";
+import { syncTikTokAccount } from "./tiktok";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -78,6 +79,13 @@ export async function syncPlatform(platform: ProviderKey): Promise<Result> {
 
   if (platform === "youtube") {
     const res = await syncYouTubeAccount(user.id);
+    revalidatePath("/performance");
+    if (!res.ok) return { ok: false, error: res.error };
+    return { ok: true };
+  }
+
+  if (platform === "tiktok") {
+    const res = await syncTikTokAccount(user.id);
     revalidatePath("/performance");
     if (!res.ok) return { ok: false, error: res.error };
     return { ok: true };

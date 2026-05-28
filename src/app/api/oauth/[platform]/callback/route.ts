@@ -129,6 +129,9 @@ export async function GET(
   } else if (platform === "youtube") {
     const { syncYouTubeAccount } = await import("@/lib/social/youtube");
     await syncYouTubeAccount(parsed.userId);
+  } else if (platform === "tiktok") {
+    const { syncTikTokAccount } = await import("@/lib/social/tiktok");
+    await syncTikTokAccount(parsed.userId);
   }
 
   return backTo(origin, "ok", platform);
@@ -154,9 +157,14 @@ async function exchangeCodeForToken(
     grant_type: "authorization_code",
     code,
     redirect_uri: getRedirectUri(provider.key),
-    client_id: creds.clientId,
     client_secret: creds.clientSecret,
   });
+  // TikTok uses `client_key`; everyone else uses standard `client_id`.
+  if (provider.key === "tiktok") {
+    body.set("client_key", creds.clientId);
+  } else {
+    body.set("client_id", creds.clientId);
+  }
   if (pkceVerifier) {
     body.set("code_verifier", pkceVerifier);
   }
