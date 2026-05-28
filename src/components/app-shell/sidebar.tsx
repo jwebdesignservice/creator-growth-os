@@ -182,7 +182,12 @@ export function Sidebar({
             <Link
               href="/admin"
               title={!expanded ? "Admin Console" : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors"
+              className={cn(
+                "flex items-center rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-[background-color,padding,width] duration-150",
+                expanded
+                  ? "gap-3 px-3 py-2.5"
+                  : "size-10 justify-center mx-auto",
+              )}
             >
               <ShieldCheck
                 className="size-[18px] text-rose-300 shrink-0"
@@ -191,7 +196,7 @@ export function Sidebar({
               <span
                 className={cn(
                   "flex-1 whitespace-nowrap transition-opacity duration-150",
-                  expanded ? "opacity-100" : "opacity-0",
+                  expanded ? "opacity-100" : "opacity-0 w-0",
                 )}
               >
                 Admin Console
@@ -203,7 +208,12 @@ export function Sidebar({
             <Link
               href="/dev"
               title={!expanded ? "Dev Console" : undefined}
-              className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
+              className={cn(
+                "mt-2 flex items-center rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-[background-color,padding,width] duration-150 ring-1 ring-[rgba(59,130,246,0.32)]",
+                expanded
+                  ? "gap-3 px-3 py-2.5"
+                  : "size-10 justify-center mx-auto",
+              )}
             >
               <Terminal
                 className="size-[18px] text-[#7AA9FF] shrink-0"
@@ -212,7 +222,7 @@ export function Sidebar({
               <span
                 className={cn(
                   "flex-1 whitespace-nowrap transition-opacity duration-150",
-                  expanded ? "opacity-100" : "opacity-0",
+                  expanded ? "opacity-100" : "opacity-0 w-0",
                 )}
               >
                 Dev Console
@@ -368,9 +378,10 @@ function CtaRow({
       href={href}
       className="group flex items-center gap-2.5 px-3 py-2.5 rounded-[12px] hover:bg-white transition-colors"
     >
-      <span className="size-7 rounded-full bg-rose-100 inline-flex items-center justify-center shrink-0">
-        <Icon className="size-3.5 text-rose-600" strokeWidth={2} />
-      </span>
+      <Icon
+        className="size-[18px] text-rose-600 shrink-0"
+        strokeWidth={2}
+      />
       <span className="flex-1 text-[13px] font-semibold text-rose-700 truncate">
         {label}
       </span>
