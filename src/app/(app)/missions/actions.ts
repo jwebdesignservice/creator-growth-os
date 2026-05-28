@@ -42,5 +42,8 @@ export async function toggleMissionComplete(
 
   revalidatePath("/missions");
   revalidatePath("/dashboard");
+  // Refresh the cached app-shell layout so the sidebar "Tasks" badge
+  // (ctx.openTaskCount) stays in sync with the mission list.
+  revalidatePath("/", "layout");
   return { ok: true };
 }
