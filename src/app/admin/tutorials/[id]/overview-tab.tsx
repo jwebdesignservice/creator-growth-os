@@ -23,15 +23,84 @@ import {
   Folder,
   type LucideIcon,
 } from "lucide-react";
-import {
-  LESSON_OVERVIEW,
-  LESSON_COMPONENTS,
-  AT_A_GLANCE,
-  type AtAGlanceStat,
-  type ComponentStatus,
-  type LessonComponentRow,
-} from "./overview-mock";
 import { cn } from "@/lib/cn";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Local types — the Overview tab renders entirely from real lesson data
+   passed down by the editor (description, difficulty, category, runtime)
+   plus live counts for the connected components (chapters, drill,
+   resources). No mock data.
+   ───────────────────────────────────────────────────────────────────────── */
+
+type ComponentStatus = "Ready" | "Draft" | "Empty";
+type LessonComponentKey = "lesson-path" | "creator-drill" | "resources";
+
+type LessonComponentRow = {
+  key:    LessonComponentKey;
+  label:  string;
+  hint:   string;
+  status: ComponentStatus;
+  tab:    "lesson-path" | "creator-drill" | "resources";
+};
+
+type AtAGlanceStat = {
+  key:   "creator-drill" | "resources" | "runtime";
+  value: string;
+  label: string;
+};
+
+/* Slug → display label for the metadata category select. Kept in sync with
+   the options in <MetadataTab> (tutorial-editor.tsx). */
+const CATEGORY_LABEL: Record<string, string> = {
+  "":       "Uncategorized",
+  growth:   "Growth",
+  monetize: "Monetization",
+  brand:    "Brand",
+  content:  "Content",
+  dance:    "Dance",
+  fitness:  "Fitness",
+};
+
+function titleCase(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+/* Build the three "connected components" rows from live counts so each
+   card reflects the tutorial's real state (Ready when it has content,
+   Empty otherwise). */
+function buildComponents(
+  chapterCount: number,
+  hasDrill: boolean,
+  resourceCount: number,
+): LessonComponentRow[] {
+  return [
+    {
+      key:    "lesson-path",
+      label:  "Lesson path",
+      hint:   chapterCount > 0
+        ? `${chapterCount} connected step${chapterCount === 1 ? "" : "s"}`
+        : "No steps yet",
+      status: chapterCount > 0 ? "Ready" : "Empty",
+      tab:    "lesson-path",
+    },
+    {
+      key:    "creator-drill",
+      label:  "Creator drill",
+      hint:   hasDrill ? "1 practical task" : "No drill yet",
+      status: hasDrill ? "Ready" : "Empty",
+      tab:    "creator-drill",
+    },
+    {
+      key:    "resources",
+      label:  "Resources",
+      hint:   resourceCount > 0
+        ? `${resourceCount} file${resourceCount === 1 ? "" : "s"} attached`
+        : "No resources yet",
+      status: resourceCount > 0 ? "Ready" : "Empty",
+      tab:    "resources",
+    },
+  ];
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
    Visual maps — keep per-status pill colors + per-component icons in one
@@ -65,26 +134,46 @@ const AT_A_GLANCE_ICON: Record<AtAGlanceStat["key"], LucideIcon> = {
 
 export function OverviewTab({
   tutorialId,
+  description,
+  skillLevel,
+  category,
+  runtimeLabel,
+  chapterCount,
+  hasDrill,
+  resourceCount,
   learningOutcomes,
   setLearningOutcomes,
   publishingNotes,
   setPublishingNotes,
 }: {
   tutorialId: string;
+  description: string;
+  skillLevel: string;
+  category: string;
+  runtimeLabel: string;
+  chapterCount: number;
+  hasDrill: boolean;
+  resourceCount: number;
   learningOutcomes: string[];
   setLearningOutcomes: (v: string[]) => void;
   publishingNotes: string;
   setPublishingNotes: (v: string) => void;
 }) {
+  const components = buildComponents(chapterCount, hasDrill, resourceCount);
   return (
     <>
-      <LessonOverviewCard />
+      <LessonOverviewCard
+        description={description}
+        skillLevel={skillLevel}
+        category={category}
+        runtimeLabel={runtimeLabel}
+      />
       <LearningOutcomesCard
         outcomes={learningOutcomes}
         onChange={setLearningOutcomes}
       />
       <ConnectedComponentsCard
-        components={LESSON_COMPONENTS}
+        components={components}
         tutorialId={tutorialId}
       />
       <PublishingNotesCard
@@ -99,8 +188,19 @@ export function OverviewTab({
    Card 1 · Lesson overview
    ───────────────────────────────────────────────────────────────────────── */
 
-function LessonOverviewCard() {
-  const ov = LESSON_OVERVIEW;
+function LessonOverviewCard({
+  description,
+  skillLevel,
+  category,
+  runtimeLabel,
+}: {
+  description: string;
+  skillLevel: string;
+  category: string;
+  runtimeLabel: string;
+}) {
+  const categoryLabel = CATEGORY_LABEL[category] ?? titleCase(category) ?? "Uncategorized";
+  const skill = skillLevel ? titleCase(skillLevel) : "Not set";
   return (
     <section className="card p-5 sm:p-6">
       <SectionHeader
@@ -114,13 +214,20 @@ function LessonOverviewCard() {
           />
         }
       />
-      <p className="text-[13.5px] text-ink-700 leading-relaxed">
-        {ov.description}
-      </p>
+      {description.trim().length > 0 ? (
+        <p className="text-[13.5px] text-ink-700 leading-relaxed whitespace-pre-wrap">
+          {description}
+        </p>
+      ) : (
+        <EmptyState
+          title="No description yet"
+          body="Add a description in Metadata so learners know what this lesson covers."
+        />
+      )}
       <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatTile icon={BarChart3} label="Skill level"     value={ov.skillLevel}    />
-        <StatTile icon={Tag}       label="Category"        value={ov.category}      />
-        <StatTile icon={Clock}     label="Est. completion" value={ov.estCompletion} />
+        <StatTile icon={BarChart3} label="Skill level"     value={skill}         />
+        <StatTile icon={Tag}       label="Category"        value={categoryLabel} />
+        <StatTile icon={Clock}     label="Est. completion" value={runtimeLabel}  />
       </div>
     </section>
   );
@@ -477,14 +584,27 @@ function PublishingNotesCard({
    video + publishing readiness cards when the Overview tab is active.
    ───────────────────────────────────────────────────────────────────────── */
 
-export function AtAGlanceCard() {
+export function AtAGlanceCard({
+  hasDrill,
+  resourceCount,
+  runtimeLabel,
+}: {
+  hasDrill: boolean;
+  resourceCount: number;
+  runtimeLabel: string;
+}) {
+  const stats: AtAGlanceStat[] = [
+    { key: "creator-drill", value: hasDrill ? "1" : "0",     label: "Creator drill" },
+    { key: "resources",     value: String(resourceCount),    label: "Resources"     },
+    { key: "runtime",       value: runtimeLabel,             label: "Runtime"       },
+  ];
   return (
     <section className="card p-5">
       <header className="flex items-center justify-between mb-4">
         <h3 className="text-[14px] font-bold text-ink-900">At a glance</h3>
       </header>
       <ul className="grid grid-cols-3 gap-3 mb-4">
-        {AT_A_GLANCE.map((s) => {
+        {stats.map((s) => {
           const Icon = AT_A_GLANCE_ICON[s.key];
           return (
             <li

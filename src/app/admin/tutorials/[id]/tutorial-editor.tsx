@@ -73,6 +73,7 @@ export type TutorialEditorData = {
   published:       boolean;
   createdAt:       string;
   views:           number;
+  difficulty:      string;
 
   /* Editor-only fields (migration 0034). Defaults are filled in
    *  server-side (see app/admin/tutorials/[id]/page.tsx) so the client
@@ -501,6 +502,13 @@ export function TutorialEditor({
             ) : activeTab === "overview" ? (
               <OverviewTab
                 tutorialId={lesson.id}
+                description={description}
+                skillLevel={lesson.difficulty}
+                category={category}
+                runtimeLabel={stats.duration}
+                chapterCount={initialChapters.length}
+                hasDrill={!!initialDrill}
+                resourceCount={initialResources.length}
                 learningOutcomes={learningOutcomes}
                 setLearningOutcomes={setLearningOutcomes}
                 publishingNotes={publishingNotesInternal}
@@ -540,7 +548,13 @@ export function TutorialEditor({
                 checks={readiness.checks}
                 onAddChapters={() => setHasChapters(true)}
               />
-              {activeTab === "overview" && <AtAGlanceCard />}
+              {activeTab === "overview" && (
+                <AtAGlanceCard
+                  hasDrill={!!initialDrill}
+                  resourceCount={initialResources.length}
+                  runtimeLabel={stats.duration}
+                />
+              )}
             </aside>
           )}
         </div>
