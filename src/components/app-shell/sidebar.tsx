@@ -221,17 +221,15 @@ export function Sidebar({
           )}
         </nav>
 
-        {/* Bottom CTAs — single card with two icon+label rows. Hides
-            entirely in collapsed mode (icons-only); labels need room. */}
-        <div
-          className={cn(
-            "p-4 shrink-0 transition-opacity duration-150",
-            expanded
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none",
+        {/* Bottom CTAs — single card with two icon+label rows when
+            expanded; two icon-only buttons stacked when collapsed so
+            the actions are still reachable from the icon rail. */}
+        <div className="p-3 shrink-0">
+          {expanded ? (
+            <BottomCtaCard plan={plan} />
+          ) : (
+            <BottomCtaIcons plan={plan} />
           )}
-        >
-          <BottomCtaCard plan={plan} />
         </div>
       </aside>
     </>
@@ -298,7 +296,37 @@ function NavLink({
   );
 }
 
-/* ─── Combined bottom CTA card ─────────────────────────────────────────
+/* ─── Bottom CTAs — icon-only mode (collapsed rail) ────────────────────
+   Two stacked rose icon buttons. Tooltips on hover so users know which
+   is which. The upgrade button hides for Pro users.                       */
+
+function BottomCtaIcons({ plan }: { plan: "free" | "basic" | "pro" }) {
+  const showUpgrade = plan !== "pro";
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {showUpgrade && (
+        <Link
+          href="/billing?upgrade=pro"
+          title="Upgrade to Pro"
+          aria-label="Upgrade to Pro"
+          className="flex items-center justify-center size-10 rounded-[12px] bg-rose-100 hover:bg-rose-200 transition-colors"
+        >
+          <Sparkles className="size-[18px] text-rose-600" strokeWidth={2} />
+        </Link>
+      )}
+      <Link
+        href="/settings/referrals"
+        title="Invite friends"
+        aria-label="Invite friends"
+        className="flex items-center justify-center size-10 rounded-[12px] bg-rose-100 hover:bg-rose-200 transition-colors"
+      >
+        <Gift className="size-[18px] text-rose-600" strokeWidth={2} />
+      </Link>
+    </div>
+  );
+}
+
+/* ─── Bottom CTA card — expanded mode ──────────────────────────────────
    One card, two icon+label rows. The upgrade row hides for Pro users so
    the card collapses to just the invite row. Each row is a full-bleed
    tap target with a subtle hover background.                              */
