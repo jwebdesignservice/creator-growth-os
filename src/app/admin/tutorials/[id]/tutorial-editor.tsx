@@ -23,7 +23,7 @@ import {
   Play,
   Pause,
   Volume2,
-  Settings,
+  VolumeX,
   Maximize2,
   ListChecks,
   Plus,
@@ -1138,10 +1138,15 @@ function VideoPreviewCard({
   durationLabel: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0-100
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [rate, setRate] = useState(1);
+
+  const SPEEDS = [1, 1.25, 1.5, 2, 0.5];
 
   function togglePlay() {
     const v = videoRef.current;
@@ -1152,6 +1157,38 @@ function VideoPreviewCard({
       v.pause();
       setPlaying(false);
     }
+  }
+
+  function toggleMute() {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+  }
+
+  function cycleSpeed() {
+    const v = videoRef.current;
+    if (!v) return;
+    const next = SPEEDS[(SPEEDS.indexOf(rate) + 1) % SPEEDS.length];
+    v.playbackRate = next;
+    setRate(next);
+  }
+
+  function toggleFullscreen() {
+    if (typeof document === "undefined") return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => undefined);
+    } else {
+      surfaceRef.current?.requestFullscreen?.().catch(() => undefined);
+    }
+  }
+
+  function onSeek(e: React.MouseEvent<HTMLButtonElement>) {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    v.currentTime = ratio * v.duration;
   }
 
   function onTimeUpdate() {
@@ -1170,7 +1207,7 @@ function VideoPreviewCard({
   return (
     <section className="card overflow-hidden">
       {/* Video / poster surface */}
-      <div className="relative aspect-video bg-ink-900 group">
+      <div ref={surfaceRef} className="relative aspect-video bg-ink-900 group">
         {videoUrl ? (
           <video
             ref={videoRef}
@@ -1196,66 +1233,67 @@ function VideoPreviewCard({
           </div>
         )}
 
-        {/* Controls overlay */}
-        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={togglePlay}
-              aria-label={playing ? "Pause" : "Play"}
-              className="size-8 rounded-full bg-white/90 hover:bg-white inline-flex items-center justify-center text-ink-900 transition-colors"
-            >
-              {playing ? (
-                <Pause className="size-3.5" strokeWidth={2.5} fill="currentColor" />
-              ) : (
-                <Play className="size-3.5 ml-0.5" strokeWidth={2.5} fill="currentColor" />
-              )}
-            </button>
-            <button
-              type="button"
-              aria-label="Volume"
-              className="size-8 rounded-full hover:bg-white/15 inline-flex items-center justify-center text-white transition-colors"
-            >
-              <Volume2 className="size-4" strokeWidth={2} />
-            </button>
-            <span className="text-[11px] tabular-nums text-white/90 font-medium">
-              {formatVideoTime(currentTime)} / {duration ? formatVideoTime(duration) : durationLabel}
-            </span>
-            <div
-              className="flex-1 h-1 rounded-full bg-white/30 overflow-hidden"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(progress)}
-            >
-              <div className="h-full bg-rose-500" style={{ width: `${progress}%` }} />
+        {/* Controls overlay — only when there's a real video to control. */}
+        {videoUrl && (
+          <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-label={playing ? "Pause" : "Play"}
+                className="size-8 rounded-full bg-white/90 hover:bg-white inline-flex items-center justify-center text-ink-900 transition-colors"
+              >
+                {playing ? (
+                  <Pause className="size-3.5" strokeWidth={2.5} fill="currentColor" />
+                ) : (
+                  <Play className="size-3.5 ml-0.5" strokeWidth={2.5} fill="currentColor" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={toggleMute}
+                aria-label={muted ? "Unmute" : "Mute"}
+                className="size-8 rounded-full hover:bg-white/15 inline-flex items-center justify-center text-white transition-colors"
+              >
+                {muted ? (
+                  <VolumeX className="size-4" strokeWidth={2} />
+                ) : (
+                  <Volume2 className="size-4" strokeWidth={2} />
+                )}
+              </button>
+              <span className="text-[11px] tabular-nums text-white/90 font-medium">
+                {formatVideoTime(currentTime)} / {duration ? formatVideoTime(duration) : durationLabel}
+              </span>
+              <button
+                type="button"
+                onClick={onSeek}
+                aria-label="Seek"
+                className="flex-1 h-2 rounded-full bg-white/30 overflow-hidden cursor-pointer"
+              >
+                <div
+                  className="h-full bg-rose-500 pointer-events-none"
+                  style={{ width: `${progress}%` }}
+                />
+              </button>
+              <button
+                type="button"
+                onClick={cycleSpeed}
+                aria-label={`Playback speed ${rate}x`}
+                className="px-1.5 h-6 inline-flex items-center text-[11px] font-semibold text-white/90 rounded-full bg-white/15 hover:bg-white/25 tabular-nums transition-colors"
+              >
+                {rate}x
+              </button>
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                aria-label="Fullscreen"
+                className="size-8 rounded-full hover:bg-white/15 inline-flex items-center justify-center text-white transition-colors"
+              >
+                <Maximize2 className="size-4" strokeWidth={2} />
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label="Mute"
-              className="size-8 rounded-full hover:bg-white/15 inline-flex items-center justify-center text-white transition-colors"
-            >
-              <Volume2 className="size-4" strokeWidth={2} />
-            </button>
-            <span className="px-1.5 h-6 inline-flex items-center text-[11px] font-semibold text-white/90 rounded-full bg-white/15">
-              1x
-            </span>
-            <button
-              type="button"
-              aria-label="Settings"
-              className="size-8 rounded-full hover:bg-white/15 inline-flex items-center justify-center text-white transition-colors"
-            >
-              <Settings className="size-4" strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              aria-label="Fullscreen"
-              className="size-8 rounded-full hover:bg-white/15 inline-flex items-center justify-center text-white transition-colors"
-            >
-              <Maximize2 className="size-4" strokeWidth={2} />
-            </button>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
