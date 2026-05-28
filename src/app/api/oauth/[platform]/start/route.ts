@@ -77,6 +77,28 @@ export async function GET(
     );
   }
 
+  // Single-platform rule: only one social account can be connected at a
+  // time. If the user already has a live access_token on any other
+  // platform, send them back with a clear "disconnect first" message.
+  // Reconnecting the SAME platform is allowed (refresh-token flow).
+  const { data: existing } = await supabase
+    .from("social_accounts")
+    .select("platform")
+    .eq("user_id", user.id)
+    .not("access_token", "is", null)
+    .neq("platform", provider.key)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    const origin = new URL(_req.url).origin;
+    const url = new URL("/performance", origin);
+    url.searchParams.set("connect", "blocked");
+    url.searchParams.set("p", provider.key);
+    url.searchParams.set("active", String(existing.platform));
+    return NextResponse.redirect(url);
+  }
+
   // Generate state (CSRF protection) and optionally PKCE verifier.
   const state = randomToken(32);
   const pkce = provider.usePkce ? await pkcePair() : null;

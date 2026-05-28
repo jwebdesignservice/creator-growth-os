@@ -27,6 +27,14 @@ import type { SocialConnection } from "@/lib/social/queries";
 type Props = { connections: SocialConnection[] };
 
 export function ConnectSocialCard({ connections }: Props) {
+  // Only one social platform may be connected at a time. If any is
+  // connected, every OTHER row's Connect button is disabled with a
+  // hint to disconnect first.
+  const activeConnection = connections.find(
+    (c) => c.connectionStatus === "connected",
+  );
+  const activeLabel = activeConnection?.label ?? null;
+
   return (
     <section className="card p-5 sm:p-6">
       <header className="flex items-start justify-between gap-4 flex-wrap mb-5">
@@ -39,9 +47,9 @@ export function ConnectSocialCard({ connections }: Props) {
               Connect Social Accounts
             </h2>
             <p className="text-[13px] text-ink-500 mt-1 max-w-[58ch] leading-snug">
-              Connect your creator platforms to enable automatic performance
-              tracking across followers, reach, views, engagement and content
-              output.
+              Connect one of your creator platforms to enable automatic
+              performance tracking. Pick the one you focus on most — you can
+              switch by disconnecting and connecting another.
             </p>
           </div>
         </div>
@@ -50,13 +58,21 @@ export function ConnectSocialCard({ connections }: Props) {
 
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {connections.map((c) => (
-          <PlatformRow key={c.platform} conn={c} />
+          <PlatformRow
+            key={c.platform}
+            conn={c}
+            lockedByOther={
+              activeConnection != null &&
+              activeConnection.platform !== c.platform
+            }
+            activeLabel={activeLabel}
+          />
         ))}
       </ul>
 
       <p className="text-[11.5px] text-ink-400 mt-5 leading-snug">
-        Automatic syncing requires platform permissions. Manual tracking
-        remains available.
+        Only one platform can be connected at a time. Disconnect the current
+        one to switch to another.
       </p>
     </section>
   );
@@ -64,7 +80,15 @@ export function ConnectSocialCard({ connections }: Props) {
 
 // ── Per-platform row ──────────────────────────────────────────────────
 
-function PlatformRow({ conn }: { conn: SocialConnection }) {
+function PlatformRow({
+  conn,
+  lockedByOther,
+  activeLabel,
+}: {
+  conn: SocialConnection;
+  lockedByOther: boolean;
+  activeLabel: string | null;
+}) {
   const [pending, startTransition] = useTransition();
 
   function connect() {
@@ -117,6 +141,12 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
     } else if (conn.lastSyncedAt) {
       hintBelow = `Synced ${relativeTime(conn.lastSyncedAt)}`;
     }
+  } else if (lockedByOther) {
+    // Override the requirement hint with the disconnect-first message
+    // so users understand why the Connect button is greyed out.
+    hintBelow = activeLabel
+      ? `Disconnect ${activeLabel} first to switch to ${conn.label}.`
+      : "Disconnect the current platform first to switch.";
   } else {
     hintBelow = REQUIREMENT_HINT[conn.platform] ?? null;
   }
@@ -186,14 +216,26 @@ function PlatformRow({ conn }: { conn: SocialConnection }) {
             </button>
           </div>
         ) : conn.connectionStatus === "not_connected" ? (
-          <button
-            type="button"
-            onClick={connect}
-            aria-label={`Connect ${conn.label}`}
-            className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-rose-600 hover:bg-rose-700 text-white"
-          >
-            Connect
-          </button>
+          lockedByOther ? (
+            <button
+              type="button"
+              disabled
+              aria-disabled
+              title={`Disconnect ${activeLabel ?? "the current platform"} to connect ${conn.label}.`}
+              className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-white border border-ink-100 text-ink-400 cursor-not-allowed"
+            >
+              Locked
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={connect}
+              aria-label={`Connect ${conn.label}`}
+              className="inline-flex items-center justify-center h-8 px-3 rounded-[10px] text-[12.5px] font-medium shrink-0 bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              Connect
+            </button>
+          )
         ) : (
           <button
             type="button"
