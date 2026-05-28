@@ -808,12 +808,6 @@ function MetadataTab(props: {
             increase views and completion.
           </p>
         </div>
-        <button
-          type="button"
-          className="shrink-0 inline-flex items-center justify-center h-9 px-3.5 rounded-[10px] bg-white border border-ink-200 text-ink-900 text-[12.5px] font-medium hover:bg-cream-100 transition-colors"
-        >
-          View tips
-        </button>
       </section>
 
       {/* Main form card — fields stacked one per row inside grouped sections
