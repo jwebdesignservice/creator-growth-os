@@ -48,8 +48,8 @@ const SECONDARY: NavItem[] = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-const WIDTH_EXPANDED = 200;
-const WIDTH_COLLAPSED = 64;
+const WIDTH_EXPANDED = 240;
+const WIDTH_COLLAPSED = 76;
 /** Time (ms) the sidebar stays expanded after first page load before auto-collapsing. */
 const AUTO_COLLAPSE_MS = 2500;
 
@@ -127,12 +127,16 @@ export function Sidebar({
         )}
         style={{ width: railWidth }}
       >
-        {/* Logo */}
+        {/* Logo — `shrink-0` on the BrandMark wrapper so flex can't
+            squeeze it down when the rail is narrow (without this the
+            icon ends up ~4px wide and effectively invisible). */}
         <Link
           href="/dashboard"
-          className="flex items-center gap-2.5 px-4 py-4 hover:opacity-90 transition-opacity shrink-0"
+          className="flex items-center gap-3 px-5 py-5 hover:opacity-90 transition-opacity shrink-0"
         >
-          <BrandMark size={28} />
+          <span className="shrink-0">
+            <BrandMark size={30} />
+          </span>
           <span
             className={cn(
               "text-[16px] font-semibold tracking-tight text-ink-900 whitespace-nowrap transition-opacity duration-150",
@@ -143,8 +147,10 @@ export function Sidebar({
           </span>
         </Link>
 
-        {/* Nav */}
-        <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto">
+        {/* Nav — explicit overflow-x-hidden prevents a horizontal
+            scrollbar appearing inside the rail when label widths
+            exceed the collapsed (76px) wrapper. */}
+        <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden">
           <ul className="space-y-1">
             {PRIMARY.map((item) => (
               <NavLink
@@ -176,10 +182,11 @@ export function Sidebar({
           {isAdmin && (
             <Link
               href="/admin"
-              className="flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors"
+              title={!expanded ? "Admin Console" : undefined}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors"
             >
               <ShieldCheck
-                className="size-[17px] text-rose-300 shrink-0"
+                className="size-[18px] text-rose-300 shrink-0"
                 strokeWidth={1.8}
               />
               <span
@@ -196,10 +203,11 @@ export function Sidebar({
           {isDev && (
             <Link
               href="/dev"
-              className="mt-2 flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
+              title={!expanded ? "Dev Console" : undefined}
+              className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
             >
               <Terminal
-                className="size-[17px] text-[#7AA9FF] shrink-0"
+                className="size-[18px] text-[#7AA9FF] shrink-0"
                 strokeWidth={1.8}
               />
               <span
@@ -219,7 +227,7 @@ export function Sidebar({
             would just clip mid-word. Fades alongside the width transition. */}
         <div
           className={cn(
-            "p-4 space-y-3 shrink-0 transition-opacity duration-150",
+            "p-5 space-y-3 shrink-0 transition-opacity duration-150",
             expanded
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none",
@@ -254,7 +262,7 @@ function NavLink({
         href={item.href}
         title={!expanded ? item.label : undefined}
         className={cn(
-          "group flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-[13.5px] font-medium transition-colors",
+          "group flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13.5px] font-medium transition-colors",
           active
             ? "bg-rose-100 text-rose-700"
             : "text-ink-700 hover:bg-cream-200 hover:text-ink-900",
@@ -262,7 +270,7 @@ function NavLink({
       >
         <Icon
           className={cn(
-            "size-[17px] shrink-0",
+            "size-[18px] shrink-0",
             active ? "text-rose-600" : "text-ink-500",
           )}
           strokeWidth={1.8}
