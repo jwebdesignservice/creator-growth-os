@@ -14,8 +14,6 @@ import {
   Eye,
   Save,
   Rocket,
-  Video as VideoIcon,
-  Clock,
   FileVideo,
   RefreshCw,
   UploadCloud,
@@ -244,43 +242,29 @@ export function VideoLessonEditor({
         </div>
       </header>
 
-      {/* Body grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] gap-5 items-start">
-        {/* LEFT */}
-        <div className="space-y-5 min-w-0">
-          <VideoAttachment
-            programId={programId}
-            lessonId={lesson.id}
-            videoUrl={videoUrl}
-            duration={duration}
-            onChange={(url, dur) => {
-              setVideoUrl(url);
-              if (dur != null) setDuration(dur);
-            }}
-            onError={(msg) => setToast({ kind: "error", msg })}
-          />
+      {/* Body — single column; video + cover share one card */}
+      <div className="space-y-5 max-w-[1080px]">
+        <VideoAndCover
+          programId={programId}
+          lessonId={lesson.id}
+          videoUrl={videoUrl}
+          duration={duration}
+          coverUrl={coverUrl}
+          showTime={showTimeOnCover}
+          onVideoChange={(url, dur) => {
+            setVideoUrl(url);
+            if (dur != null) setDuration(dur);
+          }}
+          onCoverChange={setCoverUrl}
+          onShowTimeChange={setShowTime}
+          onError={(msg) => setToast({ kind: "error", msg })}
+        />
 
-          <OverviewEditor value={description} onChange={setDescription} />
+        <OverviewEditor value={description} onChange={setDescription} />
 
-          <LearningList items={learning} onChange={setLearning} />
+        <LearningList items={learning} onChange={setLearning} />
 
-          <ActionStepsList items={steps} onChange={setSteps} />
-        </div>
-
-        {/* RIGHT */}
-        <aside className="min-w-0">
-          <ThumbnailSetup
-            programId={programId}
-            lessonId={lesson.id}
-            videoUrl={videoUrl}
-            coverUrl={coverUrl}
-            duration={duration}
-            showTime={showTimeOnCover}
-            onShowTimeChange={setShowTime}
-            onCoverChange={setCoverUrl}
-            onError={(msg) => setToast({ kind: "error", msg })}
-          />
-        </aside>
+        <ActionStepsList items={steps} onChange={setSteps} />
       </div>
     </div>
   );
@@ -349,28 +333,41 @@ function formatClock(seconds: number): string {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════ */
-/*  A. Video attachment                                                     */
+/*  A. Video & cover  (combined — player is the main preview, cover sits     */
+/*  beside it as a smaller derived thumbnail)                                */
 /* ═══════════════════════════════════════════════════════════════════════ */
 
-function VideoAttachment({
+function VideoAndCover({
   programId,
   lessonId,
   videoUrl,
   duration,
-  onChange,
+  coverUrl,
+  showTime,
+  onVideoChange,
+  onCoverChange,
+  onShowTimeChange,
   onError,
 }: {
   programId: string;
   lessonId: string;
   videoUrl: string | null;
   duration: number;
-  onChange: (url: string | null, dur: number | null) => void;
+  coverUrl: string | null;
+  showTime: boolean;
+  onVideoChange: (url: string | null, dur: number | null) => void;
+  onCoverChange: (url: string | null) => void;
+  onShowTimeChange: (v: boolean) => void;
   onError: (msg: string) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const captureRef = useRef<HTMLVideoElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [frameTime, setFrameTime] = useState(Math.min(12, duration || 0));
 
-  async function handleFile(file: File) {
+  async function handleVideo(file: File) {
     if (!file.type.startsWith("video/")) {
       onError("Please choose a video file (MP4, MOV or WebM).");
       return;
@@ -379,69 +376,130 @@ function VideoAttachment({
     const dur = await readVideoDuration(file);
     const res = await uploadToBucket(programId, lessonId, file, "video");
     setUploading(false);
-    if ("error" in res) {
-      onError(res.error);
+    if ("error" in res) { onError(res.error); return; }
+    onVideoChange(res.url, dur);
+    setFrameTime(Math.min(12, dur || 0));
+  }
+
+  async function handleCover(file: File) {
+    if (!file.type.startsWith("image/")) {
+      onError("Choose an image file (PNG, JPG or WebP).");
       return;
     }
-    onChange(res.url, dur);
+    setBusy(true);
+    const res = await uploadToBucket(programId, lessonId, file, "cover");
+    setBusy(false);
+    if ("error" in res) { onError(res.error); return; }
+    onCoverChange(res.url);
+  }
+
+  /* Grab the current frame off a hidden capture <video> → upload as cover. */
+  async function captureFrame() {
+    const v = captureRef.current;
+    if (!v || !videoUrl) {
+      onError("Upload a video first, then you can grab a frame from it.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await new Promise<void>((resolve) => {
+        const onSeeked = () => { v.removeEventListener("seeked", onSeeked); resolve(); };
+        v.addEventListener("seeked", onSeeked);
+        v.currentTime = Math.min(frameTime, Math.max(0, (v.duration || duration) - 0.1));
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth || 1280;
+      canvas.height = v.videoHeight || 720;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas unavailable.");
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+      const blob: Blob | null = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+      if (!blob) throw new Error("Could not capture frame.");
+      const f = new File([blob], `frame-${Math.round(frameTime)}.jpg`, { type: "image/jpeg" });
+      const res = await uploadToBucket(programId, lessonId, f, "cover");
+      if ("error" in res) { onError(res.error); return; }
+      onCoverChange(res.url);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : "Frame capture failed.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const fileName = videoUrl ? videoUrl.split("/").pop() || "video" : null;
 
   return (
-    <Section letter="A" title="Video attachment" subtitle="Upload or replace the video learners will watch.">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left: file controls */}
-        <div>
+    <Section
+      letter="A"
+      title="Video & cover"
+      subtitle="Upload the lesson video, then pick the cover frame learners see first."
+      badge="16:9 · 1280×720"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-5">
+        {/* ── Video: player when present, otherwise a compact upload box ── */}
+        <div className="min-w-0">
           {videoUrl ? (
             <>
-              <div className="flex items-center gap-2.5 mb-3">
-                <span className="size-9 rounded-[10px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
-                  <FileVideo className="size-4" strokeWidth={2} />
-                </span>
-                <div className="min-w-0">
-                  <div className="text-[13px] font-semibold text-ink-900 truncate">
-                    {fileName}
-                  </div>
-                  <div className="flex items-center gap-3 text-[11.5px] text-ink-500 mt-0.5">
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="size-3" strokeWidth={2} />
-                      {formatClock(duration)}
-                    </span>
-                  </div>
-                </div>
+              <div className="rounded-[14px] overflow-hidden bg-ink-900 aspect-video">
+                <video src={videoUrl} controls className="w-full h-full" />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="mt-2.5 flex items-center gap-2.5 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-ink-600 min-w-0">
+                  <FileVideo className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
+                  <span className="truncate max-w-[200px]">{fileName}</span>
+                  <span className="text-ink-300">·</span>
+                  <span className="tabular-nums">{formatClock(duration)}</span>
+                </span>
+                <span className="flex-1" />
                 <button
                   type="button"
-                  onClick={() => inputRef.current?.click()}
+                  onClick={() => videoInputRef.current?.click()}
                   disabled={uploading}
-                  className="inline-flex items-center gap-2 h-10 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
                 >
                   {uploading ? (
                     <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
                   ) : (
                     <RefreshCw className="size-3.5" strokeWidth={2} />
                   )}
-                  Replace video
+                  Replace
                 </button>
                 <button
                   type="button"
-                  onClick={() => onChange(null, 0)}
+                  onClick={() => onVideoChange(null, 0)}
                   disabled={uploading}
-                  className="inline-flex items-center gap-2 h-10 px-3.5 rounded-[10px] border border-ink-200 text-[12.5px] font-medium text-ink-500 hover:bg-cream-100 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 text-[12px] font-medium text-ink-500 hover:bg-cream-100 disabled:opacity-50"
                 >
                   <Trash2 className="size-3.5" strokeWidth={2} />
                   Remove
                 </button>
               </div>
+              {/* cover-frame scrubber */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-ink-500">Cover frame at</span>
+                  <span className="text-[12px] font-bold text-ink-900 tabular-nums">
+                    {formatClock(frameTime)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(1, duration)}
+                  value={frameTime}
+                  onChange={(e) => setFrameTime(Number(e.target.value))}
+                  className="w-full accent-rose-600"
+                />
+              </div>
+              {/* hidden capture source */}
+              <video ref={captureRef} src={videoUrl} className="hidden" muted playsInline crossOrigin="anonymous" preload="metadata" />
             </>
           ) : (
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
+              onClick={() => videoInputRef.current?.click()}
               disabled={uploading}
-              className="w-full h-[180px] rounded-[14px] border-2 border-dashed border-rose-200 bg-rose-50/40 hover:bg-rose-50/70 flex flex-col items-center justify-center gap-2 text-rose-700 transition-colors disabled:opacity-60"
+              className="w-full aspect-video rounded-[14px] border-2 border-dashed border-rose-200 bg-rose-50/40 hover:bg-rose-50/70 flex flex-col items-center justify-center gap-2 text-rose-700 transition-colors disabled:opacity-60"
             >
               {uploading ? (
                 <Loader2 className="size-7 animate-spin" strokeWidth={1.8} />
@@ -457,28 +515,98 @@ function VideoAttachment({
             </button>
           )}
           <input
-            ref={inputRef}
+            ref={videoInputRef}
             type="file"
             accept="video/mp4,video/quicktime,video/webm"
             className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.target.value = "";
-            }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVideo(f); e.target.value = ""; }}
           />
         </div>
 
-        {/* Right: player */}
-        <div className="rounded-[14px] overflow-hidden bg-ink-900 aspect-video flex items-center justify-center">
-          {videoUrl ? (
-            <video src={videoUrl} controls className="w-full h-full" />
-          ) : (
-            <div className="text-center text-white/60">
-              <VideoIcon className="size-8 mx-auto mb-2" strokeWidth={1.6} />
-              <p className="text-[12.5px]">No video uploaded yet</p>
-            </div>
+        {/* ── Cover: smaller derived thumbnail + controls ── */}
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-400 mb-1.5">
+            Cover
+          </div>
+          <div className="relative rounded-[12px] overflow-hidden bg-ink-900 aspect-video flex items-center justify-center">
+            {coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="Lesson cover" className="w-full h-full object-cover" />
+            ) : (
+              <div className="text-white/50 text-center px-2">
+                <ImageIcon className="size-6 mx-auto mb-1" strokeWidth={1.6} />
+                <p className="text-[11px]">Pick a frame or upload</p>
+              </div>
+            )}
+            {showTime && (
+              <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-ink-900/80 text-white text-[10.5px] font-semibold tabular-nums">
+                {formatClock(duration)}
+              </span>
+            )}
+          </div>
+
+          <label className="mt-2 flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showTime}
+              onChange={(e) => onShowTimeChange(e.target.checked)}
+              className="size-4 rounded border-ink-300 text-rose-600 focus:ring-rose-300"
+            />
+            <span className="text-[12px] text-ink-700">Show time on cover</span>
+          </label>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={captureFrame}
+              disabled={busy || !videoUrl}
+              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[12px] font-semibold"
+            >
+              {busy ? <Loader2 className="size-3.5 animate-spin" strokeWidth={2} /> : <Camera className="size-3.5" strokeWidth={2} />}
+              Select frame
+            </button>
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
+            >
+              <UploadCloud className="size-3.5" strokeWidth={2} />
+              Upload
+            </button>
+            <button
+              type="button"
+              onClick={() => onError("AI cover generation is coming soon.")}
+              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100"
+            >
+              <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} />
+              Generate
+            </button>
+            <button
+              type="button"
+              onClick={() => onError("Looping previews are coming soon.")}
+              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100"
+            >
+              <Repeat className="size-3.5" strokeWidth={2} />
+              Loop
+            </button>
+          </div>
+          {coverUrl && (
+            <button
+              type="button"
+              onClick={() => onCoverChange(null)}
+              className="mt-2 text-[11.5px] text-ink-500 hover:text-rose-600"
+            >
+              Remove cover
+            </button>
           )}
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCover(f); e.target.value = ""; }}
+          />
         </div>
       </div>
     </Section>
@@ -783,201 +911,6 @@ function StepModal({
         </div>
       </div>
     </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════ */
-/*  E. Thumbnail setup                                                      */
-/* ═══════════════════════════════════════════════════════════════════════ */
-
-function ThumbnailSetup({
-  programId,
-  lessonId,
-  videoUrl,
-  coverUrl,
-  duration,
-  showTime,
-  onShowTimeChange,
-  onCoverChange,
-  onError,
-}: {
-  programId: string;
-  lessonId: string;
-  videoUrl: string | null;
-  coverUrl: string | null;
-  duration: number;
-  showTime: boolean;
-  onShowTimeChange: (v: boolean) => void;
-  onCoverChange: (url: string | null) => void;
-  onError: (msg: string) => void;
-}) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [busy, setBusy] = useState(false);
-  const [frameTime, setFrameTime] = useState(Math.min(12, duration || 0));
-
-  async function handleUpload(file: File) {
-    if (!file.type.startsWith("image/")) {
-      onError("Choose an image file (PNG, JPG or WebP).");
-      return;
-    }
-    setBusy(true);
-    const res = await uploadToBucket(programId, lessonId, file, "cover");
-    setBusy(false);
-    if ("error" in res) { onError(res.error); return; }
-    onCoverChange(res.url);
-  }
-
-  /* Capture the current frame of the hidden <video> to a canvas and upload
-     it as the cover — "Select frame" made real. */
-  async function captureFrame() {
-    const v = videoRef.current;
-    if (!v || !videoUrl) {
-      onError("Upload a video first, then you can grab a frame from it.");
-      return;
-    }
-    setBusy(true);
-    try {
-      await new Promise<void>((resolve) => {
-        const onSeeked = () => { v.removeEventListener("seeked", onSeeked); resolve(); };
-        v.addEventListener("seeked", onSeeked);
-        v.currentTime = Math.min(frameTime, Math.max(0, (v.duration || duration) - 0.1));
-      });
-      const canvas = document.createElement("canvas");
-      canvas.width = v.videoWidth || 1280;
-      canvas.height = v.videoHeight || 720;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas unavailable.");
-      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      const blob: Blob | null = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.85));
-      if (!blob) throw new Error("Could not capture frame.");
-      const file = new File([blob], `frame-${Math.round(frameTime)}.jpg`, { type: "image/jpeg" });
-      const res = await uploadToBucket(programId, lessonId, file, "cover");
-      if ("error" in res) { onError(res.error); return; }
-      onCoverChange(res.url);
-    } catch (e) {
-      onError(e instanceof Error ? e.message : "Frame capture failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Section letter="E" title="Thumbnail setup" subtitle="Choose the frame learners see first." badge="16:9 · 1280×720">
-      {/* Preview */}
-      <div className="relative rounded-[14px] overflow-hidden bg-ink-900 aspect-video flex items-center justify-center">
-        {coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverUrl} alt="Lesson cover" className="w-full h-full object-cover" />
-        ) : videoUrl ? (
-          <video ref={videoRef} src={videoUrl} className="w-full h-full object-cover" muted playsInline crossOrigin="anonymous" preload="metadata" />
-        ) : (
-          <div className="text-white/50 text-center">
-            <ImageIcon className="size-7 mx-auto mb-1.5" strokeWidth={1.6} />
-            <p className="text-[11.5px]">No thumbnail yet</p>
-          </div>
-        )}
-        {showTime && (
-          <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-ink-900/80 text-white text-[11px] font-semibold tabular-nums">
-            {formatClock(duration)}
-          </span>
-        )}
-        {/* hidden video used for frame capture when a cover image is shown */}
-        {coverUrl && videoUrl && (
-          <video ref={videoRef} src={videoUrl} className="hidden" muted playsInline crossOrigin="anonymous" preload="metadata" />
-        )}
-      </div>
-
-      {/* Frame scrubber */}
-      {videoUrl && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] text-ink-500">Frame at</span>
-            <span className="text-[12.5px] font-bold text-ink-900 tabular-nums">{formatClock(frameTime)}</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(1, duration)}
-            value={frameTime}
-            onChange={(e) => setFrameTime(Number(e.target.value))}
-            className="w-full accent-rose-600"
-          />
-        </div>
-      )}
-
-      {/* Show time toggle */}
-      <label className="mt-3 flex items-center gap-2 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={showTime}
-          onChange={(e) => onShowTimeChange(e.target.checked)}
-          className="size-4 rounded border-ink-300 text-rose-600 focus:ring-rose-300"
-        />
-        <span className="text-[12.5px] text-ink-700">Show time on cover</span>
-      </label>
-
-      {/* Actions */}
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={captureFrame}
-          disabled={busy || !videoUrl}
-          className="inline-flex items-center justify-center gap-1.5 h-10 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[12.5px] font-semibold"
-        >
-          {busy ? <Loader2 className="size-3.5 animate-spin" strokeWidth={2} /> : <Camera className="size-3.5" strokeWidth={2} />}
-          Select frame
-        </button>
-        <button
-          type="button"
-          onClick={() => onError("Looping previews are coming soon.")}
-          className="inline-flex items-center justify-center gap-1.5 h-10 rounded-[10px] border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-cream-100"
-        >
-          <Repeat className="size-3.5" strokeWidth={2} />
-          Choose loop
-        </button>
-        <button
-          type="button"
-          onClick={() => onError("AI cover generation is coming soon.")}
-          className="inline-flex items-center justify-center gap-1.5 h-10 rounded-[10px] border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-cream-100"
-        >
-          <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} />
-          Generate cover
-        </button>
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={busy}
-          className="inline-flex items-center justify-center gap-1.5 h-10 rounded-[10px] border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
-        >
-          <UploadCloud className="size-3.5" strokeWidth={2} />
-          Upload custom
-        </button>
-      </div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
-      />
-      {coverUrl && (
-        <button
-          type="button"
-          onClick={() => onCoverChange(null)}
-          className="mt-2 text-[12px] text-ink-500 hover:text-rose-600"
-        >
-          Remove thumbnail
-        </button>
-      )}
-
-      <div className="mt-4 rounded-[10px] bg-rose-50/60 border border-rose-100 px-3 py-2.5 flex items-start gap-2">
-        <Sparkles className="size-3.5 text-rose-500 shrink-0 mt-0.5" strokeWidth={2} />
-        <p className="text-[11.5px] text-ink-700 leading-snug">
-          Use a high-contrast frame with a clear subject for the best results.
-        </p>
-      </div>
-    </Section>
   );
 }
 
