@@ -152,8 +152,10 @@ export function Sidebar({
 
         {/* Nav — explicit overflow-x-hidden prevents a horizontal
             scrollbar appearing inside the rail when label widths
-            exceed the collapsed (76px) wrapper. */}
-        <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden">
+            exceed the collapsed (76px) wrapper. `scrollbar-hide`
+            keeps the nav scrollable on short viewports without
+            painting a visible scrollbar over the rail. */}
+        <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <ul className="space-y-1">
             {PRIMARY.map((item) => (
               <NavLink
