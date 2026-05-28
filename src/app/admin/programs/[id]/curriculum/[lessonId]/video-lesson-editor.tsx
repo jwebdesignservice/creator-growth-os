@@ -47,6 +47,7 @@ import {
   DollarSign,
   type LucideIcon,
 } from "lucide-react";
+import * as tus from "tus-js-client";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 import { saveVideoLesson, publishVideoLesson } from "./actions";
@@ -325,36 +326,112 @@ export function VideoLessonEditor({
 /*  Storage upload helper                                                   */
 /* ═══════════════════════════════════════════════════════════════════════ */
 
+/** Files larger than this go through resumable (TUS) uploads. Supabase's
+ *  one-shot .upload() caps at 5 GB and is fragile on slow/large transfers;
+ *  resumable handles multi-GB files in 6 MB chunks and survives reconnects. */
+const RESUMABLE_THRESHOLD = 6 * 1024 * 1024; // 6 MB
+const TUS_CHUNK_SIZE = 6 * 1024 * 1024; // Supabase requires a 6 MB chunk size
+
+/** Turn raw Supabase/TUS upload errors into clear, actionable guidance. */
+function friendlyUploadError(message: string): string {
+  const m = message || "";
+  if (/exceeded the maximum allowed size|maximum allowed size|payload too large|413|entity too large/i.test(m)) {
+    return (
+      "This file is larger than your Supabase upload limit. To allow it: " +
+      "(1) raise the lesson-media bucket's File size limit (Storage → lesson-media → Settings), " +
+      "(2) raise the project global limit (Settings → Storage → Upload file size limit), and " +
+      "(3) make sure your plan permits it — the Free plan caps uploads at 50 MB; paid plans go up to 50 GB."
+    );
+  }
+  if (/row-level security|not authorized|permission|unauthorized|403/i.test(m)) {
+    return "Upload blocked by storage permissions. Apply migration 0036 (lesson-media policies), then sign in again.";
+  }
+  if (/bucket not found|404/i.test(m)) {
+    return "Storage bucket 'lesson-media' is missing — create it in Supabase Storage.";
+  }
+  if (/jwt|expired|invalid token|session/i.test(m)) {
+    return "Your session expired. Refresh the page and sign in again, then retry the upload.";
+  }
+  if (/network|failed to fetch|load failed|connection/i.test(m)) {
+    return "Network interrupted during upload. Check your connection and retry — large uploads resume where they left off.";
+  }
+  return m || "Upload failed.";
+}
+
 async function uploadToBucket(
   programId: string,
   lessonId: string,
   file: File,
   kind: "video" | "cover",
+  onProgress?: (pct: number) => void,
 ): Promise<{ url: string } | { error: string }> {
+  const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+  const path = `${programId}/${lessonId}/${kind}-${Date.now()}.${ext}`;
+  // Large files (lesson videos) → resumable; small files (covers) → one-shot.
+  if (file.size > RESUMABLE_THRESHOLD) {
+    return uploadResumable(path, file, onProgress);
+  }
   try {
     const supabase = createClient();
-    const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-    const path = `${programId}/${lessonId}/${kind}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage
       .from(BUCKET)
       .upload(path, file, { upsert: true, contentType: file.type });
-    if (error) {
-      if (/row-level security|not authorized|permission/i.test(error.message)) {
-        return {
-          error:
-            "Upload blocked by storage permissions. Apply migration 0036 (lesson-media policies) to enable uploads.",
-        };
-      }
-      if (/bucket not found/i.test(error.message)) {
-        return { error: "Storage bucket 'lesson-media' is missing — create it in Supabase Storage." };
-      }
-      return { error: error.message };
-    }
+    if (error) return { error: friendlyUploadError(error.message) };
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
     return { url: data.publicUrl };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Upload failed." };
+    return { error: friendlyUploadError(e instanceof Error ? e.message : "") };
   }
+}
+
+/** Resumable (TUS) upload to Supabase Storage — required for files >5 GB and
+ *  far more reliable for any large file. Reports progress 0..1 via onProgress. */
+async function uploadResumable(
+  path: string,
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<{ url: string } | { error: string }> {
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) {
+    return { error: "Your session expired — refresh the page and sign in again to upload." };
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!baseUrl) return { error: "Storage is not configured (missing Supabase URL)." };
+
+  return new Promise((resolve) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `${baseUrl}/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: { authorization: `Bearer ${token}`, "x-upsert": "true" },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: TUS_CHUNK_SIZE,
+      metadata: {
+        bucketName: BUCKET,
+        objectName: path,
+        contentType: file.type || "application/octet-stream",
+        cacheControl: "3600",
+      },
+      onError: (error) => resolve({ error: friendlyUploadError(error.message) }),
+      onProgress: (sent, total) => onProgress?.(total > 0 ? sent / total : 0),
+      onSuccess: () => {
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        resolve({ url: data.publicUrl });
+      },
+    });
+    // Resume an interrupted upload of the same file if one exists.
+    upload
+      .findPreviousUploads()
+      .then((prev) => {
+        if (prev.length > 0) upload.resumeFromPreviousUpload(prev[0]);
+        upload.start();
+      })
+      .catch(() => upload.start());
+  });
 }
 
 /** Read a video file's duration (seconds) via a temporary <video>. */
@@ -415,6 +492,7 @@ function VideoAndCover({
   const coverInputRef = useRef<HTMLInputElement>(null);
   const captureRef = useRef<HTMLVideoElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [frameTime, setFrameTime] = useState(Math.min(12, duration || 0));
 
@@ -424,8 +502,11 @@ function VideoAndCover({
       return;
     }
     setUploading(true);
+    setUploadProgress(0);
     const dur = await readVideoDuration(file);
-    const res = await uploadToBucket(programId, lessonId, file, "video");
+    const res = await uploadToBucket(programId, lessonId, file, "video", (pct) =>
+      setUploadProgress(Math.round(pct * 100)),
+    );
     setUploading(false);
     if ("error" in res) { onError(res.error); return; }
     onVideoChange(res.url, dur);
@@ -558,11 +639,25 @@ function VideoAndCover({
                 <UploadCloud className="size-7" strokeWidth={1.8} />
               )}
               <span className="text-[13.5px] font-semibold">
-                {uploading ? "Uploading…" : "Upload video"}
+                {uploading ? `Uploading… ${uploadProgress}%` : "Upload video"}
               </span>
-              <span className="text-[11.5px] text-ink-500">
-                MP4, MOV or WebM · up to 50 MB
-              </span>
+              {uploading ? (
+                <>
+                  <span className="block w-2/3 max-w-[260px] h-1.5 rounded-full bg-rose-100 overflow-hidden">
+                    <span
+                      className="block h-full bg-rose-500 transition-[width] duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </span>
+                  <span className="text-[11.5px] text-ink-500">
+                    Large files upload in the background — keep this tab open.
+                  </span>
+                </>
+              ) : (
+                <span className="text-[11.5px] text-ink-500">
+                  MP4, MOV or WebM · up to 50 GB
+                </span>
+              )}
             </button>
           )}
           <input
