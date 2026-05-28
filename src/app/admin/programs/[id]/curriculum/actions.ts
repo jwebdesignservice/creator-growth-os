@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminClient } from "@/lib/admin/require-admin";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -97,6 +98,9 @@ export async function createModule(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
   if (!programId) return { ok: false, error: "Missing program id." };
   const title = input.title.trim();
@@ -105,7 +109,7 @@ export async function createModule(
   // Try the first-class table first.
   let number = input.number;
   if (number === undefined) {
-    const maxQuery = await ctx.supabase
+    const maxQuery = await db
       .from("program_modules")
       .select("number")
       .eq("program_id", programId)
@@ -113,12 +117,12 @@ export async function createModule(
       .limit(1)
       .maybeSingle();
     if (maxQuery.error && isMissingTable(maxQuery.error)) {
-      return createModuleDenormalized(ctx.supabase, programId, title, input.pro_only);
+      return createModuleDenormalized(db, programId, title, input.pro_only);
     }
     number = ((maxQuery.data?.number as number | null) ?? 0) + 1;
   }
 
-  const { error } = await ctx.supabase.from("program_modules").insert({
+  const { error } = await db.from("program_modules").insert({
     program_id: programId,
     number,
     title,
@@ -127,7 +131,7 @@ export async function createModule(
   });
   if (error) {
     if (isMissingTable(error)) {
-      return createModuleDenormalized(ctx.supabase, programId, title, input.pro_only);
+      return createModuleDenormalized(db, programId, title, input.pro_only);
     }
     return { ok: false, error: error.message };
   }
@@ -190,6 +194,9 @@ export async function renameModule(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
   const title = newTitle.trim();
   if (!title) return { ok: false, error: "Module title cannot be empty." };
@@ -201,7 +208,7 @@ export async function renameModule(
     if (!programId) {
       return { ok: false, error: "Missing program id for module rename." };
     }
-    const { error } = await ctx.supabase
+    const { error } = await db
       .from("lessons")
       .update({ module_title: title })
       .eq("program_id", programId)
@@ -213,7 +220,7 @@ export async function renameModule(
   }
 
   // Need the program_id + number to cascade to lessons.
-  const { data: mod, error: readErr } = await ctx.supabase
+  const { data: mod, error: readErr } = await db
     .from("program_modules")
     .select("id, program_id, number")
     .eq("id", moduleId)
@@ -221,13 +228,13 @@ export async function renameModule(
   if (readErr) return { ok: false, error: readErr.message };
   if (!mod) return { ok: false, error: "Module not found." };
 
-  const { error: upd1 } = await ctx.supabase
+  const { error: upd1 } = await db
     .from("program_modules")
     .update({ title })
     .eq("id", moduleId);
   if (upd1) return { ok: false, error: upd1.message };
 
-  const { error: upd2 } = await ctx.supabase
+  const { error: upd2 } = await db
     .from("lessons")
     .update({ module_title: title })
     .eq("program_id", mod.program_id)
@@ -250,6 +257,9 @@ export async function deleteModule(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
   // Denormalized synthetic id: operate on lessons by module_number,
   // scoped to the program (module_number is per-program).
@@ -259,14 +269,14 @@ export async function deleteModule(
       return { ok: false, error: "Missing program id for module delete." };
     }
     if (opts.keepLessons) {
-      const { error } = await ctx.supabase
+      const { error } = await db
         .from("lessons")
         .update({ module_number: null, module_title: null })
         .eq("program_id", opts.programId)
         .eq("module_number", synthNumber);
       if (error) return { ok: false, error: error.message };
     } else {
-      const { error } = await ctx.supabase
+      const { error } = await db
         .from("lessons")
         .delete()
         .eq("program_id", opts.programId)
@@ -278,7 +288,7 @@ export async function deleteModule(
     return { ok: true };
   }
 
-  const { data: mod, error: readErr } = await ctx.supabase
+  const { data: mod, error: readErr } = await db
     .from("program_modules")
     .select("id, program_id, number")
     .eq("id", moduleId)
@@ -287,14 +297,14 @@ export async function deleteModule(
   if (!mod) return { ok: false, error: "Module not found." };
 
   if (opts.keepLessons) {
-    const { error: detach } = await ctx.supabase
+    const { error: detach } = await db
       .from("lessons")
       .update({ module_number: null, module_title: null })
       .eq("program_id", mod.program_id)
       .eq("module_number", mod.number);
     if (detach) return { ok: false, error: detach.message };
   } else {
-    const { error: del } = await ctx.supabase
+    const { error: del } = await db
       .from("lessons")
       .delete()
       .eq("program_id", mod.program_id)
@@ -302,7 +312,7 @@ export async function deleteModule(
     if (del) return { ok: false, error: del.message };
   }
 
-  const { error } = await ctx.supabase
+  const { error } = await db
     .from("program_modules")
     .delete()
     .eq("id", moduleId);
@@ -324,6 +334,9 @@ export async function reorderModules(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
   if (!programId) return { ok: false, error: "Missing program id." };
 
   // All-synthetic → denormalized reorder via a two-phase renumber to dodge
@@ -332,7 +345,7 @@ export async function reorderModules(
     const oldNumbers = orderedIds.map((id) => parseSyntheticModule(id)!);
     // Phase 1: park at offset numbers to avoid clashes.
     for (let i = 0; i < oldNumbers.length; i++) {
-      const { error } = await ctx.supabase
+      const { error } = await db
         .from("lessons")
         .update({ module_number: 1000 + i })
         .eq("program_id", programId)
@@ -341,7 +354,7 @@ export async function reorderModules(
     }
     // Phase 2: land on final 1..n.
     for (let i = 0; i < oldNumbers.length; i++) {
-      const { error } = await ctx.supabase
+      const { error } = await db
         .from("lessons")
         .update({ module_number: i + 1 })
         .eq("program_id", programId)
@@ -354,7 +367,7 @@ export async function reorderModules(
   }
 
   // Fetch current numbers so we know what to migrate lessons from.
-  const { data: existing } = await ctx.supabase
+  const { data: existing } = await db
     .from("program_modules")
     .select("id, number")
     .eq("program_id", programId);
@@ -368,14 +381,14 @@ export async function reorderModules(
     const oldNumber = oldNumberById.get(id);
     if (oldNumber === newNumber) continue;
 
-    const { error: mErr } = await ctx.supabase
+    const { error: mErr } = await db
       .from("program_modules")
       .update({ number: newNumber })
       .eq("id", id);
     if (mErr) return { ok: false, error: mErr.message };
 
     if (oldNumber !== undefined) {
-      const { error: lErr } = await ctx.supabase
+      const { error: lErr } = await db
         .from("lessons")
         .update({ module_number: newNumber })
         .eq("program_id", programId)
@@ -414,6 +427,9 @@ export async function addLessonToModule(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Lesson title is required." };
@@ -426,7 +442,7 @@ export async function addLessonToModule(
   if (synthNumber !== null) {
     // Denormalized: derive the title from an existing lesson in the module.
     moduleNumber = synthNumber;
-    const { data: sibling } = await ctx.supabase
+    const { data: sibling } = await db
       .from("lessons")
       .select("module_title")
       .eq("program_id", input.programId)
@@ -435,7 +451,7 @@ export async function addLessonToModule(
       .maybeSingle();
     moduleTitle = (sibling?.module_title as string | null) ?? `Module ${synthNumber}`;
   } else {
-    const { data: mod, error: modErr } = await ctx.supabase
+    const { data: mod, error: modErr } = await db
       .from("program_modules")
       .select("id, program_id, number, title")
       .eq("id", input.moduleId)
@@ -449,10 +465,10 @@ export async function addLessonToModule(
     moduleTitle = mod.title as string;
   }
 
-  const slug = await uniqueLessonSlug(ctx.supabase, input.slug || title);
+  const slug = await uniqueLessonSlug(db, input.slug || title);
 
   // Compute next sort_order (last in the program + 1).
-  const { data: last } = await ctx.supabase
+  const { data: last } = await db
     .from("lessons")
     .select("sort_order")
     .eq("program_id", input.programId)
@@ -461,7 +477,7 @@ export async function addLessonToModule(
     .maybeSingle();
   const sortOrder = ((last?.sort_order as number | null) ?? 0) + 1;
 
-  const { error } = await ctx.supabase.from("lessons").insert({
+  const { error } = await db.from("lessons").insert({
     program_id: input.programId,
     slug,
     title,
@@ -498,8 +514,11 @@ export async function addLessonToModule(
 export async function duplicateLesson(lessonId: string): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
-  const { data: src, error: readErr } = await ctx.supabase
+  const { data: src, error: readErr } = await db
     .from("lessons")
     .select(
       "program_id, title, description, video_url, cover_image_url, duration_seconds, plan_access, module_number, module_title, content_type, sort_order, difficulty, category",
@@ -510,9 +529,9 @@ export async function duplicateLesson(lessonId: string): Promise<Result> {
   if (!src) return { ok: false, error: "Lesson not found." };
 
   const newTitle = `${src.title} (Copy)`;
-  const slug = await uniqueLessonSlug(ctx.supabase, newTitle);
+  const slug = await uniqueLessonSlug(db, newTitle);
 
-  const { error } = await ctx.supabase.from("lessons").insert({
+  const { error } = await db.from("lessons").insert({
     program_id: src.program_id,
     slug,
     title: newTitle,
@@ -547,6 +566,9 @@ export async function duplicateModule(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
   if (!programId) return { ok: false, error: "Missing program id." };
 
   // Resolve the source module number + title.
@@ -555,7 +577,7 @@ export async function duplicateModule(
   const synth = parseSyntheticModule(moduleId);
   if (synth !== null) {
     srcNumber = synth;
-    const { data: sibling } = await ctx.supabase
+    const { data: sibling } = await db
       .from("lessons")
       .select("module_title")
       .eq("program_id", programId)
@@ -564,7 +586,7 @@ export async function duplicateModule(
       .maybeSingle();
     srcTitle = (sibling?.module_title as string | null) ?? `Module ${synth}`;
   } else {
-    const { data: mod, error: modErr } = await ctx.supabase
+    const { data: mod, error: modErr } = await db
       .from("program_modules")
       .select("number, title")
       .eq("id", moduleId)
@@ -575,11 +597,11 @@ export async function duplicateModule(
     srcTitle = mod.title as string;
   }
 
-  const newNumber = await nextDenormModuleNumber(ctx.supabase, programId);
+  const newNumber = await nextDenormModuleNumber(db, programId);
   const newTitle = `${srcTitle} (Copy)`;
 
   // If first-class table exists, mirror the module row too.
-  const probe = await ctx.supabase
+  const probe = await db
     .from("program_modules")
     .insert({ program_id: programId, number: newNumber, title: newTitle })
     .select("id")
@@ -590,7 +612,7 @@ export async function duplicateModule(
   }
 
   // Copy lessons.
-  const { data: srcLessons, error: lErr } = await ctx.supabase
+  const { data: srcLessons, error: lErr } = await db
     .from("lessons")
     .select(
       "title, description, video_url, cover_image_url, duration_seconds, plan_access, content_type, difficulty, category, sort_order",
@@ -602,8 +624,8 @@ export async function duplicateModule(
 
   let order = 1;
   for (const l of srcLessons ?? []) {
-    const slug = await uniqueLessonSlug(ctx.supabase, l.title as string);
-    const { error } = await ctx.supabase.from("lessons").insert({
+    const slug = await uniqueLessonSlug(db, l.title as string);
+    const { error } = await db.from("lessons").insert({
       program_id: programId,
       slug,
       title: l.title,
@@ -637,8 +659,11 @@ export async function setLessonPreview(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
-  const { data, error } = await ctx.supabase
+  const { data, error } = await db
     .from("lessons")
     .update({ plan_access: preview ? "free" : "basic" })
     .eq("id", lessonId)
@@ -688,6 +713,9 @@ export async function createLessonTaskTemplate(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Task title is required." };
@@ -712,7 +740,7 @@ export async function createLessonTaskTemplate(
   // Default sort_order to "last for this lesson".
   let sortOrder = input.sort_order;
   if (sortOrder === undefined) {
-    const { data: last } = await ctx.supabase
+    const { data: last } = await db
       .from("lesson_task_templates")
       .select("sort_order")
       .eq("lesson_id", input.lessonId)
@@ -722,7 +750,7 @@ export async function createLessonTaskTemplate(
     sortOrder = (last?.sort_order ?? 0) + 1;
   }
 
-  const { error } = await ctx.supabase.from("lesson_task_templates").insert({
+  const { error } = await db.from("lesson_task_templates").insert({
     program_id: input.programId,
     lesson_id: input.lessonId,
     title,
@@ -766,6 +794,9 @@ export async function updateLessonTaskTemplate(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
   const update: Record<string, unknown> = {};
   if (patch.title !== undefined) {
@@ -811,7 +842,7 @@ export async function updateLessonTaskTemplate(
 
   if (Object.keys(update).length === 0) return { ok: true };
 
-  const { data, error } = await ctx.supabase
+  const { data, error } = await db
     .from("lesson_task_templates")
     .update(update)
     .eq("id", templateId)
@@ -830,8 +861,11 @@ export async function deleteLessonTaskTemplate(
 ): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
+  // Admin verified above — perform writes with the service client so RLS
+  // session quirks inside server actions can't silently block them.
+  const db = createServiceClient();
 
-  const { data, error } = await ctx.supabase
+  const { data, error } = await db
     .from("lesson_task_templates")
     .delete()
     .eq("id", templateId)
