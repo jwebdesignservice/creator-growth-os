@@ -102,6 +102,7 @@ const INSTRUCTIONS_MAX = 5000;
 export type DrillTabProps = {
   lessonId:      string;
   lessonTitle:   string;
+  slug:          string;
   initialDrill:  DrillRow | null;
   tableMissing:  boolean;
   videoSlot?:    ReactNode;
@@ -112,9 +113,15 @@ export type DrillTabProps = {
 export function CreatorDrillTab({
   lessonId,
   lessonTitle,
+  slug,
   initialDrill,
   tableMissing,
 }: DrillTabProps) {
+  function openLearnerPreview() {
+    if (typeof window !== "undefined") {
+      window.open(`/tutorials/${slug}`, "_blank", "noopener,noreferrer");
+    }
+  }
   /* Seed form state from server data. */
   const seed = initialDrill ?? {
     ...DEFAULT_DRILL,
@@ -905,10 +912,7 @@ export function CreatorDrillTab({
         <div className="flex items-center justify-end gap-2 pt-1">
           <button
             type="button"
-            onClick={() =>
-              typeof window !== "undefined" &&
-              window.alert("Learner preview — coming next.")
-            }
+            onClick={openLearnerPreview}
             className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-[12px] bg-white border border-ink-200 text-[13px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
           >
             <Eye className="size-4" strokeWidth={2} />
@@ -989,12 +993,14 @@ export function deriveDrillReadiness(args: {
 export function DrillReadinessCard({
   readiness,
   onSave,
+  onPreview,
   saving,
   isDirty,
   hasInitialDrill,
 }: {
   readiness: DrillReadiness;
   onSave: () => void;
+  onPreview: () => void;
   saving: boolean;
   isDirty: boolean;
   hasInitialDrill: boolean;
@@ -1048,10 +1054,7 @@ export function DrillReadinessCard({
       <div className="mt-5 pt-4 border-t border-ink-100 flex items-center gap-2">
         <button
           type="button"
-          onClick={() =>
-            typeof window !== "undefined" &&
-            window.alert("Learner preview — coming next.")
-          }
+          onClick={onPreview}
           className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
         >
           <Eye className="size-3.5" strokeWidth={2} />
