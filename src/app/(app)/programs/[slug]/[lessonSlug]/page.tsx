@@ -78,17 +78,56 @@ export default async function ProgramLessonPage({
   const { slug, lessonSlug } = await params;
 
   const supabase = await createClient();
-  const [{ data: dbProgram }, { data: dbLesson }] = await Promise.all([
+  const [{ data: dbProgram }, lessonRes] = await Promise.all([
     supabase.from("programs").select("title, id").eq("slug", slug).maybeSingle(),
     supabase
       .from("lessons")
-      .select("id, program_id")
+      .select("id, program_id, learning_points, action_steps")
       .eq("slug", lessonSlug)
       .maybeSingle(),
   ]);
+
+  // `learning_points` + `action_steps` arrive with migration 0036. If it
+  // hasn't been applied the select 42703s — fall back to the core columns
+  // so the page still renders (authored content just stays empty).
+  let dbLesson = lessonRes.data as
+    | {
+        id: string;
+        program_id: string | null;
+        learning_points?: unknown;
+        action_steps?: unknown;
+      }
+    | null;
+  if (!dbLesson && lessonRes.error?.code === "42703") {
+    const fb = await supabase
+      .from("lessons")
+      .select("id, program_id")
+      .eq("slug", lessonSlug)
+      .maybeSingle();
+    dbLesson = fb.data as typeof dbLesson;
+  }
+
   const programTitle = dbProgram?.title ?? prettySlug(slug);
   const lessonUuid = dbLesson?.id ?? null;
   const programUuid = dbLesson?.program_id ?? dbProgram?.id ?? null;
+
+  // Admin-authored per-lesson content. Renders on THIS lesson page only —
+  // distinct from the program overview page's program-level outcomes.
+  const learningPoints: string[] = Array.isArray(dbLesson?.learning_points)
+    ? (dbLesson!.learning_points as unknown[]).filter(
+        (x): x is string => typeof x === "string" && x.trim().length > 0,
+      )
+    : [];
+  const actionSteps: { id: string; title: string; description: string }[] =
+    Array.isArray(dbLesson?.action_steps)
+      ? (dbLesson!.action_steps as Record<string, unknown>[])
+          .map((s, i) => ({
+            id: typeof s?.id === "string" ? s.id : `as-${i}`,
+            title: typeof s?.title === "string" ? s.title : "",
+            description: typeof s?.description === "string" ? s.description : "",
+          }))
+          .filter((s) => s.title.trim().length > 0)
+      : [];
 
   const [modules, detail] = await Promise.all([
     getCurriculumForProgram(slug, ctx.plan),
@@ -238,11 +277,13 @@ export default async function ProgramLessonPage({
               {/* Prev / Next — within this program */}
               <PrevNextNav programSlug={slug} prev={prev} next={next} />
 
-              {/* Description */}
+              {/* Description + authored learning points / action steps */}
               <LessonOverview
                 title={title}
                 description={description}
                 moduleNumber={moduleNumber}
+                learningPoints={learningPoints}
+                actionSteps={actionSteps}
               />
 
               {/* Lesson-specific tasks (DB-backed) */}
@@ -337,15 +378,23 @@ function LessonOverview({
   title,
   description,
   moduleNumber,
+  learningPoints,
+  actionSteps,
 }: {
   title: string;
   description: string | null;
   moduleNumber: number;
+  learningPoints: string[];
+  actionSteps: { id: string; title: string; description: string }[];
 }) {
   // Pull the outcome this lesson's module teaches — same source as the
-  // program-level "What You'll Learn", so the two stay in sync.
+  // program-level "What You'll Learn". Used as the graceful fallback when
+  // the lesson hasn't been given its own authored action steps.
   const outcome = getOutcomeForModule(moduleNumber);
   const OutcomeIcon = outcome.icon;
+
+  const hasLearning = learningPoints.length > 0;
+  const hasSteps = actionSteps.length > 0;
 
   return (
     <section className="card p-5 sm:p-6">
@@ -364,53 +413,108 @@ function LessonOverview({
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold shrink-0 whitespace-nowrap">
-          <Sparkles
-            className="size-3.5"
-            strokeWidth={2}
-            fill="currentColor"
-          />
+          <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
           Action step
         </span>
       </div>
 
-      {/* Apply-it-now block — outcome icon + lesson title + best next step */}
-      <div className="rounded-[14px] bg-rose-50 border border-rose-100 p-4 sm:p-5">
-        <div className="flex items-start gap-3">
-          <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-            <OutcomeIcon className="size-[20px]" strokeWidth={1.9} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-bold text-ink-900 mb-1">
-              Apply it now
+      {/* What you'll learn — admin-authored learning points (lesson-level) */}
+      {hasLearning && (
+        <div className="mb-5">
+          <h3 className="inline-flex items-center gap-1.5 text-[13px] font-bold text-ink-900 mb-2.5">
+            <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} fill="currentColor" />
+            What you&apos;ll learn in this lesson
+          </h3>
+          <ul className="space-y-2">
+            {learningPoints.map((point, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-3 rounded-[12px] border border-ink-100 bg-white p-3"
+              >
+                <span className="size-8 rounded-[10px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+                  <Check className="size-[17px]" strokeWidth={2.5} />
+                </span>
+                <span className="flex-1 text-[13px] font-medium text-ink-900 leading-snug pt-[5px]">
+                  {point}
+                </span>
+                <CheckCircle2
+                  className="size-4 text-rose-300 shrink-0 mt-1.5"
+                  strokeWidth={2}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Apply it now — authored action steps, else the outcome fallback */}
+      {hasSteps ? (
+        <div className="rounded-[14px] bg-rose-50 border border-rose-100 p-4 sm:p-5">
+          <div className="flex items-center gap-2.5 mb-3.5">
+            <span className="size-9 rounded-[11px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+              <Sparkles className="size-[18px]" strokeWidth={2} fill="currentColor" />
+            </span>
+            <div className="text-[15px] font-bold text-ink-900">Apply it now</div>
+          </div>
+          <ul className="space-y-3">
+            {actionSteps.map((step, i) => (
+              <li key={step.id} className="flex items-start gap-3">
+                <span className="size-6 rounded-full bg-rose-600 text-white inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-semibold text-ink-900 leading-snug">
+                    {step.title}
+                  </div>
+                  {step.description && (
+                    <p className="text-[12.5px] text-ink-700 leading-snug mt-0.5">
+                      {step.description}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        /* Fallback — outcome-driven apply-it-now for lessons without their
+           own authored action steps, so the page never looks empty. */
+        <div className="rounded-[14px] bg-rose-50 border border-rose-100 p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+              <OutcomeIcon className="size-[20px]" strokeWidth={1.9} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-bold text-ink-900 mb-1">
+                Apply it now
+              </div>
+              <p className="text-[13px] text-ink-700 leading-relaxed">
+                Put <span className="font-semibold text-ink-900">{title}</span>{" "}
+                into practice before moving on — this lesson builds toward{" "}
+                <span className="font-semibold text-rose-700">
+                  {outcome.title}
+                </span>
+                .
+              </p>
             </div>
-            <p className="text-[13px] text-ink-700 leading-relaxed">
-              Put <span className="font-semibold text-ink-900">{title}</span>{" "}
-              into practice before moving on — this lesson builds toward{" "}
+          </div>
+
+          <div aria-hidden className="h-px bg-rose-200/60 my-3.5" />
+
+          <div className="flex items-start gap-2.5">
+            <span className="size-5 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0 mt-0.5">
+              <Check className="size-3" strokeWidth={3} />
+            </span>
+            <p className="text-[12.5px] text-ink-700 leading-snug">
+              {outcome.nextStep.lead}
               <span className="font-semibold text-rose-700">
-                {outcome.title}
+                {outcome.nextStep.bold}
               </span>
-              .
+              {outcome.nextStep.trail}
             </p>
           </div>
         </div>
-
-        {/* Divider */}
-        <div aria-hidden className="h-px bg-rose-200/60 my-3.5" />
-
-        {/* Best next step — outcome-specific action */}
-        <div className="flex items-start gap-2.5">
-          <span className="size-5 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0 mt-0.5">
-            <Check className="size-3" strokeWidth={3} />
-          </span>
-          <p className="text-[12.5px] text-ink-700 leading-snug">
-            {outcome.nextStep.lead}
-            <span className="font-semibold text-rose-700">
-              {outcome.nextStep.bold}
-            </span>
-            {outcome.nextStep.trail}
-          </p>
-        </div>
-      </div>
+      )}
     </section>
   );
 }
