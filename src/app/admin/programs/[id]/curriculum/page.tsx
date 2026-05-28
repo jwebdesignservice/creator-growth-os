@@ -60,50 +60,105 @@ export default async function CurriculumEditorPage({
 
   if (!program) notFound();
 
-  // Modules from the first-class table.
-  const { data: rawModules } = await supabase
+  // ── Lessons (resilient) ────────────────────────────────────────────────
+  // `archived` arrives with migration 0029. If that hasn't been applied we
+  // retry the SELECT without it so the editor still loads every lesson.
+  let rawLessons: Record<string, unknown>[] | null = null;
+  {
+    const withArchived = await supabase
+      .from("lessons")
+      .select(
+        "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, published, archived, sort_order",
+      )
+      .eq("program_id", program.id)
+      .order("sort_order", { ascending: true });
+
+    if (withArchived.error && withArchived.error.code === "42703") {
+      const noArchived = await supabase
+        .from("lessons")
+        .select(
+          "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, published, sort_order",
+        )
+        .eq("program_id", program.id)
+        .order("sort_order", { ascending: true });
+      rawLessons = (noArchived.data ?? []) as Record<string, unknown>[];
+    } else {
+      rawLessons = (withArchived.data ?? []) as Record<string, unknown>[];
+    }
+  }
+
+  const lessons: LessonRow[] = (rawLessons ?? []).map((l) => ({
+    id: l.id as string,
+    slug: l.slug as string,
+    title: l.title as string,
+    description: (l.description as string | null) ?? null,
+    video_url: (l.video_url as string | null) ?? null,
+    duration_seconds: (l.duration_seconds as number) ?? 0,
+    module_number: (l.module_number as number | null) ?? null,
+    module_title: (l.module_title as string | null) ?? null,
+    plan_access: (l.plan_access as "free" | "basic" | "pro") ?? "basic",
+    published: !!l.published,
+    archived: !!l.archived,
+    sort_order: (l.sort_order as number) ?? 0,
+  }));
+
+  // ── Modules ─────────────────────────────────────────────────────────────
+  // Prefer the first-class `program_modules` table (migration 0029). When
+  // it's absent we DERIVE modules from the lessons' denormalized
+  // module_number / module_title — exactly how the public Setup Guide reads
+  // them — so the editor works against the existing schema with no
+  // migration. Derived modules use a synthetic id of `m{number}` which the
+  // server actions parse back into the module number.
+  let modules: ModuleRow[] = [];
+  const modulesQuery = await supabase
     .from("program_modules")
     .select("id, number, title, bonus, pro_only")
     .eq("program_id", program.id)
     .order("number", { ascending: true });
 
-  const modules: ModuleRow[] = (rawModules ?? []).map((m) => ({
-    id: m.id,
-    number: m.number,
-    title: m.title,
-    bonus: !!m.bonus,
-    pro_only: !!m.pro_only,
-  }));
+  if (!modulesQuery.error && modulesQuery.data) {
+    modules = modulesQuery.data.map((m) => ({
+      id: m.id as string,
+      number: m.number as number,
+      title: m.title as string,
+      bonus: !!m.bonus,
+      pro_only: !!m.pro_only,
+    }));
+  } else {
+    // Derive from lessons. Group by module_number; title from module_title.
+    const byNumber = new Map<number, { title: string; allPro: boolean; any: boolean }>();
+    for (const l of lessons) {
+      if (l.module_number == null) continue;
+      const cur = byNumber.get(l.module_number);
+      if (cur) {
+        cur.allPro = cur.allPro && l.plan_access === "pro";
+        cur.any = true;
+      } else {
+        byNumber.set(l.module_number, {
+          title: l.module_title ?? `Module ${l.module_number}`,
+          allPro: l.plan_access === "pro",
+          any: true,
+        });
+      }
+    }
+    modules = Array.from(byNumber.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([number, info]) => ({
+        id: `m${number}`,
+        number,
+        title: info.title,
+        bonus: false,
+        pro_only: info.allPro && info.any,
+      }));
+  }
 
-  // Lessons for the whole program.
-  const { data: rawLessons } = await supabase
-    .from("lessons")
-    .select(
-      "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, published, archived, sort_order",
-    )
-    .eq("program_id", program.id)
-    .order("sort_order", { ascending: true });
-
-  const lessons: LessonRow[] = (rawLessons ?? []).map((l) => ({
-    id: l.id,
-    slug: l.slug,
-    title: l.title,
-    description: l.description,
-    video_url: l.video_url,
-    duration_seconds: l.duration_seconds ?? 0,
-    module_number: l.module_number,
-    module_title: l.module_title,
-    plan_access: l.plan_access as "free" | "basic" | "pro",
-    published: !!l.published,
-    archived: !!l.archived,
-    sort_order: l.sort_order ?? 0,
-  }));
-
-  // Task templates for every lesson, grouped by lesson_id.
+  // ── Task templates (resilient) ──────────────────────────────────────────
+  // `lesson_task_templates` arrives with migration 0027. Missing → empty
+  // map; the editor's task modal shows a friendly "needs migration" note.
   const lessonIds = lessons.map((l) => l.id);
   let templates: TaskTemplate[] = [];
   if (lessonIds.length > 0) {
-    const { data: rawTemplates } = await supabase
+    const tplQuery = await supabase
       .from("lesson_task_templates")
       .select(
         "id, lesson_id, title, description, task_type, priority, estimated_minutes, points, is_required, sort_order",
@@ -111,18 +166,20 @@ export default async function CurriculumEditorPage({
       .in("lesson_id", lessonIds)
       .order("sort_order", { ascending: true });
 
-    templates = (rawTemplates ?? []).map((t) => ({
-      id: t.id,
-      lesson_id: t.lesson_id,
-      title: t.title,
-      description: t.description,
-      task_type: t.task_type,
-      priority: (t.priority as "low" | "normal" | "high") ?? "normal",
-      estimated_minutes: t.estimated_minutes ?? 15,
-      points: t.points ?? 10,
-      is_required: !!t.is_required,
-      sort_order: t.sort_order ?? 0,
-    }));
+    if (!tplQuery.error && tplQuery.data) {
+      templates = tplQuery.data.map((t) => ({
+        id: t.id as string,
+        lesson_id: t.lesson_id as string,
+        title: t.title as string,
+        description: (t.description as string | null) ?? null,
+        task_type: t.task_type as string,
+        priority: (t.priority as "low" | "normal" | "high") ?? "normal",
+        estimated_minutes: (t.estimated_minutes as number) ?? 15,
+        points: (t.points as number) ?? 10,
+        is_required: !!t.is_required,
+        sort_order: (t.sort_order as number) ?? 0,
+      }));
+    }
   }
 
   const templatesByLesson: Record<string, TaskTemplate[]> = {};

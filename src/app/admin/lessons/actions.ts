@@ -300,7 +300,27 @@ export async function archiveLesson(
     .eq("id", lessonId)
     .select("program_id")
     .maybeSingle();
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // `archived` column ships with migration 0029. If it isn't applied
+    // yet, fall back to using `published=false` as an archive proxy so the
+    // action still works against the existing schema.
+    if (error.code === "42703") {
+      const { data: fallback, error: fbErr } = await ctx.supabase
+        .from("lessons")
+        .update({ published: !archived ? true : false })
+        .eq("id", lessonId)
+        .select("program_id")
+        .maybeSingle();
+      if (fbErr) return { ok: false, error: fbErr.message };
+      revalidatePath("/admin/tutorials");
+      revalidatePath("/admin/lessons");
+      if (fallback?.program_id) {
+        revalidatePath(`/admin/programs/${fallback.program_id}/curriculum`);
+      }
+      return { ok: true };
+    }
+    return { ok: false, error: error.message };
+  }
 
   revalidatePath("/admin/tutorials");
   revalidatePath("/admin/lessons");
