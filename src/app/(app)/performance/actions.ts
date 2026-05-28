@@ -39,6 +39,9 @@ export async function savePerformanceEntry(
   const row = {
     user_id: user.id,
     week_start: weekStart,
+    // Manual entries from the weekly form live under platform='manual'
+    // so they don't collide with rows written by social-account syncs.
+    platform: "manual",
     followers: parseNumber(formData.get("followers")),
     reach: parseNumber(formData.get("reach")),
     views: parseNumber(formData.get("views")),
@@ -53,7 +56,7 @@ export async function savePerformanceEntry(
 
   const { error } = await supabase
     .from("performance_entries")
-    .upsert(row, { onConflict: "user_id,week_start" });
+    .upsert(row, { onConflict: "user_id,week_start,platform" });
 
   if (error) return { ok: false, error: error.message };
 

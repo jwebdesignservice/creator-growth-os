@@ -54,6 +54,106 @@ export function addWeeks(monday: string, weeks: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// performance_entries are scoped per (user, week, platform). For
+// dashboard/KPI display we want one row per week:
+//   - prefer SUM across currently-connected platforms (so disconnecting
+//     IG immediately drops it from the totals)
+//   - fall back to the manual entry when no platforms are connected
+//   - notes (best_post / lesson_learned) always come from the manual row
+
+const ENTRY_COLS =
+  "id, week_start, platform, followers, reach, views, posts_published, engagement_rate, profile_visits, clicks, revenue, best_post, lesson_learned";
+
+type RawEntry = PerformanceEntry & { platform: string };
+
+/** Look up which social platforms the user has a live access_token for. */
+async function getConnectedPlatformKeys(): Promise<string[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("social_accounts")
+    .select("platform")
+    .eq("user_id", user.id)
+    .not("access_token", "is", null);
+  return (data ?? []).map((r) => r.platform as string);
+}
+
+/**
+ * Aggregate a per-platform row group for one week into a single
+ * PerformanceEntry shape. Numeric fields sum; engagement_rate is
+ * follower-weighted; notes pull from the manual row.
+ */
+function aggregateWeek(group: RawEntry[]): PerformanceEntry {
+  if (group.length === 0) {
+    return { id: null, week_start: "", ...EMPTY_ENTRY };
+  }
+  const week = group[0].week_start;
+  const manual = group.find((g) => g.platform === "manual");
+
+  const sumOrNull = (key: keyof PerformanceEntry): number | null => {
+    let total = 0;
+    let any = false;
+    for (const g of group) {
+      const v = g[key];
+      if (typeof v === "number") {
+        total += v;
+        any = true;
+      } else if (typeof v === "string" && v !== "" && !isNaN(Number(v))) {
+        total += Number(v);
+        any = true;
+      }
+    }
+    return any ? total : null;
+  };
+
+  // Engagement rate: follower-weighted average. If no follower counts,
+  // fall back to a plain mean of non-null values.
+  let engagement: number | null = null;
+  const withEngagement = group.filter((g) => g.engagement_rate != null);
+  if (withEngagement.length > 0) {
+    const totalFollowers = withEngagement.reduce(
+      (acc, g) => acc + (g.followers ?? 0),
+      0,
+    );
+    if (totalFollowers > 0) {
+      engagement =
+        withEngagement.reduce(
+          (acc, g) =>
+            acc + (Number(g.engagement_rate) ?? 0) * (g.followers ?? 0),
+          0,
+        ) / totalFollowers;
+    } else {
+      engagement =
+        withEngagement.reduce(
+          (acc, g) => acc + (Number(g.engagement_rate) ?? 0),
+          0,
+        ) / withEngagement.length;
+    }
+  }
+
+  return {
+    // For "is this an existing row?" checks we surface the manual row's
+    // id when present, otherwise null — this keeps the entry-form save
+    // semantics unchanged.
+    id: manual?.id ?? null,
+    week_start: week,
+    followers: sumOrNull("followers"),
+    reach: sumOrNull("reach"),
+    views: sumOrNull("views"),
+    posts_published: sumOrNull("posts_published"),
+    engagement_rate: engagement,
+    profile_visits: sumOrNull("profile_visits"),
+    clicks: sumOrNull("clicks"),
+    revenue: sumOrNull("revenue"),
+    // Free-text notes are user-authored — only manual rows have them.
+    best_post: manual?.best_post ?? null,
+    lesson_learned: manual?.lesson_learned ?? null,
+  };
+}
+
 export async function getEntryForWeek(weekStart: string): Promise<PerformanceEntry> {
   const supabase = await createClient();
   const {
@@ -61,25 +161,28 @@ export async function getEntryForWeek(weekStart: string): Promise<PerformanceEnt
   } = await supabase.auth.getUser();
   if (!user) return { id: null, week_start: weekStart, ...EMPTY_ENTRY };
 
+  const connectedPlatforms = await getConnectedPlatformKeys();
+  // Always include 'manual' so the entry form's row is part of the view.
+  const platformsInScope = ["manual", ...connectedPlatforms];
+
   const { data } = await supabase
     .from("performance_entries")
-    .select(
-      "id, week_start, followers, reach, views, posts_published, engagement_rate, profile_visits, clicks, revenue, best_post, lesson_learned",
-    )
+    .select(ENTRY_COLS)
     .eq("user_id", user.id)
     .eq("week_start", weekStart)
-    .maybeSingle();
+    .in("platform", platformsInScope);
 
-  return (
-    data ?? {
-      id: null,
-      week_start: weekStart,
-      ...EMPTY_ENTRY,
-    }
-  );
+  const rows = (data ?? []) as RawEntry[];
+  if (rows.length === 0) {
+    return { id: null, week_start: weekStart, ...EMPTY_ENTRY };
+  }
+  return { ...aggregateWeek(rows), week_start: weekStart };
 }
 
-/** Returns the last `weeks` performance entries (newest first). */
+/**
+ * Returns the last `weeks` performance entries (newest first), aggregated
+ * across currently-connected platforms + manual rows.
+ */
 export async function getRecentEntries(
   weeks = 12,
 ): Promise<PerformanceEntry[]> {
@@ -89,16 +192,29 @@ export async function getRecentEntries(
   } = await supabase.auth.getUser();
   if (!user) return [];
 
+  const connectedPlatforms = await getConnectedPlatformKeys();
+  const platformsInScope = ["manual", ...connectedPlatforms];
+
+  // Grab up to ~3x rows since we'll collapse N platforms into 1 per week.
   const { data } = await supabase
     .from("performance_entries")
-    .select(
-      "id, week_start, followers, reach, views, posts_published, engagement_rate, profile_visits, clicks, revenue, best_post, lesson_learned",
-    )
+    .select(ENTRY_COLS)
     .eq("user_id", user.id)
+    .in("platform", platformsInScope)
     .order("week_start", { ascending: false })
-    .limit(weeks);
+    .limit(weeks * 4);
 
-  return (data ?? []) as PerformanceEntry[];
+  const rows = (data ?? []) as RawEntry[];
+  const byWeek = new Map<string, RawEntry[]>();
+  for (const r of rows) {
+    const group = byWeek.get(r.week_start) ?? [];
+    group.push(r);
+    byWeek.set(r.week_start, group);
+  }
+  return Array.from(byWeek.entries())
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .slice(0, weeks)
+    .map(([, group]) => aggregateWeek(group));
 }
 
 /**

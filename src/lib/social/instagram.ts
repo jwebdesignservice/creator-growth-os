@@ -340,12 +340,15 @@ export async function syncInstagramAccount(
       .eq("user_id", userId)
       .eq("platform", "instagram");
 
-    // Step 7: upsert performance_entries with everything we got. Null
-    // fields are omitted so we don't clobber any value the user has
-    // already entered manually for that week.
+    // Step 7: upsert this week's row in performance_entries. We write
+    // platform='instagram' so the row is scoped to IG — no conflict with
+    // the user's manual entries or other platforms' sync rows. Null
+    // fields are omitted so a successful sync never clobbers values
+    // with nothing.
     const entryUpdates: Record<string, unknown> = {
       user_id: userId,
       week_start: currentMonday(),
+      platform: "instagram",
     };
     if (followers !== null) entryUpdates.followers = followers;
     if (insights?.reach != null) entryUpdates.reach = insights.reach;
@@ -358,7 +361,7 @@ export async function syncInstagramAccount(
 
     await svc
       .from("performance_entries")
-      .upsert(entryUpdates, { onConflict: "user_id,week_start" });
+      .upsert(entryUpdates, { onConflict: "user_id,week_start,platform" });
 
     return { ok: true, followerCount: followers };
   } catch (err) {
