@@ -135,9 +135,8 @@ function aggregateWeek(group: RawEntry[]): PerformanceEntry {
   }
 
   return {
-    // For "is this an existing row?" checks we surface the manual row's
-    // id when present, otherwise null — this keeps the entry-form save
-    // semantics unchanged.
+    // Surface the manual row's id when present (legacy rows from the
+    // removed weekly entry form), otherwise null.
     id: manual?.id ?? null,
     week_start: week,
     followers: sumOrNull("followers"),
@@ -152,31 +151,6 @@ function aggregateWeek(group: RawEntry[]): PerformanceEntry {
     best_post: manual?.best_post ?? null,
     lesson_learned: manual?.lesson_learned ?? null,
   };
-}
-
-export async function getEntryForWeek(weekStart: string): Promise<PerformanceEntry> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { id: null, week_start: weekStart, ...EMPTY_ENTRY };
-
-  const connectedPlatforms = await getConnectedPlatformKeys();
-  // Always include 'manual' so the entry form's row is part of the view.
-  const platformsInScope = ["manual", ...connectedPlatforms];
-
-  const { data } = await supabase
-    .from("performance_entries")
-    .select(ENTRY_COLS)
-    .eq("user_id", user.id)
-    .eq("week_start", weekStart)
-    .in("platform", platformsInScope);
-
-  const rows = (data ?? []) as RawEntry[];
-  if (rows.length === 0) {
-    return { id: null, week_start: weekStart, ...EMPTY_ENTRY };
-  }
-  return { ...aggregateWeek(rows), week_start: weekStart };
 }
 
 /**
