@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -48,6 +48,11 @@ const SECONDARY: NavItem[] = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+const WIDTH_EXPANDED = 200;
+const WIDTH_COLLAPSED = 64;
+/** Time (ms) the sidebar stays expanded after first page load before auto-collapsing. */
+const AUTO_COLLAPSE_MS = 2500;
+
 export function Sidebar({
   plan = "free",
   isAdmin = false,
@@ -58,72 +63,168 @@ export function Sidebar({
   isDev?: boolean;
 }) {
   const pathname = usePathname();
+
+  // Three logical states represented by two booleans:
+  // - collapsed = false, hoverExpanded = *      → expanded (initial 2.5s on mount)
+  // - collapsed = true,  hoverExpanded = false  → collapsed icon rail
+  // - collapsed = true,  hoverExpanded = true   → floating overlay (page content
+  //                                                stays at WIDTH_COLLAPSED)
+  const [collapsed, setCollapsed] = useState(false);
+  const [hoverExpanded, setHoverExpanded] = useState(false);
+
+  // Auto-collapse after the user has had a chance to scan the labels once.
+  // useRef so the timer can be cancelled if the layout unmounts mid-window.
+  const autoCollapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    autoCollapseTimer.current = setTimeout(() => {
+      setCollapsed(true);
+    }, AUTO_COLLAPSE_MS);
+    return () => {
+      if (autoCollapseTimer.current) clearTimeout(autoCollapseTimer.current);
+    };
+  }, []);
+
+  const expanded = !collapsed || hoverExpanded;
+  const isFloatingOverlay = collapsed && hoverExpanded;
+  const railWidth = expanded ? WIDTH_EXPANDED : WIDTH_COLLAPSED;
+
   return (
-    <aside className="hidden lg:flex flex-col w-[200px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
-      {/* Logo */}
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-2.5 px-4 py-4 hover:opacity-90 transition-opacity"
+    <>
+      {/* ── Layout spacer ────────────────────────────────────────────────
+          Reserves the page's horizontal real estate for the sidebar. When
+          the sidebar is hovered open from collapsed, this spacer stays at
+          WIDTH_COLLAPSED — so the actual sidebar overlays content rather
+          than pushing it around the cursor.                                */}
+      <div
+        aria-hidden
+        className="hidden lg:block shrink-0 transition-[width] duration-200 ease-out"
+        style={{ width: collapsed ? WIDTH_COLLAPSED : WIDTH_EXPANDED }}
+      />
+
+      {/* ── Actual sidebar ──────────────────────────────────────────────
+          Always fixed-positioned so the hover-overlay state doesn't shift
+          anything. Width animates between 64 (icon rail) and 200 (full).  */}
+      <aside
+        onMouseEnter={() => {
+          // Hover only re-expands when in the collapsed state. While the
+          // sidebar is still in its initial "expanded on mount" period,
+          // hovering is a no-op (it's already at full width).
+          if (collapsed) setHoverExpanded(true);
+        }}
+        onMouseLeave={() => setHoverExpanded(false)}
+        className={cn(
+          "hidden lg:flex flex-col fixed top-0 left-0 h-screen z-30",
+          "border-r border-ink-100 bg-cream-100 overflow-hidden",
+          "transition-[width,box-shadow] duration-200 ease-out",
+          // Only shadow when in the floating-overlay mode — makes it
+          // visually pop above content; otherwise it sits inline.
+          isFloatingOverlay && "shadow-xl",
+        )}
+        style={{ width: railWidth }}
       >
-        <BrandMark size={28} />
-        <span className="text-[16px] font-semibold tracking-tight text-ink-900">
-          profluencer
-        </span>
-      </Link>
+        {/* Logo */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2.5 px-4 py-4 hover:opacity-90 transition-opacity shrink-0"
+        >
+          <BrandMark size={28} />
+          <span
+            className={cn(
+              "text-[16px] font-semibold tracking-tight text-ink-900 whitespace-nowrap transition-opacity duration-150",
+              expanded ? "opacity-100" : "opacity-0",
+            )}
+          >
+            profluencer
+          </span>
+        </Link>
 
-      {/* Nav */}
-      <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto">
-        <ul className="space-y-1">
-          {PRIMARY.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
-          ))}
-        </ul>
+        {/* Nav */}
+        <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto">
+          <ul className="space-y-1">
+            {PRIMARY.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                active={isActive(pathname, item.href)}
+                expanded={expanded}
+              />
+            ))}
+          </ul>
 
-        <div className="my-3 h-px bg-ink-100 mx-2.5" />
-
-        <ul className="space-y-1">
-          {SECONDARY.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
-          ))}
-        </ul>
-
-        {(isAdmin || isDev) && (
           <div className="my-3 h-px bg-ink-100 mx-2.5" />
-        )}
 
-        {isAdmin && (
-          <Link
-            href="/admin"
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors"
-          >
-            <ShieldCheck
-              className="size-[17px] text-rose-300"
-              strokeWidth={1.8}
-            />
-            <span className="flex-1">Admin Console</span>
-          </Link>
-        )}
+          <ul className="space-y-1">
+            {SECONDARY.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                active={isActive(pathname, item.href)}
+                expanded={expanded}
+              />
+            ))}
+          </ul>
 
-        {isDev && (
-          <Link
-            href="/dev"
-            className="mt-2 flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
-          >
-            <Terminal
-              className="size-[17px] text-[#7AA9FF]"
-              strokeWidth={1.8}
-            />
-            <span className="flex-1">Dev Console</span>
-          </Link>
-        )}
-      </nav>
+          {(isAdmin || isDev) && (
+            <div className="my-3 h-px bg-ink-100 mx-2.5" />
+          )}
 
-      {/* Bottom cards — upgrade (non-Pro only) + referral promo */}
-      <div className="p-4 space-y-3">
-        {plan !== "pro" && <UpgradeCard />}
-        <ReferralCard />
-      </div>
-    </aside>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors"
+            >
+              <ShieldCheck
+                className="size-[17px] text-rose-300 shrink-0"
+                strokeWidth={1.8}
+              />
+              <span
+                className={cn(
+                  "flex-1 whitespace-nowrap transition-opacity duration-150",
+                  expanded ? "opacity-100" : "opacity-0",
+                )}
+              >
+                Admin Console
+              </span>
+            </Link>
+          )}
+
+          {isDev && (
+            <Link
+              href="/dev"
+              className="mt-2 flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
+            >
+              <Terminal
+                className="size-[17px] text-[#7AA9FF] shrink-0"
+                strokeWidth={1.8}
+              />
+              <span
+                className={cn(
+                  "flex-1 whitespace-nowrap transition-opacity duration-150",
+                  expanded ? "opacity-100" : "opacity-0",
+                )}
+              >
+                Dev Console
+              </span>
+            </Link>
+          )}
+        </nav>
+
+        {/* Bottom cards — only render when the sidebar has room. Cards need
+            their labels to make sense; rendering them in collapsed mode
+            would just clip mid-word. Fades alongside the width transition. */}
+        <div
+          className={cn(
+            "p-4 space-y-3 shrink-0 transition-opacity duration-150",
+            expanded
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none",
+          )}
+        >
+          {plan !== "pro" && <UpgradeCard />}
+          <ReferralCard />
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -132,12 +233,21 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+function NavLink({
+  item,
+  active,
+  expanded,
+}: {
+  item: NavItem;
+  active: boolean;
+  expanded: boolean;
+}) {
   const Icon = item.icon;
   return (
     <li>
       <Link
         href={item.href}
+        title={!expanded ? item.label : undefined}
         className={cn(
           "group flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-[13.5px] font-medium transition-colors",
           active
@@ -152,14 +262,22 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
           )}
           strokeWidth={1.8}
         />
-        <span className="flex-1">{item.label}</span>
+        <span
+          className={cn(
+            "flex-1 whitespace-nowrap transition-opacity duration-150",
+            expanded ? "opacity-100" : "opacity-0",
+          )}
+        >
+          {item.label}
+        </span>
         {typeof item.badge === "number" && (
           <span
             className={cn(
-              "inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold",
+              "inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold transition-opacity duration-150",
               active
                 ? "bg-rose-600 text-white"
                 : "bg-rose-100 text-rose-700",
+              expanded ? "opacity-100" : "opacity-0",
             )}
           >
             {item.badge}
