@@ -17,9 +17,8 @@ import {
   ShieldCheck,
   Terminal,
   Wallet,
-  UserRound,
-  Plus,
-  X,
+  Gift,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
@@ -222,19 +221,17 @@ export function Sidebar({
           )}
         </nav>
 
-        {/* Bottom cards — only render when the sidebar has room. Cards need
-            their labels to make sense; rendering them in collapsed mode
-            would just clip mid-word. Fades alongside the width transition. */}
+        {/* Bottom CTAs — single card with two icon+label rows. Hides
+            entirely in collapsed mode (icons-only); labels need room. */}
         <div
           className={cn(
-            "p-5 space-y-3 shrink-0 transition-opacity duration-150",
+            "p-4 shrink-0 transition-opacity duration-150",
             expanded
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none",
           )}
         >
-          {plan !== "pro" && <UpgradeCard />}
-          <ReferralCard />
+          <BottomCtaCard plan={plan} />
         </div>
       </aside>
     </>
@@ -301,72 +298,58 @@ function NavLink({
   );
 }
 
-function UpgradeCard() {
+/* ─── Combined bottom CTA card ─────────────────────────────────────────
+   One card, two icon+label rows. The upgrade row hides for Pro users so
+   the card collapses to just the invite row. Each row is a full-bleed
+   tap target with a subtle hover background.                              */
+
+function BottomCtaCard({ plan }: { plan: "free" | "basic" | "pro" }) {
+  const showUpgrade = plan !== "pro";
   return (
-    <div className="rounded-[16px] border border-rose-200 bg-rose-50/60 p-4 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-rose-700 text-[13px] font-semibold mb-3">
-        <Sparkles className="size-4" strokeWidth={2} />
-        Upgrade to Pro
-      </div>
-      <Link
-        href="/billing?upgrade=pro"
-        className="block w-full h-9 leading-9 text-[12.5px] font-medium bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-[10px] transition-colors"
-      >
-        Upgrade now
-      </Link>
-    </div>
-  );
-}
-
-/* ─── Referral promo — invite friends, earn free credits ───────────────── */
-
-function ReferralCard() {
-  // Session-only dismiss: the (app) layout (and this sidebar) persists across
-  // client navigation, so closing it keeps it hidden until a full reload —
-  // no localStorage/effect needed, which keeps this lint- and hydration-clean.
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed) return null;
-
-  return (
-    <div className="relative rounded-[16px] border border-rose-100 bg-rose-50 p-4 text-center">
-      <button
-        type="button"
-        onClick={() => setDismissed(true)}
-        aria-label="Dismiss"
-        className="absolute top-2 right-2 inline-flex items-center justify-center size-6 rounded-full text-ink-400 hover:text-ink-700 hover:bg-rose-100 transition-colors"
-      >
-        <X className="size-3.5" strokeWidth={2} />
-      </button>
-
-      {/* Avatar cluster + add badge */}
-      <div className="flex items-center justify-center -space-x-2.5 mb-3 mt-1">
-        <ReferralAvatar tone="bg-rose-300" />
-        <ReferralAvatar tone="bg-rose-400" />
-        <ReferralAvatar tone="bg-rose-300" />
-        <span className="relative z-10 inline-flex items-center justify-center size-6 rounded-full bg-gold-500 text-white border-2 border-rose-50">
-          <Plus className="size-3" strokeWidth={3} />
-        </span>
-      </div>
-
-      <Link
-        href="/settings/referrals"
-        className="block w-full h-9 leading-9 text-[12.5px] font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-[10px] transition-colors"
-      >
-        Invite friends
-      </Link>
-    </div>
-  );
-}
-
-function ReferralAvatar({ tone }: { tone: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center justify-center size-9 rounded-full border-2 border-rose-50",
-        tone,
+    <div className="rounded-[16px] border border-rose-100 bg-rose-50/60 p-1.5 overflow-hidden">
+      {showUpgrade && (
+        <>
+          <CtaRow
+            href="/billing?upgrade=pro"
+            icon={Sparkles}
+            label="Upgrade to Pro"
+          />
+          <div className="my-1 h-px bg-rose-100/80 mx-2" />
+        </>
       )}
+      <CtaRow
+        href="/settings/referrals"
+        icon={Gift}
+        label="Invite friends"
+      />
+    </div>
+  );
+}
+
+function CtaRow({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-2.5 px-3 py-2.5 rounded-[12px] hover:bg-white transition-colors"
     >
-      <UserRound className="size-4 text-white" strokeWidth={2} />
-    </span>
+      <span className="size-7 rounded-full bg-rose-100 inline-flex items-center justify-center shrink-0">
+        <Icon className="size-3.5 text-rose-600" strokeWidth={2} />
+      </span>
+      <span className="flex-1 text-[13px] font-semibold text-rose-700 truncate">
+        {label}
+      </span>
+      <ArrowRight
+        className="size-3.5 text-rose-300 group-hover:text-rose-600 transition-colors shrink-0"
+        strokeWidth={2}
+      />
+    </Link>
   );
 }
