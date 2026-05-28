@@ -560,7 +560,11 @@ function ModuleCard({
     <div
       id={`module-${m.number}`}
       className={cn(
-        "card overflow-hidden scroll-mt-6 transition-opacity",
+        // No `overflow-hidden` here — it would clip the header dropdowns
+        // (Quick actions / kebab) and the per-lesson kebab menus. The
+        // footer rounds its own bottom corners so the card still reads as
+        // a single rounded surface.
+        "card scroll-mt-6 transition-opacity",
         pending && "opacity-70",
       )}
     >
@@ -684,7 +688,7 @@ function ModuleCard({
           )}
 
           {/* ── Footer actions ────────────────────────────────────── */}
-          <div className="flex items-center gap-2 flex-wrap px-4 sm:px-5 py-3 border-t border-ink-100 bg-cream-50/40">
+          <div className="flex items-center gap-2 flex-wrap px-4 sm:px-5 py-3 border-t border-ink-100 bg-cream-50/40 rounded-b-[16px]">
             <button
               type="button"
               onClick={onAddLesson}
