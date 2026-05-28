@@ -15,6 +15,15 @@ import {
   CalendarDays,
   FileText,
   ClipboardCheck,
+  Target,
+  Layers,
+  Anchor,
+  Users,
+  TrendingUp,
+  Lightbulb,
+  Rocket,
+  Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
@@ -22,6 +31,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurriculumForProgram } from "@/lib/programs/queries";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
 import { getOutcomeForModule } from "@/lib/programs/outcomes";
+import {
+  normalizeLearningPoints,
+  type LearningPoint,
+  type LearningIconKey,
+} from "@/lib/programs/learning-content";
 import {
   getLessonTaskStates,
   type LessonTaskState,
@@ -112,22 +126,10 @@ export default async function ProgramLessonPage({
   const programUuid = dbLesson?.program_id ?? dbProgram?.id ?? null;
 
   // Admin-authored per-lesson content. Renders on THIS lesson page only —
-  // distinct from the program overview page's program-level outcomes.
-  const learningPoints: string[] = Array.isArray(dbLesson?.learning_points)
-    ? (dbLesson!.learning_points as unknown[]).filter(
-        (x): x is string => typeof x === "string" && x.trim().length > 0,
-      )
-    : [];
-  const actionSteps: { id: string; title: string; description: string }[] =
-    Array.isArray(dbLesson?.action_steps)
-      ? (dbLesson!.action_steps as Record<string, unknown>[])
-          .map((s, i) => ({
-            id: typeof s?.id === "string" ? s.id : `as-${i}`,
-            title: typeof s?.title === "string" ? s.title : "",
-            description: typeof s?.description === "string" ? s.description : "",
-          }))
-          .filter((s) => s.title.trim().length > 0)
-      : [];
+  // distinct from the program overview page's program-level outcomes. Each
+  // learning point is a structured card (icon + title + description) that
+  // may carry one nested action step.
+  const learningPoints = normalizeLearningPoints(dbLesson?.learning_points);
 
   const [modules, detail] = await Promise.all([
     getCurriculumForProgram(slug, ctx.plan),
@@ -283,7 +285,6 @@ export default async function ProgramLessonPage({
                 description={description}
                 moduleNumber={moduleNumber}
                 learningPoints={learningPoints}
-                actionSteps={actionSteps}
               />
 
               {/* Lesson-specific tasks (DB-backed) */}
@@ -374,27 +375,40 @@ function PrevNextNav({
 
 /* ─── Lesson overview (description box) ───────────────────────────────── */
 
+/* Icon key → component map for the learner-facing learning-point cards.
+   Keys are shared (learning-content.ts); falls back to the target icon. */
+const LEARNING_ICONS: Record<LearningIconKey, LucideIcon> = {
+  target:        Target,
+  layers:        Layers,
+  anchor:        Anchor,
+  users:         Users,
+  "trending-up": TrendingUp,
+  lightbulb:     Lightbulb,
+  rocket:        Rocket,
+  "book-open":   BookOpen,
+  sparkles:      Sparkles,
+  zap:           Zap,
+};
+
 function LessonOverview({
   title,
   description,
   moduleNumber,
   learningPoints,
-  actionSteps,
 }: {
   title: string;
   description: string | null;
   moduleNumber: number;
-  learningPoints: string[];
-  actionSteps: { id: string; title: string; description: string }[];
+  learningPoints: LearningPoint[];
 }) {
   // Pull the outcome this lesson's module teaches — same source as the
   // program-level "What You'll Learn". Used as the graceful fallback when
-  // the lesson hasn't been given its own authored action steps.
+  // the lesson has no authored learning points yet.
   const outcome = getOutcomeForModule(moduleNumber);
   const OutcomeIcon = outcome.icon;
 
   const hasLearning = learningPoints.length > 0;
-  const hasSteps = actionSteps.length > 0;
+  const hasAnyStep = learningPoints.some((lp) => lp.actionStep);
 
   return (
     <section className="card p-5 sm:p-6">
@@ -412,73 +426,73 @@ function LessonOverview({
               "A focused step in your program path — clear, practical, and built to apply this week. Complete it to unlock the next lesson and keep your progress moving."}
           </p>
         </div>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold shrink-0 whitespace-nowrap">
-          <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
-          Action step
-        </span>
+        {(hasAnyStep || !hasLearning) && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold shrink-0 whitespace-nowrap">
+            <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
+            Action step
+          </span>
+        )}
       </div>
 
-      {/* What you'll learn — admin-authored learning points (lesson-level) */}
-      {hasLearning && (
-        <div className="mb-5">
+      {hasLearning ? (
+        <>
           <h3 className="inline-flex items-center gap-1.5 text-[13px] font-bold text-ink-900 mb-2.5">
             <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} fill="currentColor" />
             What you&apos;ll learn in this lesson
           </h3>
-          <ul className="space-y-2">
-            {learningPoints.map((point, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-3 rounded-[12px] border border-ink-100 bg-white p-3"
-              >
-                <span className="size-8 rounded-[10px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
-                  <Check className="size-[17px]" strokeWidth={2.5} />
-                </span>
-                <span className="flex-1 text-[13px] font-medium text-ink-900 leading-snug pt-[5px]">
-                  {point}
-                </span>
-                <CheckCircle2
-                  className="size-4 text-rose-300 shrink-0 mt-1.5"
-                  strokeWidth={2}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Apply it now — authored action steps, else the outcome fallback */}
-      {hasSteps ? (
-        <div className="rounded-[14px] bg-rose-50 border border-rose-100 p-4 sm:p-5">
-          <div className="flex items-center gap-2.5 mb-3.5">
-            <span className="size-9 rounded-[11px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-              <Sparkles className="size-[18px]" strokeWidth={2} fill="currentColor" />
-            </span>
-            <div className="text-[15px] font-bold text-ink-900">Apply it now</div>
-          </div>
-          <ul className="space-y-3">
-            {actionSteps.map((step, i) => (
-              <li key={step.id} className="flex items-start gap-3">
-                <span className="size-6 rounded-full bg-rose-600 text-white inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13.5px] font-semibold text-ink-900 leading-snug">
-                    {step.title}
+          <ul className="space-y-2.5">
+            {learningPoints.map((lp) => {
+              const Icon = LEARNING_ICONS[lp.icon] ?? Target;
+              return (
+                <li
+                  key={lp.id}
+                  className="rounded-[14px] border border-ink-100 bg-white p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="size-10 rounded-[12px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+                      <Icon className="size-5" strokeWidth={1.9} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[15px] font-bold text-ink-900 leading-snug">
+                        {lp.title}
+                      </div>
+                      {lp.description && (
+                        <p className="text-[13px] text-ink-500 leading-snug mt-0.5">
+                          {lp.description}
+                        </p>
+                      )}
+                    </div>
+                    <CheckCircle2
+                      className="size-[18px] text-rose-300 shrink-0 mt-1"
+                      strokeWidth={2}
+                    />
                   </div>
-                  {step.description && (
-                    <p className="text-[12.5px] text-ink-700 leading-snug mt-0.5">
-                      {step.description}
-                    </p>
+
+                  {/* Nested action step — sits under its learning point */}
+                  {lp.actionStep && (
+                    <div className="mt-3 sm:ml-[52px] rounded-[12px] bg-rose-50 border border-rose-100 p-3">
+                      <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] font-bold text-rose-600 mb-1">
+                        <Sparkles className="size-3" strokeWidth={2} fill="currentColor" />
+                        Action step
+                      </div>
+                      <div className="text-[13.5px] font-semibold text-ink-900 leading-snug">
+                        {lp.actionStep.title}
+                      </div>
+                      {lp.actionStep.description && (
+                        <p className="text-[12.5px] text-ink-700 leading-snug mt-0.5">
+                          {lp.actionStep.description}
+                        </p>
+                      )}
+                    </div>
                   )}
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
-        </div>
+        </>
       ) : (
-        /* Fallback — outcome-driven apply-it-now for lessons without their
-           own authored action steps, so the page never looks empty. */
+        /* Fallback — outcome-driven apply-it-now for lessons that haven't
+           been given their own learning points yet. */
         <div className="rounded-[14px] bg-rose-50 border border-rose-100 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
