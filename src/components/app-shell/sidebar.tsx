@@ -126,15 +126,14 @@ export function Sidebar({
         )}
         style={{ width: railWidth }}
       >
-        {/* Logo — BrandMark stays a fixed size; wordmark only renders
-            when there's room. When collapsed we center the icon
-            horizontally so it lines up with the nav icons below. */}
+        {/* Logo — same padding in both states, wordmark only renders
+            when there's room. Icon stays at the same x-position as
+            the nav icons below it (px-5 here matches nav's px-3 +
+            internal Link px-3 = 24px from the sidebar left edge,
+            minus 4px since the BrandMark is 30px vs 18px nav icons). */}
         <Link
           href="/dashboard"
-          className={cn(
-            "flex items-center hover:opacity-90 transition-opacity shrink-0 py-5",
-            expanded ? "gap-3 px-5" : "justify-center px-0",
-          )}
+          className="flex items-center gap-3 px-5 py-5 hover:opacity-90 transition-opacity shrink-0"
         >
           <span className="shrink-0">
             <BrandMark size={30} />
@@ -179,49 +178,35 @@ export function Sidebar({
           )}
 
           {isAdmin && (
-            <div className={cn(!expanded && "flex justify-center")}>
-              <Link
-                href="/admin"
-                title={!expanded ? "Admin Console" : undefined}
-                className={cn(
-                  "flex items-center rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-[background-color,padding] duration-150",
-                  expanded
-                    ? "gap-3 px-3 py-2.5"
-                    : "size-10 justify-center",
-                )}
-              >
-                <ShieldCheck
-                  className="size-[18px] text-rose-300 shrink-0"
-                  strokeWidth={1.8}
-                />
-                {expanded && (
-                  <span className="flex-1 whitespace-nowrap">Admin Console</span>
-                )}
-              </Link>
-            </div>
+            <Link
+              href="/admin"
+              title={!expanded ? "Admin Console" : undefined}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors"
+            >
+              <ShieldCheck
+                className="size-[18px] text-rose-300 shrink-0"
+                strokeWidth={1.8}
+              />
+              {expanded && (
+                <span className="flex-1 whitespace-nowrap">Admin Console</span>
+              )}
+            </Link>
           )}
 
           {isDev && (
-            <div className={cn("mt-2", !expanded && "flex justify-center")}>
-              <Link
-                href="/dev"
-                title={!expanded ? "Dev Console" : undefined}
-                className={cn(
-                  "flex items-center rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-[background-color,padding] duration-150 ring-1 ring-[rgba(59,130,246,0.32)]",
-                  expanded
-                    ? "gap-3 px-3 py-2.5"
-                    : "size-10 justify-center",
-                )}
-              >
-                <Terminal
-                  className="size-[18px] text-[#7AA9FF] shrink-0"
-                  strokeWidth={1.8}
-                />
-                {expanded && (
-                  <span className="flex-1 whitespace-nowrap">Dev Console</span>
-                )}
-              </Link>
-            </div>
+            <Link
+              href="/dev"
+              title={!expanded ? "Dev Console" : undefined}
+              className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]"
+            >
+              <Terminal
+                className="size-[18px] text-[#7AA9FF] shrink-0"
+                strokeWidth={1.8}
+              />
+              {expanded && (
+                <span className="flex-1 whitespace-nowrap">Dev Console</span>
+              )}
+            </Link>
           )}
         </nav>
 
@@ -256,18 +241,18 @@ function NavLink({
 }) {
   const Icon = item.icon;
   return (
-    <li className={cn(!expanded && "flex justify-center")}>
+    <li>
       <Link
         href={item.href}
         title={!expanded ? item.label : undefined}
         className={cn(
-          "group flex items-center rounded-[10px] text-[13.5px] font-medium transition-[background-color,padding] duration-150",
+          // Same padding in both states so the icon's x-position never
+          // changes — the only difference between collapsed/expanded is
+          // whether the label renders. Width fills the row naturally.
+          "group flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13.5px] font-medium transition-colors",
           active
             ? "bg-rose-100 text-rose-700"
             : "text-ink-700 hover:bg-cream-200 hover:text-ink-900",
-          expanded
-            ? "gap-3 px-3 py-2 w-full"
-            : "size-10 justify-center",
         )}
       >
         <Icon
@@ -300,30 +285,36 @@ function NavLink({
 }
 
 /* ─── Bottom CTAs — icon-only mode (collapsed rail) ────────────────────
-   Two stacked rose icon buttons. Tooltips on hover so users know which
-   is which. The upgrade button hides for Pro users.                       */
+   Same row shape as NavLink so the icons sit at the same x-position
+   regardless of rail state. The Upgrade row hides for Pro users.        */
 
 function BottomCtaIcons({ plan }: { plan: "free" | "basic" | "pro" }) {
   const showUpgrade = plan !== "pro";
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="space-y-1">
       {showUpgrade && (
         <Link
           href="/billing?upgrade=pro"
           title="Upgrade to Pro"
           aria-label="Upgrade to Pro"
-          className="flex items-center justify-center size-10 rounded-[12px] bg-rose-100 hover:bg-rose-200 transition-colors"
+          className="flex items-center gap-3 px-3 py-2 rounded-[10px] hover:bg-rose-100/60 transition-colors"
         >
-          <Sparkles className="size-[18px] text-rose-600" strokeWidth={2} />
+          <Sparkles
+            className="size-[18px] text-rose-600 shrink-0"
+            strokeWidth={2}
+          />
         </Link>
       )}
       <Link
         href="/settings/referrals"
         title="Invite friends"
         aria-label="Invite friends"
-        className="flex items-center justify-center size-10 rounded-[12px] bg-rose-100 hover:bg-rose-200 transition-colors"
+        className="flex items-center gap-3 px-3 py-2 rounded-[10px] hover:bg-rose-100/60 transition-colors"
       >
-        <Gift className="size-[18px] text-rose-600" strokeWidth={2} />
+        <Gift
+          className="size-[18px] text-rose-600 shrink-0"
+          strokeWidth={2}
+        />
       </Link>
     </div>
   );
