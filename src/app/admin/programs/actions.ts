@@ -121,8 +121,11 @@ export async function updateProgram(
   }
   if (patch.cover_image_url !== undefined) {
     const v = (patch.cover_image_url ?? "").trim();
-    if (v && !/^https?:\/\//i.test(v)) {
-      return { ok: false, error: "Cover image must be a valid URL." };
+    // Accept public http(s) URLs as well as inline data: image URLs (the
+    // thumbnail editor downscales picked files to a data URL — matching
+    // the create-wizard's "data URLs stored inline for now" approach).
+    if (v && !/^https?:\/\//i.test(v) && !/^data:image\//i.test(v)) {
+      return { ok: false, error: "Cover image must be a valid URL or uploaded image." };
     }
     update.cover_image_url = v.length > 0 ? v : null;
   }
