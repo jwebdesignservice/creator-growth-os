@@ -26,9 +26,11 @@ export type LessonRow = {
   module_number: number | null;
   module_title: string | null;
   plan_access: "free" | "basic" | "pro";
+  content_type: string;
   published: boolean;
   archived: boolean;
   sort_order: number;
+  created_at: string;
 };
 
 export type TaskTemplate = {
@@ -68,7 +70,7 @@ export default async function CurriculumEditorPage({
     const withArchived = await supabase
       .from("lessons")
       .select(
-        "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, published, archived, sort_order",
+        "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, content_type, published, archived, sort_order, created_at",
       )
       .eq("program_id", program.id)
       .order("sort_order", { ascending: true });
@@ -77,7 +79,7 @@ export default async function CurriculumEditorPage({
       const noArchived = await supabase
         .from("lessons")
         .select(
-          "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, published, sort_order",
+          "id, slug, title, description, video_url, duration_seconds, module_number, module_title, plan_access, content_type, published, sort_order, created_at",
         )
         .eq("program_id", program.id)
         .order("sort_order", { ascending: true });
@@ -97,9 +99,11 @@ export default async function CurriculumEditorPage({
     module_number: (l.module_number as number | null) ?? null,
     module_title: (l.module_title as string | null) ?? null,
     plan_access: (l.plan_access as "free" | "basic" | "pro") ?? "basic",
+    content_type: (l.content_type as string) ?? "video",
     published: !!l.published,
     archived: !!l.archived,
     sort_order: (l.sort_order as number) ?? 0,
+    created_at: (l.created_at as string) ?? new Date().toISOString(),
   }));
 
   // ── Modules ─────────────────────────────────────────────────────────────

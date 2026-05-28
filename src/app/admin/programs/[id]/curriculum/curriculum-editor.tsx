@@ -21,14 +21,23 @@ import {
   ChevronUp,
   MoreVertical,
   GripVertical,
-  Play,
   Eye,
-  EyeOff,
   ListChecks,
   X,
   Loader2,
   Lightbulb,
   ArrowUpRight,
+  BookOpen,
+  Droplet,
+  GitBranch,
+  CheckCircle2,
+  CalendarDays,
+  Rocket,
+  Sparkles,
+  Copy,
+  Globe,
+  LayoutTemplate,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -42,6 +51,9 @@ import {
   createModule,
   deleteModule,
   renameModule,
+  duplicateLesson,
+  duplicateModule,
+  setLessonPreview,
   createLessonTaskTemplate,
   deleteLessonTaskTemplate,
   updateLessonTaskTemplate,
@@ -378,6 +390,7 @@ export function CurriculumEditor({
             <ModuleCard
               key={m.id}
               module={m}
+              programId={programId}
               lessons={lessonsByModule.get(m.number) ?? []}
               templatesByLesson={templatesByLesson}
               bulkEdit={bulkEdit}
@@ -386,6 +399,7 @@ export function CurriculumEditor({
               onRenameModule={() => setEditingModule(m)}
               onDeleteModule={() => setDeletingModule(m)}
               onAddLesson={() => setAddLessonForModule(m)}
+              onBulkUpload={() => setBulkEdit(true)}
               onEditLesson={(lesson) => setEditingLesson(lesson)}
               onDeleteLesson={(lesson) => setDeletingLesson(lesson)}
               onManageTasks={(lesson) => setManagingTasksFor(lesson)}
@@ -485,6 +499,7 @@ export function CurriculumEditor({
 
 function ModuleCard({
   module: m,
+  programId,
   lessons,
   templatesByLesson,
   bulkEdit,
@@ -493,11 +508,13 @@ function ModuleCard({
   onRenameModule,
   onDeleteModule,
   onAddLesson,
+  onBulkUpload,
   onEditLesson,
   onDeleteLesson,
   onManageTasks,
 }: {
   module: ModuleRow;
+  programId: string;
   lessons: LessonRow[];
   templatesByLesson: Record<string, TaskTemplate[]>;
   bulkEdit: boolean;
@@ -506,72 +523,134 @@ function ModuleCard({
   onRenameModule: () => void;
   onDeleteModule: () => void;
   onAddLesson: () => void;
+  onBulkUpload: () => void;
   onEditLesson: (lesson: LessonRow) => void;
   onDeleteLesson: (lesson: LessonRow) => void;
   onManageTasks: (lesson: LessonRow) => void;
 }) {
   const [open, setOpen] = useState(true);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  const active = lessons.filter((l) => !l.archived);
   const totalMin = Math.round(
-    lessons.reduce((sum, l) => sum + l.duration_seconds, 0) / 60,
+    active.reduce((sum, l) => sum + l.duration_seconds, 0) / 60,
   );
+  const publishedCount = active.filter((l) => l.published).length;
+  const readiness =
+    active.length === 0 ? 0 : Math.round((publishedCount / active.length) * 100);
+  const visibility = publishedCount > 0 ? "Public" : "Internal";
+  const lastUpdated = lessons.reduce<string | null>((latest, l) => {
+    if (!latest || l.created_at > latest) return l.created_at;
+    return latest;
+  }, null);
+
+  function onDuplicateSection() {
+    startTransition(async () => {
+      const res = await duplicateModule(programId, m.id);
+      if (res.ok) router.refresh();
+      else window.alert(res.error);
+    });
+  }
 
   return (
-    <div id={`module-${m.number}`} className="card overflow-hidden scroll-mt-6">
-      <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5">
+    <div
+      id={`module-${m.number}`}
+      className={cn(
+        "card overflow-hidden scroll-mt-6 transition-opacity",
+        pending && "opacity-70",
+      )}
+    >
+      {/* ── Header ──────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 sm:px-5 py-4">
         <GripVertical
-          className="size-4 text-ink-300 shrink-0"
+          className="size-4 text-ink-300 shrink-0 cursor-grab"
           strokeWidth={2}
           aria-hidden
         />
-        <span className="size-7 rounded-[8px] bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[12.5px] font-bold shrink-0 tabular-nums">
-          {m.number}
+        <span className="size-11 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <BookOpen className="size-5" strokeWidth={1.9} />
         </span>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex-1 min-w-0 text-left text-[15px] font-bold text-ink-900 truncate hover:text-rose-700 transition-colors cursor-pointer"
-        >
-          Module {m.number}: {m.title}
-        </button>
-        <span className="text-[12.5px] text-ink-500 tabular-nums shrink-0 hidden sm:inline">
-          {lessons.length} lesson{lessons.length === 1 ? "" : "s"}
-        </span>
-        {totalMin > 0 && (
-          <>
-            <span aria-hidden className="text-ink-300 hidden sm:inline">
-              ·
+        <div className="flex-1 min-w-0">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="block text-left text-[17px] sm:text-[19px] font-bold text-ink-900 truncate hover:text-rose-700 transition-colors cursor-pointer leading-tight"
+          >
+            {m.title}
+          </button>
+          <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-500 flex-wrap">
+            <span className="inline-flex items-center gap-1.5">
+              <ListChecks className="size-3.5 text-ink-400" strokeWidth={2} />
+              {active.length} lesson{active.length === 1 ? "" : "s"}
             </span>
-            <span className="text-[12.5px] text-ink-500 tabular-nums shrink-0 hidden sm:inline">
-              {totalMin} min
+            <span aria-hidden className="text-ink-300">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="size-3.5 text-ink-400" strokeWidth={2} />
+              Estimated {totalMin} min
             </span>
-          </>
-        )}
-        <ModuleKebab
+            <span aria-hidden className="text-ink-300">·</span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2 h-5 rounded-full text-[11px] font-semibold",
+                readiness === 100
+                  ? "bg-success-bg text-success"
+                  : "bg-ink-100 text-ink-600",
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "size-1.5 rounded-full",
+                  readiness === 100 ? "bg-success" : "bg-ink-400",
+                )}
+              />
+              {readiness === 100 ? "Published" : "Draft"}
+            </span>
+          </div>
+        </div>
+
+        <DripButton />
+        <QuickActionsDropdown
           onRename={onRenameModule}
+          onDuplicate={onDuplicateSection}
           onDelete={onDeleteModule}
+        />
+        <ModuleUtilityKebab
+          open={open}
+          onToggle={() => setOpen((v) => !v)}
           onAddLesson={onAddLesson}
         />
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? "Collapse module" : "Expand module"}
-          className="size-8 rounded-full border border-ink-200 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 transition-colors shrink-0 cursor-pointer"
-        >
-          {open ? (
-            <ChevronUp className="size-4" strokeWidth={2} />
-          ) : (
-            <ChevronDown className="size-4" strokeWidth={2} />
-          )}
-        </button>
       </div>
 
       {open && (
         <>
-          {lessons.length === 0 ? (
-            <div className="border-t border-ink-100 px-5 py-5 text-center">
+          {/* ── Meta bar ──────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-ink-100 divide-x divide-ink-100">
+            <MetaCol
+              icon={GitBranch}
+              label="Completion flow"
+              value="Sequential"
+            />
+            <MetaCol icon={Eye} label="Visibility" value={visibility} />
+            <MetaCol
+              icon={CheckCircle2}
+              label="Publish readiness"
+              value={`${readiness}%`}
+              bar={readiness}
+            />
+            <MetaCol
+              icon={CalendarDays}
+              label="Last updated"
+              value={lastUpdated ? formatShortDate(lastUpdated) : "—"}
+            />
+          </div>
+
+          {/* ── Lessons ───────────────────────────────────────────── */}
+          {active.length === 0 && lessons.length === 0 ? (
+            <div className="border-t border-ink-100 px-5 py-6 text-center">
               <p className="text-[13px] text-ink-500 mb-3">
-                No lessons in this module yet.
+                No lessons in this section yet.
               </p>
               <button
                 type="button"
@@ -588,7 +667,7 @@ function ModuleCard({
                 <LessonItem
                   key={l.id}
                   lesson={l}
-                  index={`${m.number}.${i + 1}`}
+                  position={i + 1}
                   templateCount={(templatesByLesson[l.id] ?? []).length}
                   bulkEdit={bulkEdit}
                   selected={selectedLessons.has(l.id)}
@@ -601,23 +680,46 @@ function ModuleCard({
             </ul>
           )}
 
-          <div className="flex items-center gap-5 flex-wrap px-4 sm:px-5 py-3 border-t border-ink-100 bg-cream-50/40">
+          {/* ── Footer actions ────────────────────────────────────── */}
+          <div className="flex items-center gap-2 flex-wrap px-4 sm:px-5 py-3 border-t border-ink-100 bg-cream-50/40">
             <button
               type="button"
               onClick={onAddLesson}
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-rose-600 hover:text-rose-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors cursor-pointer"
             >
               <Plus className="size-3.5" strokeWidth={2.5} />
-              Add lesson
+              New lesson
             </button>
-            <button
-              type="button"
-              onClick={onRenameModule}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900 transition-colors cursor-pointer"
-            >
-              <Pencil className="size-3.5" strokeWidth={2} />
-              Rename module
-            </button>
+            <FooterButton icon={Upload} label="Bulk upload" onClick={onBulkUpload} />
+            <FooterButton
+              icon={Sparkles}
+              label="Section summary"
+              onClick={() =>
+                window.alert(
+                  "Section summary — AI will draft a short overview of this section's lessons. Coming soon.",
+                )
+              }
+            />
+            <FooterButton
+              icon={LayoutTemplate}
+              label="Add from template"
+              onClick={() =>
+                window.alert(
+                  "Add from template — pick a pre-built lesson template. Coming soon.",
+                )
+              }
+            />
+            <span className="ml-auto">
+              <FooterButton
+                icon={Sparkles}
+                label="AI assist"
+                onClick={() =>
+                  window.alert(
+                    "AI assist — generate lesson drafts from a prompt. Coming soon.",
+                  )
+                }
+              />
+            </span>
           </div>
         </>
       )}
@@ -625,18 +727,39 @@ function ModuleCard({
   );
 }
 
-function ModuleKebab({
+/* Header sub-components ─────────────────────────────────────────────── */
+
+function DripButton() {
+  const [on, setOn] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setOn((v) => !v);
+        window.alert(
+          "Drip scheduling lets you release this section to learners on a delay after they enrol. Full scheduling UI is coming soon.",
+        );
+      }}
+      aria-pressed={on}
+      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-rose-200 bg-white text-rose-700 text-[12.5px] font-semibold hover:bg-rose-50 transition-colors shrink-0"
+    >
+      <Droplet className="size-3.5" strokeWidth={2} fill={on ? "currentColor" : "none"} />
+      Drip
+    </button>
+  );
+}
+
+function QuickActionsDropdown({
   onRename,
+  onDuplicate,
   onDelete,
-  onAddLesson,
 }: {
   onRename: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
-  onAddLesson: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!open) return;
     function click(e: MouseEvent) {
@@ -651,33 +774,33 @@ function ModuleKebab({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Module actions"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="size-8 rounded-[6px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-100 hover:text-ink-700 cursor-pointer transition-colors"
+        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[12.5px] font-semibold hover:bg-cream-100 transition-colors"
       >
-        <MoreVertical className="size-4" strokeWidth={2} />
+        Quick actions
+        <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
       </button>
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-20 w-44 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+          className="absolute right-0 top-[calc(100%+4px)] z-30 w-48 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
-          <MenuButton
-            onClick={() => {
-              setOpen(false);
-              onAddLesson();
-            }}
-            icon={<Plus className="size-3.5" strokeWidth={2} />}
-            label="Add lesson"
-          />
           <MenuButton
             onClick={() => {
               setOpen(false);
               onRename();
             }}
             icon={<Pencil className="size-3.5" strokeWidth={2} />}
-            label="Rename module"
+            label="Rename section"
+          />
+          <MenuButton
+            onClick={() => {
+              setOpen(false);
+              onDuplicate();
+            }}
+            icon={<Copy className="size-3.5" strokeWidth={2} />}
+            label="Duplicate section"
           />
           <div aria-hidden className="h-px my-1 bg-ink-100" />
           <MenuButton
@@ -686,7 +809,7 @@ function ModuleKebab({
               onDelete();
             }}
             icon={<Trash2 className="size-3.5" strokeWidth={2} />}
-            label="Delete module"
+            label="Delete section"
             danger
           />
         </div>
@@ -695,13 +818,156 @@ function ModuleKebab({
   );
 }
 
+function ModuleUtilityKebab({
+  open,
+  onToggle,
+  onAddLesson,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  onAddLesson: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    function click(e: MouseEvent) {
+      if (!wrapRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", click);
+    return () => document.removeEventListener("mousedown", click);
+  }, [menuOpen]);
+
+  return (
+    <div ref={wrapRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setMenuOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        aria-label="More section actions"
+        className="size-9 rounded-[10px] border border-ink-200 bg-white inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 cursor-pointer transition-colors"
+      >
+        <MoreVertical className="size-4" strokeWidth={2} />
+      </button>
+      {menuOpen && (
+        <div
+          role="menu"
+          className="absolute right-0 top-[calc(100%+4px)] z-30 w-44 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+        >
+          <MenuButton
+            onClick={() => {
+              setMenuOpen(false);
+              onAddLesson();
+            }}
+            icon={<Plus className="size-3.5" strokeWidth={2} />}
+            label="Add lesson"
+          />
+          <MenuButton
+            onClick={() => {
+              setMenuOpen(false);
+              onToggle();
+            }}
+            icon={
+              open ? (
+                <ChevronUp className="size-3.5" strokeWidth={2} />
+              ) : (
+                <ChevronDown className="size-3.5" strokeWidth={2} />
+              )
+            }
+            label={open ? "Collapse section" : "Expand section"}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MetaCol({
+  icon: Icon,
+  label,
+  value,
+  bar,
+}: {
+  icon: typeof GitBranch;
+  label: string;
+  value: string;
+  bar?: number;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5">
+      <span className="size-8 rounded-[10px] bg-cream-100 text-ink-500 inline-flex items-center justify-center shrink-0">
+        <Icon className="size-4" strokeWidth={2} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] text-ink-500 leading-tight">{label}</div>
+        {bar !== undefined ? (
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="h-1.5 flex-1 rounded-full bg-ink-100 overflow-hidden max-w-[90px]">
+              <span
+                className="block h-full rounded-full bg-rose-500 transition-[width] duration-500"
+                style={{ width: `${bar}%` }}
+              />
+            </span>
+            <span className="text-[12.5px] font-bold text-ink-900 tabular-nums">
+              {value}
+            </span>
+          </div>
+        ) : (
+          <div className="text-[13px] font-semibold text-ink-900 truncate">
+            {value}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FooterButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Upload;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[12.5px] font-medium hover:bg-cream-100 transition-colors cursor-pointer"
+    >
+      <Icon className="size-3.5 text-ink-500" strokeWidth={2} />
+      {label}
+    </button>
+  );
+}
+
 /* ────────────────────────────────────────────────────────────────────── */
 /*  Lesson row                                                            */
 /* ────────────────────────────────────────────────────────────────────── */
 
+function lessonStatus(lesson: LessonRow): {
+  label: string;
+  dot: string;
+  cls: string;
+} {
+  if (lesson.archived) {
+    return { label: "Archived", dot: "bg-ink-400", cls: "bg-ink-100 text-ink-500" };
+  }
+  if (lesson.published) {
+    return { label: "Ready", dot: "bg-success", cls: "bg-success-bg text-success" };
+  }
+  if (lesson.video_url || (lesson.description && lesson.description.trim().length > 0)) {
+    return { label: "In progress", dot: "bg-amber-500", cls: "bg-amber-50 text-amber-700" };
+  }
+  return { label: "Draft", dot: "bg-ink-400", cls: "bg-ink-100 text-ink-600" };
+}
+
 function LessonItem({
   lesson,
-  index,
+  position,
   templateCount,
   bulkEdit,
   selected,
@@ -711,7 +977,7 @@ function LessonItem({
   onManageTasks,
 }: {
   lesson: LessonRow;
-  index: string;
+  position: number;
   templateCount: number;
   bulkEdit: boolean;
   selected: boolean;
@@ -722,6 +988,7 @@ function LessonItem({
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const [renaming, setRenaming] = useState(false);
 
   function togglePublish() {
     startTransition(async () => {
@@ -731,12 +998,19 @@ function LessonItem({
   }
 
   const min = Math.round(lesson.duration_seconds / 60);
+  const status = lessonStatus(lesson);
+  const typeLabel =
+    lesson.content_type === "text"
+      ? "Text"
+      : lesson.content_type
+        ? lesson.content_type.charAt(0).toUpperCase() + lesson.content_type.slice(1)
+        : "Video";
 
   return (
     <li
       id={`lesson-${lesson.slug}`}
       className={cn(
-        "flex items-center gap-3 px-4 sm:px-5 py-3 transition-colors scroll-mt-6",
+        "flex items-center gap-3 px-4 sm:px-5 py-3.5 transition-colors scroll-mt-6",
         pending ? "opacity-60" : "hover:bg-cream-50/70",
       )}
     >
@@ -750,85 +1024,115 @@ function LessonItem({
         />
       ) : (
         <GripVertical
-          className="size-3.5 text-ink-300 shrink-0"
+          className="size-4 text-ink-300 shrink-0 cursor-grab"
           strokeWidth={2}
           aria-hidden
         />
       )}
-      <span className="text-[12.5px] text-ink-500 tabular-nums w-9 shrink-0">
-        {index}
+      <span className="size-8 rounded-[10px] bg-rose-50 text-rose-700 inline-flex items-center justify-center text-[12.5px] font-bold tabular-nums shrink-0">
+        {position}
       </span>
-      <span className="flex-1 text-[13.5px] font-medium text-ink-900 truncate">
-        {lesson.title}
+      <div className="flex-1 min-w-0">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="block text-left text-[14px] font-semibold text-ink-900 truncate hover:text-rose-700 transition-colors cursor-pointer"
+        >
+          {lesson.title}
+        </button>
+        <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-ink-500">
+          <span className="truncate">1 {typeLabel} &amp; Images</span>
+          <span aria-hidden className="text-ink-300">·</span>
+          <span className="inline-flex items-center gap-1 tabular-nums">
+            <Clock className="size-3 text-ink-400" strokeWidth={2} />
+            {min > 0 ? `${min} min` : "—"}
+          </span>
+          <button
+            type="button"
+            onClick={onManageTasks}
+            title="Manage lesson tasks"
+            className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+          >
+            <ListChecks className="size-3" strokeWidth={2} />
+            {templateCount} task{templateCount === 1 ? "" : "s"}
+          </button>
+        </div>
+      </div>
+
+      {/* content-type pill */}
+      <span className="hidden sm:inline-flex items-center px-2.5 h-6 rounded-full bg-rose-50 text-rose-700 text-[11px] font-semibold shrink-0">
+        {typeLabel}
       </span>
-      <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-500 w-28 shrink-0">
-        <Play
-          className="size-3"
-          fill="currentColor"
-          strokeWidth={0}
-          aria-hidden
-        />
-        Video Lesson
-      </span>
-      <span className="text-[12px] text-ink-500 tabular-nums w-14 text-right shrink-0">
-        {min > 0 ? `${min} min` : "—"}
-      </span>
-      <button
-        type="button"
-        onClick={onManageTasks}
-        title="Manage lesson tasks"
-        className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-rose-50 border border-rose-100 text-rose-700 text-[10.5px] font-semibold shrink-0 hover:bg-rose-100 cursor-pointer transition-colors"
-      >
-        <ListChecks className="size-3" strokeWidth={2} />
-        {templateCount} task{templateCount === 1 ? "" : "s"}
-      </button>
+
+      {/* status pill */}
       <span
         className={cn(
-          "inline-flex items-center justify-center w-[78px] h-6 rounded-full text-[10.5px] font-semibold shrink-0",
-          lesson.archived
-            ? "bg-ink-100 text-ink-500 border border-ink-200"
-            : lesson.published
-              ? "bg-success-bg text-success border border-success/20"
-              : "bg-rose-50 text-rose-700 border border-rose-200",
+          "inline-flex items-center gap-1.5 px-2.5 h-6 rounded-full text-[11px] font-semibold shrink-0",
+          status.cls,
         )}
       >
-        {lesson.archived
-          ? "Archived"
-          : lesson.published
-            ? "Published"
-            : "Draft"}
+        <span aria-hidden className={cn("size-1.5 rounded-full", status.dot)} />
+        {status.label}
       </span>
+
+      {/* publish button */}
+      <button
+        type="button"
+        onClick={togglePublish}
+        disabled={pending}
+        className={cn(
+          "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] border text-[12.5px] font-semibold shrink-0 transition-colors disabled:opacity-50",
+          lesson.published
+            ? "border-ink-200 bg-white text-ink-700 hover:bg-cream-100"
+            : "border-rose-200 bg-white text-rose-700 hover:bg-rose-50",
+        )}
+      >
+        {pending ? (
+          <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
+        ) : (
+          <Rocket className="size-3.5" strokeWidth={2} />
+        )}
+        {lesson.published ? "Unpublish" : "Publish"}
+      </button>
+
       <LessonKebab
         lesson={lesson}
-        onEdit={onEdit}
+        onRename={() => setRenaming(true)}
         onDelete={onDelete}
-        onManageTasks={onManageTasks}
-        onTogglePublish={togglePublish}
         pending={pending}
       />
+
+      {renaming && (
+        <RenameModal
+          title="Rename lesson"
+          label="Lesson title"
+          current={lesson.title}
+          onClose={() => setRenaming(false)}
+          onSave={async (value) => {
+            const res = await updateLesson(lesson.id, { title: value });
+            return res.ok ? null : res.error;
+          }}
+        />
+      )}
     </li>
   );
 }
 
 function LessonKebab({
   lesson,
-  onEdit,
+  onRename,
   onDelete,
-  onManageTasks,
-  onTogglePublish,
   pending,
 }: {
   lesson: LessonRow;
-  onEdit: () => void;
+  onRename: () => void;
   onDelete: () => void;
-  onManageTasks: () => void;
-  onTogglePublish: () => void;
   pending: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const [archivePending, startArchive] = useTransition();
+  const [actionPending, startAction] = useTransition();
 
   useEffect(() => {
     if (!open) return;
@@ -839,11 +1143,23 @@ function LessonKebab({
     return () => document.removeEventListener("mousedown", click);
   }, [open]);
 
-  function doArchive() {
+  const isPreview = lesson.plan_access === "free";
+
+  function doSetPreview() {
     setOpen(false);
-    startArchive(async () => {
-      const res = await archiveLesson(lesson.id, !lesson.archived);
+    startAction(async () => {
+      const res = await setLessonPreview(lesson.id, !isPreview);
       if (res.ok) router.refresh();
+      else window.alert(res.error);
+    });
+  }
+
+  function doDuplicate() {
+    setOpen(false);
+    startAction(async () => {
+      const res = await duplicateLesson(lesson.id);
+      if (res.ok) router.refresh();
+      else window.alert(res.error);
     });
   }
 
@@ -855,56 +1171,37 @@ function LessonKebab({
         aria-label="Lesson actions"
         aria-haspopup="menu"
         aria-expanded={open}
-        disabled={pending || archivePending}
-        className="size-7 rounded-[6px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-100 hover:text-ink-700 cursor-pointer transition-colors disabled:opacity-50"
+        disabled={pending || actionPending}
+        className="size-9 rounded-[10px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-100 hover:text-ink-700 cursor-pointer transition-colors disabled:opacity-50"
       >
-        <MoreVertical className="size-4" strokeWidth={2} />
+        {actionPending ? (
+          <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+        ) : (
+          <MoreVertical className="size-4" strokeWidth={2} />
+        )}
       </button>
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-20 w-48 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+          className="absolute right-0 top-[calc(100%+4px)] z-30 w-52 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
         >
           <MenuButton
+            onClick={doSetPreview}
+            icon={<Globe className="size-3.5" strokeWidth={2} />}
+            label={isPreview ? "Remove public preview" : "Set as public preview"}
+          />
+          <MenuButton
             onClick={() => {
               setOpen(false);
-              onEdit();
+              onRename();
             }}
             icon={<Pencil className="size-3.5" strokeWidth={2} />}
-            label="Edit lesson"
+            label="Rename lesson"
           />
           <MenuButton
-            onClick={() => {
-              setOpen(false);
-              onManageTasks();
-            }}
-            icon={<ListChecks className="size-3.5" strokeWidth={2} />}
-            label="Manage tasks"
-          />
-          <MenuButton
-            onClick={() => {
-              setOpen(false);
-              onTogglePublish();
-            }}
-            icon={
-              lesson.published ? (
-                <EyeOff className="size-3.5" strokeWidth={2} />
-              ) : (
-                <Eye className="size-3.5" strokeWidth={2} />
-              )
-            }
-            label={lesson.published ? "Unpublish" : "Publish"}
-          />
-          <MenuButton
-            onClick={doArchive}
-            icon={
-              lesson.archived ? (
-                <Eye className="size-3.5" strokeWidth={2} />
-              ) : (
-                <EyeOff className="size-3.5" strokeWidth={2} />
-              )
-            }
-            label={lesson.archived ? "Restore" : "Archive"}
+            onClick={doDuplicate}
+            icon={<Copy className="size-3.5" strokeWidth={2} />}
+            label="Duplicate lesson"
           />
           <div aria-hidden className="h-px my-1 bg-ink-100" />
           <MenuButton
@@ -913,12 +1210,81 @@ function LessonKebab({
               onDelete();
             }}
             icon={<Trash2 className="size-3.5" strokeWidth={2} />}
-            label="Delete"
+            label="Delete lesson"
             danger
           />
         </div>
       )}
     </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*  Lightweight rename modal (shared by lessons + sections)               */
+/* ────────────────────────────────────────────────────────────────────── */
+
+function RenameModal({
+  title,
+  label,
+  current,
+  onClose,
+  onSave,
+}: {
+  title: string;
+  label: string;
+  current: string;
+  onClose: () => void;
+  onSave: (value: string) => Promise<string | null>;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState(current);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function save() {
+    const v = value.trim();
+    if (!v) {
+      setError("Title cannot be empty.");
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const err = await onSave(v);
+      if (err) {
+        setError(err);
+        return;
+      }
+      onClose();
+      router.refresh();
+    });
+  }
+
+  return (
+    <Modal open={true} onClose={() => !pending && onClose()} title={title}>
+      <div className="space-y-3">
+        <label className="block text-[12.5px] font-semibold text-ink-900">
+          {label}
+        </label>
+        <input
+          autoFocus
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+          }}
+          className="w-full h-11 px-3.5 rounded-[10px] border border-ink-200 bg-white text-[13.5px] text-ink-900 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+        />
+        <ErrorBanner message={error} />
+        <FooterButtons
+          onCancel={onClose}
+          onSave={save}
+          canSave={value.trim().length > 0}
+          pending={pending}
+          saveLabel="Save"
+        />
+      </div>
+    </Modal>
   );
 }
 
@@ -1625,8 +1991,8 @@ function DeleteLessonModal({
       onClose={() => {
         if (!pending) onClose();
       }}
-      title="Delete this lesson?"
-      description={`"${lesson.title}" + every task template attached to it will be permanently removed. This can't be undone — use Archive if you only want to hide it.`}
+      title="Delete lesson?"
+      description="This will permanently delete the lesson and all of its content."
     >
       <div className="space-y-3">
         <ErrorBanner message={error} />
@@ -1635,12 +2001,25 @@ function DeleteLessonModal({
           onSave={save}
           canSave={true}
           pending={pending}
-          saveLabel="Delete lesson"
+          saveLabel="Delete"
           saveTone="danger"
         />
       </div>
     </Modal>
   );
+}
+
+/** Short date like "May 20, 2024" for the module meta bar. */
+function formatShortDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
