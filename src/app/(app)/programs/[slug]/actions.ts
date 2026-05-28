@@ -67,7 +67,11 @@ export async function markLessonComplete(
     }
   }
 
-  revalidatePath(`/programs/${lesson.program_id}`, "layout");
+  // Revalidate this program's pages by SLUG — the route is /programs/[slug],
+  // not the program UUID. Using lesson.program_id (a UUID) here meant the
+  // curriculum + lesson rail never refreshed after marking a lesson complete.
+  // "layout" cascades to the nested lesson pages too.
+  if (program) revalidatePath(`/programs/${program.slug}`, "layout");
   revalidatePath("/programs", "layout");
   revalidatePath("/dashboard", "layout");
   // Generated tasks land on the global Tasks/Missions page too.
