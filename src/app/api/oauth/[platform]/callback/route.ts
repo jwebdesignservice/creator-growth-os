@@ -126,6 +126,9 @@ export async function GET(
   } else if (platform === "facebook") {
     const { syncFacebookAccount } = await import("@/lib/social/facebook");
     await syncFacebookAccount(parsed.userId);
+  } else if (platform === "youtube") {
+    const { syncYouTubeAccount } = await import("@/lib/social/youtube");
+    await syncYouTubeAccount(parsed.userId);
   }
 
   return backTo(origin, "ok", platform);
