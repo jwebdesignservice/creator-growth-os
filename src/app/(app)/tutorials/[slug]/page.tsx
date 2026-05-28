@@ -14,8 +14,15 @@ import { getLessonChapters } from "@/app/admin/tutorials/[id]/lesson-chapters-ac
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { LessonTabs } from "@/components/tutorials/lesson-tabs";
+import {
+  getOnboardingGate,
+  isGateActive,
+  readPreviewGate,
+} from "@/lib/onboarding/gate";
+import { OnboardingLockedNotice } from "@/components/onboarding/onboarding-locked-notice";
 
 type Params = Promise<{ slug: string }>;
+type SearchParams = Promise<{ previewGate?: string }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
@@ -27,13 +34,44 @@ export async function generateMetadata({ params }: { params: Params }) {
 
 export default async function TutorialDetailPage({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: SearchParams;
 }) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
   const { slug } = await params;
+  const { previewGate } = await searchParams;
+
+  // Onboarding gate — tutorials are locked until the user finishes the Start
+  // Here onboarding. Enforced here so direct URLs respect the lock.
+  const gate = await getOnboardingGate();
+  if (isGateActive(gate, readPreviewGate(previewGate))) {
+    return (
+      <PageShell>
+        <div className="space-y-6">
+          <nav className="text-[13px]">
+            <Link
+              href="/tutorials"
+              className="text-rose-600 hover:text-rose-700 font-medium"
+            >
+              Tutorials
+            </Link>
+            <span className="text-ink-400 mx-2">/</span>
+            <span className="text-ink-700">Locked</span>
+          </nav>
+          <OnboardingLockedNotice
+            percent={gate.percent}
+            programSlug={gate.programSlug}
+            kind="tutorial"
+          />
+        </div>
+      </PageShell>
+    );
+  }
+
   const lesson = await getTutorialDetail(slug);
   if (!lesson) notFound();
 

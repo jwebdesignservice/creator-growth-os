@@ -48,6 +48,13 @@ import {
   getProgramUserTasks,
   type ProgramUserTask,
 } from "@/lib/programs/lesson-task-queries";
+import {
+  getOnboardingGate,
+  isGateActive,
+  readPreviewGate,
+  ONBOARDING_PROGRAM_SLUG,
+} from "@/lib/onboarding/gate";
+import { OnboardingLockedNotice } from "@/components/onboarding/onboarding-locked-notice";
 
 /* Learning-point icon keys → lucide components. Keys come from
    learning-content.ts; mirrors the lesson page's map so the program overview
@@ -71,6 +78,7 @@ const LEARNING_ICONS: Record<string, LucideIcon> = {
 };
 
 type Params = Promise<{ slug: string }>;
+type SearchParams = Promise<{ previewGate?: string }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
@@ -86,13 +94,46 @@ function prettySlug(slug: string) {
 
 export default async function ProgramDetailPage({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: SearchParams;
 }) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
   const { slug } = await params;
+
+  // Onboarding gate — every program except Start Here is locked until the
+  // user finishes onboarding. Enforced here so direct URLs respect the lock.
+  const { previewGate } = await searchParams;
+  const gate = await getOnboardingGate();
+  if (
+    slug !== ONBOARDING_PROGRAM_SLUG &&
+    isGateActive(gate, readPreviewGate(previewGate))
+  ) {
+    return (
+      <PageShell>
+        <div className="space-y-6">
+          <nav className="text-[13px]">
+            <Link
+              href="/programs"
+              className="text-rose-600 hover:text-rose-700 font-medium"
+            >
+              Programs
+            </Link>
+            <span className="text-ink-400 mx-2">/</span>
+            <span className="text-ink-700">{prettySlug(slug)}</span>
+          </nav>
+          <OnboardingLockedNotice
+            percent={gate.percent}
+            programSlug={gate.programSlug}
+            kind="program"
+          />
+        </div>
+      </PageShell>
+    );
+  }
 
   const supabase = await createClient();
   const { data: dbProgram } = await supabase

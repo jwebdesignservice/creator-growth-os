@@ -26,6 +26,8 @@ export type ProgramRow = {
   total_lessons?: number;
   total_tasks?: number;
   estimated_days?: number;
+  /** Soft-locked behind the Start Here onboarding gate. */
+  locked?: boolean;
 };
 
 /**
@@ -38,10 +40,16 @@ export type ProgramRow = {
  * stat row and an explicit progress bar with its percentage.
  */
 export function ProgramCard({ program }: { program: ProgramRow }) {
-  const isPro        = program.status === "pro_only";
-  const isCompleted  = program.status === "completed";
-  const isInProgress = program.status === "in_progress";
-  const href = isPro ? "/billing?upgrade=pro" : `/programs/${program.slug}`;
+  const isLocked     = !!program.locked;
+  const isPro        = !isLocked && program.status === "pro_only";
+  const isCompleted  = !isLocked && program.status === "completed";
+  const isInProgress = !isLocked && program.status === "in_progress";
+  // Locked cards route to Start Here (helpful), never the program itself.
+  const href = isLocked
+    ? "/programs/start-here"
+    : isPro
+      ? "/billing?upgrade=pro"
+      : `/programs/${program.slug}`;
   const progress = Math.min(100, Math.max(0, program.progress ?? 0));
 
   return (
@@ -66,6 +74,14 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
           </span>
         )}
 
+        {/* Onboarding soft-lock overlay */}
+        {isLocked && (
+          <div className="absolute inset-0 flex items-center justify-center bg-ink-900/35 backdrop-blur-[2px]">
+            <span className="size-11 rounded-full bg-white/85 inline-flex items-center justify-center shadow-soft">
+              <Lock className="size-5 text-rose-600" strokeWidth={2} />
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Meta (borderless, on the page background) ─────────────────── */}
@@ -111,8 +127,13 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
           )}
         </div>
 
-        {/* Progress / Pro CTA */}
-        {isPro ? (
+        {/* Progress / Pro CTA / Locked */}
+        {isLocked ? (
+          <div className="h-9 inline-flex items-center justify-center w-full rounded-[10px] bg-cream-100 border border-ink-200 text-ink-600 text-[12px] font-medium gap-1.5">
+            <Lock className="size-3.5" strokeWidth={2} />
+            Complete Start Here to unlock
+          </div>
+        ) : isPro ? (
           <div className="h-9 inline-flex items-center justify-center w-full rounded-[10px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
             <Lock className="size-3.5 mr-1.5" strokeWidth={2} />
             Upgrade to Pro

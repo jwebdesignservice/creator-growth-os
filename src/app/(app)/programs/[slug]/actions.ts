@@ -76,6 +76,9 @@ export async function markLessonComplete(
   revalidatePath("/dashboard", "layout");
   // Generated tasks land on the global Tasks/Missions page too.
   revalidatePath("/missions", "layout");
+  // Completing the Start Here program lifts the onboarding gate, which also
+  // unlocks the Tutorials library — refresh it too.
+  revalidatePath("/tutorials", "layout");
   return { ok: true };
 }
 

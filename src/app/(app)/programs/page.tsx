@@ -8,12 +8,28 @@ import { FeaturedProgram } from "@/components/programs/featured-program";
 import { ProgramsGrid } from "@/components/programs/programs-grid";
 import type { ProgramRow } from "@/components/programs/program-card";
 import { getProgressForPrograms } from "@/lib/programs/queries";
+import {
+  getOnboardingGate,
+  isGateActive,
+  readPreviewGate,
+  ONBOARDING_PROGRAM_SLUG,
+} from "@/lib/onboarding/gate";
 
 export const metadata = { title: "Programs | Creator Growth OS" };
 
-export default async function ProgramsPage() {
+type SearchParams = Promise<{ previewGate?: string }>;
+
+export default async function ProgramsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
+
+  const { previewGate } = await searchParams;
+  const gate = await getOnboardingGate();
+  const gateActive = isGateActive(gate, readPreviewGate(previewGate));
 
   const supabase = await createClient();
   const { data: dbPrograms } = await supabase
@@ -60,11 +76,17 @@ export default async function ProgramsPage() {
           estimated_days: p.estimated_days ?? undefined,
           cover_hue: i % 3 === 0 ? "rose" : i % 3 === 1 ? "cream" : "warm",
           cover_image_url: p.cover_image_url ?? null,
+          // Soft-locked behind onboarding — every program except Start Here.
+          locked: gateActive && p.slug !== ONBOARDING_PROGRAM_SLUG,
         };
       })
     : FALLBACK;
 
-  const featured = programs.find((p) => p.status === "in_progress") ?? programs[0];
+  // When the gate is active, surface Start Here as the featured program so the
+  // hero CTA points into onboarding (and is never itself locked).
+  const featured = gateActive
+    ? programs.find((p) => p.slug === ONBOARDING_PROGRAM_SLUG) ?? programs[0]
+    : programs.find((p) => p.status === "in_progress") ?? programs[0];
 
   const firstName = ctx.name.split(" ")[0];
 
