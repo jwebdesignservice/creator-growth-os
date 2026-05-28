@@ -68,7 +68,7 @@ export default async function TutorialDetailPage({
           </h1>
           <p className="text-ink-500 text-[14px] max-w-2xl">
             {lesson.description ??
-              "Learn how to apply this skill to your daily creator workflow. The action drill in the tabs below will help you make it stick."}
+              "Learn how to apply this skill to your daily creator workflow. The steps and resources in the tabs below will help you make it stick."}
           </p>
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             <span className="chip chip-rose">
@@ -136,13 +136,12 @@ export default async function TutorialDetailPage({
         )}
 
         {/* Lesson detail — organized into tabs (Overview / Lesson Path /
-            Creator Drill / Resources / Notes) instead of a stack of cards. */}
+            Resources / Notes) instead of a stack of cards. */}
         <LessonTabs
           description={lesson.description}
           moduleNumber={lesson.moduleNumber ?? 1}
           moduleTitle={lesson.moduleTitle ?? "Module"}
           moduleLessons={lesson.moduleLessons}
-          lessonTitle={lesson.title}
         />
       </div>
     </PageShell>

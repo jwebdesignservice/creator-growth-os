@@ -7,8 +7,6 @@ import {
   CheckCircle2,
   CalendarDays,
   Play,
-  Target,
-  Clock,
   FileText,
   FileSpreadsheet,
   Files,
@@ -24,9 +22,9 @@ import { cn } from "@/lib/cn";
  * Tabbed detail panel for the lesson player (Loom-inspired).
  *
  * Replaces the old 6-card grid below the video with a single organized
- * panel: a horizontal tab bar (underline indicator) over five sections —
- * Overview, Lesson Path, Creator Drill, Resources, and Notes. Keeps the
- * page calmer and gives the user one clear place to look for each thing.
+ * panel: a horizontal tab bar (underline indicator) over four sections —
+ * Overview, Lesson Path, Resources, and Notes. Keeps the page calmer and
+ * gives the user one clear place to look for each thing.
  */
 
 type ModuleLesson = {
@@ -42,15 +40,13 @@ type Props = {
   moduleNumber: number;
   moduleTitle: string;
   moduleLessons: ModuleLesson[];
-  lessonTitle: string;
 };
 
-type TabKey = "overview" | "path" | "drill" | "resources" | "notes";
+type TabKey = "overview" | "path" | "resources" | "notes";
 
 const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: "overview",  label: "Overview",     icon: BookOpen     },
   { key: "path",      label: "Lesson Path",  icon: CalendarDays },
-  { key: "drill",     label: "Creator Drill", icon: Target      },
   { key: "resources", label: "Resources",    icon: Files        },
   { key: "notes",     label: "Notes",        icon: Pencil       },
 ];
@@ -68,7 +64,6 @@ export function LessonTabs({
   moduleNumber,
   moduleTitle,
   moduleLessons,
-  lessonTitle,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -116,7 +111,6 @@ export function LessonTabs({
             lessons={moduleLessons}
           />
         )}
-        {tab === "drill" && <DrillPanel lessonTitle={lessonTitle} />}
         {tab === "resources" && <ResourcesPanel />}
         {tab === "notes" && <NotesPanel />}
       </div>
@@ -248,40 +242,6 @@ function PathPanel({
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-/* ─── Creator drill ────────────────────────────────────────────────────── */
-
-function DrillPanel({ lessonTitle }: { lessonTitle: string }) {
-  return (
-    <div className="max-w-2xl">
-      <p className="text-[13.5px] text-ink-700 leading-relaxed mb-4">
-        Write 10 variations applying what you learned in{" "}
-        <span className="font-semibold">{lessonTitle}</span>. Use different
-        angles and test the strongest one this week.
-      </p>
-      <ul className="space-y-2 text-[13px] text-ink-700 mb-5">
-        <li className="flex items-center gap-2">
-          <Clock className="size-3.5 text-rose-500" strokeWidth={2} aria-hidden />
-          Estimated time: <span className="font-semibold">30 min</span>
-        </li>
-        <li className="flex items-center gap-2">
-          <CalendarDays className="size-3.5 text-rose-500" strokeWidth={2} aria-hidden />
-          Due date: <span className="font-semibold">In 2 days</span>
-        </li>
-        <li className="flex items-center gap-2">
-          <FileText className="size-3.5 text-rose-500" strokeWidth={2} aria-hidden />
-          Format: <span className="font-semibold">Written submission</span>
-        </li>
-      </ul>
-      <button
-        type="button"
-        className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors cursor-pointer"
-      >
-        Start drill
-      </button>
     </div>
   );
 }
