@@ -179,55 +179,59 @@ export function Sidebar({
           )}
 
           {isAdmin && (
-            <Link
-              href="/admin"
-              title={!expanded ? "Admin Console" : undefined}
-              className={cn(
-                "flex items-center rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-[background-color,padding,width] duration-150",
-                expanded
-                  ? "gap-3 px-3 py-2.5"
-                  : "size-10 justify-center mx-auto",
-              )}
-            >
-              <ShieldCheck
-                className="size-[18px] text-rose-300 shrink-0"
-                strokeWidth={1.8}
-              />
-              <span
+            <div className={cn(!expanded && "flex justify-center")}>
+              <Link
+                href="/admin"
+                title={!expanded ? "Admin Console" : undefined}
                 className={cn(
-                  "flex-1 whitespace-nowrap transition-opacity duration-150",
-                  expanded ? "opacity-100" : "opacity-0 w-0",
+                  "flex items-center rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-[background-color,padding] duration-150",
+                  expanded
+                    ? "gap-3 px-3 py-2.5"
+                    : "size-10 justify-center",
                 )}
               >
-                Admin Console
-              </span>
-            </Link>
+                <ShieldCheck
+                  className="size-[18px] text-rose-300 shrink-0"
+                  strokeWidth={1.8}
+                />
+                <span
+                  className={cn(
+                    "flex-1 whitespace-nowrap transition-opacity duration-150",
+                    expanded ? "opacity-100" : "opacity-0 w-0",
+                  )}
+                >
+                  Admin Console
+                </span>
+              </Link>
+            </div>
           )}
 
           {isDev && (
-            <Link
-              href="/dev"
-              title={!expanded ? "Dev Console" : undefined}
-              className={cn(
-                "mt-2 flex items-center rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-[background-color,padding,width] duration-150 ring-1 ring-[rgba(59,130,246,0.32)]",
-                expanded
-                  ? "gap-3 px-3 py-2.5"
-                  : "size-10 justify-center mx-auto",
-              )}
-            >
-              <Terminal
-                className="size-[18px] text-[#7AA9FF] shrink-0"
-                strokeWidth={1.8}
-              />
-              <span
+            <div className={cn("mt-2", !expanded && "flex justify-center")}>
+              <Link
+                href="/dev"
+                title={!expanded ? "Dev Console" : undefined}
                 className={cn(
-                  "flex-1 whitespace-nowrap transition-opacity duration-150",
-                  expanded ? "opacity-100" : "opacity-0 w-0",
+                  "flex items-center rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-[background-color,padding] duration-150 ring-1 ring-[rgba(59,130,246,0.32)]",
+                  expanded
+                    ? "gap-3 px-3 py-2.5"
+                    : "size-10 justify-center",
                 )}
               >
-                Dev Console
-              </span>
-            </Link>
+                <Terminal
+                  className="size-[18px] text-[#7AA9FF] shrink-0"
+                  strokeWidth={1.8}
+                />
+                <span
+                  className={cn(
+                    "flex-1 whitespace-nowrap transition-opacity duration-150",
+                    expanded ? "opacity-100" : "opacity-0 w-0",
+                  )}
+                >
+                  Dev Console
+                </span>
+              </Link>
+            </div>
           )}
         </nav>
 
