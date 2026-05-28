@@ -114,7 +114,6 @@ export function CreatorDrillTab({
   lessonTitle,
   initialDrill,
   tableMissing,
-  videoSlot,
 }: DrillTabProps) {
   /* Seed form state from server data. */
   const seed = initialDrill ?? {
@@ -430,28 +429,6 @@ export function CreatorDrillTab({
     });
   }
 
-  /* ── Live readiness derivation. */
-  const readiness = useMemo(
-    () =>
-      deriveDrillReadiness({
-        drillTitle:           drill.title,
-        objective:            drill.objective,
-        steps:                drill.taskSteps.length,
-        submissionTypeChosen: !!drill.submissionType,
-        resources:            drill.resources.length,
-        saved:                !isDirty && !!initialDrill,
-      }),
-    [
-      drill.title,
-      drill.objective,
-      drill.taskSteps.length,
-      drill.submissionType,
-      drill.resources.length,
-      isDirty,
-      initialDrill,
-    ],
-  );
-
   /* ── Render ──────────────────────────────────────────────────────────── */
 
   if (tableMissing) {
@@ -466,9 +443,7 @@ export function CreatorDrillTab({
         onDismiss={() => setStatus({ kind: "idle" })}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5 items-start">
-        {/* ── LEFT column — all drill editing ───────────────────────── */}
-        <div className="space-y-5 min-w-0">
+      <div className="space-y-5">
           {/* 1. Hero / intro card */}
           <section className="card p-5 sm:p-6">
             <div className="flex items-start gap-4">
@@ -924,20 +899,50 @@ export function CreatorDrillTab({
               </section>
             </div>
           </div>
+        {/* Footer action bar — Save / Preview live here now that the
+            right rail (video + drill readiness + tips) has been removed.
+            Cmd/Ctrl-S still saves while editing. */}
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() =>
+              typeof window !== "undefined" &&
+              window.alert("Learner preview — coming next.")
+            }
+            className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-[12px] bg-white border border-ink-200 text-[13px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
+          >
+            <Eye className="size-4" strokeWidth={2} />
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={pending || (!isDirty && !!initialDrill)}
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 h-11 px-5 rounded-[12px] text-[13px] font-semibold transition-colors shadow-sm",
+              isDirty || !initialDrill
+                ? "bg-rose-600 hover:bg-rose-700 text-white disabled:bg-rose-300"
+                : "bg-success-bg text-success border border-success/20 cursor-default",
+            )}
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+            ) : isDirty || !initialDrill ? (
+              <Save className="size-4" strokeWidth={2} />
+            ) : (
+              <Check className="size-4" strokeWidth={2.5} />
+            )}
+            {pending
+              ? "Saving…"
+              : isDirty
+                ? initialDrill
+                  ? "Save changes"
+                  : "Save drill"
+                : initialDrill
+                  ? "All saved"
+                  : "Save drill"}
+          </button>
         </div>
-
-        {/* ── RIGHT rail — video + drill readiness + tips ─────────────── */}
-        <aside className="space-y-4 min-w-0">
-          {videoSlot}
-          <DrillReadinessCard
-            readiness={readiness}
-            onSave={onSave}
-            saving={pending}
-            isDirty={isDirty}
-            hasInitialDrill={!!initialDrill}
-          />
-          <DrillTipsCard />
-        </aside>
       </div>
 
       {confirmDelete && (
