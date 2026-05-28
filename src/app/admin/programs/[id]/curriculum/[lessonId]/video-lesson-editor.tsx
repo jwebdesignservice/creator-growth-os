@@ -25,7 +25,6 @@ import {
   Pencil,
   Trash2,
   Plus,
-  CheckCircle2,
   Image as ImageIcon,
   Camera,
   Repeat,
@@ -34,15 +33,41 @@ import {
   Check,
   AlertCircle,
   X,
+  Target,
+  Layers,
+  Anchor,
+  Users,
+  TrendingUp,
+  Lightbulb,
+  BookOpen,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
+import { saveVideoLesson, publishVideoLesson } from "./actions";
 import {
-  saveVideoLesson,
-  publishVideoLesson,
-  type ActionStep,
-} from "./actions";
+  LEARNING_ICON_KEYS,
+  DEFAULT_LEARNING_ICON,
+  type LearningPoint,
+  type LearningIconKey,
+  type LearningActionStep,
+} from "@/lib/programs/learning-content";
+
+/* Icon key → component map. Keys come from learning-content.ts; this map
+   resolves them to lucide components for both the picker and the cards. */
+const LEARNING_ICONS: Record<LearningIconKey, LucideIcon> = {
+  target:        Target,
+  layers:        Layers,
+  anchor:        Anchor,
+  users:         Users,
+  "trending-up": TrendingUp,
+  lightbulb:     Lightbulb,
+  rocket:        Rocket,
+  "book-open":   BookOpen,
+  sparkles:      Sparkles,
+  zap:           Zap,
+};
 
 /* ─────────────────────────────────────────────────────────────────────────
    Dedicated program-video editor — its own surface, deliberately simple:
@@ -63,8 +88,7 @@ export type VideoLessonRow = {
   moduleNumber:    number | null;
   moduleTitle:     string | null;
   published:       boolean;
-  learningPoints:  string[];
-  actionSteps:     ActionStep[];
+  learningPoints:  LearningPoint[];
 };
 
 const BUCKET = "lesson-media";
@@ -84,14 +108,13 @@ export function VideoLessonEditor({
   const [videoUrl, setVideoUrl]         = useState<string | null>(lesson.videoUrl);
   const [duration, setDuration]         = useState(lesson.durationSeconds);
   const [coverUrl, setCoverUrl]         = useState<string | null>(lesson.coverImageUrl);
-  const [learning, setLearning]         = useState<string[]>(lesson.learningPoints);
-  const [steps, setSteps]               = useState<ActionStep[]>(lesson.actionSteps);
+  const [learning, setLearning]         = useState<LearningPoint[]>(lesson.learningPoints);
   const [published, setPublished]       = useState(lesson.published);
   const [showTimeOnCover, setShowTime]  = useState(true);
 
   const snapshot = useMemo(
-    () => JSON.stringify({ description, videoUrl, duration, coverUrl, learning, steps }),
-    [description, videoUrl, duration, coverUrl, learning, steps],
+    () => JSON.stringify({ description, videoUrl, duration, coverUrl, learning }),
+    [description, videoUrl, duration, coverUrl, learning],
   );
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const isDirty = snapshot !== savedSnapshot;
@@ -120,7 +143,6 @@ export function VideoLessonEditor({
         durationSeconds: duration,
         coverImageUrl: coverUrl,
         learningPoints: learning,
-        actionSteps: steps,
       });
       if (!res.ok) {
         setToast({ kind: "error", msg: res.error });
@@ -131,7 +153,7 @@ export function VideoLessonEditor({
     });
   }, [
     pending, lesson.id, programId, description, videoUrl, duration,
-    coverUrl, learning, steps, snapshot,
+    coverUrl, learning, snapshot,
   ]);
 
   useEffect(() => {
@@ -263,8 +285,6 @@ export function VideoLessonEditor({
         <OverviewEditor value={description} onChange={setDescription} />
 
         <LearningList items={learning} onChange={setLearning} />
-
-        <ActionStepsList items={steps} onChange={setSteps} />
       </div>
     </div>
   );
@@ -576,16 +596,20 @@ function VideoAndCover({
             </button>
             <button
               type="button"
-              onClick={() => onError("AI cover generation is coming soon.")}
-              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100"
+              disabled
+              aria-disabled
+              title="AI cover generation — coming soon"
+              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-ink-100 bg-cream-50 text-[12px] font-semibold text-ink-400 cursor-not-allowed"
             >
-              <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} />
+              <Sparkles className="size-3.5" strokeWidth={2} />
               Generate
             </button>
             <button
               type="button"
-              onClick={() => onError("Looping previews are coming soon.")}
-              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100"
+              disabled
+              aria-disabled
+              title="Looping previews — coming soon"
+              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-ink-100 bg-cream-50 text-[12px] font-semibold text-ink-400 cursor-not-allowed"
             >
               <Repeat className="size-3.5" strokeWidth={2} />
               Loop
@@ -676,133 +700,43 @@ function OverviewEditor({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════ */
-/*  C. What you will learn                                                  */
+/*  C. What you will learn  (icon + title + description, each with its own   */
+/*     optional action step — section D folded in here)                      */
 /* ═══════════════════════════════════════════════════════════════════════ */
 
 function LearningList({
   items,
   onChange,
 }: {
-  items: string[];
-  onChange: (v: string[]) => void;
+  items: LearningPoint[];
+  onChange: (v: LearningPoint[]) => void;
 }) {
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [editText, setEditText] = useState("");
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  // The learning-point id whose action-step modal is currently open.
+  const [stepFor, setStepFor] = useState<string | null>(null);
 
   function add() {
-    const v = draft.trim();
-    if (!v) return;
-    onChange([...items, v]);
-    setDraft("");
-    setAdding(false);
+    onChange([
+      ...items,
+      {
+        id: `lp-${Date.now()}`,
+        icon: DEFAULT_LEARNING_ICON,
+        title: "",
+        description: "",
+        actionStep: null,
+      },
+    ]);
   }
-  function commitEdit() {
-    if (editIdx == null) return;
-    const v = editText.trim();
-    onChange(v ? items.map((it, i) => (i === editIdx ? v : it)) : items.filter((_, i) => i !== editIdx));
-    setEditIdx(null);
-  }
-  function remove(i: number) {
-    onChange(items.filter((_, idx) => idx !== i));
-  }
-  function reorder(from: number, to: number) {
-    if (from === to) return;
-    const next = [...items];
-    const [m] = next.splice(from, 1);
-    next.splice(to, 0, m);
-    onChange(next);
-  }
-
-  return (
-    <Section letter="C" title="What you will learn" subtitle="Key outcomes for this lesson — these render as cards on the lesson page, separate from the program overview's “What You'll Learn”." badge="Lesson page">
-      <ul className="space-y-1.5">
-        {items.map((it, i) => (
-          <li
-            key={i}
-            draggable={editIdx !== i}
-            onDragStart={() => setDragIdx(i)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => {
-              if (dragIdx != null) reorder(dragIdx, i);
-              setDragIdx(null);
-            }}
-            className={cn(
-              "group flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] hover:bg-cream-50/70",
-              dragIdx === i && "opacity-50",
-            )}
-          >
-            <GripVertical className="size-3.5 text-ink-300 shrink-0 cursor-grab" strokeWidth={2} aria-hidden />
-            <CheckCircle2 className="size-4 text-success shrink-0" strokeWidth={2} />
-            {editIdx === i ? (
-              <input
-                autoFocus
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                onBlur={commitEdit}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitEdit();
-                  if (e.key === "Escape") setEditIdx(null);
-                }}
-                className="flex-1 h-7 px-2 rounded-[6px] border border-rose-300 text-[13px] focus:outline-none focus:ring-2 focus:ring-rose-100"
-              />
-            ) : (
-              <span className="flex-1 text-[13px] text-ink-900">{it}</span>
-            )}
-            <RowBtn icon={Pencil} label="Edit" onClick={() => { setEditIdx(i); setEditText(it); }} />
-            <RowBtn icon={Trash2} label="Delete" danger onClick={() => remove(i)} />
-          </li>
-        ))}
-      </ul>
-
-      {adding ? (
-        <InlineAdd
-          value={draft}
-          onChange={setDraft}
-          onAdd={add}
-          onCancel={() => { setAdding(false); setDraft(""); }}
-          placeholder="New learning outcome…"
-        />
-      ) : (
-        <AddButton label="Add learning point" onClick={() => setAdding(true)} />
-      )}
-    </Section>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════ */
-/*  D. Action steps                                                         */
-/* ═══════════════════════════════════════════════════════════════════════ */
-
-function ActionStepsList({
-  items,
-  onChange,
-}: {
-  items: ActionStep[];
-  onChange: (v: ActionStep[]) => void;
-}) {
-  const [editing, setEditing] = useState<ActionStep | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
-
-  function startAdd() {
-    setEditing({ id: `as-${Date.now()}`, title: "", description: "" });
-  }
-  function save(step: ActionStep) {
-    const title = step.title.trim();
-    if (!title) { setEditing(null); return; }
-    const exists = items.some((s) => s.id === step.id);
-    onChange(exists ? items.map((s) => (s.id === step.id ? { ...step, title } : s)) : [...items, { ...step, title }]);
-    setEditing(null);
+  function update(id: string, patch: Partial<LearningPoint>) {
+    onChange(items.map((lp) => (lp.id === id ? { ...lp, ...patch } : lp)));
   }
   function remove(id: string) {
-    onChange(items.filter((s) => s.id !== id));
+    onChange(items.filter((lp) => lp.id !== id));
   }
   function reorder(from: string, to: string) {
     if (from === to) return;
-    const fi = items.findIndex((s) => s.id === from);
-    const ti = items.findIndex((s) => s.id === to);
+    const fi = items.findIndex((l) => l.id === from);
+    const ti = items.findIndex((l) => l.id === to);
     if (fi < 0 || ti < 0) return;
     const next = [...items];
     const [m] = next.splice(fi, 1);
@@ -810,58 +744,192 @@ function ActionStepsList({
     onChange(next);
   }
 
+  const editing = items.find((l) => l.id === stepFor) ?? null;
+
   return (
-    <Section letter="D" title="Action steps" subtitle="Actions learners take after watching — shown under “What you'll learn” on the lesson page." badge="Lesson page">
-      <ul className="space-y-2">
-        {items.map((s, i) => (
+    <Section
+      letter="C"
+      title="What you will learn"
+      subtitle="Each outcome is a card — icon, title, description — and can carry one action step. Renders on the lesson page, separate from the program overview's “What You'll Learn”."
+      badge="Lesson page"
+    >
+      <ul className="space-y-3">
+        {items.map((lp) => (
           <li
-            key={s.id}
+            key={lp.id}
             draggable
-            onDragStart={() => setDragId(s.id)}
+            onDragStart={() => setDragId(lp.id)}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={() => { if (dragId) reorder(dragId, s.id); setDragId(null); }}
+            onDrop={() => {
+              if (dragId) reorder(dragId, lp.id);
+              setDragId(null);
+            }}
             className={cn(
-              "group flex items-start gap-2.5 px-2.5 py-2.5 rounded-[10px] border border-ink-100 bg-white hover:bg-cream-50/60",
-              dragId === s.id && "opacity-50",
+              "group rounded-[14px] border border-ink-100 bg-white p-3.5",
+              dragId === lp.id && "opacity-50",
             )}
           >
-            <GripVertical className="size-3.5 text-ink-300 shrink-0 mt-1 cursor-grab" strokeWidth={2} aria-hidden />
-            <span className="size-6 rounded-full bg-rose-600 text-white inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0 mt-0.5">
-              {i + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-ink-900">{s.title}</div>
-              {s.description && (
-                <p className="text-[12px] text-ink-500 leading-snug mt-0.5">{s.description}</p>
-              )}
+            <div className="flex items-start gap-3">
+              <GripVertical
+                className="size-4 text-ink-300 shrink-0 mt-2.5 cursor-grab"
+                strokeWidth={2}
+                aria-hidden
+              />
+              <IconPicker value={lp.icon} onChange={(icon) => update(lp.id, { icon })} />
+              <div className="flex-1 min-w-0 space-y-2">
+                <input
+                  value={lp.title}
+                  onChange={(e) => update(lp.id, { title: e.target.value.slice(0, 200) })}
+                  placeholder="Outcome title — e.g. Define your niche and unique positioning"
+                  className="w-full h-10 px-3 rounded-[10px] border border-ink-200 text-[13.5px] font-semibold text-ink-900 placeholder:font-normal placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+                />
+                <textarea
+                  value={lp.description}
+                  onChange={(e) => update(lp.id, { description: e.target.value.slice(0, 600) })}
+                  rows={2}
+                  placeholder="Short description — what they'll get clear on."
+                  className="w-full px-3 py-2 rounded-[10px] border border-ink-200 text-[13px] text-ink-700 resize-y focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+                />
+
+                {/* Nested action step */}
+                {lp.actionStep ? (
+                  <div className="flex items-start gap-2.5 rounded-[10px] border border-rose-100 bg-rose-50/60 px-3 py-2.5">
+                    <span className="size-6 rounded-full bg-rose-600 text-white inline-flex items-center justify-center shrink-0 mt-0.5">
+                      <Sparkles className="size-3" strokeWidth={2} fill="currentColor" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.12em] font-bold text-rose-600">
+                        Action step
+                      </div>
+                      <div className="text-[13px] font-semibold text-ink-900 leading-snug">
+                        {lp.actionStep.title}
+                      </div>
+                      {lp.actionStep.description && (
+                        <p className="text-[12px] text-ink-600 leading-snug mt-0.5">
+                          {lp.actionStep.description}
+                        </p>
+                      )}
+                    </div>
+                    <RowBtn icon={Pencil} label="Edit action step" onClick={() => setStepFor(lp.id)} />
+                    <RowBtn
+                      icon={Trash2}
+                      label="Remove action step"
+                      danger
+                      onClick={() => update(lp.id, { actionStep: null })}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setStepFor(lp.id)}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[9px] bg-rose-50 border border-rose-100 text-rose-700 text-[12px] font-semibold hover:bg-rose-100 transition-colors"
+                  >
+                    <Plus className="size-3.5" strokeWidth={2.5} />
+                    Add action step
+                  </button>
+                )}
+              </div>
+              <RowBtn
+                icon={Trash2}
+                label="Delete learning point"
+                danger
+                onClick={() => remove(lp.id)}
+              />
             </div>
-            <RowBtn icon={Pencil} label="Edit" onClick={() => setEditing(s)} />
-            <RowBtn icon={Trash2} label="Delete" danger onClick={() => remove(s.id)} />
           </li>
         ))}
       </ul>
 
-      <AddButton label="Add action step" onClick={startAdd} />
+      <AddButton label="Add learning point" onClick={add} />
 
       {editing && (
         <StepModal
-          step={editing}
-          onClose={() => setEditing(null)}
-          onSave={save}
+          step={editing.actionStep ?? { title: "", description: "" }}
+          onClose={() => setStepFor(null)}
+          onSave={(s) => {
+            update(editing.id, { actionStep: s.title.trim() ? s : null });
+            setStepFor(null);
+          }}
         />
       )}
     </Section>
   );
 }
 
+/* Compact icon picker — current icon as a tile that opens a small grid. */
+function IconPicker({
+  value,
+  onChange,
+}: {
+  value: LearningIconKey;
+  onChange: (k: LearningIconKey) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function click(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", click);
+    return () => document.removeEventListener("mousedown", click);
+  }, [open]);
+
+  const Active = LEARNING_ICONS[value] ?? LEARNING_ICONS[DEFAULT_LEARNING_ICON];
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Choose icon"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="size-10 rounded-[10px] bg-rose-50 border border-rose-100 text-rose-600 inline-flex items-center justify-center hover:bg-rose-100 transition-colors"
+      >
+        <Active className="size-5" strokeWidth={2} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute left-0 top-[calc(100%+6px)] z-30 w-[188px] p-2 rounded-[12px] bg-white border border-ink-100 shadow-card grid grid-cols-5 gap-1.5"
+        >
+          {LEARNING_ICON_KEYS.map((k) => {
+            const Ic = LEARNING_ICONS[k];
+            const active = k === value;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => {
+                  onChange(k);
+                  setOpen(false);
+                }}
+                aria-label={k}
+                className={cn(
+                  "size-8 rounded-[8px] inline-flex items-center justify-center transition-colors",
+                  active ? "bg-rose-600 text-white" : "text-ink-600 hover:bg-cream-100",
+                )}
+              >
+                <Ic className="size-4" strokeWidth={2} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Modal for a learning point's single optional action step. */
 function StepModal({
   step,
   onClose,
   onSave,
 }: {
-  step: ActionStep;
+  step: LearningActionStep;
   onClose: () => void;
-  onSave: (s: ActionStep) => void;
+  onSave: (s: LearningActionStep) => void;
 }) {
   const [title, setTitle] = useState(step.title);
   const [desc, setDesc] = useState(step.description);
@@ -885,7 +953,7 @@ function StepModal({
           autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Review the key concepts"
+          placeholder="e.g. Write down 3 audience pain points"
           className="w-full h-10 px-3 rounded-[10px] border border-ink-200 text-[13.5px] focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 mb-3"
         />
         <label className="block text-[12px] font-semibold text-ink-900 mb-1">Description <span className="text-ink-400 font-normal">(optional)</span></label>
@@ -902,7 +970,7 @@ function StepModal({
           </button>
           <button
             type="button"
-            onClick={() => onSave({ ...step, title, description: desc })}
+            onClick={() => onSave({ title, description: desc })}
             disabled={!title.trim()}
             className="h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold"
           >
@@ -993,39 +1061,6 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
       <Plus className="size-3.5" strokeWidth={2.5} />
       {label}
     </button>
-  );
-}
-
-function InlineAdd({
-  value,
-  onChange,
-  onAdd,
-  onCancel,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onAdd: () => void;
-  onCancel: () => void;
-  placeholder: string;
-}) {
-  return (
-    <div className="mt-2 flex items-center gap-2">
-      <input
-        autoFocus
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") onAdd(); if (e.key === "Escape") onCancel(); }}
-        placeholder={placeholder}
-        className="flex-1 h-10 px-3 rounded-[10px] border border-ink-200 text-[13px] focus:outline-none focus:border-rose-400"
-      />
-      <button type="button" onClick={onAdd} disabled={!value.trim()} className="h-10 px-3 rounded-[10px] bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700 disabled:bg-rose-300">
-        Add
-      </button>
-      <button type="button" onClick={onCancel} className="h-10 px-3 rounded-[10px] border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100">
-        Cancel
-      </button>
-    </div>
   );
 }
 

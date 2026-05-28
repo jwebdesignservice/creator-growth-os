@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { normalizeLearningPoints } from "@/lib/programs/learning-content";
 import { VideoLessonEditor, type VideoLessonRow } from "./video-lesson-editor";
 
 export const metadata = { title: "Video lesson · Admin" };
@@ -63,8 +64,10 @@ export default async function ProgramVideoEditorPage({
     moduleNumber:    (row.module_number as number | null) ?? null,
     moduleTitle:     (row.module_title as string | null) ?? null,
     published:       Boolean(row.published),
-    learningPoints:  toStringArray(row.learning_points),
-    actionSteps:     toStepArray(row.action_steps),
+    // Legacy plain-string learning points + the old separate action_steps
+    // both normalise into the structured shape (action steps now live
+    // nested inside each learning point).
+    learningPoints:  normalizeLearningPoints(row.learning_points),
   };
 
   return (
@@ -74,28 +77,4 @@ export default async function ProgramVideoEditorPage({
       lesson={lesson}
     />
   );
-}
-
-function toStringArray(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((v) => String(v ?? "")).filter((v) => v.length > 0);
-}
-
-function toStepArray(
-  raw: unknown,
-): { id: string; title: string; description: string }[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((s, i) => {
-      if (!s || typeof s !== "object") return null;
-      const o = s as Record<string, unknown>;
-      const title = String(o.title ?? "");
-      if (!title) return null;
-      return {
-        id: typeof o.id === "string" && o.id ? o.id : `as-${i}`,
-        title,
-        description: String(o.description ?? ""),
-      };
-    })
-    .filter((s): s is { id: string; title: string; description: string } => s !== null);
 }

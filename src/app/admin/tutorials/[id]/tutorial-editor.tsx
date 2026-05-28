@@ -29,11 +29,20 @@ import {
   Plus,
   CircleDashed,
   CheckCircle2,
+  Loader2,
+  Copy,
+  Trash2,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Donut } from "@/components/dashboard/donut";
-import { updateLesson } from "@/app/admin/lessons/actions";
+import {
+  updateLesson,
+  toggleLessonPublished,
+  deleteLesson,
+  duplicateTutorial,
+} from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
 import { ThumbnailTab } from "./thumbnail-tab";
 import { CreatorDrillTab } from "./creator-drill-tab";
@@ -44,6 +53,7 @@ import { OverviewTab, AtAGlanceCard } from "./overview-tab";
 import { LessonPathTab } from "./lesson-path-tab";
 import type { LessonChapter } from "./lesson-chapters-actions";
 import { ResourcesTab } from "./resources-tab";
+import type { LessonResource } from "./resources-actions";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -131,6 +141,8 @@ export function TutorialEditor({
   initialChapters,
   initialControls,
   controlsTableMissing,
+  initialResources,
+  resourcesTableMissing,
 }: {
   lesson: TutorialEditorData;
   programs: ProgramOption[];
@@ -139,6 +151,8 @@ export function TutorialEditor({
   initialChapters: LessonChapter[];
   initialControls: LessonControls;
   controlsTableMissing: boolean;
+  initialResources: LessonResource[];
+  resourcesTableMissing: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -294,15 +308,26 @@ export function TutorialEditor({
     }
   }
 
-  function onPublish() {
-    // For now, "Publish tutorial" is a soft alias — surface a confirm flash
-    // and route back to the list. Full publish flow wires next.
-    if (typeof window !== "undefined") {
-      window.alert(
-        lesson.published
-          ? "This tutorial is already published."
-          : "Publish flow will run validation and then go live. Coming next.",
-      );
+  const [publishing, setPublishing] = useState(false);
+
+  async function onPublish() {
+    if (publishing) return;
+    // Save any pending edits first so publish never goes live with a stale
+    // draft, then flip the published flag for real.
+    setPublishing(true);
+    setSaveError(null);
+    try {
+      if (dirty) await onSave();
+      const res = await toggleLessonPublished(lesson.id, !lesson.published);
+      if (!res.ok) {
+        setSaveError(res.error);
+        return;
+      }
+      startTransition(() => router.refresh());
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Publish failed.");
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -368,18 +393,27 @@ export function TutorialEditor({
           <button
             type="button"
             onClick={onPublish}
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold shadow-sm transition-colors"
+            disabled={publishing}
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13.5px] font-semibold shadow-sm transition-colors"
           >
-            <Send className="size-4" strokeWidth={2} />
-            {lesson.published ? "Republish tutorial" : "Publish tutorial"}
+            {publishing ? (
+              <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+            ) : lesson.published ? (
+              <Eye className="size-4" strokeWidth={2} />
+            ) : (
+              <Send className="size-4" strokeWidth={2} />
+            )}
+            {publishing
+              ? "Working…"
+              : lesson.published
+                ? "Unpublish"
+                : "Publish tutorial"}
           </button>
-          <button
-            type="button"
-            aria-label="More actions"
-            className="inline-flex items-center justify-center size-11 rounded-[12px] bg-white border border-ink-200 text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
-          >
-            <MoreHorizontal className="size-4" strokeWidth={2} />
-          </button>
+          <EditorMoreMenu
+            lessonId={lesson.id}
+            slug={lesson.slug}
+            title={lesson.title}
+          />
         </div>
       </header>
 
@@ -452,6 +486,7 @@ export function TutorialEditor({
               />
             ) : activeTab === "thumbnail" ? (
               <ThumbnailTab
+                lessonId={lesson.id}
                 coverImageUrl={lesson.coverImageUrl}
                 videoUrl={lesson.videoUrl}
                 durationSeconds={lesson.durationSeconds}
@@ -478,7 +513,11 @@ export function TutorialEditor({
                 lastUpdatedAt={lesson.createdAt}
               />
             ) : activeTab === "resources" ? (
-              <ResourcesTab />
+              <ResourcesTab
+                lessonId={lesson.id}
+                initialResources={initialResources}
+                tableMissing={resourcesTableMissing}
+              />
             ) : (
               <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
             )}
@@ -507,6 +546,143 @@ export function TutorialEditor({
         </div>
       )}
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Header "More actions" kebab — Duplicate · Copy link · View public · Delete.
+   ───────────────────────────────────────────────────────────────────────── */
+
+function EditorMoreMenu({
+  lessonId,
+  slug,
+  title,
+}: {
+  lessonId: string;
+  slug: string;
+  title: string;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [copied, setCopied] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  function onDuplicate() {
+    setOpen(false);
+    startTransition(async () => {
+      const res = await duplicateTutorial(lessonId);
+      if (res.ok && res.id) router.push(`/admin/tutorials/${res.id}`);
+      else if (!res.ok) window.alert(res.error);
+    });
+  }
+
+  async function onCopyLink() {
+    setOpen(false);
+    try {
+      const url =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/tutorials/${slug}`
+          : `/tutorials/${slug}`;
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable — silent */
+    }
+  }
+
+  function onDelete() {
+    setOpen(false);
+    if (!confirm(`Delete "${title}"? This permanently removes the tutorial and can't be undone.`)) {
+      return;
+    }
+    startTransition(async () => {
+      const res = await deleteLesson(lessonId);
+      if (res.ok) router.push("/admin/tutorials");
+      else window.alert(res.error);
+    });
+  }
+
+  return (
+    <div ref={wrapRef} className="relative shrink-0">
+      <button
+        type="button"
+        aria-label="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={pending}
+        onClick={() => setOpen((v) => !v)}
+        onBlur={(e) => {
+          if (!wrapRef.current?.contains(e.relatedTarget as Node)) setOpen(false);
+        }}
+        className="inline-flex items-center justify-center size-11 rounded-[12px] bg-white border border-ink-200 text-ink-500 hover:bg-cream-100 hover:text-ink-900 disabled:opacity-50 transition-colors"
+      >
+        {pending ? (
+          <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+        ) : (
+          <MoreHorizontal className="size-4" strokeWidth={2} />
+        )}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-[calc(100%+6px)] z-30 w-52 rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+        >
+          <MoreMenuButton icon={<Copy className="size-3.5" strokeWidth={2} />} label="Duplicate tutorial" onClick={onDuplicate} />
+          <MoreMenuButton
+            icon={<ExternalLink className="size-3.5" strokeWidth={2} />}
+            label={copied ? "Link copied!" : "Copy share link"}
+            onClick={onCopyLink}
+          />
+          <a
+            role="menuitem"
+            href={`/tutorials/${slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-cream-100"
+          >
+            <Eye className="size-3.5" strokeWidth={2} />
+            View public page
+          </a>
+          <div aria-hidden className="h-px my-1 bg-ink-100" />
+          <MoreMenuButton
+            icon={<Trash2 className="size-3.5" strokeWidth={2} />}
+            label="Delete tutorial"
+            onClick={onDelete}
+            danger
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MoreMenuButton({
+  icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={cn(
+        "w-full text-left flex items-center gap-2 px-3 py-2 text-[12.5px] cursor-pointer",
+        danger ? "text-rose-600 hover:bg-rose-50" : "text-ink-700 hover:bg-cream-100",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 

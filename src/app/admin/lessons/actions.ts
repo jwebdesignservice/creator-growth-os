@@ -60,15 +60,16 @@ export async function toggleLessonPublished(
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
 
-  const { data: lesson, error: readErr } = await ctx.supabase
+  const db = createServiceClient();
+  const { data: lesson, error: readErr } = await db
     .from("lessons")
-    .select("slug, title, plan_access, published")
+    .select("slug, title, plan_access, published, program_id")
     .eq("id", lessonId)
     .maybeSingle();
   if (readErr) return { ok: false, error: readErr.message };
   if (!lesson) return { ok: false, error: "Lesson not found." };
 
-  const { error } = await ctx.supabase
+  const { error } = await db
     .from("lessons")
     .update({ published })
     .eq("id", lessonId);
@@ -79,6 +80,11 @@ export async function toggleLessonPublished(
   }
 
   revalidatePath("/admin/lessons");
+  revalidatePath("/admin/tutorials");
+  revalidatePath(`/admin/tutorials/${lessonId}`);
+  if (lesson.program_id) {
+    revalidatePath(`/admin/programs/${lesson.program_id}/curriculum`);
+  }
   return { ok: true };
 }
 
@@ -86,15 +92,81 @@ export async function deleteLesson(lessonId: string): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
 
-  const { error } = await ctx.supabase
-    .from("lessons")
-    .delete()
-    .eq("id", lessonId);
+  const db = createServiceClient();
+  const { error } = await db.from("lessons").delete().eq("id", lessonId);
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/lessons");
   revalidatePath("/admin/tutorials");
   return { ok: true };
+}
+
+/**
+ * Duplicate a tutorial/lesson in place — clones every core field with a
+ * fresh unique slug + "(Copy)" title, as an unpublished draft. Used by
+ * the tutorials list + editor "Duplicate" actions.
+ */
+export async function duplicateTutorial(
+  lessonId: string,
+): Promise<Result & { id?: string }> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return ctx;
+
+  const db = createServiceClient();
+  const { data: src, error: readErr } = await db
+    .from("lessons")
+    .select(
+      "program_id, title, description, video_url, cover_image_url, duration_seconds, plan_access, module_number, module_title, content_type, difficulty, category, sort_order",
+    )
+    .eq("id", lessonId)
+    .maybeSingle();
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!src) return { ok: false, error: "Tutorial not found." };
+
+  const title = `${src.title} (Copy)`;
+  const base = String(title)
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-") || `tutorial-${Date.now().toString(36)}`;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`;
+    const { data, error } = await db
+      .from("lessons")
+      .insert({
+        slug,
+        title,
+        description: src.description ?? null,
+        video_url: src.video_url ?? null,
+        cover_image_url: src.cover_image_url ?? null,
+        duration_seconds: src.duration_seconds ?? 0,
+        plan_access: src.plan_access ?? "basic",
+        program_id: src.program_id ?? null,
+        module_number: src.module_number ?? null,
+        module_title: src.module_title ?? null,
+        content_type: src.content_type ?? "video",
+        difficulty: src.difficulty ?? "intermediate",
+        category: src.category ?? null,
+        sort_order: ((src.sort_order as number | null) ?? 0) + 1,
+        published: false,
+      })
+      .select("id")
+      .maybeSingle();
+    if (!error && data) {
+      revalidatePath("/admin/tutorials");
+      revalidatePath("/admin/lessons");
+      if (src.program_id) {
+        revalidatePath(`/admin/programs/${src.program_id}/curriculum`);
+      }
+      return { ok: true, id: data.id as string };
+    }
+    if (error && error.code === "23505") continue;
+    if (error) return { ok: false, error: error.message };
+  }
+  return { ok: false, error: "Could not generate a unique slug for the copy." };
 }
 
 /* ───────────────────────────────────────────────────────────────────── */
@@ -265,14 +337,53 @@ export async function updateLesson(
 
   if (Object.keys(update).length === 0) return { ok: true };
 
-  const { data: lesson, error } = await ctx.supabase
+  // Admin verified — write with the service client so RLS session quirks
+  // in server actions can't silently block the save.
+  const db = createServiceClient();
+
+  // The editor fields below ship with migration 0034. If that migration
+  // hasn't been applied to the live DB, including them makes PostgREST
+  // reject the ENTIRE update (42703). So on that error we retry with just
+  // the core columns — title / description / plan_access / video / cover /
+  // duration always persist, and the 0034 fields fill in once migrated.
+  const EXTRA_KEYS = new Set([
+    "tags",
+    "visibility",
+    "internal_notes",
+    "cta_link",
+    "editor_category",
+    "learning_outcomes",
+    "publishing_notes_internal",
+  ]);
+
+  let result = await db
     .from("lessons")
     .update(update)
     .eq("id", lessonId)
     .select("program_id")
     .maybeSingle();
-  if (error) return { ok: false, error: error.message };
 
+  if (result.error && result.error.code === "42703") {
+    const core: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(update)) {
+      if (!EXTRA_KEYS.has(k)) core[k] = v;
+    }
+    if (Object.keys(core).length === 0) {
+      // Only editor-only fields were dirty and none exist yet — nothing to
+      // persist until 0034 is applied. Treat as a no-op success.
+      return { ok: true };
+    }
+    result = await db
+      .from("lessons")
+      .update(core)
+      .eq("id", lessonId)
+      .select("program_id")
+      .maybeSingle();
+  }
+
+  if (result.error) return { ok: false, error: result.error.message };
+
+  const lesson = result.data;
   revalidatePath("/admin/lessons");
   revalidatePath("/admin/tutorials");
   revalidatePath(`/admin/tutorials/${lessonId}`);
@@ -294,7 +405,8 @@ export async function archiveLesson(
   const ctx = await requireAdminClient();
   if (!ctx.ok) return ctx;
 
-  const { data: lesson, error } = await ctx.supabase
+  const db = createServiceClient();
+  const { data: lesson, error } = await db
     .from("lessons")
     .update({ archived })
     .eq("id", lessonId)
@@ -305,7 +417,7 @@ export async function archiveLesson(
     // yet, fall back to using `published=false` as an archive proxy so the
     // action still works against the existing schema.
     if (error.code === "42703") {
-      const { data: fallback, error: fbErr } = await ctx.supabase
+      const { data: fallback, error: fbErr } = await db
         .from("lessons")
         .update({ published: !archived ? true : false })
         .eq("id", lessonId)

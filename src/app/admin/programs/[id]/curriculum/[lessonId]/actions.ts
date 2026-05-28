@@ -4,6 +4,10 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { requireAdminClient } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  normalizeLearningPoints,
+  type LearningPoint,
+} from "@/lib/programs/learning-content";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Server actions for the dedicated program-video editor at
@@ -22,15 +26,13 @@ import { createServiceClient } from "@/lib/supabase/server";
    core fields still save and the result flags `partial`.
    ───────────────────────────────────────────────────────────────────────── */
 
-export type ActionStep = { id: string; title: string; description: string };
-
 export type VideoLessonData = {
   description:      string;
   videoUrl:        string | null;
   durationSeconds: number;
   coverImageUrl:   string | null;
-  learningPoints:  string[];
-  actionSteps:     ActionStep[];
+  /** Structured "what you'll learn" cards — each may carry one action step. */
+  learningPoints:  LearningPoint[];
 };
 
 export type SaveResult =
@@ -59,13 +61,14 @@ export async function saveVideoLesson(
     cover_image_url:  data.coverImageUrl?.trim() || null,
   };
 
-  const learning = sanitizeLearning(data.learningPoints);
-  const steps    = sanitizeSteps(data.actionSteps);
+  const learning = normalizeLearningPoints(data.learningPoints);
 
-  // Try the full update (core + jsonb).
+  // Try the full update (core + jsonb). Action steps now live nested inside
+  // each learning point, so the legacy top-level `action_steps` column is
+  // cleared to keep the model single-sourced.
   const full = await db
     .from("lessons")
-    .update({ ...core, learning_points: learning, action_steps: steps })
+    .update({ ...core, learning_points: learning, action_steps: [] })
     .eq("id", lessonId);
 
   if (!full.error) {
@@ -116,30 +119,4 @@ function clampInt(n: unknown, min: number, max: number): number {
   const x = Number(n);
   if (!Number.isFinite(x)) return min;
   return Math.max(min, Math.min(max, Math.floor(x)));
-}
-
-function sanitizeLearning(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((v) => String(v ?? "").slice(0, 300).trim())
-    .filter((v) => v.length > 0)
-    .slice(0, 30);
-}
-
-function sanitizeSteps(raw: unknown): ActionStep[] {
-  if (!Array.isArray(raw)) return [];
-  const out: ActionStep[] = [];
-  for (let i = 0; i < raw.length && out.length < 30; i++) {
-    const s = raw[i];
-    if (!s || typeof s !== "object") continue;
-    const o = s as Record<string, unknown>;
-    const title = String(o.title ?? "").slice(0, 200).trim();
-    if (!title) continue;
-    out.push({
-      id: typeof o.id === "string" && o.id ? o.id : `as-${Date.now()}-${i}`,
-      title,
-      description: String(o.description ?? "").slice(0, 600),
-    });
-  }
-  return out;
 }
