@@ -43,11 +43,7 @@ import type { LessonControls } from "./controls-types";
 import { OverviewTab, AtAGlanceCard } from "./overview-tab";
 import { LessonPathTab } from "./lesson-path-tab";
 import type { LessonChapter } from "./lesson-chapters-actions";
-import {
-  ResourcesTab,
-  ResourceHealthCard,
-  BestPracticesCard,
-} from "./resources-tab";
+import { ResourcesTab } from "./resources-tab";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -281,15 +277,14 @@ export function TutorialEditor({
     }
   }
 
-  /* Which tabs get a right-hand rail. The video preview + publishing
-     readiness pair only belongs on Overview, Metadata and Thumbnail.
-     Resources keeps its own (health + best-practices) cards. Every other
-     tab — Lesson path, Controls, Access — runs full-width. */
-  const showVideoRail =
+  /* The right-hand rail (video preview + publishing readiness) only
+     belongs on Overview, Metadata and Thumbnail. Every other tab —
+     Lesson path, Creator drill, Resources, Controls, Access — runs
+     full-width. */
+  const hasRail =
     activeTab === "overview" ||
     activeTab === "metadata" ||
     activeTab === "thumbnail";
-  const hasRail = showVideoRail || activeTab === "resources";
 
   /* ── Render ───────────────────────────────────────────────────────── */
 
@@ -446,32 +441,22 @@ export function TutorialEditor({
 
           {/* ── RIGHT rail ─────────────────────────────────────────────
               The video preview + publishing-readiness pair only shows on
-              Overview, Metadata and Thumbnail. Resources keeps its own
-              health + best-practices cards. Lesson path, Controls and
-              Access render full-width (no rail). */}
+              Overview, Metadata and Thumbnail. On Overview an "At a
+              glance" strip is added underneath. Every other tab renders
+              full-width (no rail). */}
           {hasRail && (
             <aside className="space-y-4 min-w-0">
-              {showVideoRail && (
-                <>
-                  <VideoPreviewCard
-                    videoUrl={lesson.videoUrl}
-                    coverImageUrl={lesson.coverImageUrl}
-                    durationLabel={stats.duration}
-                  />
-                  <PublishingReadinessCard
-                    percent={readiness.percent}
-                    checks={readiness.checks}
-                    onAddChapters={() => setHasChapters(true)}
-                  />
-                </>
-              )}
+              <VideoPreviewCard
+                videoUrl={lesson.videoUrl}
+                coverImageUrl={lesson.coverImageUrl}
+                durationLabel={stats.duration}
+              />
+              <PublishingReadinessCard
+                percent={readiness.percent}
+                checks={readiness.checks}
+                onAddChapters={() => setHasChapters(true)}
+              />
               {activeTab === "overview" && <AtAGlanceCard />}
-              {activeTab === "resources" && (
-                <>
-                  <ResourceHealthCard total={6} external={2} missing={0} />
-                  <BestPracticesCard />
-                </>
-              )}
             </aside>
           )}
         </div>
