@@ -1,7 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Module, Lesson as UILesson } from "@/components/programs/curriculum-accordion";
-import { FALLBACK_MODULES } from "./fallback-modules";
 import { normalizeLearningPoints, type LearningPoint } from "./learning-content";
 
 type RawLesson = {
@@ -34,9 +33,10 @@ export type ProgramProgress = {
 };
 
 /**
- * Read curriculum for a program, grouped by module. Falls back to a
- * shared mock structure when no lessons are seeded yet, so the detail
- * page always renders something meaningful.
+ * Read curriculum for a program, grouped by module. Returns an empty
+ * array when the program is unknown or has no lessons yet — the caller
+ * renders a proper empty state. We never fabricate placeholder lessons,
+ * so completion/progress always reflects this program's real lessons.
  */
 export async function getCurriculumForProgram(
   programSlug: string,
@@ -51,7 +51,7 @@ export async function getCurriculumForProgram(
     .eq("slug", programSlug)
     .maybeSingle();
 
-  if (!program) return FALLBACK_MODULES;
+  if (!program) return [];
 
   // Fetch lessons
   const { data: lessons } = await supabase
@@ -62,7 +62,7 @@ export async function getCurriculumForProgram(
     .eq("program_id", program.id)
     .order("sort_order", { ascending: true });
 
-  if (!lessons || lessons.length === 0) return FALLBACK_MODULES;
+  if (!lessons || lessons.length === 0) return [];
 
   // Fetch user's progress for these lessons
   const {

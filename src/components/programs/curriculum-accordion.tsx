@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Play, Check, Lock, Circle } from "lucide-react";
+import { ChevronDown, Play, Check, Lock, Circle, BookOpen } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type Lesson = {
@@ -54,6 +54,30 @@ export function CurriculumAccordion({
       setExpanded(new Set(modules.map((m) => m.number)));
     }
     setAllOpen(!allOpen);
+  }
+
+  // No real lessons yet — show an honest empty state rather than fabricated
+  // placeholder lessons. Keeps completion/progress tied to real data only.
+  if (modules.length === 0) {
+    return (
+      <div className="card p-5">
+        <header className="mb-3">
+          <h3 className="text-h4 text-ink-900">Program Curriculum</h3>
+        </header>
+        <div className="rounded-[14px] bg-cream-50 border border-cream-200 text-center px-4 py-10">
+          <span className="size-12 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center mb-3 mx-auto">
+            <BookOpen className="size-5" strokeWidth={1.9} aria-hidden />
+          </span>
+          <h4 className="text-[15px] font-semibold text-ink-900 mb-1">
+            Lessons coming soon
+          </h4>
+          <p className="text-[13px] text-ink-500 max-w-sm mx-auto leading-snug">
+            This program&apos;s curriculum is being prepared. Lessons will appear
+            here as soon as they&apos;re published.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
