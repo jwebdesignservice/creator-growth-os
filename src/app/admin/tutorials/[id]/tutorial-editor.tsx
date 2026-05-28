@@ -54,6 +54,7 @@ import { LessonPathTab } from "./lesson-path-tab";
 import type { LessonChapter } from "./lesson-chapters-actions";
 import { ResourcesTab } from "./resources-tab";
 import type { LessonResource } from "./resources-actions";
+import { AccessTab } from "./access-tab";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Public types — what the server page hands down.
@@ -73,6 +74,7 @@ export type TutorialEditorData = {
   published:       boolean;
   createdAt:       string;
   views:           number;
+  difficulty:      string;
 
   /* Editor-only fields (migration 0034). Defaults are filled in
    *  server-side (see app/admin/tutorials/[id]/page.tsx) so the client
@@ -501,6 +503,13 @@ export function TutorialEditor({
             ) : activeTab === "overview" ? (
               <OverviewTab
                 tutorialId={lesson.id}
+                description={description}
+                skillLevel={lesson.difficulty}
+                category={category}
+                runtimeLabel={stats.duration}
+                chapterCount={initialChapters.length}
+                hasDrill={!!initialDrill}
+                resourceCount={initialResources.length}
                 learningOutcomes={learningOutcomes}
                 setLearningOutcomes={setLearningOutcomes}
                 publishingNotes={publishingNotesInternal}
@@ -517,6 +526,14 @@ export function TutorialEditor({
                 lessonId={lesson.id}
                 initialResources={initialResources}
                 tableMissing={resourcesTableMissing}
+              />
+            ) : activeTab === "access" ? (
+              <AccessTab
+                planAccess={planAccess}
+                setPlanAccess={setPlanAccess}
+                visibility={visibility}
+                setVisibility={setVisibility}
+                published={lesson.published}
               />
             ) : (
               <PlaceholderTab tab={TABS.find((t) => t.key === activeTab)!} />
@@ -540,7 +557,13 @@ export function TutorialEditor({
                 checks={readiness.checks}
                 onAddChapters={() => setHasChapters(true)}
               />
-              {activeTab === "overview" && <AtAGlanceCard />}
+              {activeTab === "overview" && (
+                <AtAGlanceCard
+                  hasDrill={!!initialDrill}
+                  resourceCount={initialResources.length}
+                  runtimeLabel={stats.duration}
+                />
+              )}
             </aside>
           )}
         </div>

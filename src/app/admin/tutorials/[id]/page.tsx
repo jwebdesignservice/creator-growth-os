@@ -42,7 +42,7 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
         // guaranteed to exist, so this query — the one that decides whether
         // the page 404s — can never be poisoned by an optional column.
         .select(
-          "id, slug, title, description, program_id, plan_access, cover_image_url, video_url, duration_seconds, module_number, module_title, published, created_at",
+          "id, slug, title, description, program_id, plan_access, cover_image_url, video_url, duration_seconds, difficulty, module_number, module_title, published, created_at",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -87,6 +87,7 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     published:      Boolean(lesson.published),
     createdAt:      (lesson.created_at as string) ?? new Date().toISOString(),
     views:          views ?? 0,
+    difficulty:     (lesson.difficulty as string | null) ?? "",
 
     // Editor-only metadata fields persisted by migration 0034. Read from the
     // optional `ed` row so a pending migration just yields empty defaults

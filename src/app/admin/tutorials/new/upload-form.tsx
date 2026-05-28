@@ -286,7 +286,8 @@ export function TutorialUploadForm() {
               <SecondaryButton
                 icon={Video}
                 label="Record instead"
-                onClick={() => alert("In-browser recording is coming soon.")}
+                disabled
+                title="In-browser recording isn't available yet — upload a file instead."
               />
             </div>
 
@@ -610,16 +611,22 @@ function SecondaryButton({
   icon: Icon,
   label,
   onClick,
+  disabled,
+  title,
 }: {
   icon: LucideIcon;
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center justify-center gap-2 h-11 px-4 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13px] font-medium hover:bg-cream-100 transition-colors"
+      disabled={disabled}
+      title={title}
+      className="inline-flex items-center justify-center gap-2 h-11 px-4 rounded-[12px] bg-white border border-ink-200 text-ink-900 text-[13px] font-medium hover:bg-cream-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
     >
       <Icon className="size-4 text-ink-500" strokeWidth={1.9} />
       {label}
