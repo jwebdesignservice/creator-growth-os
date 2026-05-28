@@ -13,7 +13,6 @@ import {
   X,
   Image as ImageIcon,
   Route as RouteIcon,
-  GraduationCap,
   Folder,
   SlidersHorizontal,
   Lock,
@@ -45,8 +44,6 @@ import {
 } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
 import { ThumbnailTab } from "./thumbnail-tab";
-import { CreatorDrillTab } from "./creator-drill-tab";
-import type { DrillRow } from "./drill-actions";
 import { ControlsTab } from "./controls-tab";
 import type { LessonControls } from "./controls-types";
 import { OverviewTab, AtAGlanceCard } from "./overview-tab";
@@ -98,7 +95,6 @@ type TabKey =
   | "metadata"
   | "thumbnail"
   | "lesson-path"
-  | "creator-drill"
   | "resources"
   | "controls"
   | "access";
@@ -109,7 +105,6 @@ const TABS: Tab[] = [
   { key: "metadata",      label: "Metadata",      icon: Sparkles         },
   { key: "thumbnail",     label: "Thumbnail",     icon: ImageIcon        },
   { key: "lesson-path",   label: "Lesson path",   icon: RouteIcon        },
-  { key: "creator-drill", label: "Creator drill", icon: GraduationCap    },
   { key: "resources",     label: "Resources",     icon: Folder           },
   { key: "controls",      label: "Controls",      icon: SlidersHorizontal },
   { key: "access",        label: "Access",        icon: Lock             },
@@ -138,8 +133,6 @@ const ACCESS_HELP: Record<TutorialEditorData["planAccess"], string> = {
 export function TutorialEditor({
   lesson,
   programs,
-  initialDrill,
-  drillTableMissing,
   initialChapters,
   initialControls,
   controlsTableMissing,
@@ -148,8 +141,6 @@ export function TutorialEditor({
 }: {
   lesson: TutorialEditorData;
   programs: ProgramOption[];
-  initialDrill: DrillRow | null;
-  drillTableMissing: boolean;
   initialChapters: LessonChapter[];
   initialControls: LessonControls;
   controlsTableMissing: boolean;
@@ -443,26 +434,8 @@ export function TutorialEditor({
 
       {/* ── Body ─────────────────────────────────────────────────────── */}
       {/* Tab navigation lives in the middle admin sidebar — see
-          `app/admin/tutorials/tutorials-sidebar.tsx`. Most tabs use the
-          standard (left tab content · right video + readiness rail) grid;
-          Creator drill owns its own internal layout so it can show its
-          drill-readiness card next to the video. */}
-      {activeTab === "creator-drill" ? (
-        <CreatorDrillTab
-          lessonId={lesson.id}
-          lessonTitle={lesson.title}
-          slug={lesson.slug}
-          initialDrill={initialDrill}
-          tableMissing={drillTableMissing}
-          videoSlot={
-            <VideoPreviewCard
-              videoUrl={lesson.videoUrl}
-              coverImageUrl={lesson.coverImageUrl}
-              durationLabel={stats.duration}
-            />
-          }
-        />
-      ) : (
+          `app/admin/tutorials/tutorials-sidebar.tsx`. Tab content (left)
+          sits beside the video + readiness rail (right). */}
         <div
           className={cn(
             "grid grid-cols-1 gap-5 items-start",
@@ -509,7 +482,6 @@ export function TutorialEditor({
                 category={category}
                 runtimeLabel={stats.duration}
                 chapterCount={initialChapters.length}
-                hasDrill={!!initialDrill}
                 resourceCount={initialResources.length}
                 learningOutcomes={learningOutcomes}
                 setLearningOutcomes={setLearningOutcomes}
@@ -562,7 +534,6 @@ export function TutorialEditor({
               />
               {activeTab === "overview" && (
                 <AtAGlanceCard
-                  hasDrill={!!initialDrill}
                   resourceCount={initialResources.length}
                   runtimeLabel={stats.duration}
                 />
@@ -570,7 +541,6 @@ export function TutorialEditor({
             </aside>
           )}
         </div>
-      )}
     </div>
   );
 }

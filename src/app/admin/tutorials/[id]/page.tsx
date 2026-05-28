@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { TutorialEditor, type TutorialEditorData, type ProgramOption } from "./tutorial-editor";
-import { loadDrill, type DrillRow } from "./drill-actions";
 import { getLessonChapters, type LessonChapter } from "./lesson-chapters-actions";
 import { getLessonControls } from "./controls-actions";
 import { getLessonResources } from "./resources-actions";
@@ -106,13 +105,6 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     title: p.title as string,
   }));
 
-  // Load the drill for this lesson. Returns { drill: null } when there
-  // is no drill yet, or surfaces `missingTable` when migration 0031 is
-  // still pending so the tab can show a one-click fix banner.
-  const drillResult = await loadDrill(data.id);
-  const initialDrill: DrillRow | null = drillResult.ok ? drillResult.drill : null;
-  const drillTableMissing = !drillResult.ok && drillResult.missingTable === true;
-
   // Load the persisted lesson-path chapters. Returns [] when the table
   // is missing or empty so the editor seeds its own demo on first run.
   const initialChapters: LessonChapter[] = await getLessonChapters(data.id);
@@ -131,8 +123,6 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     <TutorialEditor
       lesson={data}
       programs={programOptions}
-      initialDrill={initialDrill}
-      drillTableMissing={drillTableMissing}
       initialChapters={initialChapters}
       initialControls={controlsResult.controls}
       controlsTableMissing={controlsResult.tableMissing}
