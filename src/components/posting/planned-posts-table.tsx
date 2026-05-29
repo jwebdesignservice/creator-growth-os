@@ -1,13 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
   ChevronDown,
-  Clock,
-  CheckCircle2,
-  Lightbulb,
-  PenLine,
-  Scissors,
-  Send,
   Video,
   Clapperboard,
   Images,
@@ -28,6 +25,8 @@ import { cn } from "@/lib/cn";
 import type { PostingItem, PlatformKey } from "@/lib/posting/queries";
 import { contentTypeAccent } from "@/lib/posting/content-type-accent";
 import { ItemActionsMenu } from "./item-actions-menu";
+import { StatusPill } from "./status-pill";
+import { PostDetailModal } from "./post-detail-modal";
 
 type Props = {
   items: PostingItem[];
@@ -39,25 +38,13 @@ type Props = {
   isDemo?: boolean;
 };
 
-/* ── Status → colored pill + icon ──────────────────────────────────────── */
-
-const STATUS_META: Record<
-  PostingItem["status"],
-  { label: string; cls: string; icon: LucideIcon }
-> = {
-  idea: { label: "Idea", cls: "bg-cream-100 text-ink-600 border-ink-200", icon: Lightbulb },
-  planned: { label: "Planned", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
-  scripted: { label: "Scripted", cls: "bg-sky-50 text-sky-700 border-sky-200", icon: PenLine },
-  filmed: { label: "Filmed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  edited: { label: "Edited", cls: "bg-violet-50 text-violet-700 border-violet-200", icon: Scissors },
-  posted: { label: "Posted", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: Send },
-  reviewed: { label: "Reviewed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-};
-
 export function PlannedPostsTable({ items, isDemo = false }: Props) {
   const count = items.length;
+  // Which post is open in the detail/edit popup (null = closed).
+  const [editItem, setEditItem] = useState<PostingItem | null>(null);
 
   return (
+    <>
     <section className="card overflow-hidden">
       {/* Header */}
       <header className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-ink-100">
@@ -115,8 +102,6 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
             </thead>
             <tbody>
               {items.map((item) => {
-                const status = STATUS_META[item.status] ?? STATUS_META.planned;
-                const StatusIcon = status.icon;
                 const accent = contentTypeAccent(item.content_type);
                 return (
                   <tr
@@ -145,17 +130,13 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
                       </div>
                     </td>
 
-                    {/* Status pill */}
+                    {/* Status — clickable pill to move through the pipeline */}
                     <td className="py-3.5 px-3">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11.5px] font-semibold whitespace-nowrap",
-                          status.cls,
-                        )}
-                      >
-                        <StatusIcon className="size-3" strokeWidth={2.4} />
-                        {status.label}
-                      </span>
+                      <StatusPill
+                        itemId={item.id}
+                        status={item.status}
+                        readOnly={isDemo}
+                      />
                     </td>
 
                     {/* Row actions */}
@@ -164,6 +145,7 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
                         <ItemActionsMenu
                           itemId={item.id}
                           currentStatus={item.status}
+                          onEdit={() => setEditItem(item)}
                         />
                       )}
                     </td>
@@ -197,6 +179,10 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
         </footer>
       )}
     </section>
+      {editItem && (
+        <PostDetailModal item={editItem} onClose={() => setEditItem(null)} />
+      )}
+    </>
   );
 }
 

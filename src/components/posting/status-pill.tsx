@@ -43,9 +43,11 @@ const META: Record<ContentStatus, { label: string; cls: string; icon: LucideIcon
 export function StatusPill({
   itemId,
   status,
+  readOnly = false,
 }: {
   itemId: string;
   status: ContentStatus;
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -71,6 +73,21 @@ export function StatusPill({
 
   const m = META[status] ?? META.planned;
   const Icon = m.icon;
+
+  // Read-only (e.g. demo rows with no real DB id) — render the pill, no dropdown.
+  if (readOnly) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 h-[22px] px-2.5 rounded-full border text-[11px] font-semibold whitespace-nowrap",
+          m.cls,
+        )}
+      >
+        <Icon className="size-3" strokeWidth={2.4} />
+        {m.label}
+      </span>
+    );
+  }
 
   const choose = (next: ContentStatus) =>
     startTransition(async () => {
