@@ -167,14 +167,21 @@ export async function getRecentEntries(
   if (!user) return [];
 
   const connectedPlatforms = await getConnectedPlatformKeys();
-  const platformsInScope = ["manual", ...connectedPlatforms];
+
+  // If no platforms are currently connected, the KPI tiles must read as
+  // empty — disconnecting an account should zero out the numbers
+  // immediately. We DO NOT fall back to platform='manual' here: the
+  // weekly entry form was removed, and any existing 'manual' rows in
+  // the DB are legacy garbage written by buggy Instagram syncs before
+  // migration 0038. They MUST NOT bleed into the post-disconnect view.
+  if (connectedPlatforms.length === 0) return [];
 
   // Grab up to ~3x rows since we'll collapse N platforms into 1 per week.
   const { data } = await supabase
     .from("performance_entries")
     .select(ENTRY_COLS)
     .eq("user_id", user.id)
-    .in("platform", platformsInScope)
+    .in("platform", connectedPlatforms)
     .order("week_start", { ascending: false })
     .limit(weeks * 4);
 
@@ -197,11 +204,17 @@ export async function getRecentEntries(
  */
 export function computeKpiTiles(entries: PerformanceEntry[]): DeltaTile[] {
   if (entries.length === 0) {
+    // No connected platform and no real data → all tiles read 0 with a
+    // flat-line sparkline. Previously these were dash placeholders with
+    // a fake ramp-up series; that looked deceptively like real data,
+    // especially right after a disconnect. A flat 0 makes the empty
+    // state unambiguous.
+    const flat = [0, 0, 0, 0, 0, 0, 0, 0];
     return [
-      placeholderTile("Followers", "—", [10, 12, 11, 14, 18, 22, 25, 28]),
-      placeholderTile("Total Reach", "—", [20, 24, 22, 28, 30, 36, 42, 48]),
-      placeholderTile("Engagement", "—", [3, 3.5, 3.2, 4, 4.2, 4.8, 5.1, 6.7]),
-      placeholderTile("Revenue", "—", [0, 0, 0, 0, 0, 0, 0, 0]),
+      placeholderTile("Followers", "0", flat),
+      placeholderTile("Total Reach", "0", flat),
+      placeholderTile("Engagement", "0%", flat),
+      placeholderTile("Revenue", "0", flat),
     ];
   }
 
