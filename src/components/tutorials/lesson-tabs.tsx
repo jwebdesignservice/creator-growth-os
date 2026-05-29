@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   BookOpen,
   CheckCircle2,
@@ -9,6 +8,7 @@ import {
   FileText,
   FileSpreadsheet,
   Files,
+  Library,
   ChevronRight,
   Lightbulb,
   Pencil,
@@ -17,10 +17,14 @@ import {
   Target,
   Flag,
   Square,
+  Image as ImageIcon,
+  Link2,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
 import { cn } from "@/lib/cn";
+import type { ProgramNote } from "@/lib/programs/queries";
 
 /**
  * Tabbed detail panel for the lesson player (Loom-inspired).
@@ -39,18 +43,30 @@ type Chapter = {
   iconKey: string;
 };
 
+/** A real uploaded file / external link attached to this lesson. */
+export type LessonResourceItem = {
+  id: string;
+  kind: "file" | "link";
+  title: string;
+  url: string;
+  ext: string;
+  sizeBytes: number | null;
+};
+
 type Props = {
   description: string | null;
   chapters: Chapter[];
+  resources: LessonResourceItem[];
+  notes: ProgramNote[];
+  lessonSlug: string;
 };
 
-type TabKey = "overview" | "path" | "resources" | "notes";
+type TabKey = "overview" | "path" | "resources";
 
 const TABS: { key: TabKey; label: string; icon: LucideIcon; beta?: boolean }[] = [
   { key: "overview",  label: "Overview",     icon: BookOpen     },
   { key: "path",      label: "Lesson Path",  icon: CalendarDays, beta: true },
   { key: "resources", label: "Resources",    icon: Files        },
-  { key: "notes",     label: "Notes",        icon: Pencil       },
 ];
 
 const TAKEAWAYS = [
@@ -64,6 +80,7 @@ const TAKEAWAYS = [
 export function LessonTabs({
   description,
   chapters,
+  resources,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -107,12 +124,21 @@ export function LessonTabs({
       </div>
 
       {/* Active panel */}
-      <div className="p-5 sm:p-6">
-        {tab === "overview" && <OverviewPanel description={description} />}
-        {tab === "path" && <PathPanel chapters={chapters} />}
-        {tab === "resources" && <ResourcesPanel />}
-        {tab === "notes" && <NotesPanel />}
-      </div>
+      {tab === "overview" && (
+        <div className="p-5 sm:p-6">
+          <OverviewPanel description={description} />
+        </div>
+      )}
+      {tab === "path" && (
+        <div className="p-5 sm:p-6">
+          <PathPanel chapters={chapters} />
+        </div>
+      )}
+      {tab === "resources" && (
+        <div className="p-5 sm:p-6">
+          <ResourcesPanel resources={resources} />
+        </div>
+      )}
     </section>
   );
 }
@@ -260,78 +286,112 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
 
 /* ─── Resources & templates ────────────────────────────────────────────── */
 
-function ResourcesPanel() {
-  const items = [
-    { title: "Hook Formula PDF", type: "PDF Guide", icon: FileText },
-    { title: "Caption Starter Sheet", type: "Google Sheet", icon: FileSpreadsheet },
-    { title: "Hook Swipe File", type: "Swipe File Library", icon: Files, pro: true },
-    { title: "Creator Checklist", type: "PDF Guide", icon: FileText },
-  ];
-  return (
-    <div className="max-w-2xl">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[14px] font-semibold text-ink-900">
-          Resources &amp; templates
-        </h3>
-        <Link
-          href="/tutorials"
-          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
-        >
-          View all
-        </Link>
-      </div>
-      <ul className="space-y-1">
-        {items.map((it) => {
-          const Icon = it.icon;
-          return (
-            <li key={it.title}>
-              <button
-                type="button"
-                className="flex items-center gap-3 w-full p-2 -mx-1 rounded-[10px] hover:bg-cream-100 transition-colors cursor-pointer text-left"
-              >
-                <span className="size-9 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-                  <Icon className="size-4" strokeWidth={1.8} aria-hidden />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-ink-900 truncate flex items-center gap-1.5">
-                    {it.title}
-                    {it.pro && (
-                      <span className="chip chip-rose text-[9px]">PRO</span>
-                    )}
-                  </div>
-                </div>
-                <span className="text-[11.5px] text-ink-500 hidden sm:inline">
-                  {it.type}
-                </span>
-                <ChevronRight className="size-3.5 text-ink-400 shrink-0" strokeWidth={2} aria-hidden />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
+const RESOURCE_EXT_META: Record<string, { label: string; icon: LucideIcon }> = {
+  pdf:  { label: "PDF",         icon: FileText        },
+  docx: { label: "Document",    icon: FileText        },
+  xlsx: { label: "Spreadsheet", icon: FileSpreadsheet },
+  png:  { label: "Image",       icon: ImageIcon       },
+  jpg:  { label: "Image",       icon: ImageIcon       },
+  zip:  { label: "Archive",     icon: Files           },
+  link: { label: "Link",        icon: Link2           },
+  file: { label: "File",        icon: FileText        },
+};
+
+function formatBytes(bytes: number | null): string | null {
+  if (!bytes || bytes <= 0) return null;
+  const units = ["B", "KB", "MB", "GB"];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${i === 0 || v >= 10 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
 }
 
-/* ─── Quick notes ──────────────────────────────────────────────────────── */
-
-function NotesPanel() {
+function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
   return (
-    <div className="max-w-2xl">
-      <textarea
-        className="w-full min-h-[180px] rounded-[10px] border border-ink-200 bg-white px-3.5 py-3 text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200 resize-y"
-        placeholder="Write your key takeaways, ideas, and insights from this lesson…"
-        maxLength={1000}
-      />
-      <div className="flex items-center justify-between mt-2 text-[11px] text-ink-500">
-        <div className="inline-flex items-center gap-2.5">
-          <button type="button" className="hover:text-ink-900 cursor-pointer font-bold">B</button>
-          <button type="button" className="hover:text-ink-900 cursor-pointer italic">I</button>
-          <button type="button" className="hover:text-ink-900 cursor-pointer">•</button>
-          <button type="button" className="hover:text-ink-900 cursor-pointer">1.</button>
+    <section className="card overflow-hidden flex flex-col">
+      {/* Header — matches the program "Templates & Downloads" card chrome */}
+      <div className="p-5 sm:p-6 flex items-start gap-3">
+        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <Library className="size-[18px]" strokeWidth={1.9} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[16px] font-bold text-ink-900 leading-tight">
+            Resources &amp; templates
+          </h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            Files and links attached to this lesson
+          </p>
         </div>
-        <span className="tabular-nums">0 / 1000</span>
+        {resources.length > 0 && (
+          <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-cream-100 text-ink-600 text-[11.5px] font-semibold shrink-0 tabular-nums">
+            {resources.length} {resources.length === 1 ? "item" : "items"}
+          </span>
+        )}
       </div>
-    </div>
+
+      {resources.length === 0 ? (
+        <div className="border-t border-ink-100 flex-1 flex flex-col items-center justify-center px-5 sm:px-6 py-10 text-center">
+          <span className="size-11 rounded-full bg-cream-100 text-ink-400 inline-flex items-center justify-center mb-3">
+            <Files className="size-5" strokeWidth={1.8} aria-hidden />
+          </span>
+          <h4 className="text-[14px] font-semibold text-ink-900 mb-1">
+            No resources yet
+          </h4>
+          <p className="text-[12.5px] text-ink-500 max-w-sm mx-auto leading-snug">
+            This lesson doesn&apos;t have any resources attached.
+          </p>
+        </div>
+      ) : (
+        <ul>
+          {resources.map((r) => {
+            const meta =
+              RESOURCE_EXT_META[r.ext] ??
+              RESOURCE_EXT_META[r.kind === "link" ? "link" : "file"];
+            const Icon = meta.icon;
+            const size = r.kind === "file" ? formatBytes(r.sizeBytes) : null;
+            return (
+              <li key={r.id} className="border-t border-ink-100">
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 hover:bg-cream-50 transition-colors cursor-pointer text-left"
+                >
+                  <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+                    <Icon className="size-[20px]" strokeWidth={1.9} aria-hidden />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-semibold text-ink-900 leading-snug truncate">
+                      {r.title}
+                    </div>
+                    <div className="text-[12px] text-ink-500 leading-snug mt-0.5">
+                      {meta.label}
+                      {size ? ` · ${size}` : ""}
+                    </div>
+                  </div>
+                  {r.kind === "link" ? (
+                    <ExternalLink
+                      className="size-4 text-ink-400 shrink-0"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  ) : (
+                    <ChevronRight
+                      className="size-4 text-ink-400 shrink-0"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
+

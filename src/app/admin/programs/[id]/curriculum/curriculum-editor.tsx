@@ -36,8 +36,8 @@ import {
   Sparkles,
   Copy,
   Globe,
-  LayoutTemplate,
   Clock,
+  Star,
   SquarePen,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -222,8 +222,6 @@ export function CurriculumEditor({
   const [addModuleOpen, setAddModuleOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<ModuleRow | null>(null);
   const [deletingModule, setDeletingModule] = useState<ModuleRow | null>(null);
-  const [addLessonForModule, setAddLessonForModule] =
-    useState<ModuleRow | null>(null);
   const [editingLesson, setEditingLesson] = useState<LessonRow | null>(null);
   const [deletingLesson, setDeletingLesson] = useState<LessonRow | null>(null);
   const [managingTasksFor, setManagingTasksFor] = useState<LessonRow | null>(
@@ -276,19 +274,12 @@ export function CurriculumEditor({
   useEffect(() => {
     const moduleParam = searchParams.get("module");
     const editLessonSlug = searchParams.get("edit-lesson");
-    const addLessonModule = searchParams.get("add-lesson");
 
-    if (!moduleParam && !editLessonSlug && !addLessonModule) return;
+    if (!moduleParam && !editLessonSlug) return;
 
     if (editLessonSlug) {
       const lesson = lessons.find((l) => l.slug === editLessonSlug);
       if (lesson) setEditingLesson(lesson);
-    }
-
-    if (addLessonModule) {
-      const n = Number(addLessonModule);
-      const mod = modules.find((m) => m.number === n);
-      if (mod) setAddLessonForModule(mod);
     }
 
     // Always try to scroll to the matching anchor for visual context.
@@ -296,9 +287,7 @@ export function CurriculumEditor({
       ? `lesson-${editLessonSlug}`
       : moduleParam
         ? `module-${moduleParam}`
-        : addLessonModule
-          ? `module-${addLessonModule}`
-          : null;
+        : null;
     if (anchorId) {
       // Defer until after the modal-state commit so the layout has
       // settled and the element is paint-ready.
@@ -401,7 +390,6 @@ export function CurriculumEditor({
               onToggleSelect={toggleSelect}
               onRenameModule={() => setEditingModule(m)}
               onDeleteModule={() => setDeletingModule(m)}
-              onAddLesson={() => setAddLessonForModule(m)}
               onBulkUpload={() => setBulkEdit(true)}
               onEditLesson={(lesson) =>
                 router.push(
@@ -426,7 +414,7 @@ export function CurriculumEditor({
       </button>
 
       {/* Tip */}
-      <div className="mt-6 rounded-[14px] bg-cream-100/60 border border-cream-300 p-4 flex items-start gap-3">
+      <div className="mt-6 rounded-[14px] bg-cream-100/60 border border-cream-300 p-4 flex items-center gap-3">
         <span className="size-9 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
           <Lightbulb className="size-4" strokeWidth={1.9} />
         </span>
@@ -468,13 +456,6 @@ export function CurriculumEditor({
           onClose={() => setDeletingModule(null)}
         />
       )}
-      {addLessonForModule && (
-        <AddLessonModal
-          module={addLessonForModule}
-          programId={programId}
-          onClose={() => setAddLessonForModule(null)}
-        />
-      )}
       {editingLesson && (
         <EditLessonModal
           lesson={editingLesson}
@@ -514,7 +495,6 @@ function ModuleCard({
   onToggleSelect,
   onRenameModule,
   onDeleteModule,
-  onAddLesson,
   onBulkUpload,
   onEditLesson,
   onDeleteLesson,
@@ -529,7 +509,6 @@ function ModuleCard({
   onToggleSelect: (id: string) => void;
   onRenameModule: () => void;
   onDeleteModule: () => void;
-  onAddLesson: () => void;
   onBulkUpload: () => void;
   onEditLesson: (lesson: LessonRow) => void;
   onDeleteLesson: (lesson: LessonRow) => void;
@@ -538,6 +517,38 @@ function ModuleCard({
   const [open, setOpen] = useState(true);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  /* Inline quick-add — clicking "New lesson" reveals a single title input;
+     Enter creates the lesson immediately (no modal) and clears the field so
+     several lessons can be added in a row. */
+  const [adding, setAdding] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
+  const [addPending, startAdd] = useTransition();
+  const onAddLesson = () => setAdding(true);
+
+  function createLesson() {
+    const title = draftTitle.trim();
+    if (!title) return;
+    setAddError(null);
+    startAdd(async () => {
+      const res = await addLessonToModule({
+        programId,
+        moduleId: m.id,
+        title,
+        description: "",
+        videoUrl: "",
+        durationSeconds: 0,
+        planAccess: "basic",
+      });
+      if (!res.ok) {
+        setAddError(res.error);
+        return;
+      }
+      setDraftTitle("");
+      router.refresh();
+    });
+  }
 
   const active = lessons.filter((l) => !l.archived);
   const totalMin = Math.round(
@@ -689,6 +700,55 @@ function ModuleCard({
             </ul>
           )}
 
+          {/* ── Inline quick-add (no modal) ───────────────────────── */}
+          {adding && (
+            <div className="border-t border-ink-100 px-4 sm:px-5 py-3 bg-cream-50/40">
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      createLesson();
+                    }
+                    if (e.key === "Escape") {
+                      setAdding(false);
+                      setDraftTitle("");
+                      setAddError(null);
+                    }
+                  }}
+                  placeholder="Lesson title — press Enter to add"
+                  className="flex-1 h-10 px-3 rounded-[10px] border border-rose-300 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-rose-100"
+                />
+                <button
+                  type="button"
+                  onClick={createLesson}
+                  disabled={addPending || !draftTitle.trim()}
+                  className="inline-flex items-center h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[12.5px] font-semibold transition-colors"
+                >
+                  {addPending ? "Adding…" : "Add"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdding(false);
+                    setDraftTitle("");
+                    setAddError(null);
+                  }}
+                  className="inline-flex items-center h-10 px-3 rounded-[10px] border border-ink-200 bg-white text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              {addError && (
+                <p className="mt-1.5 text-[12px] text-rose-600">{addError}</p>
+              )}
+            </div>
+          )}
+
           {/* ── Footer actions ────────────────────────────────────── */}
           <div className="flex items-center gap-2 flex-wrap px-4 sm:px-5 py-3 border-t border-ink-100 bg-cream-50/40 rounded-b-[16px]">
             <button
@@ -700,8 +760,6 @@ function ModuleCard({
               New lesson
             </button>
             <FooterButton icon={Upload} label="Bulk upload" onClick={onBulkUpload} />
-            <FooterButton icon={Sparkles} label="Section summary" disabled />
-            <FooterButton icon={LayoutTemplate} label="Add from template" disabled />
             <span className="ml-auto">
               <FooterButton icon={Sparkles} label="AI assist" disabled />
             </span>
@@ -1639,144 +1697,6 @@ function DeleteModuleModal({
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  Add lesson modal                                                      */
-/* ────────────────────────────────────────────────────────────────────── */
-
-function AddLessonModal({
-  module: m,
-  programId,
-  onClose,
-}: {
-  module: ModuleRow;
-  programId: string;
-  onClose: () => void;
-}) {
-  const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [durationMin, setDurationMin] = useState<string>("");
-  const [planAccess, setPlanAccess] = useState<"free" | "basic" | "pro">(
-    "basic",
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  function save() {
-    setError(null);
-    const seconds = durationMin === "" ? 0 : Math.max(0, Number(durationMin)) * 60;
-    startTransition(async () => {
-      const res = await addLessonToModule({
-        programId,
-        moduleId: m.id,
-        title,
-        description,
-        videoUrl,
-        durationSeconds: seconds,
-        planAccess,
-      });
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      onClose();
-      router.refresh();
-    });
-  }
-
-  return (
-    <Modal
-      open={true}
-      onClose={() => {
-        if (!pending) onClose();
-      }}
-      title={`Add lesson to Module ${m.number}`}
-      description={m.title}
-      size="lg"
-    >
-      <div className="space-y-3">
-        <label className="block">
-          <span className="text-[12px] font-medium text-ink-700 mb-1.5 block">
-            Lesson title *
-          </span>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            autoFocus
-            placeholder="e.g. Defining Your Niche & Sweet Spot"
-            className="w-full h-11 px-3 rounded-[10px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[14px]"
-          />
-        </label>
-        <label className="block">
-          <span className="text-[12px] font-medium text-ink-700 mb-1.5 block">
-            Description
-          </span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            placeholder="What the learner walks away with."
-            className="w-full px-3 py-2.5 rounded-[10px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[14px] leading-relaxed resize-y min-h-[88px]"
-          />
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label className="block">
-            <span className="text-[12px] font-medium text-ink-700 mb-1.5 block">
-              Video URL
-            </span>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://…"
-              className="w-full h-11 px-3 rounded-[10px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[14px]"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[12px] font-medium text-ink-700 mb-1.5 block">
-              Duration (minutes)
-            </span>
-            <input
-              type="number"
-              min={0}
-              value={durationMin}
-              onChange={(e) => setDurationMin(e.target.value)}
-              placeholder="0"
-              className="w-full h-11 px-3 rounded-[10px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[14px]"
-            />
-          </label>
-        </div>
-        <label className="block">
-          <span className="text-[12px] font-medium text-ink-700 mb-1.5 block">
-            Plan access
-          </span>
-          <select
-            value={planAccess}
-            onChange={(e) =>
-              setPlanAccess(e.target.value as "free" | "basic" | "pro")
-            }
-            className="w-full h-11 px-3 rounded-[10px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[14px] bg-white"
-          >
-            <option value="free">Free</option>
-            <option value="basic">Basic</option>
-            <option value="pro">Pro</option>
-          </select>
-        </label>
-        <ErrorBanner message={error} />
-        <FooterButtons
-          onCancel={onClose}
-          onSave={save}
-          canSave={title.trim().length > 0}
-          pending={pending}
-          saveLabel="Add lesson"
-        />
-      </div>
-    </Modal>
-  );
-}
-
-/* ────────────────────────────────────────────────────────────────────── */
 /*  Edit lesson modal                                                     */
 /* ────────────────────────────────────────────────────────────────────── */
 
@@ -2017,6 +1937,22 @@ const TASK_TYPES = [
   { value: "confidence", label: "Confidence" },
 ] as const;
 
+/** Convert an absolute YYYY-MM-DD date into whole days from today (clamped ≥ 0). */
+function daysFromToday(dateStr: string): number {
+  const target = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / 86_400_000));
+}
+
+/** Inverse of daysFromToday — render a stored "due after N days" as a date. */
+function dateFromToday(days: number): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + Math.max(0, days));
+  return d.toISOString().slice(0, 10);
+}
+
 function TaskTemplatesModal({
   lesson,
   programId,
@@ -2237,8 +2173,8 @@ function TemplateForm({
   const [minutes, setMinutes] = useState(
     (initial?.estimated_minutes ?? 15).toString(),
   );
-  const [dueAfterDays, setDueAfterDays] = useState(
-    initial?.due_after_days != null ? String(initial.due_after_days) : "",
+  const [dueDate, setDueDate] = useState(
+    initial?.due_after_days != null ? dateFromToday(initial.due_after_days) : "",
   );
   const [trigger, setTrigger] = useState<TaskTemplate["auto_assign_trigger"]>(
     initial?.auto_assign_trigger ?? "on_start",
@@ -2251,9 +2187,7 @@ function TemplateForm({
     setError(null);
     startTransition(async () => {
       const dueAfter =
-        dueAfterDays.trim() === ""
-          ? null
-          : Math.max(0, Math.floor(Number(dueAfterDays) || 0));
+        dueDate.trim() === "" ? null : daysFromToday(dueDate);
       const common = {
         title,
         description,
@@ -2288,60 +2222,97 @@ function TemplateForm({
       <div className="text-[12px] font-semibold uppercase tracking-wider text-rose-700">
         {mode === "create" ? "New task" : "Edit task"}
       </div>
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Task title"
-        autoFocus
-        className="w-full h-10 px-3 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[13.5px] bg-white"
-      />
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        rows={2}
-        placeholder="Short description (optional)"
-        className="w-full px-3 py-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[13px] leading-relaxed resize-y bg-white min-h-[60px]"
-      />
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <select
-          value={taskType}
-          onChange={(e) => setTaskType(e.target.value)}
-          className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white"
-        >
-          {TASK_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-          className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white"
-        >
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="advanced">Advanced</option>
-        </select>
+      <label className="block">
+        <span className="text-[11px] font-medium text-ink-500">Task title</span>
         <input
-          type="number"
-          min={0}
-          value={points}
-          onChange={(e) => setPoints(e.target.value)}
-          placeholder="Points"
-          className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Apply: Define your audience"
+          autoFocus
+          className="mt-1 w-full h-10 px-3 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[13.5px] bg-white"
         />
-        <input
-          type="number"
-          min={0}
-          value={minutes}
-          onChange={(e) => setMinutes(e.target.value)}
-          placeholder="Minutes"
-          className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white"
+      </label>
+      <label className="block">
+        <span className="text-[11px] font-medium text-ink-500">
+          Short description{" "}
+          <span className="font-normal text-ink-400">(optional)</span>
+        </span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          placeholder="What should the learner do?"
+          className="mt-1 w-full px-3 py-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[13px] leading-relaxed resize-y bg-white min-h-[60px]"
         />
+      </label>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
+          Type
+          <select
+            value={taskType}
+            onChange={(e) => setTaskType(e.target.value)}
+            className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
+          >
+            {TASK_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
+          Difficulty
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
+          Points
+          <div className="relative">
+            <Star
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-rose-400 pointer-events-none"
+              strokeWidth={2}
+              fill="currentColor"
+            />
+            <input
+              type="number"
+              min={0}
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+              placeholder="10"
+              className="h-9 w-full pl-8 pr-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
+            />
+          </div>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
+          Est. time
+          <div className="relative">
+            <Clock
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
+              strokeWidth={2}
+            />
+            <input
+              type="number"
+              min={0}
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value)}
+              placeholder="15"
+              className="h-9 w-full pl-8 pr-9 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
+            />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-400 pointer-events-none">
+              min
+            </span>
+          </div>
+        </label>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
         <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
           Assign trigger
           <select
@@ -2360,15 +2331,22 @@ function TemplateForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-medium text-ink-500">
-          Due after (days)
-          <input
-            type="number"
-            min={0}
-            value={dueAfterDays}
-            onChange={(e) => setDueAfterDays(e.target.value)}
-            placeholder="No due date"
-            className="h-9 px-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
-          />
+          <span>
+            Due date{" "}
+            <span className="font-normal text-ink-400">(optional)</span>
+          </span>
+          <div className="relative">
+            <CalendarDays
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
+              strokeWidth={2}
+            />
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="h-9 w-full pl-8 pr-2 rounded-[8px] border border-ink-200 focus:outline-none focus:border-rose-400 text-[12.5px] bg-white text-ink-900"
+            />
+          </div>
         </label>
       </div>
       <label className="inline-flex items-center gap-2 text-[12.5px] text-ink-700 cursor-pointer">

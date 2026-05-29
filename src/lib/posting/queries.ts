@@ -25,8 +25,21 @@ export type ActivePlan = {
   week_start: string;
   description: string | null;
   status: string;
-  /** 0-100 derived from item statuses */
+  created_at: string;
+  /** 0-100: published posts (posted | reviewed) / total */
   progress: number;
+  total: number;
+  platforms: number;
+  // Pipeline phase counts — always sum to `total`.
+  ideas: number; // idea
+  planned: number; // planned
+  inProduction: number; // scripted | filmed | edited
+  published: number; // posted | reviewed
+  nextPost: {
+    scheduled_for: string;
+    platform: PlatformKey | null;
+    content_type: string | null;
+  } | null;
 };
 
 export type PostingItem = {
@@ -88,7 +101,7 @@ export async function getActivePlan(): Promise<ActivePlan | null> {
 
   const { data: plan } = await supabase
     .from("posting_plans")
-    .select("id, title, week_start, description, status")
+    .select("id, title, week_start, description, status, created_at")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("week_start", { ascending: false })
@@ -99,16 +112,56 @@ export async function getActivePlan(): Promise<ActivePlan | null> {
 
   const { data: items } = await supabase
     .from("posting_plan_items")
-    .select("status")
+    .select("status, platform, content_type, scheduled_for")
     .eq("plan_id", plan.id);
 
-  const total = items?.length ?? 0;
-  const done = (items ?? []).filter(
-    (i) => i.status === "posted" || i.status === "reviewed",
-  ).length;
-  const progress = total === 0 ? 0 : Math.round((done / total) * 100);
+  const list = (items ?? []) as {
+    status: ContentStatus;
+    platform: PlatformKey | null;
+    content_type: string | null;
+    scheduled_for: string | null;
+  }[];
 
-  return { ...plan, progress };
+  const total = list.length;
+  const ideas = list.filter((i) => i.status === "idea").length;
+  const planned = list.filter((i) => i.status === "planned").length;
+  const IN_PRODUCTION = new Set(["scripted", "filmed", "edited"]);
+  const inProduction = list.filter((i) => IN_PRODUCTION.has(i.status)).length;
+  const PUBLISHED = new Set(["posted", "reviewed"]);
+  const published = list.filter((i) => PUBLISHED.has(i.status)).length;
+  const progress = total === 0 ? 0 : Math.round((published / total) * 100);
+  const platforms = new Set(
+    list.map((i) => i.platform).filter((p): p is PlatformKey => !!p),
+  ).size;
+
+  // Soonest upcoming scheduled post.
+  const now = Date.now();
+  const upcoming = list
+    .filter((i) => i.scheduled_for && new Date(i.scheduled_for).getTime() >= now)
+    .sort(
+      (a, b) =>
+        new Date(a.scheduled_for!).getTime() -
+        new Date(b.scheduled_for!).getTime(),
+    );
+  const nextPost = upcoming[0]
+    ? {
+        scheduled_for: upcoming[0].scheduled_for as string,
+        platform: upcoming[0].platform,
+        content_type: upcoming[0].content_type,
+      }
+    : null;
+
+  return {
+    ...plan,
+    progress,
+    total,
+    platforms,
+    ideas,
+    planned,
+    inProduction,
+    published,
+    nextPost,
+  };
 }
 
 export async function getPlannedItems(

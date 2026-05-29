@@ -313,10 +313,12 @@ export default async function ProgramLessonPage({
                 </div>
               </div>
 
-              {/* Platform actions — Continue Watching / Mark Complete / Save Notes */}
+              {/* Platform actions — Continue Watching / Mark Complete / Create Notes */}
               <LessonActionRow
                 lessonSlug={lessonSlug}
                 initialCompleted={completed}
+                lessonTitle={title}
+                programSlug={slug}
               />
 
               {/* Prev / Next — within this program */}

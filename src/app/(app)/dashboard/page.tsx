@@ -43,6 +43,13 @@ export default async function DashboardPage() {
   const weekEnd = new Date(now);
   weekEnd.setDate(weekEnd.getDate() + 7);
   const weekEndIso = weekEnd.toISOString();
+  // Start of today — a post earlier today should still show under "today"
+  // (using `now` dropped any post scheduled before the current moment).
+  const todayStartIso = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).toISOString();
 
   // All independent reads in parallel
   const [
@@ -51,6 +58,9 @@ export default async function DashboardPage() {
     { data: progressRows },
     { data: postingItems },
     { data: performanceRows },
+    { count: lessonsWatchedCount },
+    { count: scheduledPostCount },
+    { data: activePlanRow },
   ] = await Promise.all([
     supabase
       .from("programs")
@@ -76,23 +86,49 @@ export default async function DashboardPage() {
       .limit(3),
     supabase
       .from("posting_plan_items")
-      .select("id, scheduled_for, platform, content_type, topic")
+      .select("id, scheduled_for, platform, content_type, topic, status")
       .eq("user_id", user.id)
-      .gte("scheduled_for", now.toISOString())
+      .gte("scheduled_for", todayStartIso)
       .lte("scheduled_for", weekEndIso)
       .order("scheduled_for", { ascending: true })
-      .limit(8),
+      .limit(20),
     supabase
       .from("performance_entries")
       .select("week_start, followers, profile_visits, engagement_rate, clicks, posts_published, revenue")
       .eq("user_id", user.id)
       .order("week_start", { ascending: false })
       .limit(26),
+    // Has the user watched at least one lesson? → Today's Plan step 1
+    supabase
+      .from("lesson_progress")
+      .select("lesson_id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gt("watched_seconds", 0),
+    // Has the user scheduled/published at least one post? → Today's Plan step 3
+    supabase
+      .from("posting_plan_items")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .not("scheduled_for", "is", null),
+    // Active posting plan id — lets the "Add Content" popup attach new posts.
+    supabase
+      .from("posting_plans")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("week_start", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const tasksTotal = todayMissions?.length ?? 0;
   const tasksCompleted =
     todayMissions?.filter((m) => m.status === "completed").length ?? 0;
+
+  // Today's Plan signals — real, so steps flip to "Completed" automatically.
+  const watchedLesson = (lessonsWatchedCount ?? 0) > 0;
+  const scheduledPost = (scheduledPostCount ?? 0) > 0;
+  const activePlanId = activePlanRow?.id ?? null;
 
   // ── KPI metrics ───────────────────────────────────────────────────────
   const socials = ctx.railProfile.socials;
@@ -167,19 +203,15 @@ export default async function DashboardPage() {
   const todayStart = startOfDay(now);
 
   const realUpcoming: UpcomingItem[] = (postingItems ?? [])
-    .filter(
-      (p): p is typeof p & { platform: string; scheduled_for: string } =>
-        !!p.scheduled_for &&
-        (p.platform === "instagram" ||
-          p.platform === "tiktok" ||
-          p.platform === "youtube"),
-    )
+    .filter((p): p is typeof p & { scheduled_for: string } => !!p.scheduled_for)
     .map((p): UpcomingItem => {
       const when = new Date(p.scheduled_for);
       return {
         id: p.id,
-        platform: p.platform as "instagram" | "tiktok" | "youtube",
-        label: p.topic ?? `${p.platform} ${p.content_type ?? "post"}`,
+        platform: (p.platform ?? "other") as UpcomingItem["platform"],
+        status: (p.status ?? "planned") as UpcomingItem["status"],
+        contentType: p.content_type ?? null,
+        label: p.topic ?? `${p.platform ?? "Post"} ${p.content_type ?? "post"}`,
         time: when.toLocaleTimeString([], {
           hour: "numeric",
           minute: "2-digit",
@@ -201,6 +233,7 @@ export default async function DashboardPage() {
     return {
       short: d.toLocaleDateString(undefined, { weekday: "short" }),
       date: d.getDate(),
+      iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
       isToday: i === 0,
       count: dayCounts[i],
     };
@@ -332,12 +365,21 @@ export default async function DashboardPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--space-grid-gap)]">
         <div className="lg:row-span-2">
-          <TodaysPlan tasksCompleted={tasksCompleted} tasksTotal={tasksTotal} />
+          <TodaysPlan
+            tasksCompleted={tasksCompleted}
+            tasksTotal={tasksTotal}
+            watchedLesson={watchedLesson}
+            scheduledPost={scheduledPost}
+          />
         </div>
         <ContinueLearning lessons={learning} />
         <GettingStarted />
         <div className="lg:col-span-2">
-          <UpcomingContent days={weekDays} items={upcomingItems} />
+          <UpcomingContent
+            days={weekDays}
+            items={upcomingItems}
+            activePlanId={activePlanId}
+          />
         </div>
       </section>
 

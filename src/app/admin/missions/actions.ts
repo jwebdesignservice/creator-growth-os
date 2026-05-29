@@ -2,100 +2,157 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminClient } from "@/lib/admin/require-admin";
+import {
+  createTaskTemplate,
+  updateTaskTemplate,
+  setTaskTemplateStatus,
+  deleteTaskTemplate,
+  duplicateTaskTemplate,
+  setAssignmentRules,
+  type AssignmentRuleInput,
+} from "@/lib/tasks/actions";
+import { runTemplateAssignment } from "@/lib/tasks/schedule";
+import type { TaskFrequency, TaskTemplateStatus } from "@/lib/tasks/types";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Admin mission actions — thin wrappers over the UNIFIED task system
+   (`task_templates` with source_type='admin_mission'). The legacy
+   `mission_templates` table is no longer written here; its rows were folded
+   into task_templates by migration 0041.
+   ───────────────────────────────────────────────────────────────────────── */
 
 type Result = { ok: true } | { ok: false; error: string };
 
-export async function createMissionTemplate(
-  _prev: Result,
-  formData: FormData,
-): Promise<Result> {
-  const ctx = await requireAdminClient();
-  if (!ctx.ok) return ctx;
+const REVALIDATE = "/admin/missions";
 
-  const title = String(formData.get("title") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim() || null;
-  const mission_type = String(formData.get("mission_type") ?? "posting").trim();
-  const categoryRaw = String(formData.get("category") ?? "").trim();
-  const planRaw = String(formData.get("plan_access") ?? "basic").trim();
-  const pointsRaw = String(formData.get("points") ?? "10").trim();
+export type AdminMissionInput = {
+  title: string;
+  description?: string;
+  taskType?: string;
+  points?: number;
+  status?: TaskTemplateStatus;
+  frequency?: TaskFrequency;
+  scheduleTime?: string | null;
+  timezone?: string | null;
+  recurrence?: string | null;
+  autoAssign?: boolean;
+  dueAfterDays?: number | null;
+  // Targeting → becomes task_assignment_rules.
+  plan?: string | null; // 'free' | 'basic' | 'pro' | 'all' | null
+  category?: string | null; // 'starter' | 'growth' | … | 'all' | null
+};
 
-  if (!title) return { ok: false, error: "Title is required." };
-
-  const points = Number(pointsRaw);
-
-  const { error } = await ctx.supabase.from("mission_templates").insert({
-    title,
-    description,
-    mission_type,
-    category: categoryRaw && categoryRaw !== "all" ? categoryRaw : null,
-    plan_access: planRaw,
-    points: Number.isFinite(points) ? points : 10,
-  });
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/admin/missions");
-  return { ok: true };
-}
-
-export async function deleteMissionTemplate(id: string): Promise<Result> {
-  const ctx = await requireAdminClient();
-  if (!ctx.ok) return ctx;
-
-  const { error } = await ctx.supabase
-    .from("mission_templates")
-    .delete()
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/missions");
-  return { ok: true };
-}
-
-/**
- * Bulk-assign a mission template as a fresh per-user mission row to
- * every member matching the template's category + plan.
- */
-export async function assignTemplateToCategory(
-  templateId: string,
-  options: { dueInDays?: number },
-): Promise<Result & { assigned?: number }> {
-  const ctx = await requireAdminClient();
-  if (!ctx.ok) return ctx;
-
-  const { data: tmpl, error: tErr } = await ctx.supabase
-    .from("mission_templates")
-    .select("id, title, description, category, plan_access, points")
-    .eq("id", templateId)
-    .maybeSingle();
-  if (tErr || !tmpl) return { ok: false, error: tErr?.message ?? "Template not found." };
-
-  // Find target users
-  let userQuery = ctx.supabase
-    .from("profiles")
-    .select("id")
-    .eq("plan", tmpl.plan_access);
-  if (tmpl.category) userQuery = userQuery.eq("category", tmpl.category);
-
-  const { data: targets } = await userQuery;
-  if (!targets || targets.length === 0) {
-    return { ok: true, assigned: 0 };
+/** Map the form's plan/category pickers to include-rules. */
+function buildRules(
+  plan?: string | null,
+  category?: string | null,
+): AssignmentRuleInput[] {
+  const rules: AssignmentRuleInput[] = [];
+  if (plan && plan !== "all") {
+    rules.push({ ruleType: "include", targetType: "plan", targetValue: { plan } });
   }
+  if (category && category !== "all") {
+    rules.push({
+      ruleType: "include",
+      targetType: "category",
+      targetValue: { category },
+    });
+  }
+  // No narrowing chosen → everyone is eligible.
+  if (rules.length === 0) {
+    rules.push({ ruleType: "include", targetType: "all", targetValue: {} });
+  }
+  return rules;
+}
 
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + (options.dueInDays ?? 7));
-  const dueISO = dueDate.toISOString().slice(0, 10);
+export async function createAdminMission(
+  input: AdminMissionInput,
+): Promise<Result & { id?: string }> {
+  const res = await createTaskTemplate({
+    sourceType: "admin_mission",
+    title: input.title,
+    description: input.description,
+    taskType: input.taskType,
+    points: input.points,
+    status: input.status ?? "active",
+    frequency: input.frequency ?? "once",
+    scheduleTime: input.scheduleTime ?? null,
+    timezone: input.timezone ?? null,
+    recurrence: input.recurrence ?? null,
+    autoAssign: input.autoAssign ?? false,
+    dueAfterDays: input.dueAfterDays ?? null,
+    autoAssignTrigger: "manual",
+  });
+  if (!res.ok) return res;
+  if (res.id) {
+    const ruleRes = await setAssignmentRules(
+      res.id,
+      buildRules(input.plan, input.category),
+    );
+    if (!ruleRes.ok) return ruleRes;
+  }
+  revalidatePath(REVALIDATE);
+  return { ok: true, id: res.id };
+}
 
-  const rows = targets.map((u: { id: string }) => ({
-    user_id: u.id,
-    template_id: tmpl.id,
-    title: tmpl.title,
-    description: tmpl.description,
-    due_date: dueISO,
-    status: "pending" as const,
-  }));
+export async function updateAdminMission(
+  id: string,
+  input: AdminMissionInput,
+): Promise<Result> {
+  const res = await updateTaskTemplate(id, {
+    title: input.title,
+    description: input.description,
+    taskType: input.taskType,
+    points: input.points,
+    status: input.status,
+    frequency: input.frequency,
+    scheduleTime: input.scheduleTime,
+    timezone: input.timezone,
+    recurrence: input.recurrence,
+    autoAssign: input.autoAssign,
+    dueAfterDays: input.dueAfterDays,
+  });
+  if (!res.ok) return res;
+  const ruleRes = await setAssignmentRules(
+    id,
+    buildRules(input.plan, input.category),
+  );
+  if (!ruleRes.ok) return ruleRes;
+  revalidatePath(REVALIDATE);
+  return { ok: true };
+}
 
-  const { error: insErr } = await ctx.supabase.from("missions").insert(rows);
-  if (insErr) return { ok: false, error: insErr.message };
+export async function setAdminMissionStatus(
+  id: string,
+  status: TaskTemplateStatus,
+): Promise<Result> {
+  const res = await setTaskTemplateStatus(id, status);
+  if (res.ok) revalidatePath(REVALIDATE);
+  return res;
+}
 
-  revalidatePath("/admin/missions");
-  return { ok: true, assigned: rows.length };
+export async function deleteAdminMission(id: string): Promise<Result> {
+  const res = await deleteTaskTemplate(id);
+  if (res.ok) revalidatePath(REVALIDATE);
+  return res;
+}
+
+export async function duplicateAdminMission(id: string): Promise<Result> {
+  const res = await duplicateTaskTemplate(id);
+  if (res.ok) revalidatePath(REVALIDATE);
+  return res.ok ? { ok: true } : res;
+}
+
+/** Manual "Assign now" — force-assign the current period to eligible users. */
+export async function assignAdminMissionNow(
+  id: string,
+): Promise<Result & { assigned?: number; skipped?: number }> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+  const res = await runTemplateAssignment(id, { force: true });
+  if (!res.ok) return { ok: false, error: res.error ?? "Assignment failed." };
+  revalidatePath(REVALIDATE);
+  revalidatePath("/missions");
+  revalidatePath("/", "layout"); // refresh sidebar Tasks badge
+  return { ok: true, assigned: res.assigned, skipped: res.skipped };
 }

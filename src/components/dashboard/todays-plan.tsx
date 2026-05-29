@@ -34,9 +34,15 @@ type Step = {
 export function TodaysPlan({
   tasksCompleted,
   tasksTotal,
+  watchedLesson,
+  scheduledPost,
 }: {
   tasksCompleted: number;
   tasksTotal: number;
+  /** True once the user has watched any lesson. */
+  watchedLesson: boolean;
+  /** True once the user has scheduled or published any post. */
+  scheduledPost: boolean;
 }) {
   const taskGoal = Math.max(tasksTotal, 2);
   const steps: Step[] = [
@@ -44,8 +50,10 @@ export function TodaysPlan({
       icon: GraduationCap,
       title: "Watch 1 lesson",
       desc: "Learn something new",
-      done: true,
-      status: { kind: "done", label: "Completed" },
+      done: watchedLesson,
+      status: watchedLesson
+        ? { kind: "done", label: "Completed" }
+        : { kind: "action", label: "Start", href: "/programs" },
     },
     {
       icon: ClipboardList,
@@ -58,8 +66,10 @@ export function TodaysPlan({
       icon: Send,
       title: "Publish or schedule 1 post",
       desc: "Share content with your audience",
-      done: false,
-      status: { kind: "action", label: "Do this", href: "/posting" },
+      done: scheduledPost,
+      status: scheduledPost
+        ? { kind: "done", label: "Completed" }
+        : { kind: "action", label: "Do this", href: "/posting" },
     },
     {
       icon: BarChart3,

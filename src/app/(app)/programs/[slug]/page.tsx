@@ -42,7 +42,10 @@ import {
   getCurriculumForProgram,
   getProgramProgress,
   getProgramLearningPoints,
+  getProgramNotes,
+  type ProgramNote,
 } from "@/lib/programs/queries";
+import { ProgramNotes } from "@/components/programs/program-notes";
 import { PROGRAM_OUTCOMES } from "@/lib/programs/outcomes";
 import {
   getProgramUserTasks,
@@ -193,6 +196,11 @@ export default async function ProgramDetailPage({
     ? await getProgramUserTasks(programUuid, ctx.user.id)
     : [];
 
+  // ── Learner-authored notes for this program (Resources → My Notes) ───
+  const programNotes: ProgramNote[] = programUuid
+    ? await getProgramNotes(programUuid)
+    : [];
+
   // Program "What You'll Learn" — aggregated from every lesson's authored
   // learning points (admin section C). Falls back to the static outcomes when
   // no lesson has any yet, so the section is never empty.
@@ -263,7 +271,7 @@ export default async function ProgramDetailPage({
               <CurriculumAccordion modules={modules} programSlug={slug} />
             </div>
           }
-          resources={<ResourcesPanel />}
+          resources={<ResourcesPanel notes={programNotes} programSlug={slug} />}
           tasks={<AllProgramTasks tasks={programTasks} />}
         />
       </div>
@@ -798,18 +806,17 @@ function TemplatesDownloads() {
   );
 }
 
-function ResourcesPanel() {
+function ResourcesPanel({
+  notes,
+  programSlug,
+}: {
+  notes: ProgramNote[];
+  programSlug: string;
+}) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
       <TemplatesDownloads />
-      <div className="card p-5">
-        <h3 className="text-h4 text-ink-900 mb-2">
-          Replays &amp; Workshops
-        </h3>
-        <p className="text-[13px] text-ink-500">
-          Recorded sessions will appear here once your coach hosts live workshops for this program.
-        </p>
-      </div>
+      <ProgramNotes notes={notes} programSlug={programSlug} />
     </div>
   );
 }

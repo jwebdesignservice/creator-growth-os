@@ -346,3 +346,115 @@ export async function getProgramLearningPoints(
   }
   return out;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Lesson notes — learner-authored notes for a program (Resources tab).
+ * ───────────────────────────────────────────────────────────────────── */
+
+export type ProgramNote = {
+  id: string;
+  body: string;
+  lesson_slug: string | null;
+  lesson_title: string | null;
+  /** Module the note's lesson belongs to — powers the breadcrumb. */
+  module_title: string | null;
+  /** Pin-to-top flag (migration 0045). */
+  pinned: boolean;
+  /** Program this note belongs to — powers the breadcrumb on the program view. */
+  program_title: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type NoteRow = {
+  id: string;
+  body: string;
+  lesson_slug: string | null;
+  lesson_title: string | null;
+  pinned?: boolean | null;
+  created_at: string;
+  updated_at: string;
+  programs?: { title?: string | null } | { title?: string | null }[] | null;
+  lessons?:
+    | { module_title?: string | null }
+    | { module_title?: string | null }[]
+    | null;
+};
+
+/** Shape a `lesson_notes` row (+ embedded `programs(title)`) into ProgramNote. */
+function mapNoteRow(row: NoteRow): ProgramNote {
+  const prog = Array.isArray(row.programs) ? row.programs[0] : row.programs;
+  const les = Array.isArray(row.lessons) ? row.lessons[0] : row.lessons;
+  return {
+    id: row.id,
+    body: row.body,
+    lesson_slug: row.lesson_slug,
+    lesson_title: row.lesson_title,
+    module_title: les?.module_title ?? null,
+    pinned: row.pinned ?? false,
+    program_title: prog?.title ?? null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+const NOTE_SELECT =
+  "id, body, lesson_slug, lesson_title, pinned, created_at, updated_at, programs(title), lessons(module_title)";
+
+const NOTE_SELECT_BASE =
+  "id, body, lesson_slug, lesson_title, created_at, updated_at";
+
+/**
+ * Fetch notes, preferring the rich columns (pinned + program title, from
+ * migration 0045). If those aren't available yet — missing column (42703) or
+ * the program embed relationship isn't recognized — fall back to the base
+ * columns so notes STILL render; pins + breadcrumb just stay off until 0045 is
+ * applied. Returns [] only when even the base table is missing (0043 not
+ * applied) or on a real error.
+ */
+async function fetchNotes(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  filterColumn: "program_id" | "lesson_slug",
+  filterValue: string,
+): Promise<ProgramNote[]> {
+  const rich = await supabase
+    .from("lesson_notes")
+    .select(NOTE_SELECT)
+    .eq("user_id", userId)
+    .eq(filterColumn, filterValue)
+    .order("pinned", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (!rich.error) return ((rich.data ?? []) as NoteRow[]).map(mapNoteRow);
+
+  const base = await supabase
+    .from("lesson_notes")
+    .select(NOTE_SELECT_BASE)
+    .eq("user_id", userId)
+    .eq(filterColumn, filterValue)
+    .order("created_at", { ascending: false });
+
+  if (base.error) return []; // base table missing (0043 not applied) — fail soft
+  return ((base.data ?? []) as NoteRow[]).map(mapNoteRow);
+}
+
+/** All of the current user's notes for a program — pinned first, then newest. */
+export async function getProgramNotes(programId: string): Promise<ProgramNote[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  return fetchNotes(supabase, user.id, "program_id", programId);
+}
+
+/** The current user's notes for a single lesson (by slug) — pinned first. */
+export async function getLessonNotes(lessonSlug: string): Promise<ProgramNote[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  return fetchNotes(supabase, user.id, "lesson_slug", lessonSlug);
+}

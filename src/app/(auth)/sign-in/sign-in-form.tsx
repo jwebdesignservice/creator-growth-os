@@ -8,11 +8,14 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { signInWithPassword } from "../actions";
 
-export function SignInForm() {
+export function SignInForm({ redirectTo }: { redirectTo?: string }) {
   const [state, formAction, pending] = useActionState(signInWithPassword, {});
 
   return (
     <form action={formAction} className="space-y-4">
+      {redirectTo && (
+        <input type="hidden" name="redirect_to" value={redirectTo} />
+      )}
       <TextInput
         label="Email address"
         name="email"

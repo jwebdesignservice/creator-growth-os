@@ -10,7 +10,9 @@ import {
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
+import { getLessonNotes } from "@/lib/programs/queries";
 import { getLessonChapters } from "@/app/admin/tutorials/[id]/lesson-chapters-actions";
+import { getLessonResources } from "@/app/admin/tutorials/[id]/resources-actions";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { LessonTabs } from "@/components/tutorials/lesson-tabs";
@@ -75,8 +77,13 @@ export default async function TutorialDetailPage({
   const lesson = await getTutorialDetail(slug);
   if (!lesson) notFound();
 
-  // The Lesson Path tab renders the admin-authored chapters for this tutorial.
-  const chapters = await getLessonChapters(lesson.id);
+  // Lesson Path + Resources tabs render the admin-authored chapters and the
+  // real uploaded files/links attached to this tutorial.
+  const [chapters, { resources }, notes] = await Promise.all([
+    getLessonChapters(lesson.id),
+    getLessonResources(lesson.id),
+    getLessonNotes(lesson.slug),
+  ]);
 
   const proLocked = lesson.planAccess === "pro" && ctx.plan !== "pro";
 
@@ -175,6 +182,7 @@ export default async function TutorialDetailPage({
           <LessonActionRow
             lessonSlug={lesson.slug}
             initialCompleted={lesson.completed}
+            lessonTitle={lesson.title}
           />
         )}
 
@@ -183,6 +191,9 @@ export default async function TutorialDetailPage({
         <LessonTabs
           description={lesson.description}
           chapters={chapters}
+          resources={resources}
+          notes={notes}
+          lessonSlug={lesson.slug}
         />
       </div>
     </PageShell>

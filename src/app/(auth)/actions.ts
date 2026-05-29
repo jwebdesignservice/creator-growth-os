@@ -7,30 +7,67 @@ import { linkReferral } from "@/lib/referrals/service";
 
 type FormResult = { error?: string; success?: string };
 
+/**
+ * Only allow internal absolute paths as a post-login destination — blocks
+ * open-redirects and protocol-relative ("//evil.com") URLs.
+ */
+function safeInternalPath(
+  value: FormDataEntryValue | null,
+  fallback = "/dashboard",
+): string {
+  const target = typeof value === "string" ? value.trim() : "";
+  if (!target || !target.startsWith("/") || target.startsWith("//")) {
+    return fallback;
+  }
+  return target;
+}
+
 export async function signInWithPassword(
   _prev: FormResult,
   formData: FormData,
 ): Promise<FormResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const redirectTo = safeInternalPath(formData.get("redirect_to"));
 
   if (!email || !password) {
     return { error: "Email and password are required." };
   }
 
+  // Guard the auth call: a thrown error here (network blip, transient dev
+  // recompile, mis-set env) otherwise crashes the action and surfaces in the
+  // browser as "An unexpected response was received from the server." We turn
+  // it into a friendly returned message instead. `redirect()` stays OUTSIDE
+  // the try/catch — it works by throwing a control-flow signal that must not
+  // be swallowed.
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    // Email-not-confirmed is the most common cause; nudge them toward the
-    // verify screen instead of a wall of red.
-    if (/confirm|not.*confirmed|email/i.test(error.message)) {
-      redirect(`/verify-email?email=${encodeURIComponent(email)}&from=sign-in`);
+  let needsConfirmation = false;
+  let errorMessage: string | null = null;
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      // Email-not-confirmed is the most common cause; nudge them toward the
+      // verify screen instead of a wall of red.
+      if (/confirm|not.*confirmed|email/i.test(error.message)) {
+        needsConfirmation = true;
+      } else {
+        errorMessage = error.message;
+      }
     }
-    return { error: error.message };
+  } catch {
+    errorMessage =
+      "We couldn't reach the sign-in service. Please try again in a moment.";
+  }
+
+  if (needsConfirmation) {
+    redirect(`/verify-email?email=${encodeURIComponent(email)}&from=sign-in`);
+  }
+  if (errorMessage) {
+    return { error: errorMessage };
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect(redirectTo);
 }
 
 export async function signUpWithPassword(
