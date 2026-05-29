@@ -1,12 +1,28 @@
 import Link from "next/link";
 import {
-  Clapperboard,
-  Copy,
-  Plus,
+  CalendarDays,
+  ChevronDown,
+  Clock,
+  CheckCircle2,
+  Lightbulb,
+  PenLine,
+  Scissors,
+  Send,
   Video,
-  Sparkles,
+  Clapperboard,
+  Images,
+  Plus,
+  FileText,
+  Ghost,
+  Briefcase,
+  Layers,
+  Globe,
+  BarChart3,
   ArrowRight,
+  Sparkles,
+  type LucideIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
 import type { PostingItem, PlatformKey } from "@/lib/posting/queries";
@@ -17,52 +33,56 @@ type Props = {
   /**
    * When true, the rows are placeholder demo items (no plan exists yet).
    * We hide the row actions so users don't try to change a status on a
-   * row that doesn't exist in the database — the update would silently
-   * affect 0 rows and the UI wouldn't change, looking like a bug.
+   * row that doesn't exist in the database.
    */
   isDemo?: boolean;
 };
 
-const STATUS_LABEL: Record<PostingItem["status"], string> = {
-  idea: "Idea",
-  planned: "Planned",
-  scripted: "Scripted",
-  filmed: "Filmed",
-  edited: "Edited",
-  posted: "Posted",
-  reviewed: "Reviewed",
-};
+/* ── Status → colored pill + icon ──────────────────────────────────────── */
 
-const STATUS_TONE: Record<PostingItem["status"], string> = {
-  idea: "chip bg-cream-100 text-ink-700",
-  planned: "chip bg-cream-100 text-ink-700",
-  scripted: "chip bg-cream-200 text-ink-700",
-  filmed: "chip bg-cream-200 text-ink-700",
-  edited: "chip chip-rose",
-  posted: "chip chip-success",
-  reviewed: "chip chip-success",
+const STATUS_META: Record<
+  PostingItem["status"],
+  { label: string; cls: string; icon: LucideIcon }
+> = {
+  idea: { label: "Idea", cls: "bg-cream-100 text-ink-600 border-ink-200", icon: Lightbulb },
+  planned: { label: "Planned", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
+  scripted: { label: "Scripted", cls: "bg-sky-50 text-sky-700 border-sky-200", icon: PenLine },
+  filmed: { label: "Filmed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  edited: { label: "Edited", cls: "bg-violet-50 text-violet-700 border-violet-200", icon: Scissors },
+  posted: { label: "Posted", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: Send },
+  reviewed: { label: "Reviewed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
 };
 
 export function PlannedPostsTable({ items, isDemo = false }: Props) {
+  const count = items.length;
+
   return (
     <section className="card overflow-hidden">
-      <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
-        <h3 className="text-h4 text-ink-900">Planned Posts</h3>
+      {/* Header */}
+      <header className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-ink-100">
+        <div className="min-w-0">
+          <h3 className="text-h4 text-ink-900">Planned Posts</h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            Review and manage your upcoming content across all platforms.
+          </p>
+        </div>
         <Link
           href="/posting?view=calendar"
-          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
+          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[12px] border border-rose-200 text-rose-600 hover:bg-rose-50 text-[13px] font-semibold transition-colors shrink-0"
         >
+          <CalendarDays className="size-4" strokeWidth={2} />
           View Calendar
         </Link>
       </header>
+
       {isDemo && (
-        <div className="px-5 py-2.5 bg-rose-50/60 border-b border-rose-100 text-[12px] text-rose-700">
+        <div className="px-5 sm:px-6 py-2.5 bg-rose-50/60 border-b border-rose-100 text-[12px] text-rose-700">
           Demo data — create a posting plan to see your own items and use the
           row actions.
         </div>
       )}
 
-      {items.length === 0 ? (
+      {count === 0 ? (
         <div className="p-10 text-center">
           <div className="inline-flex items-center justify-center size-12 rounded-full bg-rose-100 text-rose-600 mb-3">
             <Sparkles className="size-5" strokeWidth={1.8} />
@@ -76,70 +96,109 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[13px]">
+          <table className="w-full text-left">
             <thead>
-              <tr className="text-[10.5px] tracking-[0.12em] uppercase text-ink-500">
-                <th className="font-semibold py-3 px-5">Date &amp; Time</th>
-                <th className="font-semibold py-3 px-2">Platform</th>
-                <th className="font-semibold py-3 px-2">Content Type</th>
-                <th className="font-semibold py-3 px-2">Topic</th>
-                <th className="font-semibold py-3 px-2">Status</th>
-                <th className="py-3 px-5" />
+              <tr className="text-[10.5px] tracking-[0.12em] uppercase text-ink-500 border-b border-ink-100">
+                <th className="font-semibold py-3 px-5 sm:px-6">
+                  <span className="inline-flex items-center gap-1">
+                    Date &amp; Time
+                    <ChevronDown className="size-3 text-ink-400" strokeWidth={2.5} />
+                  </span>
+                </th>
+                <th className="font-semibold py-3 px-3">Platform</th>
+                <th className="font-semibold py-3 px-3">Content Type</th>
+                <th className="font-semibold py-3 px-3">Topic</th>
+                <th className="font-semibold py-3 px-3">Status</th>
+                <th className="py-3 px-5 sm:px-6" />
               </tr>
             </thead>
             <tbody>
-              {items.map((item, idx) => (
-                <tr
-                  key={item.id}
-                  className={cn(
-                    "border-t border-ink-100",
-                    idx % 2 === 1 && "bg-cream-100/30",
-                  )}
-                >
-                  <td className="py-3 px-5">
-                    <DateCell when={item.scheduled_for} />
-                  </td>
-                  <td className="py-3 px-2">
-                    <PlatformCell platform={item.platform} />
-                  </td>
-                  <td className="py-3 px-2">
-                    <ContentTypeCell type={item.content_type} />
-                  </td>
-                  <td className="py-3 px-2 max-w-[280px] text-ink-900">
-                    {item.topic ?? "—"}
-                  </td>
-                  <td className="py-3 px-2">
-                    <span className={STATUS_TONE[item.status]}>
-                      {STATUS_LABEL[item.status]}
-                    </span>
-                  </td>
-                  <td className="py-3 px-5 text-right">
-                    {!isDemo && (
-                      <ItemActionsMenu
-                        itemId={item.id}
-                        currentStatus={item.status}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {items.map((item) => {
+                const status = STATUS_META[item.status] ?? STATUS_META.planned;
+                const StatusIcon = status.icon;
+                return (
+                  <tr
+                    key={item.id}
+                    className="border-b border-ink-100 last:border-0 hover:bg-cream-50/60 transition-colors"
+                  >
+                    {/* Date & time */}
+                    <td className="py-3.5 px-5 sm:px-6">
+                      <DateCell when={item.scheduled_for} />
+                    </td>
+
+                    {/* Platform */}
+                    <td className="py-3.5 px-3">
+                      <PlatformCell platform={item.platform} />
+                    </td>
+
+                    {/* Content type + format chip */}
+                    <td className="py-3.5 px-3">
+                      <ContentTypeCell type={item.content_type} />
+                    </td>
+
+                    {/* Topic */}
+                    <td className="py-3.5 px-3 max-w-[280px]">
+                      <div className="text-[13px] font-semibold text-ink-900 truncate">
+                        {item.topic ?? "—"}
+                      </div>
+                    </td>
+
+                    {/* Status pill */}
+                    <td className="py-3.5 px-3">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11.5px] font-semibold whitespace-nowrap",
+                          status.cls,
+                        )}
+                      >
+                        <StatusIcon className="size-3" strokeWidth={2.4} />
+                        {status.label}
+                      </span>
+                    </td>
+
+                    {/* Row actions */}
+                    <td className="py-3.5 px-5 sm:px-6 text-right">
+                      {!isDemo && (
+                        <ItemActionsMenu
+                          itemId={item.id}
+                          currentStatus={item.status}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      <footer className="border-t border-ink-100 px-5 py-3 flex items-center justify-center">
-        <Link
-          href="/posting?view=calendar"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-rose-600 hover:text-rose-700"
-        >
-          View All Posts
-          <ArrowRight className="size-3.5" strokeWidth={2} />
-        </Link>
-      </footer>
+      {/* Footer */}
+      {count > 0 && (
+        <footer className="border-t border-ink-100 px-5 sm:px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+          <div className="inline-flex items-center gap-2.5">
+            <span className="size-9 rounded-full bg-cream-100 text-rose-500 inline-flex items-center justify-center shrink-0">
+              <BarChart3 className="size-4" strokeWidth={2} />
+            </span>
+            <span className="text-[13px] text-ink-700">
+              <span className="font-bold text-ink-900 tabular-nums">{count}</span>{" "}
+              Upcoming Post{count === 1 ? "" : "s"}
+            </span>
+          </div>
+          <Link
+            href="/posting?view=calendar"
+            className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold shadow-sm transition-colors"
+          >
+            View All Posts
+            <ArrowRight className="size-4" strokeWidth={2} />
+          </Link>
+        </footer>
+      )}
     </section>
   );
 }
+
+/* ── Cells ─────────────────────────────────────────────────────────────── */
 
 function DateCell({ when }: { when: string | null }) {
   if (!when) return <span className="text-ink-400">—</span>;
@@ -154,58 +213,93 @@ function DateCell({ when }: { when: string | null }) {
     minute: "2-digit",
   });
   return (
-    <div>
-      <div className="text-ink-900 font-medium">{datePart}</div>
-      <div className="text-[11.5px] text-ink-500">{timePart}</div>
+    <div className="flex items-center gap-2.5">
+      <span className="size-9 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+        <CalendarDays className="size-4" strokeWidth={2} />
+      </span>
+      <div className="leading-tight">
+        <div className="text-[13px] font-semibold text-ink-900">{datePart}</div>
+        <div className="text-[11.5px] text-ink-500">{timePart}</div>
+      </div>
     </div>
   );
 }
 
 function PlatformCell({ platform }: { platform: PlatformKey | null }) {
   if (!platform) return <span className="text-ink-400">—</span>;
-  const icon = renderPlatformIcon(platform);
-  const label =
-    platform.charAt(0).toUpperCase() + platform.slice(1).replace(/_/g, " ");
+  const meta = platformMeta(platform);
   return (
-    <div className="flex items-center gap-2">
-      <span className="size-7 rounded-full bg-cream-100 inline-flex items-center justify-center">
-        {icon}
+    <div className="flex items-center gap-2.5">
+      <span
+        className={cn(
+          "size-9 rounded-[10px] inline-flex items-center justify-center shrink-0",
+          meta.tile,
+        )}
+      >
+        {meta.icon}
       </span>
-      <span className="text-ink-700">{label}</span>
+      <span className="text-[13px] font-medium text-ink-800">{meta.label}</span>
     </div>
   );
 }
 
-function renderPlatformIcon(p: PlatformKey) {
-  if (p === "instagram")
-    return <InstagramIcon className="text-rose-600" size={14} />;
-  if (p === "tiktok") return <TiktokIcon className="text-ink-900" size={14} />;
-  if (p === "youtube")
-    return <YoutubeIcon className="text-rose-600" size={14} />;
-  return <span className="size-3 rounded-full bg-rose-300 inline-block" />;
+function platformMeta(p: PlatformKey): {
+  label: string;
+  tile: string;
+  icon: ReactNode;
+} {
+  switch (p) {
+    case "youtube":
+      return { label: "YouTube", tile: "bg-red-600 text-white", icon: <YoutubeIcon size={16} /> };
+    case "tiktok":
+      return { label: "TikTok", tile: "bg-ink-900 text-white", icon: <TiktokIcon size={15} /> };
+    case "instagram":
+      return {
+        label: "Instagram",
+        tile: "bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400 text-white",
+        icon: <InstagramIcon size={15} />,
+      };
+    case "snapchat":
+      return { label: "Snapchat", tile: "bg-yellow-300 text-ink-900", icon: <Ghost className="size-4" strokeWidth={2} /> };
+    case "linkedin":
+      return { label: "LinkedIn", tile: "bg-sky-600 text-white", icon: <Briefcase className="size-4" strokeWidth={2} /> };
+    case "multiple":
+      return { label: "Multiple", tile: "bg-cream-200 text-ink-600", icon: <Layers className="size-4" strokeWidth={2} /> };
+    default:
+      return { label: "Other", tile: "bg-cream-200 text-ink-600", icon: <Globe className="size-4" strokeWidth={2} /> };
+  }
 }
 
 function ContentTypeCell({ type }: { type: string | null }) {
   if (!type) return <span className="text-ink-400">—</span>;
-  const meta = TYPE_META(type);
+  const meta = typeMeta(type);
   const Icon = meta.icon;
   return (
-    <div className="flex items-center gap-2 text-ink-700">
-      <Icon className="size-3.5 text-rose-500" strokeWidth={2} />
-      <span>{meta.label}</span>
+    <div className="flex items-center gap-2.5 min-w-0">
+      <span className="size-9 rounded-[10px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+        <Icon className="size-4" strokeWidth={1.9} />
+      </span>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-[13px] font-medium text-ink-800 truncate">{meta.label}</span>
+        {meta.format && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-cream-100 text-ink-500 text-[10px] font-semibold shrink-0">
+            {meta.format}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-function TYPE_META(t: string) {
-  const map: Record<string, { label: string; icon: typeof Clapperboard }> = {
-    reel: { label: "Reel", icon: Clapperboard },
-    short_video: { label: "Short Video", icon: Video },
-    carousel: { label: "Carousel", icon: Copy },
-    story: { label: "Story", icon: Plus },
-    video: { label: "Video", icon: Video },
-    youtube_video: { label: "YouTube Video", icon: Video },
-    post: { label: "Post", icon: Copy },
+function typeMeta(t: string): { label: string; icon: LucideIcon; format: string } {
+  const map: Record<string, { label: string; icon: LucideIcon; format: string }> = {
+    reel: { label: "Reel", icon: Clapperboard, format: "Short Form" },
+    short_video: { label: "Short Video", icon: Video, format: "Short Form" },
+    story: { label: "Story", icon: Plus, format: "Short Form" },
+    carousel: { label: "Carousel", icon: Images, format: "Static" },
+    post: { label: "Post", icon: FileText, format: "Static" },
+    video: { label: "Video", icon: Video, format: "Video" },
+    youtube_video: { label: "YouTube Video", icon: Video, format: "Video" },
   };
-  return map[t] ?? { label: t, icon: Copy };
+  return map[t] ?? { label: t.replace(/_/g, " "), icon: FileText, format: "Post" };
 }
