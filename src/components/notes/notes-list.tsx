@@ -90,6 +90,7 @@ export function NotesList({
   showContext = false,
   pageSize = 8,
   newNoteHref,
+  onNewNote,
 }: {
   notes: ProgramNote[];
   /** Used to build lesson links in the breadcrumb (program view). */
@@ -99,6 +100,8 @@ export function NotesList({
   pageSize?: number;
   /** When set, a "+ New note" tile leads here (e.g. the program's next lesson). */
   newNoteHref?: string;
+  /** Overrides the New-note tile click (e.g. open a lesson-scoped composer). */
+  onNewNote?: () => void;
   /** Accepted for API compatibility; the card no longer shows an author. */
   authorName?: string;
 }) {
@@ -114,17 +117,17 @@ export function NotesList({
   const endNum = Math.min(start + pageSize, total);
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
-  if (total === 0 && !newNoteHref) return null;
+  if (total === 0 && !newNoteHref && !onNewNote) return null;
 
   return (
     <div>
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
         {/* New note tile (page 1 only) */}
-        {newNoteHref && safePage === 1 && (
+        {(newNoteHref || onNewNote) && safePage === 1 && (
           <li className="break-inside-avoid self-stretch">
             <button
               type="button"
-              onClick={() => setComposeOpen(true)}
+              onClick={() => (onNewNote ? onNewNote() : setComposeOpen(true))}
               className="group h-full w-full min-h-[180px] flex flex-col items-center justify-center gap-2.5 p-6 rounded-[16px] border-2 border-dashed border-ink-200 text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/40 transition-colors"
             >
               <span className="size-11 rounded-full bg-cream-100 text-ink-500 group-hover:bg-rose-100 group-hover:text-rose-600 inline-flex items-center justify-center transition-colors">

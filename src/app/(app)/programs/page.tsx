@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Play, ChevronRight, Clock } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
@@ -125,12 +125,8 @@ export default async function ProgramsPage({
         {/* Grid + filters */}
         <ProgramsGrid programs={programs} />
 
-        {/* Bottom row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <RecommendedForYou programs={programs.slice(0, 3)} />
-          <CreatorDrills />
-          <UpgradeAccent />
-        </div>
+        {/* Bottom CTA */}
+        <UpgradeAccent />
       </div>
     </PageShell>
   );
@@ -149,99 +145,6 @@ function deriveCategoryLabel(arr: string[] | null | undefined) {
         : first === "scale"
           ? "Scale Creator"
           : "Growth Creator";
-}
-
-function RecommendedForYou({ programs }: { programs: ProgramRow[] }) {
-  return (
-    <div className="card p-5">
-      <header className="flex items-center justify-between mb-3">
-        <h3 className="text-h4 text-ink-900">
-          Recommended For You
-        </h3>
-        <Link
-          href="/programs"
-          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
-        >
-          View all
-        </Link>
-      </header>
-      <ul className="space-y-3">
-        {programs.map((p) => (
-          <li key={p.slug}>
-            <Link
-              href={p.status === "pro_only" ? "/billing?upgrade=pro" : `/programs/${p.slug}`}
-              className="flex items-center gap-3 p-2 -mx-2 rounded-[10px] hover:bg-cream-100 transition-colors"
-            >
-              <div className="size-12 rounded-[10px] bg-gradient-to-br from-rose-100 via-cream-200 to-cream-300 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-[13.5px] font-medium text-ink-900 truncate">
-                  {p.title}
-                </div>
-                <div className="text-[11.5px] text-ink-500 truncate">
-                  {p.category_label ?? "Creator program"}
-                  {typeof p.total_lessons === "number" && ` · ${p.total_lessons} Lessons`}
-                </div>
-              </div>
-              <ChevronRight className="size-4 text-ink-400" strokeWidth={2} />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function CreatorDrills() {
-  // Slugs below all map to real lessons seeded in 0003_lessons_seed.sql.
-  // `hooks-that-stop-the-scroll`, `your-story-differentiator`, and
-  // `defining-niche-sweet-spot` replaced earlier copy that linked to
-  // tutorial slugs that don't exist yet.
-  const drills = [
-    { title: "Hooks That Stop The Scroll",       duration: "11:20", slug: "hooks-that-stop-the-scroll" },
-    { title: "Content Pillars That Work",        duration: "15:30", slug: "content-pillars-that-work" },
-    { title: "How To Read Platform Performance", duration: "13:45", slug: "platform-performance" },
-    { title: "Your Story Differentiator",        duration: "10:05", slug: "your-story-differentiator" },
-    { title: "Engaging Captions That Convert",   duration: "08:40", slug: "captions-that-convert" },
-  ];
-  return (
-    <div className="card p-5">
-      <header className="flex items-center justify-between mb-3">
-        <h3 className="text-h4 text-ink-900">
-          Creator Drills / Tutorials
-        </h3>
-        <Link
-          href="/tutorials"
-          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
-        >
-          View all
-        </Link>
-      </header>
-      <ul className="space-y-2.5">
-        {drills.map((d) => (
-          <li key={d.slug}>
-            <Link
-              href={`/tutorials/${d.slug}`}
-              className="flex items-center gap-3 group"
-            >
-              <div className="size-9 rounded-full bg-rose-100 flex items-center justify-center shrink-0 group-hover:bg-rose-200 transition-colors">
-                <Play
-                  className="size-3.5 text-rose-600 ml-0.5"
-                  fill="currentColor"
-                />
-              </div>
-              <span className="flex-1 text-[13px] text-ink-900 truncate">
-                {d.title}
-              </span>
-              <span className="text-[12px] text-ink-500 tabular-nums inline-flex items-center gap-1">
-                <Clock className="size-3 text-ink-400" strokeWidth={2} />
-                {d.duration}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function UpgradeAccent() {

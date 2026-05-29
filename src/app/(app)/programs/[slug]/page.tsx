@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   Play,
   Folder,
-  Bookmark,
   Users,
   BookOpen,
   BarChart3,
@@ -380,13 +379,6 @@ function ProgramHero({
             >
               <Folder className="size-4" strokeWidth={2} />
               View Resources
-            </button>
-            <button
-              type="button"
-              className="size-12 rounded-[14px] bg-white border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-rose-600 transition-colors cursor-pointer"
-              aria-label="Bookmark program"
-            >
-              <Bookmark className="size-4" strokeWidth={1.8} />
             </button>
           </div>
         </div>
