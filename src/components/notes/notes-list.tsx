@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Play,
-  FileText,
-  Quote,
   LayoutGrid,
   ChevronRight,
   ChevronLeft,
@@ -18,10 +16,12 @@ import {
   Check,
   X,
   ExternalLink,
+  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NoteContent, RichNoteEditor } from "@/components/notes/rich-note";
+import { NotePreviewModal } from "@/components/notes/note-preview-modal";
 import {
   noteIsEmpty,
   noteTextLength,
@@ -37,11 +37,10 @@ import {
 const MAX_LEN = 5000;
 
 /* ── Accent palette ─────────────────────────────────────────────────────────
-   Stable accent per note (hashed by id) for the top bar, icon tile, chips and
-   badge. Pinned notes always read in the brand rose. */
+   Stable accent per note (hashed by id) for the top bar, chips and badge.
+   Pinned notes always read in the brand rose. */
 type Accent = {
   top: string;
-  tile: string;
   chip: string;
   chipText: string;
   chipIcon: string;
@@ -49,10 +48,10 @@ type Accent = {
 };
 
 const ACCENTS: Accent[] = [
-  { top: "border-t-rose-400",    tile: "bg-rose-100 text-rose-600",       chip: "bg-rose-50 border-rose-100",       chipText: "text-rose-700",    chipIcon: "text-rose-400",    badge: "bg-rose-50 text-rose-600 border-rose-100" },
-  { top: "border-t-emerald-400", tile: "bg-emerald-100 text-emerald-600", chip: "bg-emerald-50 border-emerald-100", chipText: "text-emerald-700", chipIcon: "text-emerald-400", badge: "bg-emerald-50 text-emerald-600 border-emerald-100" },
-  { top: "border-t-amber-400",   tile: "bg-amber-100 text-amber-600",     chip: "bg-amber-50 border-amber-100",     chipText: "text-amber-700",   chipIcon: "text-amber-400",   badge: "bg-amber-50 text-amber-600 border-amber-100" },
-  { top: "border-t-indigo-400",  tile: "bg-indigo-100 text-indigo-600",   chip: "bg-indigo-50 border-indigo-100",   chipText: "text-indigo-700",  chipIcon: "text-indigo-400",  badge: "bg-indigo-50 text-indigo-600 border-indigo-100" },
+  { top: "border-t-rose-400",    chip: "bg-rose-50 border-rose-100",       chipText: "text-rose-700",    chipIcon: "text-rose-400",    badge: "bg-rose-50 text-rose-600 border-rose-100" },
+  { top: "border-t-emerald-400", chip: "bg-emerald-50 border-emerald-100", chipText: "text-emerald-700", chipIcon: "text-emerald-400", badge: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+  { top: "border-t-amber-400",   chip: "bg-amber-50 border-amber-100",     chipText: "text-amber-700",   chipIcon: "text-amber-400",   badge: "bg-amber-50 text-amber-600 border-amber-100" },
+  { top: "border-t-indigo-400",  chip: "bg-indigo-50 border-indigo-100",   chipText: "text-indigo-700",  chipIcon: "text-indigo-400",  badge: "bg-indigo-50 text-indigo-600 border-indigo-100" },
 ];
 
 function pickAccent(id: string, pinned: boolean): Accent {
@@ -73,12 +72,12 @@ function relativeTime(iso: string): string {
   if (Number.isNaN(d.getTime())) return "";
   const mins = Math.round((Date.now() - d.getTime()) / 60_000);
   if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
   const days = Math.round(hours / 24);
   if (days === 1) return "yesterday";
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return `${days} days ago`;
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
@@ -88,7 +87,8 @@ export function NotesList({
   notes,
   programSlug,
   showContext = false,
-  pageSize = 6,
+  pageSize = 8,
+  newNoteHref,
 }: {
   notes: ProgramNote[];
   /** Used to build lesson links in the breadcrumb (program view). */
@@ -96,25 +96,42 @@ export function NotesList({
   /** Show the Module → Video breadcrumb. Off for single-lesson views. */
   showContext?: boolean;
   pageSize?: number;
+  /** When set, a "+ New note" tile leads here (e.g. the program's next lesson). */
+  newNoteHref?: string;
   /** Accepted for API compatibility; the card no longer shows an author. */
   authorName?: string;
 }) {
   const [page, setPage] = useState(1);
-
-  if (notes.length === 0) return null;
 
   const total = notes.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * pageSize;
   const shown = notes.slice(start, start + pageSize);
-  const startNum = start + 1;
+  const startNum = total === 0 ? 0 : start + 1;
   const endNum = Math.min(start + pageSize, total);
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
+  if (total === 0 && !newNoteHref) return null;
+
   return (
     <div>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3.5 items-start">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+        {/* New note tile (page 1 only) */}
+        {newNoteHref && safePage === 1 && (
+          <li className="break-inside-avoid">
+            <Link
+              href={newNoteHref}
+              className="group h-full min-h-[180px] flex flex-col items-center justify-center gap-2.5 rounded-[16px] border-2 border-dashed border-ink-200 text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/40 transition-colors"
+            >
+              <span className="size-11 rounded-full bg-cream-100 text-ink-500 group-hover:bg-rose-100 group-hover:text-rose-600 inline-flex items-center justify-center transition-colors">
+                <Plus className="size-5" strokeWidth={2} />
+              </span>
+              <span className="text-[13.5px] font-medium">New note</span>
+            </Link>
+          </li>
+        )}
+
         {shown.map((n) => (
           <NoteCard
             key={n.id}
@@ -189,11 +206,10 @@ function NoteCard({
   const [draft, setDraft] = useState(note.body);
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Read-only full-note reader, opened by double-clicking the card body.
+  const [preview, setPreview] = useState(false);
 
   const accent = pickAccent(note.id, note.pinned);
-  const isQuote = /<blockquote/i.test(note.body);
-  const TypeIcon = isQuote ? Quote : FileText;
-  const typeLabel = isQuote ? "Quote" : "Note";
   const recent = minutesSince(note.created_at) < 60;
   const isEmpty = noteIsEmpty(draft);
   const tooLong = noteTextLength(draft) > MAX_LEN;
@@ -230,6 +246,7 @@ function NoteCard({
   }
 
   function togglePin() {
+    setMenuOpen(false);
     startTransition(async () => {
       const res = await toggleNotePin(note.id, !note.pinned);
       if (!res.ok) return setErr(res.error);
@@ -241,168 +258,81 @@ function NoteCard({
     <li className="break-inside-avoid">
       <div
         className={cn(
-          "group h-full rounded-[16px] border border-ink-100 border-t-[3px] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-soft hover:border-ink-200 motion-reduce:transition-none",
+          "group h-full flex flex-col rounded-[16px] border border-ink-100 border-t-[3px] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-soft hover:border-ink-200 motion-reduce:transition-none",
           accent.top,
         )}
       >
-        <div className="p-4 sm:p-5">
-          {/* Header — type tile + action rail */}
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <span
-              className={cn(
-                "size-9 rounded-[10px] inline-flex items-center justify-center shrink-0",
-                accent.tile,
-              )}
-              aria-hidden
-            >
-              <TypeIcon className="size-4" strokeWidth={2} />
-            </span>
-
-            {!editing && (
-              <div className="flex items-center gap-0.5 -mr-1 -mt-0.5">
+        {editing ? (
+          <div className="p-5">
+            <RichNoteEditor
+              initialHtml={note.body}
+              onChange={setDraft}
+              onSubmit={save}
+              autoFocus
+              disabled={pending}
+              minHeight={120}
+              placeholder="Edit your note…"
+            />
+            <div className="mt-1.5 flex items-center justify-between">
+              <span
+                className={cn(
+                  "text-[11.5px] tabular-nums",
+                  tooLong ? "text-rose-600 font-semibold" : "text-ink-400",
+                )}
+              >
+                {noteTextLength(draft).toLocaleString()}/{MAX_LEN.toLocaleString()}
+              </span>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={togglePin}
+                  onClick={() => {
+                    setDraft(note.body);
+                    setEditing(false);
+                    setErr(null);
+                  }}
                   disabled={pending}
-                  aria-pressed={note.pinned}
-                  aria-label={note.pinned ? "Unpin note" : "Pin note"}
-                  title={note.pinned ? "Unpin" : "Pin to top"}
-                  className={cn(
-                    "size-8 rounded-full inline-flex items-center justify-center transition-colors disabled:opacity-50",
-                    note.pinned
-                      ? "text-rose-600 hover:bg-rose-50"
-                      : "text-ink-400 hover:text-ink-700 hover:bg-cream-100",
-                  )}
+                  className="inline-flex items-center gap-1 h-8 px-3 rounded-[8px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
                 >
-                  <Pin
-                    className="size-4"
-                    strokeWidth={2}
-                    fill={note.pinned ? "currentColor" : "none"}
-                  />
+                  <X className="size-3.5" strokeWidth={2} />
+                  Cancel
                 </button>
-                {openHref && (
-                  <Link
-                    href={openHref}
-                    aria-label="Open lesson"
-                    title="Open lesson"
-                    className="size-8 rounded-full inline-flex items-center justify-center text-ink-400 hover:text-rose-600 hover:bg-cream-100 transition-colors"
-                  >
-                    <ExternalLink className="size-4" strokeWidth={2} />
-                  </Link>
-                )}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setMenuOpen((v) => !v)}
-                    aria-label="More actions"
-                    aria-expanded={menuOpen}
-                    className="size-8 rounded-full inline-flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-cream-100 transition-colors"
-                  >
-                    <MoreHorizontal className="size-4" strokeWidth={2} />
-                  </button>
-                  {menuOpen && (
-                    <>
-                      <button
-                        type="button"
-                        aria-hidden
-                        tabIndex={-1}
-                        onClick={() => setMenuOpen(false)}
-                        className="fixed inset-0 z-40 cursor-default"
-                      />
-                      <div className="absolute right-0 top-[calc(100%+4px)] z-50 w-[150px] rounded-[12px] bg-white border border-ink-100 shadow-card py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditing(true);
-                            setMenuOpen(false);
-                          }}
-                          className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px] text-ink-700 hover:bg-cream-100 transition-colors"
-                        >
-                          <Pencil className="size-3.5 text-ink-400" strokeWidth={2} />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={remove}
-                          className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px] text-rose-600 hover:bg-rose-50 transition-colors"
-                        >
-                          <Trash2 className="size-3.5" strokeWidth={2} />
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {editing ? (
-            <div>
-              <RichNoteEditor
-                initialHtml={note.body}
-                onChange={setDraft}
-                onSubmit={save}
-                autoFocus
-                disabled={pending}
-                minHeight={120}
-                placeholder="Edit your note…"
-              />
-              <div className="mt-1.5 flex items-center justify-between">
-                <span
-                  className={cn(
-                    "text-[11.5px] tabular-nums",
-                    tooLong ? "text-rose-600 font-semibold" : "text-ink-400",
-                  )}
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={pending || isEmpty || tooLong}
+                  className="inline-flex items-center gap-1 h-8 px-3.5 rounded-[8px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[12px] font-semibold"
                 >
-                  {noteTextLength(draft).toLocaleString()}/
-                  {MAX_LEN.toLocaleString()}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDraft(note.body);
-                      setEditing(false);
-                      setErr(null);
-                    }}
-                    disabled={pending}
-                    className="inline-flex items-center gap-1 h-8 px-3 rounded-[8px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
-                  >
-                    <X className="size-3.5" strokeWidth={2} />
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={save}
-                    disabled={pending || isEmpty || tooLong}
-                    className="inline-flex items-center gap-1 h-8 px-3.5 rounded-[8px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[12px] font-semibold"
-                  >
-                    {pending ? (
-                      <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
-                    ) : (
-                      <Check className="size-3.5" strokeWidth={2.5} />
-                    )}
-                    Save
-                  </button>
-                </div>
+                  {pending ? (
+                    <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <Check className="size-3.5" strokeWidth={2.5} />
+                  )}
+                  Save
+                </button>
               </div>
             </div>
-          ) : (
-            <>
-              {/* Full note — first block reads as a title, rest as body. */}
+            {err && <div className="mt-2 text-[12px] text-rose-700">{err}</div>}
+          </div>
+        ) : (
+          <>
+            {/* Content — first block reads as a title, rest as body.
+                Double-click opens a read-only popup with the whole note. */}
+            <div
+              className="p-5 flex-1"
+              onDoubleClick={() => setPreview(true)}
+              title="Double-click to read the full note"
+            >
               <NoteContent
                 html={note.body}
                 className={cn(
                   "text-[13px] text-ink-700 leading-relaxed",
-                  "[&>*:first-child]:text-[14.5px] [&>*:first-child]:font-bold [&>*:first-child]:text-ink-900 [&>*:first-child]:leading-snug [&>*:first-child]:mb-1.5",
+                  "[&>*:first-child]:text-[15px] [&>*:first-child]:font-bold [&>*:first-child]:text-ink-900 [&>*:first-child]:leading-snug [&>*:first-child]:mb-2",
                   "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-0.5 [&_p]:mb-2 [&_strong]:font-semibold [&_a]:text-rose-600",
                 )}
               />
 
-              {/* Breadcrumb — Module › Video */}
               {showContext && (note.module_title || note.lesson_title) && (
-                <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                <div className="mt-3.5 flex items-center gap-1.5 flex-wrap">
                   {note.module_title && (
                     <Chip
                       accent={accent}
@@ -434,30 +364,23 @@ function NoteCard({
                         <span className="truncate">Video: {note.lesson_title}</span>
                       </Link>
                     ) : (
-                      <Chip
-                        accent={accent}
-                        icon={Play}
-                        label={`Video: ${note.lesson_title}`}
-                      />
+                      <Chip accent={accent} icon={Play} label={`Video: ${note.lesson_title}`} />
                     ))}
                 </div>
               )}
 
-              {/* Footer meta */}
-              <div className="mt-3 pt-3 border-t border-ink-100 flex items-center gap-2 text-[11.5px] text-ink-500 flex-wrap">
-                <TypeIcon
-                  className="size-3.5 text-ink-400 shrink-0"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                <span className="font-medium text-ink-600">{typeLabel}</span>
-                <Dot />
+              {err && <div className="mt-2 text-[12px] text-rose-700">{err}</div>}
+            </div>
+
+            {/* Footer — timestamp + overflow menu */}
+            <div className="px-5 py-3 border-t border-ink-100 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 text-[11.5px] text-ink-500">
                 <span className="whitespace-nowrap">
-                  Saved {relativeTime(note.created_at)}
+                  {relativeTime(note.created_at)}
                 </span>
                 {(note.pinned || recent) && (
                   <>
-                    <Dot />
+                    <span aria-hidden className="text-ink-300">·</span>
                     <span
                       className={cn(
                         "inline-flex items-center h-5 px-2 rounded-full border text-[10.5px] font-semibold",
@@ -470,16 +393,116 @@ function NoteCard({
                 )}
               </div>
 
-              {err && <div className="mt-2 text-[12px] text-rose-700">{err}</div>}
-            </>
-          )}
-        </div>
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  disabled={pending}
+                  aria-label="Note actions"
+                  aria-expanded={menuOpen}
+                  className="size-8 rounded-full inline-flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-cream-100 transition-colors disabled:opacity-50"
+                >
+                  {pending ? (
+                    <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <MoreHorizontal className="size-4" strokeWidth={2} />
+                  )}
+                </button>
+                {menuOpen && (
+                  <>
+                    <button
+                      type="button"
+                      aria-hidden
+                      tabIndex={-1}
+                      onClick={() => setMenuOpen(false)}
+                      className="fixed inset-0 z-40 cursor-default"
+                    />
+                    <div className="absolute right-0 bottom-[calc(100%+6px)] z-50 w-[170px] rounded-[12px] bg-white border border-ink-100 shadow-card py-1">
+                      <MenuItem icon={Pin} onClick={togglePin}>
+                        {note.pinned ? "Unpin" : "Pin to top"}
+                      </MenuItem>
+                      {openHref && (
+                        <MenuItem
+                          icon={ExternalLink}
+                          href={openHref}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          Open lesson
+                        </MenuItem>
+                      )}
+                      <MenuItem
+                        icon={Pencil}
+                        onClick={() => {
+                          setEditing(true);
+                          setMenuOpen(false);
+                        }}
+                      >
+                        Edit
+                      </MenuItem>
+                      <div className="my-1 h-px bg-ink-100" />
+                      <MenuItem icon={Trash2} danger onClick={remove}>
+                        Delete
+                      </MenuItem>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
+      {preview && (
+        <NotePreviewModal
+          note={note}
+          programSlug={programSlug}
+          onClose={() => setPreview(false)}
+        />
+      )}
     </li>
   );
 }
 
 /* ── Pieces ───────────────────────────────────────────────────────────────── */
+
+function MenuItem({
+  icon: Icon,
+  children,
+  onClick,
+  href,
+  danger,
+}: {
+  icon: LucideIcon;
+  children: ReactNode;
+  onClick?: () => void;
+  href?: string;
+  danger?: boolean;
+}) {
+  const cls = cn(
+    "flex items-center gap-2.5 w-full px-3 py-2 text-[13px] transition-colors",
+    danger ? "text-rose-600 hover:bg-rose-50" : "text-ink-700 hover:bg-cream-100",
+  );
+  const inner = (
+    <>
+      <Icon
+        className={cn("size-3.5 shrink-0", danger ? "" : "text-ink-400")}
+        strokeWidth={2}
+      />
+      {children}
+    </>
+  );
+  if (href) {
+    return (
+      <Link href={href} onClick={onClick} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={cls}>
+      {inner}
+    </button>
+  );
+}
 
 function Chip({
   accent,
@@ -500,14 +523,6 @@ function Chip({
     >
       <Icon className={cn("size-3 shrink-0", accent.chipIcon)} strokeWidth={2} />
       <span className="truncate">{label}</span>
-    </span>
-  );
-}
-
-function Dot() {
-  return (
-    <span aria-hidden className="text-ink-300">
-      ·
     </span>
   );
 }

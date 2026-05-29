@@ -1,16 +1,23 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutGrid, ListTree, FolderClosed, CheckSquare } from "lucide-react";
+import {
+  LayoutGrid,
+  ListTree,
+  FolderClosed,
+  NotebookPen,
+  CheckSquare,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 
-type Tab = "overview" | "curriculum" | "resources" | "tasks";
+type Tab = "overview" | "curriculum" | "resources" | "notes" | "tasks";
 
 type Props = {
   tasksCount?: number;
   overview: ReactNode;
   curriculum: ReactNode;
   resources: ReactNode;
+  notes: ReactNode;
   tasks: ReactNode;
 };
 
@@ -19,6 +26,7 @@ export function DetailTabs({
   overview,
   curriculum,
   resources,
+  notes,
   tasks,
 }: Props) {
   const [tab, setTab] = useState<Tab>("overview");
@@ -26,7 +34,8 @@ export function DetailTabs({
   const tabs: { key: Tab; label: string; icon: typeof LayoutGrid; badge?: number }[] = [
     { key: "overview", label: "Overview", icon: LayoutGrid },
     { key: "curriculum", label: "Curriculum", icon: ListTree },
-    { key: "resources", label: "Resources & Notes", icon: FolderClosed },
+    { key: "resources", label: "Resources", icon: FolderClosed },
+    { key: "notes", label: "Notes", icon: NotebookPen },
     { key: "tasks", label: "Tasks", icon: CheckSquare, badge: tasksCount },
   ];
 
@@ -61,6 +70,7 @@ export function DetailTabs({
       {tab === "overview" && overview}
       {tab === "curriculum" && curriculum}
       {tab === "resources" && resources}
+      {tab === "notes" && notes}
       {tab === "tasks" && tasks}
     </div>
   );
