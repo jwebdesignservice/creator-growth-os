@@ -18,6 +18,34 @@ export type TaskTemplateStatus = "draft" | "active" | "archived";
 
 export type AssignTrigger = "on_unlock" | "on_start" | "on_complete" | "manual";
 
+/** Time-based cadence for scheduled auto-assignment (migration 0041). */
+export type TaskFrequency = "once" | "daily" | "weekly" | "monthly" | "scheduled";
+
+/** A targeting rule for an admin mission (mirrors `task_assignment_rules`). */
+export type AssignmentRuleTargetType =
+  | "all"
+  | "user"
+  | "plan"
+  | "category"
+  | "onboarding"
+  | "progress"
+  | "streak"
+  | "program"
+  | "tutorial"
+  | "group"
+  | "tag"
+  | "level"
+  | "cohort";
+
+export type AssignmentRule = {
+  id: string;
+  taskTemplateId: string;
+  ruleType: "include" | "exclude";
+  targetType: AssignmentRuleTargetType;
+  targetValue: Record<string, unknown>;
+  active: boolean;
+};
+
 /**
  * UI-facing user-task status. The DB column `missions.status` is a legacy enum
  * that stores `pending` for "not started" (plus a derived `overdue`); every
@@ -73,6 +101,13 @@ export type TaskTemplate = {
   autoAssignTrigger: AssignTrigger;
   points: number;
   isRequired: boolean;
+  // Scheduling (0041) — drives the auto-assign engine.
+  frequency: TaskFrequency;
+  scheduleTime: string | null;   // 'HH:MM' local to `timezone`
+  timezone: string | null;       // IANA tz
+  recurrence: string | null;     // 'every_day' | 'every_monday' | 'day_1' …
+  autoAssign: boolean;
+  lastRunAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -116,6 +151,12 @@ export type CreateTaskTemplateInput = {
   isRequired?: boolean;
   status?: TaskTemplateStatus;
   visibility?: string;
+  // Scheduling (0041)
+  frequency?: TaskFrequency;
+  scheduleTime?: string | null;
+  timezone?: string | null;
+  recurrence?: string | null;
+  autoAssign?: boolean;
 };
 
 /** Partial patch for the shared task-template editor (update). */
@@ -132,4 +173,10 @@ export type TaskTemplatePatch = Partial<{
   status: TaskTemplateStatus;
   visibility: string;
   sortOrder: number;
+  // Scheduling (0041)
+  frequency: TaskFrequency;
+  scheduleTime: string | null;
+  timezone: string | null;
+  recurrence: string | null;
+  autoAssign: boolean;
 }>;

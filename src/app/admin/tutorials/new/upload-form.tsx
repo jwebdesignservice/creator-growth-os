@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -8,7 +8,6 @@ import {
   Film,
   UploadCloud,
   FolderOpen,
-  Video,
   Sparkles,
   RectangleHorizontal,
   Mic,
@@ -18,7 +17,6 @@ import {
   Info,
   ArrowRight,
   CheckCircle2,
-  Image as ImageIcon,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
@@ -50,6 +48,18 @@ export function TutorialUploadForm() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [stage, setStage] = useState<string>("");
+
+  // Object URL for the in-browser preview; revoked when the file changes/clears.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   function pickFiles() {
     inputRef.current?.click();
@@ -215,8 +225,44 @@ export function TutorialUploadForm() {
 
         {/* Body grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 lg:gap-6">
-          {/* ── LEFT: drop zone + secondary actions + preview ──────────── */}
+          {/* ── LEFT: drop zone (turns into the preview once a file is picked) ── */}
           <div className="space-y-4">
+            {file && previewUrl ? (
+              <div className="w-full rounded-[16px] border border-ink-100 overflow-hidden bg-white">
+                <video
+                  key={previewUrl}
+                  src={previewUrl}
+                  controls
+                  playsInline
+                  className="w-full aspect-video bg-black object-contain"
+                />
+                <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100">
+                  <span className="size-10 rounded-[10px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+                    <Film className="size-5" strokeWidth={1.9} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13.5px] font-semibold text-ink-900 truncate">
+                      {file.name}
+                    </div>
+                    <div className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium text-success">
+                      <CheckCircle2 className="size-3.5" strokeWidth={2.2} />
+                      {formatBytes(file.size)} · ready to upload
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      setError(null);
+                    }}
+                    aria-label="Remove video"
+                    className="size-9 rounded-full text-ink-400 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center justify-center transition-colors shrink-0"
+                  >
+                    <X className="size-[18px]" strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            ) : (
             <button
               type="button"
               onClick={pickFiles}
@@ -270,6 +316,7 @@ export function TutorialUploadForm() {
                 </span>
               </div>
             </button>
+            )}
 
             {error && (
               <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] text-rose-700">
@@ -284,49 +331,11 @@ export function TutorialUploadForm() {
                 onClick={() => router.push("/admin/tutorials")}
               />
               <SecondaryButton
-                icon={Video}
-                label="Record instead"
-                disabled
-                title="In-browser recording isn't available yet — upload a file instead."
+                icon={UploadCloud}
+                label="Choose video file"
+                onClick={pickFiles}
               />
             </div>
-
-            {/* Upload preview */}
-            <section className="rounded-[14px] border border-ink-100 bg-white p-4">
-              <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 font-semibold mb-2.5">
-                Upload preview
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="size-16 rounded-[10px] bg-cream-200 flex items-center justify-center shrink-0 overflow-hidden">
-                  {file ? (
-                    <Film className="size-6 text-rose-600" strokeWidth={1.8} />
-                  ) : (
-                    <ImageIcon className="size-6 text-ink-400" strokeWidth={1.8} />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  {file ? (
-                    <>
-                      <div className="text-[13px] font-semibold text-ink-900 truncate">
-                        {file.name}
-                      </div>
-                      <div className="text-[11.5px] text-ink-500 mt-0.5 tabular-nums">
-                        {formatBytes(file.size)} · ready to upload
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-[13px] font-semibold text-ink-900">
-                        No video selected yet
-                      </div>
-                      <div className="text-[11.5px] text-ink-500 mt-0.5">
-                        Your video preview will appear here once uploaded.
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </section>
           </div>
 
           {/* ── RIGHT: side cards ───────────────────────────────────────── */}

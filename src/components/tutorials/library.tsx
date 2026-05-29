@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   Lock,
   ChevronDown,
+  Search,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { TutorialRow } from "@/lib/programs/tutorial-queries";
@@ -49,6 +51,7 @@ export function TutorialLibrary({
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("by_program");
   const [sortOpen, setSortOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [categoryLabel, setCategoryLabel] = useState<string | "all">(
     defaultCategoryLabel ?? "all",
   );
@@ -65,6 +68,18 @@ export function TutorialLibrary({
     if (categoryLabel !== "all")
       rows = rows.filter((t) => t.categoryLabel === categoryLabel);
 
+    // Free-text search across title, description, program and category.
+    const q = query.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (t.description ?? "").toLowerCase().includes(q) ||
+          (t.programTitle ?? "").toLowerCase().includes(q) ||
+          t.categoryLabel.toLowerCase().includes(q),
+      );
+    }
+
     if (sort === "shortest") {
       rows = [...rows].sort((a, b) => a.durationSeconds - b.durationSeconds);
     } else if (sort === "newest") {
@@ -72,7 +87,7 @@ export function TutorialLibrary({
       rows = [...rows].reverse();
     }
     return rows;
-  }, [tutorials, filter, sort, categoryLabel]);
+  }, [tutorials, filter, sort, categoryLabel, query]);
 
   // ── Incremental render (BATCH_SIZE at a time) ─────────────────────────────
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
@@ -81,10 +96,15 @@ export function TutorialLibrary({
   // Ref guards against the observer re-firing while a batch is still loading.
   const loadingRef = useRef(false);
 
-  // Snap back to the first batch whenever the user changes filter/sort/category.
-  useEffect(() => {
+  // Snap back to the first batch whenever filter/sort/category/search changes.
+  // Done by adjusting state during render (the React-recommended pattern)
+  // rather than in an effect, so there's no extra commit / cascading render.
+  const resetKey = `${filter}|${sort}|${categoryLabel}|${query.trim().toLowerCase()}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
     setVisibleCount(BATCH_SIZE);
-  }, [filter, sort, categoryLabel]);
+  }
 
   const shown = useMemo(
     () => visible.slice(0, visibleCount),
@@ -148,11 +168,41 @@ export function TutorialLibrary({
           })}
         </div>
 
-        {/* Category dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setSortOpen((v) => !v)}
+        {/* Search + category — grouped on the right of the toolbar */}
+        <div className="flex items-center gap-2.5">
+          {/* Live search — filters the loaded library by title, description,
+              program or category as you type. */}
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-[15px] text-ink-400"
+              strokeWidth={2}
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search tutorials…"
+              aria-label="Search tutorials"
+              className="w-[170px] sm:w-[230px] h-10 pl-9 pr-8 rounded-[12px] bg-white border border-ink-100 text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 size-6 inline-flex items-center justify-center rounded-full text-ink-400 hover:text-ink-700 hover:bg-cream-200 transition-colors"
+              >
+                <X className="size-3.5" strokeWidth={2} />
+              </button>
+            )}
+          </div>
+
+          {/* Category dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSortOpen((v) => !v)}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-white border border-ink-100 text-[13px] font-medium text-ink-700 hover:bg-cream-100 cursor-pointer"
           >
             {categoryLabel === "all" ? "All categories" : categoryLabel}
@@ -178,6 +228,7 @@ export function TutorialLibrary({
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -204,8 +255,21 @@ export function TutorialLibrary({
 
       {/* Grid */}
       {visible.length === 0 ? (
-        <div className="card p-10 text-center text-ink-500 text-[14px]">
-          No tutorials match that filter yet.
+        <div className="card p-10 text-center text-[14px]">
+          <p className="text-ink-500">
+            {query.trim()
+              ? `No tutorials match “${query.trim()}”.`
+              : "No tutorials match that filter yet."}
+          </p>
+          {query.trim() && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="mt-3 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-rose-50 border border-rose-100 text-rose-700 text-[13px] font-medium hover:bg-rose-100 transition-colors"
+            >
+              Clear search
+            </button>
+          )}
         </div>
       ) : (
         <>

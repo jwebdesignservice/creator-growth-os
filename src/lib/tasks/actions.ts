@@ -8,6 +8,7 @@ import { assignTasksFromSource, type AssignResult } from "./assign";
 import type {
   AssignTrigger,
   CreateTaskTemplateInput,
+  TaskFrequency,
   TaskSourceType,
   TaskTemplatePatch,
   TaskTemplateStatus,
@@ -45,6 +46,13 @@ const TRIGGERS = new Set<AssignTrigger>([
   "manual",
 ]);
 const STATUSES = new Set<TaskTemplateStatus>(["draft", "active", "archived"]);
+const FREQUENCIES = new Set<TaskFrequency>([
+  "once",
+  "daily",
+  "weekly",
+  "monthly",
+  "scheduled",
+]);
 
 function clampInt(v: number | undefined | null, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) && v >= 0
@@ -112,6 +120,14 @@ export async function createTaskTemplate(
       auto_assign_trigger: trigger,
       points: clampInt(input.points, 10),
       is_required: input.isRequired ?? true,
+      frequency:
+        input.frequency && FREQUENCIES.has(input.frequency)
+          ? input.frequency
+          : "once",
+      schedule_time: input.scheduleTime?.trim() || null,
+      timezone: input.timezone?.trim() || null,
+      recurrence: input.recurrence?.trim() || null,
+      auto_assign: input.autoAssign ?? false,
     })
     .select("id")
     .maybeSingle();
@@ -162,6 +178,18 @@ export async function updateTaskTemplate(
   if (patch.visibility !== undefined) update.visibility = patch.visibility;
   if (patch.sortOrder !== undefined)
     update.sort_order = clampInt(patch.sortOrder, 0);
+  if (patch.frequency !== undefined) {
+    if (!FREQUENCIES.has(patch.frequency))
+      return { ok: false, error: "Invalid frequency." };
+    update.frequency = patch.frequency;
+  }
+  if (patch.scheduleTime !== undefined)
+    update.schedule_time = patch.scheduleTime?.trim() || null;
+  if (patch.timezone !== undefined)
+    update.timezone = patch.timezone?.trim() || null;
+  if (patch.recurrence !== undefined)
+    update.recurrence = patch.recurrence?.trim() || null;
+  if (patch.autoAssign !== undefined) update.auto_assign = !!patch.autoAssign;
 
   if (Object.keys(update).length === 0) return { ok: true };
 
@@ -195,6 +223,45 @@ export async function deleteTaskTemplate(id: string): Promise<Result> {
   return { ok: true };
 }
 
+/** Replace a template's targeting rules (delete-then-insert). Admin-gated. */
+export type AssignmentRuleInput = {
+  ruleType: "include" | "exclude";
+  targetType: string;
+  targetValue: Record<string, unknown>;
+};
+
+export async function setAssignmentRules(
+  templateId: string,
+  rules: AssignmentRuleInput[],
+): Promise<Result> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+  if (!templateId) return { ok: false, error: "Missing template id." };
+  const db = createServiceClient();
+
+  const { error: delErr } = await db
+    .from("task_assignment_rules")
+    .delete()
+    .eq("task_template_id", templateId);
+  if (delErr) {
+    if (missingTable(delErr)) return { ok: false, error: APPLY_HINT };
+    return { ok: false, error: delErr.message };
+  }
+
+  if (rules.length === 0) return { ok: true };
+
+  const rows = rules.map((r) => ({
+    task_template_id: templateId,
+    rule_type: r.ruleType === "exclude" ? "exclude" : "include",
+    target_type: r.targetType,
+    target_value: r.targetValue ?? {},
+    active: true,
+  }));
+  const { error: insErr } = await db.from("task_assignment_rules").insert(rows);
+  if (insErr) return { ok: false, error: insErr.message };
+  return { ok: true };
+}
+
 export async function reorderTaskTemplates(ids: string[]): Promise<Result> {
   const ctx = await requireAdminClient();
   if (!ctx.ok) return { ok: false, error: ctx.error };
@@ -222,7 +289,7 @@ export async function duplicateTaskTemplate(
   const { data: src, error: readErr } = await db
     .from("task_templates")
     .select(
-      "title, description, task_type, source_type, source_id, program_id, lesson_id, difficulty, estimated_minutes, due_after_days, auto_assign_trigger, points, is_required, visibility, sort_order",
+      "title, description, task_type, source_type, source_id, program_id, lesson_id, difficulty, estimated_minutes, due_after_days, auto_assign_trigger, points, is_required, visibility, sort_order, frequency, schedule_time, timezone, recurrence, auto_assign",
     )
     .eq("id", id)
     .maybeSingle();

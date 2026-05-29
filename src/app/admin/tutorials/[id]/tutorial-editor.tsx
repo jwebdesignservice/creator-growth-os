@@ -79,7 +79,6 @@ export type TutorialEditorData = {
   tags:                    string[];
   visibility:              "public" | "unlisted" | "private";
   internalNotes:           string;
-  ctaLink:                 string;
   editorCategory:          string;
   learningOutcomes:        string[];
   publishingNotesInternal: string;
@@ -178,7 +177,6 @@ export function TutorialEditor({
   const [tagDraft,      setTagDraft]     = useState("");
   const [visibility,    setVisibility]   = useState<TutorialEditorData["visibility"]>(lesson.visibility);
   const [internalNotes, setInternalNotes]= useState(lesson.internalNotes);
-  const [ctaLink,       setCtaLink]      = useState(lesson.ctaLink);
   const [category,      setCategory]     = useState(lesson.editorCategory);
 
   /* Overview-tab fields — also DB-backed via migration 0034. We track
@@ -206,7 +204,6 @@ export function TutorialEditor({
         planAccess,
         visibility,
         internalNotes: internalNotes.trim(),
-        ctaLink:       ctaLink.trim(),
         category:      category.trim(),
         tags,
         learningOutcomes,
@@ -214,7 +211,7 @@ export function TutorialEditor({
       }),
     [
       title, description, planAccess, visibility, internalNotes,
-      ctaLink, category, tags, learningOutcomes, publishingNotesInternal,
+      category, tags, learningOutcomes, publishingNotesInternal,
     ],
   );
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
@@ -239,7 +236,6 @@ export function TutorialEditor({
       { key: "description", label: "Description complete", done: description.trim().length >= 24 },
       { key: "video",       label: "Video uploaded",      done: !!lesson.videoUrl },
       { key: "chapters",    label: "Chapters added",       done: initialChapters.length > 0 },
-      { key: "cta",         label: "CTA added",            done: ctaLink.trim().length > 0 || lesson.published },
     ];
     const done = checks.filter((c) => c.done).length;
     return {
@@ -248,7 +244,7 @@ export function TutorialEditor({
       total:   checks.length,
       percent: Math.round((done / checks.length) * 100),
     };
-  }, [lesson.coverImageUrl, lesson.videoUrl, lesson.published, description, initialChapters, ctaLink]);
+  }, [lesson.coverImageUrl, lesson.videoUrl, description, initialChapters]);
 
   /* ── Handlers ─────────────────────────────────────────────────────── */
 
@@ -285,7 +281,6 @@ export function TutorialEditor({
         tags,
         visibility,
         internal_notes:            internalNotes,
-        cta_link:                  ctaLink,
         editor_category:           category,
         learning_outcomes:         learningOutcomes,
         publishing_notes_internal: publishingNotesInternal,
@@ -480,7 +475,6 @@ export function TutorialEditor({
                 visibility={visibility}        setVisibility={setVisibility}
                 internalNotes={internalNotes}  setInternalNotes={setInternalNotes}
                 planAccess={planAccess}        setPlanAccess={setPlanAccess}
-                ctaLink={ctaLink}              setCtaLink={setCtaLink}
                 category={category}            setCategory={setCategory}
                 programId={programId}          setProgramId={setProgramId}
                 programs={programs}
@@ -770,7 +764,6 @@ function MetadataTab(props: {
   internalNotes: string;        setInternalNotes: (v: string) => void;
   planAccess: TutorialEditorData["planAccess"];
   setPlanAccess: (v: TutorialEditorData["planAccess"]) => void;
-  ctaLink: string;              setCtaLink: (v: string) => void;
   category: string;             setCategory: (v: string) => void;
   programId: string;            setProgramId: (v: string) => void;
   programs: ProgramOption[];
@@ -783,7 +776,6 @@ function MetadataTab(props: {
     visibility, setVisibility,
     internalNotes, setInternalNotes,
     planAccess, setPlanAccess,
-    ctaLink, setCtaLink,
     category, setCategory,
     programId, setProgramId,
     programs,
@@ -927,17 +919,6 @@ function MetadataTab(props: {
               ]}
             />
             <HelpText>{ACCESS_HELP[planAccess]}</HelpText>
-          </Field>
-
-          <Field label="CTA link">
-            <input
-              type="url"
-              value={ctaLink}
-              onChange={(e) => setCtaLink(e.target.value)}
-              placeholder="https://example.com/learn-more"
-              className="w-full h-11 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-colors"
-            />
-            <HelpText>Optional: link to external resource or signup page.</HelpText>
           </Field>
         </FormGroup>
 

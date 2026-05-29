@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props) {
 /**
  * /admin/tutorials/[id] — full editor for a single tutorial / lesson.
  * Reuses the existing `lessons` table; frontend-only fields (tags, internal
- * notes, CTA link, category, captions/chapters readiness) live in component
+ * notes, category, captions/chapters readiness) live in component
  * state until a backend pass lands. Save is wired through the existing
  * `updateLesson` server action.
  */
@@ -57,7 +57,7 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
 
   if (!lesson) notFound();
 
-  // Editor-only fields (tags, visibility, internal notes, CTA link, category,
+  // Editor-only fields (tags, visibility, internal notes, category,
   // learning outcomes, publishing notes) live behind migration 0034. Fetch
   // them in a SEPARATE query so a *pending* migration degrades gracefully to
   // defaults instead of 404-ing the whole page: PostgREST fails an entire
@@ -66,7 +66,7 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
   const { data: editorRow } = await supabase
     .from("lessons")
     .select(
-      "tags, visibility, internal_notes, cta_link, editor_category, learning_outcomes, publishing_notes_internal",
+      "tags, visibility, internal_notes, editor_category, learning_outcomes, publishing_notes_internal",
     )
     .eq("id", id)
     .maybeSingle();
@@ -94,7 +94,6 @@ export default async function AdminTutorialDetailPage({ params }: Props) {
     tags:                    Array.isArray(ed.tags) ? (ed.tags as string[]) : [],
     visibility:              ((ed.visibility as string) ?? "public") as "public" | "unlisted" | "private",
     internalNotes:           (ed.internal_notes as string | null) ?? "",
-    ctaLink:                 (ed.cta_link as string | null) ?? "",
     editorCategory:          (ed.editor_category as string | null) ?? "",
     learningOutcomes:        Array.isArray(ed.learning_outcomes) ? (ed.learning_outcomes as string[]) : [],
     publishingNotesInternal: (ed.publishing_notes_internal as string | null) ?? "",

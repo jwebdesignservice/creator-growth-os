@@ -40,38 +40,46 @@ const STATUS_LABEL: Record<PostingItem["status"], string> = {
   reviewed: "Reviewed",
 };
 
+// The calendar shows a sliding window of days (not a fixed Mon–Sun week): the
+// ‹ / › controls nudge it STEP_DAYS at a time, which keeps the columns wide and
+// readable and lets you slide through dates smoothly.
+// NOTE: keep VISIBLE_DAYS in sync with the `lg:grid-cols-N` class on the grid.
+const VISIBLE_DAYS = 5;
+const STEP_DAYS = 2;
+
 /**
- * Renders the active plan's posting items as a 7-day calendar grid, with
- * drag-and-drop: drag a post onto another day to reschedule it (keeps its
- * time-of-day; unscheduled items land at 09:00). Day cells start on Monday
- * of the plan's week; items without a date go to an "Unscheduled" row.
+ * Renders the active plan's posting items as a sliding {@link VISIBLE_DAYS}-day
+ * calendar strip, with drag-and-drop: drag a post onto another day to
+ * reschedule it (keeps its time-of-day; unscheduled items land at 09:00).
+ * Dragging a post over the ‹ / › controls slides the window so a post can be
+ * moved to any date; items without a date go to an "Unscheduled" row.
  */
 export function ContentCalendar({ items, weekStart, planId }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overKey, setOverKey] = useState<string | null>(null);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [dayOffset, setDayOffset] = useState(0);
   // Which day a per-column "Add post" was clicked for (YYYY-MM-DD) → opens the
   // create-post modal pre-filled to that day. null = closed.
   const [addDate, setAddDate] = useState<string | null>(null);
-  // While a post is dragged over the ‹ / › buttons we auto-advance the visible
-  // week, so a post can be dropped onto ANY week — not just the 7 days shown.
+  // While a post is dragged over the ‹ / › buttons we auto-slide the window, so
+  // a post can be dropped onto ANY date — not just the days currently shown.
   const [flipHover, setFlipHover] = useState<"prev" | "next" | null>(null);
   const flipDir = useRef<-1 | 1>(1);
   const flipTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  function startWeekFlip(dir: -1 | 1) {
+  function startSlide(dir: -1 | 1) {
     flipDir.current = dir;
     setFlipHover(dir === -1 ? "prev" : "next");
-    if (flipTimer.current) return; // already auto-advancing
+    if (flipTimer.current) return; // already auto-sliding
     // First tick fires after the delay (acts as a hover threshold), then
-    // repeats so the user can hold to jump across several weeks.
+    // repeats so the user can hold to slide across many days.
     flipTimer.current = setInterval(() => {
-      setWeekOffset((o) => o + flipDir.current);
+      setDayOffset((o) => o + flipDir.current * STEP_DAYS);
     }, 700);
   }
-  function stopWeekFlip() {
+  function stopSlide() {
     setFlipHover(null);
     if (flipTimer.current) {
       clearInterval(flipTimer.current);
@@ -79,7 +87,7 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
     }
   }
   function endDrag() {
-    stopWeekFlip();
+    stopSlide();
     setDraggingId(null);
     setOverKey(null);
   }
@@ -90,21 +98,21 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
     };
   }, []);
 
-  const baseMonday = mondayOf(weekStart ? new Date(weekStart) : new Date());
-  const monday = new Date(baseMonday);
-  monday.setDate(monday.getDate() + weekOffset * 7);
-  const days: Date[] = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
+  // Anchor the strip at the plan's start (or today when there's no plan); the
+  // window then slides by whole days via dayOffset.
+  const base = startOfDay(weekStart ? new Date(weekStart) : new Date());
+  const viewStart = new Date(base);
+  viewStart.setDate(viewStart.getDate() + dayOffset);
+  const days: Date[] = Array.from({ length: VISIBLE_DAYS }, (_, i) => {
+    const d = new Date(viewStart);
     d.setDate(d.getDate() + i);
     return d;
   });
 
-  // Week offset (relative to baseMonday) that contains today. The plan may
-  // start on a different week than the current one, so the "Today" button
-  // jumps straight to today's week instead of just resetting to the plan week.
-  const todayMonday = mondayOf(new Date());
+  // dayOffset that places today as the first column — the "Today" button jumps
+  // straight there even when the plan starts on a different date.
   const todayOffset = Math.round(
-    (todayMonday.getTime() - baseMonday.getTime()) / (7 * 24 * 60 * 60 * 1000),
+    (startOfDay(new Date()).getTime() - base.getTime()) / 86_400_000,
   );
 
   // Bucket items by ISO date string
@@ -134,7 +142,7 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
     // draggingId survives re-renders (including an auto week-flip mid-drag);
     // fall back to the dataTransfer payload in case the source card unmounted.
     const id = draggingId ?? (e.dataTransfer.getData("text/plain") || null);
-    stopWeekFlip();
+    stopSlide();
     setDraggingId(null);
     setOverKey(null);
     if (!id) return;
@@ -168,14 +176,10 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
         <div>
           <h3 className="text-h4 text-ink-900 leading-none">Content Calendar</h3>
           <p className="text-[12px] text-ink-500 mt-1">
-            Week of{" "}
-            {monday.toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-            })}{" "}
+            {formatRange(days[0], days[days.length - 1])}{" "}
             <span className="text-ink-300">·</span>{" "}
             {draggingId
-              ? "hold over ‹ › to move it to another week"
+              ? "hold over ‹ › to slide to other days"
               : "drag a post to another day to reschedule"}
           </p>
         </div>
@@ -183,22 +187,22 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
           <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white overflow-hidden">
             <button
               type="button"
-              onClick={() => setWeekOffset((o) => o - 1)}
+              onClick={() => setDayOffset((o) => o - STEP_DAYS)}
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
-                startWeekFlip(-1);
+                startSlide(-1);
               }}
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node))
-                  stopWeekFlip();
+                  stopSlide();
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                stopWeekFlip();
+                stopSlide();
               }}
-              aria-label="Previous week"
-              title="Previous week — drag a post here to move it back a week"
+              aria-label="Show earlier days"
+              title="Earlier days — drag a post here to move it earlier"
               className={cn(
                 "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
                 draggingId && "text-rose-500",
@@ -209,30 +213,30 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => setWeekOffset(todayOffset)}
-              disabled={weekOffset === todayOffset}
+              onClick={() => setDayOffset(todayOffset)}
+              disabled={dayOffset === todayOffset}
               className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
             >
               Today
             </button>
             <button
               type="button"
-              onClick={() => setWeekOffset((o) => o + 1)}
+              onClick={() => setDayOffset((o) => o + STEP_DAYS)}
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
-                startWeekFlip(1);
+                startSlide(1);
               }}
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node))
-                  stopWeekFlip();
+                  stopSlide();
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                stopWeekFlip();
+                stopSlide();
               }}
-              aria-label="Next week"
-              title="Next week — drag a post here to move it forward a week"
+              aria-label="Show later days"
+              title="Later days — drag a post here to move it later"
               className={cn(
                 "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
                 draggingId && "text-rose-500",
@@ -251,7 +255,7 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 lg:grid-rows-1 flex-1 min-h-0 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-ink-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-1 flex-1 min-h-0 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-ink-100">
         {days.map((d) => {
           const key = isoDateOf(d);
           const dayItems = byDay.get(key) ?? [];
@@ -416,9 +420,24 @@ const CONTENT_TYPE_LABEL: Record<string, string> = {
   post: "Post",
 };
 
+// A post moves through these stages — the progress bar reflects how far along
+// the content pipeline it is (e.g. "Filmed" = stage 4 of 7).
+const STATUS_ORDER: PostingItem["status"][] = [
+  "idea",
+  "planned",
+  "scripted",
+  "filmed",
+  "edited",
+  "posted",
+  "reviewed",
+];
+
 /**
- * Post card — clean white surface with a colored status pill + content-type,
- * inspired by the task-board cards. The whole card stays draggable.
+ * Post card — faithful to the task-board card design (rounded surface, header
+ * row, bold title, status pill + meta, labelled progress bar) adapted to real
+ * post data: the platform logo replaces the task ID, and the progress bar
+ * tracks the post's stage in the content pipeline. Uses the app's rose accent.
+ * The whole card stays draggable.
  */
 function CalendarItem({ item }: { item: PostingItem }) {
   const time = item.scheduled_for
@@ -427,48 +446,72 @@ function CalendarItem({ item }: { item: PostingItem }) {
         minute: "2-digit",
       })
     : null;
+  const scheduleLabel = item.scheduled_for
+    ? new Date(item.scheduled_for).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
   const typeLabel = item.content_type
     ? CONTENT_TYPE_LABEL[item.content_type] ?? prettyType(item.content_type)
     : null;
-  const hasPlatformIcon =
-    item.platform === "instagram" ||
-    item.platform === "tiktok" ||
-    item.platform === "youtube";
+
+  const stage = Math.max(1, STATUS_ORDER.indexOf(item.status) + 1);
+  const total = STATUS_ORDER.length;
+  const pct = Math.round((stage / total) * 100);
 
   return (
-    <div className="group rounded-[12px] border border-ink-100 bg-white p-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-rose-200 hover:shadow-[0_6px_16px_rgba(15,23,42,0.08)] transition-all">
-      {/* Top row — platform + scheduled time */}
-      {(time || hasPlatformIcon) && (
-        <div className="flex items-center gap-1.5 mb-1.5 text-ink-500">
-          <PlatformIcon platform={item.platform} />
-          {time && (
-            <span className="text-[10.5px] font-medium tabular-nums ml-auto">
-              {time}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Title / hook */}
-      <div className="text-[12.5px] font-semibold text-ink-900 leading-snug line-clamp-2 mb-2">
-        {item.topic ?? typeLabel ?? "Untitled post"}
+    <div className="rounded-[14px] border border-ink-100 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-rose-200 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all">
+      {/* Header — platform logo (replaces the task ID) + scheduled time */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <PlatformBadge platform={item.platform} />
+        {time && (
+          <span className="text-[11px] font-medium text-ink-400 tabular-nums shrink-0">
+            {time}
+          </span>
+        )}
       </div>
 
+      {/* Title / hook */}
+      <h4 className="text-[14px] font-bold text-ink-900 leading-snug line-clamp-2 mb-2">
+        {item.topic ?? typeLabel ?? "Untitled post"}
+      </h4>
+
       {/* Status pill + content type */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-2 mb-2.5">
         <span
           className={cn(
-            "inline-flex items-center h-[18px] px-2 rounded-full border text-[9.5px] font-bold uppercase tracking-wide",
+            "inline-flex items-center h-[22px] px-2.5 rounded-full border text-[11px] font-semibold whitespace-nowrap",
             STATUS_TONE[item.status],
           )}
         >
           {STATUS_LABEL[item.status]}
         </span>
         {typeLabel && (
-          <span className="text-[10.5px] font-medium text-ink-500 truncate">
+          <span className="text-[12px] font-medium text-ink-500 truncate">
             {typeLabel}
           </span>
         )}
+      </div>
+
+      {/* Description — real, useful schedule line */}
+      <p className="text-[12px] text-ink-500 leading-snug line-clamp-2 mb-3">
+        {scheduleLabel ? `Scheduled for ${scheduleLabel}` : "Not scheduled yet"}
+      </p>
+
+      {/* Progress — the post's stage within the content pipeline */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11.5px] font-medium text-ink-500">Progress</span>
+        <span className="text-[11.5px] font-medium text-ink-500 tabular-nums">
+          {stage} of {total}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-rose-500"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
@@ -481,20 +524,36 @@ function prettyType(slug: string) {
     .join(" ");
 }
 
-function PlatformIcon({ platform }: { platform: PostingItem["platform"] }) {
-  if (platform === "instagram") return <InstagramIcon className="size-3" />;
-  if (platform === "tiktok") return <TiktokIcon className="size-3" />;
-  if (platform === "youtube") return <YoutubeIcon className="size-3" />;
-  return null;
+function PlatformBadge({ platform }: { platform: PostingItem["platform"] }) {
+  if (platform === "instagram") return <InstagramIcon className="size-[18px]" />;
+  if (platform === "tiktok") return <TiktokIcon className="size-[18px]" />;
+  if (platform === "youtube") return <YoutubeIcon className="size-[18px]" />;
+  // No brand glyph for this platform — show its name instead.
+  return (
+    <span className="text-[11px] font-semibold text-ink-500 capitalize">
+      {platform ?? "Post"}
+    </span>
+  );
 }
 
-function mondayOf(date: Date) {
+function startOfDay(date: Date) {
   const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+// Compact label for the visible window, e.g. "May 18 – 22" or "May 30 – Jun 3".
+function formatRange(start: Date, end: Date) {
+  const sameMonth = start.getMonth() === end.getMonth();
+  const startStr = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  const endStr = end.toLocaleDateString(
+    "en-US",
+    sameMonth ? { day: "numeric" } : { month: "short", day: "numeric" },
+  );
+  return `${startStr} – ${endStr}`;
 }
 
 function isoDateOf(d: Date) {
