@@ -8,9 +8,12 @@ import type { ProgramNote } from "@/lib/programs/queries";
 export function ProgramNotes({
   notes,
   programSlug,
+  newNoteHref,
 }: {
   notes: ProgramNote[];
   programSlug: string;
+  /** Where the "+ New note" tile leads (the program's next lesson). */
+  newNoteHref?: string;
 }) {
   return (
     <section className="card overflow-hidden flex flex-col">
@@ -34,11 +37,16 @@ export function ProgramNotes({
         )}
       </div>
 
-      {notes.length === 0 ? (
+      {notes.length === 0 && !newNoteHref ? (
         <EmptyNotes programSlug={programSlug} />
       ) : (
         <div className="border-t border-ink-100 p-4 sm:p-5">
-          <NotesList notes={notes} programSlug={programSlug} showContext />
+          <NotesList
+            notes={notes}
+            programSlug={programSlug}
+            showContext
+            newNoteHref={newNoteHref}
+          />
         </div>
       )}
     </section>

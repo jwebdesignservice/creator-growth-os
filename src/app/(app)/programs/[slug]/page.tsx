@@ -271,7 +271,14 @@ export default async function ProgramDetailPage({
               <CurriculumAccordion modules={modules} programSlug={slug} />
             </div>
           }
-          resources={<ResourcesPanel notes={programNotes} programSlug={slug} />}
+          resources={<TemplatesDownloads />}
+          notes={
+            <ProgramNotes
+              notes={programNotes}
+              programSlug={slug}
+              newNoteHref={continueHref}
+            />
+          }
           tasks={<AllProgramTasks tasks={programTasks} />}
         />
       </div>
@@ -803,21 +810,6 @@ function TemplatesDownloads() {
         </span>
       </div>
     </section>
-  );
-}
-
-function ResourcesPanel({
-  notes,
-  programSlug,
-}: {
-  notes: ProgramNote[];
-  programSlug: string;
-}) {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
-      <TemplatesDownloads />
-      <ProgramNotes notes={notes} programSlug={programSlug} />
-    </div>
   );
 }
 
