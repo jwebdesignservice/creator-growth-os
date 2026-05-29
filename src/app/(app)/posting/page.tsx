@@ -72,13 +72,7 @@ export default async function PostingPage({
               <h2 className="text-[16px] font-semibold text-ink-900">
                 Current Plan
               </h2>
-              <ActivePlanCard
-                title={activePlan.title}
-                description={activePlan.description}
-                progress={activePlan.progress}
-                weekLabel={`Week of ${formatWeek(activePlan.week_start)}`}
-                planId={activePlan.id}
-              />
+              <ActivePlanCard plan={activePlan} />
             </section>
 
             <PlannedPostsTable items={items} />
@@ -116,15 +110,4 @@ function EmptyPlanState() {
       </div>
     </section>
   );
-}
-
-function formatWeek(iso: string) {
-  // `week_start` is a 'YYYY-MM-DD' date — render it as a friendly label.
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
 }

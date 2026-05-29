@@ -53,6 +53,42 @@ export async function createPostingPlan(input: {
   return { ok: true, id: data.id };
 }
 
+export async function updatePostingPlan(
+  planId: string,
+  input: { title?: string; week_start?: string; description?: string },
+): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const update: Record<string, unknown> = {};
+  if (input.title !== undefined) {
+    const t = input.title.trim();
+    if (!t) return { ok: false, error: "Title is required." };
+    update.title = t;
+  }
+  if (input.week_start !== undefined) {
+    if (!input.week_start) return { ok: false, error: "Week start is required." };
+    update.week_start = input.week_start;
+  }
+  if (input.description !== undefined) {
+    update.description = input.description.trim() || null;
+  }
+  if (Object.keys(update).length === 0) return { ok: true };
+
+  const { error } = await supabase
+    .from("posting_plans")
+    .update(update)
+    .eq("id", planId)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/posting");
+  return { ok: true };
+}
+
 export async function archivePostingPlan(planId: string): Promise<Result> {
   const supabase = await createClient();
   const {
@@ -115,6 +151,81 @@ export async function createPostingItem(input: {
 
   revalidatePath("/posting");
   return { ok: true };
+}
+
+/**
+ * Duplicate a planned post — clones every field into a new "(copy)" row on the
+ * same plan, date and status. The user can then reschedule/edit the copy.
+ * Reads + writes tolerate the pre-0042 schema (no goal/notes columns).
+ */
+export async function duplicatePostingItem(itemId: string): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  // Read the source row. Try the modern columns (goal/notes from 0042) and
+  // fall back to the legacy set when that migration isn't applied yet.
+  const cols =
+    "plan_id, scheduled_for, platform, content_type, topic, status, goal, notes";
+  const legacyCols =
+    "plan_id, scheduled_for, platform, content_type, topic, status";
+
+  let src: Record<string, unknown> | null = null;
+  const modern = await supabase
+    .from("posting_plan_items")
+    .select(cols)
+    .eq("id", itemId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (modern.error && modern.error.code === "42703") {
+    const legacy = await supabase
+      .from("posting_plan_items")
+      .select(legacyCols)
+      .eq("id", itemId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (legacy.error) return { ok: false, error: legacy.error.message };
+    src = legacy.data as Record<string, unknown> | null;
+  } else if (modern.error) {
+    return { ok: false, error: modern.error.message };
+  } else {
+    src = modern.data as Record<string, unknown> | null;
+  }
+  if (!src) return { ok: false, error: "Post not found." };
+
+  const topic = (src.topic as string | null) ?? null;
+  const base = {
+    plan_id: src.plan_id as string,
+    user_id: user.id,
+    scheduled_for: (src.scheduled_for as string | null) ?? null,
+    platform: src.platform as PlatformKey,
+    content_type: (src.content_type as string | null) ?? null,
+    topic: topic ? `${topic} (copy)` : null,
+    status: (src.status as ContentStatus) ?? "planned",
+  };
+
+  let insert = await supabase
+    .from("posting_plan_items")
+    .insert({
+      ...base,
+      goal: (src.goal as string | null) ?? null,
+      notes: (src.notes as string | null) ?? null,
+    })
+    .select("id")
+    .single();
+  if (insert.error && insert.error.code === "42703") {
+    insert = await supabase
+      .from("posting_plan_items")
+      .insert(base)
+      .select("id")
+      .single();
+  }
+  if (insert.error) return { ok: false, error: insert.error.message };
+
+  revalidatePath("/posting");
+  return { ok: true, id: insert.data?.id };
 }
 
 export async function updateItemStatus(

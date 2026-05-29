@@ -4,40 +4,19 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import {
-  InstagramIcon,
-  TiktokIcon,
-  YoutubeIcon,
-} from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
 import type { PostingItem } from "@/lib/posting/queries";
+import { PlatformGlyph } from "./platform-glyphs";
 import { NewItemForm } from "./posting-actions";
+import { PostDetailModal } from "./post-detail-modal";
 import { rescheduleItem } from "@/app/(app)/posting/actions";
+import { ItemActionsMenu } from "./item-actions-menu";
+import { StatusPill } from "./status-pill";
 
 type Props = {
   items: PostingItem[];
   weekStart?: string | null;
   planId?: string | null;
-};
-
-const STATUS_TONE: Record<PostingItem["status"], string> = {
-  idea: "bg-cream-100 text-ink-700 border-ink-100",
-  planned: "bg-rose-50 text-rose-700 border-rose-100",
-  scripted: "bg-cream-200 text-ink-700 border-ink-200",
-  filmed: "bg-cream-200 text-ink-700 border-ink-200",
-  edited: "bg-rose-100 text-rose-700 border-rose-200",
-  posted: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  reviewed: "bg-emerald-100 text-emerald-700 border-emerald-200",
-};
-
-const STATUS_LABEL: Record<PostingItem["status"], string> = {
-  idea: "Idea",
-  planned: "Planned",
-  scripted: "Scripted",
-  filmed: "Filmed",
-  edited: "Edited",
-  posted: "Posted",
-  reviewed: "Reviewed",
 };
 
 // The calendar shows a sliding window of days (not a fixed Mon–Sun week): the
@@ -390,22 +369,29 @@ function DraggableCard({
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
+  const [detailOpen, setDetailOpen] = useState(false);
   return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", item.id);
-        onDragStart();
-      }}
-      onDragEnd={onDragEnd}
-      className={cn(
-        "cursor-grab active:cursor-grabbing transition-opacity",
-        dragging && "opacity-40",
+    <>
+      <div
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", item.id);
+          onDragStart();
+        }}
+        onDragEnd={onDragEnd}
+        onDoubleClick={() => setDetailOpen(true)}
+        className={cn(
+          "cursor-grab active:cursor-grabbing transition-opacity",
+          dragging && "opacity-40",
+        )}
+      >
+        <CalendarItem item={item} onEdit={() => setDetailOpen(true)} />
+      </div>
+      {detailOpen && (
+        <PostDetailModal item={item} onClose={() => setDetailOpen(false)} />
       )}
-    >
-      <CalendarItem item={item} />
-    </div>
+    </>
   );
 }
 
@@ -419,6 +405,25 @@ const CONTENT_TYPE_LABEL: Record<string, string> = {
   youtube_video: "YouTube",
   post: "Post",
 };
+
+// Clean, modern color system: each content type gets its own soft accent — a
+// colored left stripe on the card plus a matching label tint. The card itself
+// stays white so the wall of cards reads calm but is instantly scannable.
+const TYPE_ACCENT: Record<string, { border: string; label: string; bar: string }> = {
+  reel: { border: "border-l-violet-500", label: "text-violet-600", bar: "bg-violet-500" },
+  short_video: { border: "border-l-fuchsia-500", label: "text-fuchsia-600", bar: "bg-fuchsia-500" },
+  story: { border: "border-l-amber-500", label: "text-amber-600", bar: "bg-amber-500" },
+  carousel: { border: "border-l-sky-500", label: "text-sky-600", bar: "bg-sky-500" },
+  post: { border: "border-l-emerald-500", label: "text-emerald-600", bar: "bg-emerald-500" },
+  video: { border: "border-l-rose-500", label: "text-rose-600", bar: "bg-rose-500" },
+  youtube_video: { border: "border-l-red-500", label: "text-red-600", bar: "bg-red-500" },
+};
+const accentOf = (t: string | null) =>
+  (t ? TYPE_ACCENT[t] : null) ?? {
+    border: "border-l-ink-300",
+    label: "text-ink-500",
+    bar: "bg-rose-500",
+  };
 
 // A post moves through these stages — the progress bar reflects how far along
 // the content pipeline it is (e.g. "Filmed" = stage 4 of 7).
@@ -439,7 +444,13 @@ const STATUS_ORDER: PostingItem["status"][] = [
  * tracks the post's stage in the content pipeline. Uses the app's rose accent.
  * The whole card stays draggable.
  */
-function CalendarItem({ item }: { item: PostingItem }) {
+function CalendarItem({
+  item,
+  onEdit,
+}: {
+  item: PostingItem;
+  onEdit?: () => void;
+}) {
   const time = item.scheduled_for
     ? new Date(item.scheduled_for).toLocaleTimeString("en-US", {
         hour: "numeric",
@@ -456,21 +467,34 @@ function CalendarItem({ item }: { item: PostingItem }) {
   const typeLabel = item.content_type
     ? CONTENT_TYPE_LABEL[item.content_type] ?? prettyType(item.content_type)
     : null;
+  const accent = accentOf(item.content_type);
 
   const stage = Math.max(1, STATUS_ORDER.indexOf(item.status) + 1);
   const total = STATUS_ORDER.length;
   const pct = Math.round((stage / total) * 100);
 
   return (
-    <div className="rounded-[14px] border border-ink-100 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-rose-200 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all">
+    <div
+      className={cn(
+        "rounded-[14px] border-t border-r border-b border-t-ink-100 border-r-ink-100 border-b-ink-100 border-l-4 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all",
+        accent.border,
+      )}
+    >
       {/* Header — platform logo (replaces the task ID) + scheduled time */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <PlatformBadge platform={item.platform} />
-        {time && (
-          <span className="text-[11px] font-medium text-ink-400 tabular-nums shrink-0">
-            {time}
-          </span>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {time && (
+            <span className="text-[11px] font-medium text-ink-400 tabular-nums">
+              {time}
+            </span>
+          )}
+          <ItemActionsMenu
+            itemId={item.id}
+            currentStatus={item.status}
+            onEdit={onEdit}
+          />
+        </div>
       </div>
 
       {/* Title / hook */}
@@ -480,16 +504,9 @@ function CalendarItem({ item }: { item: PostingItem }) {
 
       {/* Status pill + content type */}
       <div className="flex items-center gap-2 mb-2.5">
-        <span
-          className={cn(
-            "inline-flex items-center h-[22px] px-2.5 rounded-full border text-[11px] font-semibold whitespace-nowrap",
-            STATUS_TONE[item.status],
-          )}
-        >
-          {STATUS_LABEL[item.status]}
-        </span>
+        <StatusPill itemId={item.id} status={item.status} />
         {typeLabel && (
-          <span className="text-[12px] font-medium text-ink-500 truncate">
+          <span className={cn("text-[12px] font-semibold truncate", accent.label)}>
             {typeLabel}
           </span>
         )}
@@ -509,7 +526,7 @@ function CalendarItem({ item }: { item: PostingItem }) {
       </div>
       <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
         <div
-          className="h-full rounded-full bg-rose-500"
+          className={cn("h-full rounded-full", accent.bar)}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -525,15 +542,8 @@ function prettyType(slug: string) {
 }
 
 function PlatformBadge({ platform }: { platform: PostingItem["platform"] }) {
-  if (platform === "instagram") return <InstagramIcon className="size-[18px]" />;
-  if (platform === "tiktok") return <TiktokIcon className="size-[18px]" />;
-  if (platform === "youtube") return <YoutubeIcon className="size-[18px]" />;
-  // No brand glyph for this platform — show its name instead.
-  return (
-    <span className="text-[11px] font-semibold text-ink-500 capitalize">
-      {platform ?? "Post"}
-    </span>
-  );
+  // Premium, full-colour brand marks (see ./platform-glyphs).
+  return <PlatformGlyph platform={platform} className="size-[18px]" />;
 }
 
 function startOfDay(date: Date) {

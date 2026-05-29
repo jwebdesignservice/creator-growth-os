@@ -1,88 +1,238 @@
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import {
+  CalendarDays,
+  FileText,
+  Share2,
+  Clock,
+  CheckCircle2,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/cn";
+import type { ActivePlan } from "@/lib/posting/queries";
 import { PlanActionsMenu } from "./plan-actions-menu";
+import { EditPlanButton } from "./edit-plan-button";
 
-type Props = {
-  title: string;
-  description: string | null;
-  progress: number;
-  weekLabel: string;
-  href?: string;
-  planId?: string;
+const CONTENT_LABEL: Record<string, string> = {
+  reel: "Reel",
+  short_video: "Short Video",
+  carousel: "Carousel",
+  story: "Story",
+  youtube_video: "YouTube Video",
+  video: "Video",
+  post: "Post",
 };
 
-export function ActivePlanCard({
-  title,
-  description,
-  progress,
-  weekLabel,
-  href = "/posting?view=calendar",
-  planId,
-}: Props) {
+export function ActivePlanCard({ plan }: { plan: ActivePlan }) {
+  const next = plan.nextPost;
+  const platformLabel = next?.platform
+    ? next.platform.charAt(0).toUpperCase() + next.platform.slice(1)
+    : null;
+  const contentLabel = next?.content_type
+    ? CONTENT_LABEL[next.content_type] ?? next.content_type
+    : null;
+
   return (
     <section className="card overflow-hidden">
-      <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr_auto] items-center gap-5 p-5">
-        {/* Cover ornament */}
-        <div className="h-[120px] sm:h-[140px] rounded-[14px] bg-gradient-to-br from-rose-100 via-cream-200 to-rose-200/40 relative overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <svg
-              width="56"
-              height="56"
-              viewBox="0 0 48 48"
-              fill="none"
-              className="text-rose-300"
-              aria-hidden
-            >
-              <rect x="8" y="6" width="32" height="36" rx="4" fill="currentColor" />
-              <rect x="14" y="12" width="20" height="2" rx="1" fill="white" opacity="0.7" />
-              <rect x="14" y="17" width="16" height="2" rx="1" fill="white" opacity="0.7" />
-              <rect x="14" y="22" width="20" height="2" rx="1" fill="white" opacity="0.5" />
-              <rect x="14" y="27" width="14" height="2" rx="1" fill="white" opacity="0.5" />
-            </svg>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[248px_1fr]">
+        {/* ── Illustration ───────────────────────────────────────────── */}
+        <div className="hidden lg:block relative m-4 rounded-[16px] overflow-hidden bg-gradient-to-br from-rose-100 via-cream-200 to-rose-200/50">
+          <PlanArt />
         </div>
 
-        <div className="min-w-0">
-          <div className="text-[10.5px] tracking-[0.12em] uppercase text-rose-600 font-semibold mb-1">
-            Active Plan
-          </div>
-          <h3 className="text-h3 text-ink-900 leading-tight mb-1">
-            {title}
-          </h3>
-          <p className="text-[13px] text-ink-500 leading-snug mb-4 max-w-md">
-            {description ??
-              "A balanced weekly plan focused on growth, engagement and conversion."}
-          </p>
-          <div className="max-w-md">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[12px] text-ink-500 font-medium">
-                Progress
+        {/* ── Content ────────────────────────────────────────────────── */}
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <span className="inline-flex items-center px-2.5 h-6 rounded-full bg-rose-100 text-rose-700 text-[10.5px] font-bold uppercase tracking-[0.1em]">
+                Active plan
               </span>
-              <span className="text-[12.5px] text-ink-900 font-semibold tabular-nums">
-                {progress}%
-              </span>
+              <h3 className="text-h3 sm:text-[28px] text-ink-900 leading-tight mt-2">
+                {plan.title}
+              </h3>
             </div>
-            <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden">
-              <div
-                className="h-full bg-rose-500"
-                style={{ width: `${progress}%` }}
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <div className="flex items-center gap-2">
+                <PlanActionsMenu planId={plan.id} />
+                <Link
+                  href="/posting?view=calendar"
+                  className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] border border-rose-200 text-rose-600 hover:bg-rose-50 text-[13px] font-semibold transition-colors"
+                >
+                  <CalendarDays className="size-4" strokeWidth={2} />
+                  View Calendar
+                </Link>
+              </div>
+              <EditPlanButton
+                planId={plan.id}
+                title={plan.title}
+                weekStart={plan.week_start}
+                description={plan.description}
               />
             </div>
-            <div className="mt-1.5 text-[11px] text-ink-500">{weekLabel}</div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 self-start">
-          {planId && <PlanActionsMenu planId={planId} />}
-          <Link
-            href={href}
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-white border border-ink-200 hover:bg-cream-100 text-ink-900 text-[13.5px] font-medium transition-colors"
-          >
-            <CalendarDays className="size-4 text-rose-500" strokeWidth={2} />
-            View Calendar
-          </Link>
+          <p className="text-[13px] text-ink-500 leading-relaxed mt-2 max-w-xl">
+            {plan.description ??
+              "Your active weekly posting plan with scheduled content, platform mix, and publishing progress."}
+          </p>
+
+          {/* Stat chips */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            <StatChip icon={FileText} label={`${plan.total} planned post${plan.total === 1 ? "" : "s"}`} />
+            <StatChip icon={Share2} label={`${plan.platforms} platform${plan.platforms === 1 ? "" : "s"}`} />
+            <StatChip icon={CalendarDays} label={`Starts ${formatStarts(plan.week_start)}`} />
+            <StatChip icon={Clock} label={`Updated ${relativeDay(plan.created_at)}`} />
+          </div>
+
+          {/* Progress */}
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[13px] font-semibold text-ink-900">Progress</span>
+              <span className="text-[14px] font-bold text-ink-900 tabular-nums">
+                {plan.progress}%
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-cream-200 overflow-hidden">
+              <div
+                className="h-full bg-rose-500 rounded-full transition-[width] duration-500"
+                style={{ width: `${plan.progress}%` }}
+              />
+            </div>
+            <div className="mt-1.5 text-[12px] text-ink-500">
+              {plan.ready} of {plan.total} post{plan.total === 1 ? "" : "s"} ready for this week
+            </div>
+          </div>
+
+          {/* Next post + status counts */}
+          <div className="mt-5 rounded-[14px] border border-ink-100 bg-cream-50/50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="size-10 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+                <Clock className="size-4" strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[11px] text-ink-500">Next post</div>
+                <div className="text-[13.5px] font-semibold text-ink-900 truncate">
+                  {next ? formatNext(next.scheduled_for) : "Nothing scheduled"}
+                </div>
+                <div className="text-[11.5px] text-ink-500 truncate">
+                  {next && platformLabel
+                    ? `${platformLabel}${contentLabel ? ` • ${contentLabel}` : ""}`
+                    : "Add a scheduled post to see it here"}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-5 shrink-0">
+              <CountStat icon={FileText} count={plan.drafts} label="Drafts" tone="amber" />
+              <CountStat icon={Clock} count={plan.scheduled} label="Scheduled" tone="orange" />
+              <CountStat icon={CheckCircle2} count={plan.ready} label="Ready" tone="green" />
+            </div>
+          </div>
         </div>
       </div>
     </section>
   );
+}
+
+/* ── Bits ──────────────────────────────────────────────────────────────── */
+
+function StatChip({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-ink-200 bg-white text-[12.5px] text-ink-700">
+      <Icon className="size-3.5 text-ink-400" strokeWidth={2} />
+      {label}
+    </span>
+  );
+}
+
+const TONE: Record<string, string> = {
+  amber: "text-amber-600",
+  orange: "text-orange-500",
+  green: "text-emerald-600",
+};
+
+function CountStat({
+  icon: Icon,
+  count,
+  label,
+  tone,
+}: {
+  icon: LucideIcon;
+  count: number;
+  label: string;
+  tone: keyof typeof TONE;
+}) {
+  return (
+    <div className="text-center">
+      <div className={cn("inline-flex items-center gap-1 text-[16px] font-bold tabular-nums", TONE[tone])}>
+        <Icon className="size-3.5" strokeWidth={2.2} />
+        {count}
+      </div>
+      <div className="text-[10.5px] text-ink-500 mt-0.5">{label}</div>
+    </div>
+  );
+}
+
+function PlanArt() {
+  return (
+    <svg
+      viewBox="0 0 200 240"
+      className="absolute inset-0 w-full h-full"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden
+    >
+      <circle cx="100" cy="120" r="80" fill="white" opacity="0.35" />
+      {/* Calendar */}
+      <rect x="56" y="64" width="88" height="100" rx="8" fill="white" opacity="0.9" />
+      <rect x="56" y="64" width="88" height="22" rx="8" fill="var(--rose-200)" />
+      <line x1="74" y1="58" x2="74" y2="72" stroke="var(--rose-400)" strokeWidth="4" strokeLinecap="round" />
+      <line x1="126" y1="58" x2="126" y2="72" stroke="var(--rose-400)" strokeWidth="4" strokeLinecap="round" />
+      {Array.from({ length: 12 }).map((_, i) => (
+        <rect
+          key={i}
+          x={66 + (i % 4) * 19}
+          y={96 + Math.floor(i / 4) * 20}
+          width="12"
+          height="12"
+          rx="3"
+          fill={i % 5 === 0 ? "var(--rose-300)" : "var(--cream-300)"}
+        />
+      ))}
+      {/* Leaf */}
+      <path d="M40 196 C40 168 64 150 84 150 C84 178 64 196 40 196 Z" fill="var(--rose-300)" opacity="0.8" />
+      <line x1="40" y1="196" x2="78" y2="158" stroke="white" strokeWidth="2" opacity="0.6" />
+    </svg>
+  );
+}
+
+/* ── Date helpers ──────────────────────────────────────────────────────── */
+
+function formatStarts(weekStartIso: string) {
+  const d = new Date(`${weekStartIso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return weekStartIso;
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function relativeDay(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "recently";
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(d)) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function formatNext(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(d) - startOf(new Date())) / 86_400_000);
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (days === 0) return `Today, ${time}`;
+  if (days === 1) return `Tomorrow, ${time}`;
+  return `${d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
 }
