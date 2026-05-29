@@ -194,6 +194,7 @@ export default async function TutorialDetailPage({
           resources={resources}
           notes={notes}
           lessonSlug={lesson.slug}
+          lessonTitle={lesson.title}
         />
       </div>
     </PageShell>

@@ -71,12 +71,6 @@ export function FeaturedProgram(p: Props) {
               <Play className="size-4" fill="currentColor" />
               Continue Program
             </Link>
-            <Link
-              href={`/programs/${p.slug}`}
-              className="inline-flex items-center justify-center h-12 px-7 rounded-[14px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors"
-            >
-              View Details
-            </Link>
           </div>
         </div>
 

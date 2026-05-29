@@ -8,6 +8,7 @@ type Props = {
   duration: string;
   difficulty: string;
   moduleTitle: string | null;
+  coverUrl: string | null;
 };
 
 export function FeaturedTutorial({
@@ -17,6 +18,7 @@ export function FeaturedTutorial({
   duration,
   difficulty,
   moduleTitle,
+  coverUrl,
 }: Props) {
   return (
     <section className="rounded-[20px] sm:rounded-[24px] bg-cream-200 overflow-hidden relative">
@@ -56,30 +58,46 @@ export function FeaturedTutorial({
               <Play className="size-4" fill="currentColor" />
               Continue Watching
             </Link>
-            <Link
-              href={`/tutorials/${slug}`}
-              className="inline-flex items-center justify-center h-12 px-6 rounded-[14px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors"
-            >
-              View Lesson Path
-            </Link>
           </div>
         </div>
 
+        {/* Cover thumbnail — the lesson's real cover with a play overlay; the
+            whole tile opens the lesson. Falls back to a branded gradient tile
+            when the lesson has no cover image yet. */}
         <div className="relative hidden 2xl:block">
           <div className="absolute right-0 top-0 w-80 h-80 rounded-full bg-rose-100/70 -translate-y-8 translate-x-12 blur-2xl" />
-          <PlayDecor />
+          <Link
+            href={`/tutorials/${slug}`}
+            aria-label={`Play ${title}`}
+            className="group relative block h-full min-h-[220px] rounded-[18px] overflow-hidden border border-cream-300 shadow-card bg-gradient-to-br from-rose-100/70 via-cream-200 to-rose-100/30"
+          >
+            {coverUrl && (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverUrl}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {/* Depth + legibility for the play button over busy images. */}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink-900/40 via-ink-900/5 to-transparent" />
+              </>
+            )}
+
+            {/* Center play button */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="size-20 rounded-full bg-white/90 backdrop-blur shadow-card border border-white/60 inline-flex items-center justify-center transition-transform group-hover:scale-105">
+                <Play className="size-8 text-rose-600 ml-1" fill="currentColor" />
+              </span>
+            </div>
+
+            {/* Loom-style duration badge */}
+            <span className="absolute bottom-3 right-3 rounded-md bg-ink-900/85 px-2 py-1 text-[12px] font-semibold text-white tabular-nums leading-none">
+              {duration}
+            </span>
+          </Link>
         </div>
       </div>
     </section>
-  );
-}
-
-function PlayDecor() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="size-40 rounded-full bg-white/90 backdrop-blur shadow-card border border-cream-300 flex items-center justify-center">
-        <Play className="size-16 text-rose-600 ml-2" fill="currentColor" />
-      </div>
-    </div>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Flame, ArrowRight, TrendingUp, ArrowUp, ArrowDown, Lock, Sparkles } from "lucide-react";
+import { Flame, TrendingUp, ArrowUp, ArrowDown, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/cn";
-import type { PerformanceEntry } from "@/lib/performance/queries";
 
 type Insight = {
   label: string;
@@ -156,24 +155,6 @@ export function PerformanceRail({
             </Link>
           </section>
         )}
-
-        {/* Tip */}
-        <section className="rounded-[16px] bg-cream-200 border border-cream-300 p-4">
-          <div className="text-[13px] font-semibold text-ink-900 mb-1.5">
-            ✨ Tip
-          </div>
-          <p className="text-[12px] text-ink-700 leading-snug">
-            Track the same numbers every week. Consistency beats precision —
-            comparable trends are what unlock growth decisions.
-          </p>
-          <Link
-            href="/tutorials/platform-performance"
-            className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
-          >
-            Watch performance lesson
-            <ArrowRight className="size-3.5" strokeWidth={2} />
-          </Link>
-        </section>
       </div>
     </aside>
   );

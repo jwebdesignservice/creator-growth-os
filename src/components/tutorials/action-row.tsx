@@ -144,7 +144,7 @@ export function LessonActionRow({
 
 /* ─── Create-note popup ───────────────────────────────────────────────── */
 
-function CreateNoteModal({
+export function CreateNoteModal({
   lessonSlug,
   lessonTitle,
   programSlug,
