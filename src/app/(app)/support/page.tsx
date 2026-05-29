@@ -5,21 +5,15 @@ import {
   Ticket,
   HelpCircle,
   BookOpen,
-  Search,
   ArrowRight,
   ExternalLink,
   CreditCard,
   Wrench,
   Lock,
-  GraduationCap,
-  CalendarDays,
-  Users,
-  TrendingUp,
   FileText,
   Mail,
   ClipboardList,
   CheckCircle2,
-  Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
@@ -96,16 +90,6 @@ const PRIMARY_CARDS: {
   },
 ];
 
-const TOPICS: { key: string; icon: LucideIcon; title: string; sub: string; href: string }[] = [
-  { key: "billing",   icon: CreditCard,    title: "Billing",          sub: "Payments & plans",       href: "/support/new?topic=billing"   },
-  { key: "technical", icon: Wrench,        title: "Technical Issues", sub: "Fixes & troubleshooting", href: "/support/new?topic=technical" },
-  { key: "account",   icon: Lock,          title: "Account & Login",  sub: "Access & security",      href: "/support/new?topic=account"   },
-  { key: "programs",  icon: GraduationCap, title: "Programs",         sub: "Courses & content",      href: "/support/new?topic=content"   },
-  { key: "posting",   icon: CalendarDays,  title: "Posting Plans",    sub: "Upload & manage",        href: "/support/new?topic=posting"   },
-  { key: "community", icon: Users,         title: "Community",        sub: "Groups & discussions",   href: "/support/new?topic=community" },
-  { key: "growth",    icon: TrendingUp,    title: "Growth Tips",      sub: "Best practices",         href: "/tutorials"                   },
-];
-
 // Static topic links — no fake "N min read" labels; they were misleading
 // because none of the URLs go to a specific article.
 const GUIDES: { key: string; icon: LucideIcon; title: string; cat: string; href: string }[] = [
@@ -163,13 +147,6 @@ const PROCESS_STEPS: { key: string; icon: LucideIcon; title: string; desc: strin
   { key: "reply",  icon: CheckCircle2,  title: "Reply or resolution", desc: "You'll get an email with an update or solution.", state: "upcoming" },
 ];
 
-const QUICK_LINKS: { label: string; href: string }[] = [
-  { label: "Browse all FAQs",      href: "/tutorials" },
-  { label: "Account settings",     href: "/settings"  },
-  { label: "Billing help",         href: "/billing"   },
-  { label: "Community guidelines", href: "/community" },
-];
-
 /* ─── Page ────────────────────────────────────────────────────────────── */
 
 export default async function SupportHubPage() {
@@ -208,25 +185,6 @@ export default async function SupportHubPage() {
             Find answers, browse guides, and contact our support team when you
             need help.
           </p>
-
-          {/* Page search */}
-          <div className="relative mt-5">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 size-[18px] text-ink-400"
-              strokeWidth={2}
-              aria-hidden
-            />
-            <label htmlFor="support-search" className="sr-only">
-              Search guides, FAQs, tickets, or topics
-            </label>
-            <input
-              id="support-search"
-              type="search"
-              autoComplete="off"
-              placeholder="Search guides, FAQs, tickets, or topics..."
-              className="card w-full h-12 sm:h-[52px] pl-12 pr-4 text-[14px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-300 transition-colors"
-            />
-          </div>
         </header>
 
         {/* ── Body grid ────────────────────────────────────────────────── */}
@@ -239,27 +197,6 @@ export default async function SupportHubPage() {
                 <PrimaryCard key={c.key} card={c} />
               ))}
             </div>
-
-            {/* Browse by topic */}
-            <section>
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <h2 className="text-[15px] font-semibold text-ink-900">
-                  Browse by topic
-                </h2>
-                <Link
-                  href="/support/new"
-                  className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-700 hover:text-rose-600 transition-colors"
-                >
-                  View all topics
-                  <ArrowRight className="size-3.5" strokeWidth={2} />
-                </Link>
-              </div>
-              <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1">
-                {TOPICS.map((t) => (
-                  <TopicChip key={t.key} topic={t} />
-                ))}
-              </div>
-            </section>
 
             {/* Guides & Answers + Recent tickets */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -457,55 +394,6 @@ export default async function SupportHubPage() {
               </ol>
             </section>
 
-            {/* Quick links */}
-            <section className="card p-5">
-              <h3 className="text-[14px] font-semibold text-ink-900 mb-3">
-                Quick links
-              </h3>
-              <ul className="space-y-0.5">
-                {QUICK_LINKS.map((l) => (
-                  <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="group flex items-center gap-2 py-1.5 text-[12.5px] text-ink-700 hover:text-rose-700 transition-colors"
-                    >
-                      <span className="flex-1 min-w-0">{l.label}</span>
-                      <ArrowRight
-                        className="size-3.5 text-ink-400 shrink-0 group-hover:text-rose-600 transition-colors"
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            {/* Creator tip */}
-            <section className="card p-5">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-[14px] font-semibold text-ink-900">
-                  Creator tip
-                </h3>
-                <span
-                  aria-hidden
-                  className="inline-flex items-center justify-center size-9 rounded-full bg-gold-500/15 text-gold-500 shrink-0"
-                >
-                  <Lightbulb className="size-[18px]" strokeWidth={1.9} />
-                </span>
-              </div>
-              <p className="mt-1.5 text-[12.5px] text-ink-500 leading-snug">
-                Find step-by-step guides and best practices to grow your creator
-                journey.
-              </p>
-              <Link
-                href="/tutorials"
-                className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-rose-700 hover:text-rose-600 transition-colors"
-              >
-                Explore guides
-                <ArrowRight className="size-3.5" strokeWidth={2} aria-hidden />
-              </Link>
-            </section>
           </aside>
         </div>
       </div>
@@ -560,35 +448,6 @@ function PrimaryCard({
         {card.cta}
       </Link>
     </div>
-  );
-}
-
-function TopicChip({
-  topic,
-}: {
-  topic: { icon: LucideIcon; title: string; sub: string; href: string };
-}) {
-  const Icon = topic.icon;
-  return (
-    <Link
-      href={topic.href}
-      className="card-flat shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 hover:border-rose-200 hover:bg-cream-50 transition-colors"
-    >
-      <span
-        aria-hidden
-        className="inline-flex items-center justify-center size-8 rounded-[9px] bg-cream-100 text-ink-600 shrink-0"
-      >
-        <Icon className="size-4" strokeWidth={1.9} />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[12.5px] font-semibold text-ink-900 whitespace-nowrap">
-          {topic.title}
-        </span>
-        <span className="block text-[11px] text-ink-500 whitespace-nowrap">
-          {topic.sub}
-        </span>
-      </span>
-    </Link>
   );
 }
 

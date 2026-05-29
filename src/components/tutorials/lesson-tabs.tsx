@@ -20,10 +20,12 @@ import {
   Image as ImageIcon,
   Link2,
   ExternalLink,
+  NotebookPen,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
 import { cn } from "@/lib/cn";
+import { LessonNotes } from "@/components/notes/lesson-notes";
 import type { ProgramNote } from "@/lib/programs/queries";
 
 /**
@@ -59,14 +61,16 @@ type Props = {
   resources: LessonResourceItem[];
   notes: ProgramNote[];
   lessonSlug: string;
+  lessonTitle: string;
 };
 
-type TabKey = "overview" | "path" | "resources";
+type TabKey = "overview" | "path" | "resources" | "notes";
 
 const TABS: { key: TabKey; label: string; icon: LucideIcon; beta?: boolean }[] = [
   { key: "overview",  label: "Overview",     icon: BookOpen     },
   { key: "path",      label: "Lesson Path",  icon: CalendarDays, beta: true },
   { key: "resources", label: "Resources",    icon: Files        },
+  { key: "notes",     label: "Notes",        icon: NotebookPen  },
 ];
 
 const TAKEAWAYS = [
@@ -81,6 +85,9 @@ export function LessonTabs({
   description,
   chapters,
   resources,
+  notes,
+  lessonSlug,
+  lessonTitle,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -137,6 +144,15 @@ export function LessonTabs({
       {tab === "resources" && (
         <div className="p-5 sm:p-6">
           <ResourcesPanel resources={resources} />
+        </div>
+      )}
+      {tab === "notes" && (
+        <div className="p-5 sm:p-6">
+          <LessonNotes
+            notes={notes}
+            lessonSlug={lessonSlug}
+            lessonTitle={lessonTitle}
+          />
         </div>
       )}
     </section>

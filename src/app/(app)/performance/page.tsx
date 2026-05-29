@@ -12,7 +12,6 @@ import { ConnectSocialCard } from "@/components/performance/connect-social-card"
 import { AutoSyncOnMount } from "@/components/performance/auto-sync-on-mount";
 import { getSocialConnections } from "@/lib/social/queries";
 import { TrendChart } from "@/components/performance/trend-chart";
-import { BestPostsJournal } from "@/components/performance/journal";
 import { PerformanceRail } from "@/components/performance/rail";
 
 export const metadata = { title: "Performance · Creator Growth OS" };
@@ -89,11 +88,8 @@ export default async function PerformancePage() {
             is older than 6h, so users see fresh numbers without clicking. */}
         <AutoSyncOnMount connections={socialConnections} />
 
-        {/* Trend + Journal */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
-          <TrendChart entries={recent} />
-          <BestPostsJournal entries={recent} />
-        </div>
+        {/* Trend */}
+        <TrendChart entries={recent} />
       </div>
     </PageShell>
   );

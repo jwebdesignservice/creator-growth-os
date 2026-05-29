@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { ActivePlan } from "@/lib/posting/queries";
-import { PlanActionsMenu } from "./plan-actions-menu";
 import { EditPlanButton } from "./edit-plan-button";
 
 const CONTENT_LABEL: Record<string, string> = {
@@ -61,16 +60,13 @@ export function ActivePlanCard({ plan }: { plan: ActivePlan }) {
               </h3>
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
-              <div className="flex items-center gap-2">
-                <PlanActionsMenu planId={plan.id} />
-                <Link
-                  href="/posting?view=calendar"
-                  className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] border border-rose-200 text-rose-600 hover:bg-rose-50 text-[13px] font-semibold transition-colors"
-                >
-                  <CalendarDays className="size-4" strokeWidth={2} />
-                  View Calendar
-                </Link>
-              </div>
+              <Link
+                href="/posting?view=calendar"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] border border-rose-200 text-rose-600 hover:bg-rose-50 text-[13px] font-semibold transition-colors"
+              >
+                <CalendarDays className="size-4" strokeWidth={2} />
+                View Calendar
+              </Link>
               <EditPlanButton
                 planId={plan.id}
                 title={plan.title}
