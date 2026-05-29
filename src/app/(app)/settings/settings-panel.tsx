@@ -881,34 +881,6 @@ function SettingsRail({
   return (
     <aside className="hidden xl:flex flex-col w-[300px] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
       <div className="p-5 space-y-4">
-        {/* Profile Summary */}
-        <div className="card p-5">
-          <h3 className="text-[13px] font-semibold text-ink-900 mb-4">Profile Summary</h3>
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar
-              name={profile?.full_name ?? profile?.display_name ?? "U"}
-              src={profile?.avatar_url ?? undefined}
-              size={48}
-            />
-            <div className="min-w-0">
-              <div className="text-[14px] font-semibold text-ink-900 truncate">
-                {profile?.full_name ?? profile?.display_name ?? "Your Name"}
-              </div>
-              <div className="text-[12px] text-ink-500 truncate">{profile?.email}</div>
-              {profile?.phone && (
-                <div className="text-[12px] text-ink-500">{profile.phone}</div>
-              )}
-            </div>
-          </div>
-          <Link
-            href="/profile"
-            className="w-full h-9 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
-          >
-            View Public Profile
-            <ExternalLink className="size-3.5" strokeWidth={2} aria-hidden />
-          </Link>
-        </div>
-
         {/* Social & Audience Snapshot */}
         <div className="card p-5">
           <h3 className="text-[13px] font-semibold text-ink-900 mb-4">

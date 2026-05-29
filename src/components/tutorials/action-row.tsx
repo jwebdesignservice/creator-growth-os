@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,8 +12,20 @@ import {
   Loader2,
   CheckCircle2,
   FolderOpen,
+  Plus,
+  Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import {
+  RichNoteEditor,
+  type RichNoteEditorHandle,
+} from "@/components/notes/rich-note";
+import {
+  noteIsEmpty,
+  noteTextLength,
+  stripUnsafeNoteHtml,
+} from "@/lib/notes/sanitize";
 import {
   markLessonComplete,
   createLessonNote,
@@ -29,6 +41,15 @@ type Props = {
 };
 
 const MAX_LEN = 5000;
+
+/* Labeled snippets a creator commonly jots while reviewing a lesson —
+   one click drops the scaffold so they can fill in the rest. */
+const QUICK_ADDS: { label: string; snippet: string }[] = [
+  { label: "CTA", snippet: "CTA: " },
+  { label: "Hook", snippet: "Hook: " },
+  { label: "Caption idea", snippet: "Caption idea: " },
+  { label: "Revision note", snippet: "Revision note: " },
+];
 
 export function LessonActionRow({
   lessonSlug,
@@ -139,13 +160,15 @@ function CreateNoteModal({
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const editorRef = useRef<RichNoteEditorHandle>(null);
 
-  const trimmed = body.trim();
-  const tooLong = body.length > MAX_LEN;
+  const isEmpty = noteIsEmpty(body);
+  const textLen = noteTextLength(body);
+  const tooLong = textLen > MAX_LEN;
 
   function save() {
     setErr(null);
-    if (!trimmed) {
+    if (isEmpty) {
       setErr("Write something before saving.");
       return;
     }
@@ -153,8 +176,9 @@ function CreateNoteModal({
       setErr(`Notes are limited to ${MAX_LEN.toLocaleString()} characters.`);
       return;
     }
+    const html = stripUnsafeNoteHtml(body);
     startTransition(async () => {
-      const res = await createLessonNote(lessonSlug, trimmed);
+      const res = await createLessonNote(lessonSlug, html);
       if (!res.ok) {
         setErr(res.error);
         return;
@@ -176,7 +200,7 @@ function CreateNoteModal({
       aria-label="Create note"
     >
       <div
-        className="bg-white rounded-[18px] shadow-xl border border-ink-100 w-full max-w-[520px] p-6"
+        className="bg-white rounded-[18px] shadow-xl border border-ink-100 w-full max-w-[560px] p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-4 mb-4">
@@ -186,9 +210,8 @@ function CreateNoteModal({
             </span>
             <div className="min-w-0">
               <h3 className="text-h4 text-ink-900 leading-tight">Create note</h3>
-              <p className="text-[12.5px] text-ink-500 truncate">
-                For{" "}
-                <span className="font-semibold text-ink-700">{lessonTitle}</span>
+              <p className="text-[12.5px] text-ink-500">
+                Capture a takeaway, an idea to apply, or a question to revisit.
               </p>
             </div>
           </div>
@@ -217,17 +240,25 @@ function CreateNoteModal({
           </div>
         ) : (
           <>
-            <textarea
+            {/* Attached-to context chip */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+                Attached to
+              </span>
+              <span className="inline-flex items-center gap-1.5 h-7 pl-2 pr-2.5 rounded-full bg-cream-100 border border-ink-200 text-[12px] font-semibold text-ink-700 min-w-0">
+                <BookOpen className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
+                <span className="truncate">{lessonTitle}</span>
+              </span>
+            </div>
+
+            {/* WYSIWYG editor — bold/italic/underline + real lists + links */}
+            <RichNoteEditor
+              ref={editorRef}
+              onChange={setBody}
+              onSubmit={save}
               autoFocus
-              rows={6}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              onKeyDown={(e) => {
-                // Cmd/Ctrl + Enter to save quickly.
-                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") save();
-              }}
+              disabled={pending}
               placeholder="Jot down a key takeaway, an idea to apply, or a question to revisit…"
-              className="input min-h-[140px] resize-y leading-relaxed"
             />
 
             <div className="mt-1.5 flex items-center justify-between">
@@ -244,12 +275,36 @@ function CreateNoteModal({
                   tooLong ? "text-rose-600 font-semibold" : "text-ink-400",
                 )}
               >
-                {body.length.toLocaleString()}/{MAX_LEN.toLocaleString()}
+                {textLen.toLocaleString()}/{MAX_LEN.toLocaleString()}
               </span>
             </div>
 
+            {/* Quick add — one-tap labeled scaffolds inserted at the caret */}
+            <div className="mt-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+                  Quick add
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_ADDS.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => editorRef.current?.insertSnippet(q.snippet)}
+                    className="inline-flex items-center gap-1 h-8 pl-2 pr-3 rounded-full border border-ink-200 bg-white text-[12.5px] font-medium text-ink-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
+                  >
+                    <Plus className="size-3.5 text-rose-400" strokeWidth={2.4} />
+                    {q.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {err && (
-              <div className="mt-2 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2 rounded-[10px]">
+              <div className="mt-3 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2 rounded-[10px]">
                 {err}
               </div>
             )}
@@ -278,7 +333,7 @@ function CreateNoteModal({
                 <button
                   type="button"
                   onClick={save}
-                  disabled={pending || !trimmed || tooLong}
+                  disabled={pending || isEmpty || tooLong}
                   className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold"
                 >
                   {pending && (

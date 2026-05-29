@@ -38,7 +38,15 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
   const [pending, startTransition] = useTransition();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overKey, setOverKey] = useState<string | null>(null);
-  const [dayOffset, setDayOffset] = useState(0);
+  // Open with today centered in the visible strip (rather than anchored at the
+  // plan's first day), so users land on "now" with the surrounding days in view.
+  const [dayOffset, setDayOffset] = useState(() => {
+    const b = startOfDay(weekStart ? new Date(weekStart) : new Date());
+    const todayOff = Math.round(
+      (startOfDay(new Date()).getTime() - b.getTime()) / 86_400_000,
+    );
+    return todayOff - Math.floor(VISIBLE_DAYS / 2);
+  });
   // Which day a per-column "Add post" was clicked for (YYYY-MM-DD) → opens the
   // create-post modal pre-filled to that day. null = closed.
   const [addDate, setAddDate] = useState<string | null>(null);
@@ -93,6 +101,8 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
   const todayOffset = Math.round(
     (startOfDay(new Date()).getTime() - base.getTime()) / 86_400_000,
   );
+  // Offset that places today in the CENTER column (what "Today" jumps to).
+  const centerOffset = todayOffset - Math.floor(VISIBLE_DAYS / 2);
 
   // Bucket items by ISO date string
   const byDay = new Map<string, PostingItem[]>();
@@ -192,8 +202,8 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => setDayOffset(todayOffset)}
-              disabled={dayOffset === todayOffset}
+              onClick={() => setDayOffset(centerOffset)}
+              disabled={dayOffset === centerOffset}
               className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
             >
               Today
@@ -407,20 +417,23 @@ const CONTENT_TYPE_LABEL: Record<string, string> = {
 };
 
 // Clean, modern color system: each content type gets its own soft accent — a
-// colored left stripe on the card plus a matching label tint. The card itself
-// stays white so the wall of cards reads calm but is instantly scannable.
-const TYPE_ACCENT: Record<string, { border: string; label: string; bar: string }> = {
-  reel: { border: "border-l-violet-500", label: "text-violet-600", bar: "bg-violet-500" },
-  short_video: { border: "border-l-fuchsia-500", label: "text-fuchsia-600", bar: "bg-fuchsia-500" },
-  story: { border: "border-l-amber-500", label: "text-amber-600", bar: "bg-amber-500" },
-  carousel: { border: "border-l-sky-500", label: "text-sky-600", bar: "bg-sky-500" },
-  post: { border: "border-l-emerald-500", label: "text-emerald-600", bar: "bg-emerald-500" },
-  video: { border: "border-l-rose-500", label: "text-rose-600", bar: "bg-rose-500" },
-  youtube_video: { border: "border-l-red-500", label: "text-red-600", bar: "bg-red-500" },
+// colored left stripe on the card plus a matching label tint and progress bar.
+// The stripe colour (`color`) is applied inline via borderLeftColor so it
+// always wins over the card's neutral border regardless of class ordering;
+// `label`/`bar` stay as utility classes. The card itself stays white so the
+// wall of cards reads calm but is instantly scannable.
+const TYPE_ACCENT: Record<string, { color: string; label: string; bar: string }> = {
+  reel: { color: "var(--color-violet-500)", label: "text-violet-600", bar: "bg-violet-500" },
+  short_video: { color: "var(--color-fuchsia-500)", label: "text-fuchsia-600", bar: "bg-fuchsia-500" },
+  story: { color: "var(--color-amber-500)", label: "text-amber-600", bar: "bg-amber-500" },
+  carousel: { color: "var(--color-sky-500)", label: "text-sky-600", bar: "bg-sky-500" },
+  post: { color: "var(--color-emerald-500)", label: "text-emerald-600", bar: "bg-emerald-500" },
+  video: { color: "var(--color-rose-500)", label: "text-rose-600", bar: "bg-rose-500" },
+  youtube_video: { color: "var(--color-red-500)", label: "text-red-600", bar: "bg-red-500" },
 };
 const accentOf = (t: string | null) =>
   (t ? TYPE_ACCENT[t] : null) ?? {
-    border: "border-l-ink-300",
+    color: "var(--color-ink-300)",
     label: "text-ink-500",
     bar: "bg-rose-500",
   };
@@ -475,10 +488,8 @@ function CalendarItem({
 
   return (
     <div
-      className={cn(
-        "rounded-[14px] border-t border-r border-b border-t-ink-100 border-r-ink-100 border-b-ink-100 border-l-4 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all",
-        accent.border,
-      )}
+      className="rounded-[14px] border border-ink-100 border-l-4 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all"
+      style={{ borderLeftColor: accent.color }}
     >
       {/* Header — platform logo (replaces the task ID) + scheduled time */}
       <div className="flex items-center justify-between gap-2 mb-2">

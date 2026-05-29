@@ -109,8 +109,37 @@ function platformIcon(p: PlatformKey | null) {
   return <Globe className="size-5 text-ink-400" strokeWidth={2} />;
 }
 
+// Options for the inline edit dropdowns.
+const PLATFORM_OPTIONS: PlatformKey[] = [
+  "instagram",
+  "tiktok",
+  "youtube",
+  "snapchat",
+  "linkedin",
+  "multiple",
+  "other",
+];
+
+const CONTENT_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "reel", label: "Reel" },
+  { value: "short_video", label: "Short Video" },
+  { value: "carousel", label: "Carousel" },
+  { value: "story", label: "Story" },
+  { value: "youtube_video", label: "YouTube Video" },
+  { value: "post", label: "Post" },
+];
+
+/** Cycle to the next platform — used when the header icon is clicked. */
+function nextPlatform(p: PlatformKey | null): PlatformKey {
+  const i = p ? PLATFORM_OPTIONS.indexOf(p) : -1;
+  return PLATFORM_OPTIONS[(i + 1) % PLATFORM_OPTIONS.length];
+}
+
 const inputCls =
   "w-full rounded-[10px] border border-ink-200 px-3 py-2 text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors";
+
+const selectCls =
+  "rounded-[8px] border border-ink-200 bg-white px-2 py-1 text-[13px] text-ink-900 cursor-pointer focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors";
 
 export function PostDetailModal({
   item,
@@ -127,6 +156,10 @@ export function PostDetailModal({
   const [status, setStatus] = useState<ContentStatus>(item.status);
   const [goal, setGoal] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [platform, setPlatform] = useState<PlatformKey | null>(item.platform);
+  const [contentType, setContentType] = useState<string | null>(
+    item.content_type,
+  );
   const [loadingDetail, setLoadingDetail] = useState(true);
 
   const [mode, setMode] = useState<"view" | "edit">("view");
@@ -138,6 +171,12 @@ export function PostDetailModal({
   const [draftGoal, setDraftGoal] = useState("");
   const [draftNotes, setDraftNotes] = useState("");
   const [draftStatus, setDraftStatus] = useState<ContentStatus>(item.status);
+  const [draftPlatform, setDraftPlatform] = useState<PlatformKey | null>(
+    item.platform,
+  );
+  const [draftContentType, setDraftContentType] = useState<string | null>(
+    item.content_type,
+  );
 
   // Close on Escape + lock body scroll while open.
   useEffect(() => {
@@ -165,6 +204,8 @@ export function PostDetailModal({
         setNotes(d.notes ?? "");
         if (d.topic !== null) setTopic(d.topic);
         setStatus(d.status);
+        setPlatform((d.platform as PlatformKey | null) ?? null);
+        setContentType(d.content_type ?? null);
       }
       setLoadingDetail(false);
     });
@@ -186,10 +227,12 @@ export function PostDetailModal({
         day: "numeric",
       })
     : "Unscheduled";
-  const typeLabel = item.content_type
-    ? (CONTENT_TYPE_LABEL[item.content_type] ?? item.content_type)
+  const effPlatform = mode === "edit" ? draftPlatform : platform;
+  const effContentType = mode === "edit" ? draftContentType : contentType;
+  const typeLabel = effContentType
+    ? (CONTENT_TYPE_LABEL[effContentType] ?? effContentType)
     : "—";
-  const platformLabel = item.platform ? PLATFORM_LABEL[item.platform] : "—";
+  const platformLabel = effPlatform ? PLATFORM_LABEL[effPlatform] : "—";
 
   const activeStatus = mode === "edit" ? draftStatus : status;
   const stage = Math.max(1, STATUS_ORDER.indexOf(activeStatus) + 1);
@@ -202,6 +245,8 @@ export function PostDetailModal({
     setDraftGoal(goal);
     setDraftNotes(notes);
     setDraftStatus(status);
+    setDraftPlatform(platform);
+    setDraftContentType(contentType);
     setMode("edit");
     setMoreOpen(false);
   }
@@ -214,6 +259,8 @@ export function PostDetailModal({
         goal: draftGoal,
         notes: draftNotes,
         status: draftStatus,
+        platform: draftPlatform ?? undefined,
+        content_type: draftContentType ?? undefined,
       });
       if (!res.ok) {
         setError(res.error);
@@ -223,6 +270,8 @@ export function PostDetailModal({
       setGoal(draftGoal.trim());
       setNotes(draftNotes.trim());
       setStatus(draftStatus);
+      setPlatform(draftPlatform);
+      setContentType(draftContentType);
       setMode("view");
       router.refresh();
     });
@@ -273,9 +322,24 @@ export function PostDetailModal({
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-5 border-b border-ink-100 shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <span className="size-11 rounded-[12px] bg-cream-100 border border-ink-100 inline-flex items-center justify-center shrink-0 text-ink-700">
-              {platformIcon(item.platform)}
-            </span>
+            {editing ? (
+              <button
+                type="button"
+                onClick={() => setDraftPlatform((p) => nextPlatform(p))}
+                title="Click to change platform"
+                aria-label="Change platform"
+                className="relative size-11 rounded-[12px] bg-cream-100 border border-ink-200 inline-flex items-center justify-center shrink-0 text-ink-700 cursor-pointer hover:border-rose-300 hover:bg-cream-200 transition-colors"
+              >
+                {platformIcon(draftPlatform)}
+                <span className="absolute -bottom-1 -right-1 size-4 rounded-full bg-rose-600 text-white inline-flex items-center justify-center ring-2 ring-white">
+                  <Pencil className="size-2.5" strokeWidth={2.5} />
+                </span>
+              </button>
+            ) : (
+              <span className="size-11 rounded-[12px] bg-cream-100 border border-ink-100 inline-flex items-center justify-center shrink-0 text-ink-700">
+                {platformIcon(platform)}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               {editing ? (
                 <input
@@ -326,8 +390,53 @@ export function PostDetailModal({
             {dateLabel}
             {time && <span className="text-ink-500"> · {time}</span>}
           </DetailRow>
-          <DetailRow icon={Tag} label="Content type">{typeLabel}</DetailRow>
-          <DetailRow icon={Share2} label="Platform">{platformLabel}</DetailRow>
+          <DetailRow icon={Tag} label="Content type">
+            {editing ? (
+              <select
+                value={draftContentType ?? ""}
+                onChange={(e) => setDraftContentType(e.target.value || null)}
+                className={selectCls}
+                aria-label="Content type"
+              >
+                <option value="">—</option>
+                {CONTENT_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+                {draftContentType &&
+                  !CONTENT_TYPE_OPTIONS.some(
+                    (o) => o.value === draftContentType,
+                  ) && (
+                    <option value={draftContentType}>
+                      {CONTENT_TYPE_LABEL[draftContentType] ?? draftContentType}
+                    </option>
+                  )}
+              </select>
+            ) : (
+              typeLabel
+            )}
+          </DetailRow>
+          <DetailRow icon={Share2} label="Platform">
+            {editing ? (
+              <select
+                value={draftPlatform ?? ""}
+                onChange={(e) =>
+                  setDraftPlatform((e.target.value || null) as PlatformKey | null)
+                }
+                className={selectCls}
+                aria-label="Platform"
+              >
+                {PLATFORM_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {PLATFORM_LABEL[p]}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              platformLabel
+            )}
+          </DetailRow>
 
           {/* Goal / objective */}
           <Field icon={Target} label="Goal / objective">

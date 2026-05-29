@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import {
   MoreHorizontal,
   Pencil,
@@ -90,6 +91,7 @@ export function ItemActionsMenu({
   const [statusOpen, setStatusOpen] = useState(false);
   const [pos, setPos] = useState<MenuPos | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -136,12 +138,14 @@ export function ItemActionsMenu({
   const setStatus = (next: ContentStatus) =>
     startTransition(async () => {
       await updateItemStatus(itemId, next);
+      router.refresh();
       setOpen(false);
     });
 
   const duplicate = () =>
     startTransition(async () => {
       await duplicatePostingItem(itemId);
+      router.refresh();
       setOpen(false);
     });
 
@@ -149,6 +153,7 @@ export function ItemActionsMenu({
     startTransition(async () => {
       if (!confirm("Delete this planned post?")) return;
       await deletePostingItem(itemId);
+      router.refresh();
       setOpen(false);
     });
 

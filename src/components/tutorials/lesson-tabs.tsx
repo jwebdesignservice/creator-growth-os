@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   BookOpen,
   CheckCircle2,
@@ -9,6 +8,7 @@ import {
   FileText,
   FileSpreadsheet,
   Files,
+  Library,
   ChevronRight,
   Lightbulb,
   Pencil,
@@ -20,23 +20,11 @@ import {
   Image as ImageIcon,
   Link2,
   ExternalLink,
-  NotebookPen,
-  Loader2,
-  Check,
-  Trash2,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
 import { cn } from "@/lib/cn";
-import {
-  createLessonNote,
-  updateLessonNote,
-  deleteLessonNote,
-} from "@/app/(app)/programs/[slug]/actions";
 import type { ProgramNote } from "@/lib/programs/queries";
-
-const NOTE_MAX = 5000;
 
 /**
  * Tabbed detail panel for the lesson player (Loom-inspired).
@@ -73,13 +61,12 @@ type Props = {
   lessonSlug: string;
 };
 
-type TabKey = "overview" | "path" | "resources" | "notes";
+type TabKey = "overview" | "path" | "resources";
 
 const TABS: { key: TabKey; label: string; icon: LucideIcon; beta?: boolean }[] = [
   { key: "overview",  label: "Overview",     icon: BookOpen     },
   { key: "path",      label: "Lesson Path",  icon: CalendarDays, beta: true },
   { key: "resources", label: "Resources",    icon: Files        },
-  { key: "notes",     label: "Notes",        icon: Pencil       },
 ];
 
 const TAKEAWAYS = [
@@ -94,8 +81,6 @@ export function LessonTabs({
   description,
   chapters,
   resources,
-  notes,
-  lessonSlug,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -139,14 +124,21 @@ export function LessonTabs({
       </div>
 
       {/* Active panel */}
-      <div className="p-5 sm:p-6">
-        {tab === "overview" && <OverviewPanel description={description} />}
-        {tab === "path" && <PathPanel chapters={chapters} />}
-        {tab === "resources" && <ResourcesPanel resources={resources} />}
-        {tab === "notes" && (
-          <NotesPanel notes={notes} lessonSlug={lessonSlug} />
-        )}
-      </div>
+      {tab === "overview" && (
+        <div className="p-5 sm:p-6">
+          <OverviewPanel description={description} />
+        </div>
+      )}
+      {tab === "path" && (
+        <div className="p-5 sm:p-6">
+          <PathPanel chapters={chapters} />
+        </div>
+      )}
+      {tab === "resources" && (
+        <div className="p-5 sm:p-6">
+          <ResourcesPanel resources={resources} />
+        </div>
+      )}
     </section>
   );
 }
@@ -318,368 +310,88 @@ function formatBytes(bytes: number | null): string | null {
 }
 
 function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
-  if (resources.length === 0) {
-    return (
-      <div className="max-w-2xl text-center py-8 px-4 rounded-[12px] bg-cream-50 border border-dashed border-ink-200">
-        <Files
-          className="size-6 text-ink-400 mx-auto mb-2"
-          strokeWidth={1.8}
-          aria-hidden
-        />
-        <div className="text-[13px] font-semibold text-ink-900">
-          No resources yet
-        </div>
-        <p className="text-[12px] text-ink-500 mt-0.5">
-          The current tutorial does not have any resources.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[14px] font-semibold text-ink-900">
-          Resources &amp; templates
-        </h3>
-        <span className="text-[11.5px] text-ink-500 tabular-nums">
-          {resources.length} {resources.length === 1 ? "item" : "items"}
+    <section className="card overflow-hidden flex flex-col">
+      {/* Header — matches the program "Templates & Downloads" card chrome */}
+      <div className="p-5 sm:p-6 flex items-start gap-3">
+        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <Library className="size-[18px]" strokeWidth={1.9} />
         </span>
-      </div>
-      <ul className="space-y-1">
-        {resources.map((r) => {
-          const meta =
-            RESOURCE_EXT_META[r.ext] ??
-            RESOURCE_EXT_META[r.kind === "link" ? "link" : "file"];
-          const Icon = meta.icon;
-          const size = r.kind === "file" ? formatBytes(r.sizeBytes) : null;
-          return (
-            <li key={r.id}>
-              <a
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 w-full p-2 -mx-1 rounded-[10px] hover:bg-cream-100 transition-colors cursor-pointer text-left"
-              >
-                <span className="size-9 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-                  <Icon className="size-4" strokeWidth={1.8} aria-hidden />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-ink-900 truncate">
-                    {r.title}
-                  </div>
-                </div>
-                <span className="text-[11.5px] text-ink-500 hidden sm:inline">
-                  {meta.label}
-                  {size ? ` · ${size}` : ""}
-                </span>
-                {r.kind === "link" ? (
-                  <ExternalLink
-                    className="size-3.5 text-ink-400 shrink-0"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                ) : (
-                  <ChevronRight
-                    className="size-3.5 text-ink-400 shrink-0"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                )}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-/* ─── Notes (write + saved list, persisted to lesson_notes) ─────────────── */
-
-function NotesPanel({
-  notes,
-  lessonSlug,
-}: {
-  notes: ProgramNote[];
-  lessonSlug: string;
-}) {
-  const router = useRouter();
-  const [body, setBody] = useState("");
-  const [err, setErr] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  const trimmed = body.trim();
-  const tooLong = body.length > NOTE_MAX;
-
-  function save() {
-    setErr(null);
-    if (!trimmed) {
-      setErr("Write something before saving.");
-      return;
-    }
-    if (tooLong) {
-      setErr(`Notes are limited to ${NOTE_MAX.toLocaleString()} characters.`);
-      return;
-    }
-    startTransition(async () => {
-      const res = await createLessonNote(lessonSlug, trimmed);
-      if (!res.ok) {
-        setErr(res.error);
-        return;
-      }
-      setBody("");
-      router.refresh();
-    });
-  }
-
-  return (
-    <div className="max-w-2xl space-y-6">
-      {/* Composer */}
-      <div>
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") save();
-          }}
-          rows={5}
-          placeholder="Write your key takeaways, ideas, and insights from this lesson…"
-          className="w-full min-h-[150px] rounded-[10px] border border-ink-200 bg-white px-3.5 py-3 text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200 resize-y leading-relaxed"
-        />
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="text-[11.5px] text-ink-400">
-            Tip: press{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-cream-100 border border-ink-200 text-[10.5px] font-medium text-ink-600">
-              ⌘/Ctrl + Enter
-            </kbd>{" "}
-            to save
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[16px] font-bold text-ink-900 leading-tight">
+            Resources &amp; templates
+          </h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            Files and links attached to this lesson
+          </p>
+        </div>
+        {resources.length > 0 && (
+          <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-cream-100 text-ink-600 text-[11.5px] font-semibold shrink-0 tabular-nums">
+            {resources.length} {resources.length === 1 ? "item" : "items"}
           </span>
-          <span
-            className={cn(
-              "text-[11.5px] tabular-nums shrink-0",
-              tooLong ? "text-rose-600 font-semibold" : "text-ink-400",
-            )}
-          >
-            {body.length.toLocaleString()}/{NOTE_MAX.toLocaleString()}
-          </span>
-        </div>
-        {err && (
-          <div className="mt-2 text-[12px] text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2 rounded-[10px]">
-            {err}
-          </div>
-        )}
-        <div className="mt-2.5 flex justify-end">
-          <button
-            type="button"
-            onClick={save}
-            disabled={pending || !trimmed || tooLong}
-            className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold transition-colors cursor-pointer"
-          >
-            {pending ? (
-              <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
-            ) : (
-              <NotebookPen className="size-3.5" strokeWidth={2} />
-            )}
-            Save note
-          </button>
-        </div>
-      </div>
-
-      {/* Saved notes */}
-      <div>
-        <div className="flex items-center justify-between mb-2.5">
-          <h3 className="text-[13px] font-semibold text-ink-900">Saved notes</h3>
-          {notes.length > 0 && (
-            <span className="inline-flex items-center h-6 px-2 rounded-full bg-cream-100 text-ink-600 text-[11px] font-semibold tabular-nums">
-              {notes.length} note{notes.length === 1 ? "" : "s"}
-            </span>
-          )}
-        </div>
-        {notes.length === 0 ? (
-          <div className="text-center py-8 px-4 rounded-[12px] bg-cream-50 border border-dashed border-ink-200">
-            <NotebookPen
-              className="size-6 text-ink-400 mx-auto mb-2"
-              strokeWidth={1.8}
-              aria-hidden
-            />
-            <div className="text-[13px] font-semibold text-ink-900">
-              No notes yet
-            </div>
-            <p className="text-[12px] text-ink-500 mt-0.5">
-              Anything you save for this lesson will appear here.
-            </p>
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {notes.map((n) => (
-              <NoteItem key={n.id} note={n} />
-            ))}
-          </ul>
         )}
       </div>
-    </div>
-  );
-}
 
-function NoteItem({ note }: { note: ProgramNote }) {
-  const router = useRouter();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(note.body);
-  const [err, setErr] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  const trimmed = draft.trim();
-  const tooLong = draft.length > NOTE_MAX;
-
-  function save() {
-    setErr(null);
-    if (!trimmed) {
-      setErr("Note can't be empty.");
-      return;
-    }
-    if (tooLong) {
-      setErr(`Notes are limited to ${NOTE_MAX.toLocaleString()} characters.`);
-      return;
-    }
-    startTransition(async () => {
-      const res = await updateLessonNote(note.id, trimmed);
-      if (!res.ok) {
-        setErr(res.error);
-        return;
-      }
-      setEditing(false);
-      router.refresh();
-    });
-  }
-
-  function remove() {
-    if (!confirm("Delete this note? This can't be undone.")) return;
-    setErr(null);
-    startTransition(async () => {
-      const res = await deleteLessonNote(note.id);
-      if (!res.ok) {
-        setErr(res.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
-
-  return (
-    <li className="rounded-[12px] border border-ink-100 bg-white p-3.5">
-      {editing ? (
-        <div>
-          <textarea
-            autoFocus
-            rows={4}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") save();
-              if (e.key === "Escape") {
-                setDraft(note.body);
-                setEditing(false);
-              }
-            }}
-            className="w-full min-h-[100px] rounded-[10px] border border-ink-200 bg-white px-3 py-2.5 text-[13px] text-ink-900 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-200 resize-y leading-relaxed"
-          />
-          <div className="mt-1.5 flex items-center justify-between gap-2">
-            <span
-              className={cn(
-                "text-[11.5px] tabular-nums",
-                tooLong ? "text-rose-600 font-semibold" : "text-ink-400",
-              )}
-            >
-              {draft.length.toLocaleString()}/{NOTE_MAX.toLocaleString()}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft(note.body);
-                  setEditing(false);
-                  setErr(null);
-                }}
-                disabled={pending}
-                className="inline-flex items-center gap-1 h-8 px-3 rounded-[8px] border border-ink-200 text-[12px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
-              >
-                <X className="size-3.5" strokeWidth={2} />
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={save}
-                disabled={pending || !trimmed || tooLong}
-                className="inline-flex items-center gap-1 h-8 px-3.5 rounded-[8px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[12px] font-semibold"
-              >
-                {pending ? (
-                  <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
-                ) : (
-                  <Check className="size-3.5" strokeWidth={2.5} />
-                )}
-                Save
-              </button>
-            </div>
-          </div>
-          {err && <div className="mt-2 text-[12px] text-rose-700">{err}</div>}
+      {resources.length === 0 ? (
+        <div className="border-t border-ink-100 flex-1 flex flex-col items-center justify-center px-5 sm:px-6 py-10 text-center">
+          <span className="size-11 rounded-full bg-cream-100 text-ink-400 inline-flex items-center justify-center mb-3">
+            <Files className="size-5" strokeWidth={1.8} aria-hidden />
+          </span>
+          <h4 className="text-[14px] font-semibold text-ink-900 mb-1">
+            No resources yet
+          </h4>
+          <p className="text-[12.5px] text-ink-500 max-w-sm mx-auto leading-snug">
+            This lesson doesn&apos;t have any resources attached.
+          </p>
         </div>
       ) : (
-        <div className="group flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-[13.5px] text-ink-800 leading-relaxed whitespace-pre-wrap break-words">
-              {note.body}
-            </p>
-            <div className="mt-1.5 text-[11.5px] text-ink-500">
-              {relativeTime(note.created_at)}
-              {note.updated_at !== note.created_at && " · edited"}
-            </div>
-            {err && <div className="mt-2 text-[12px] text-rose-700">{err}</div>}
-          </div>
-          <div className="flex items-center gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              disabled={pending}
-              aria-label="Edit note"
-              className="size-8 rounded-[9px] border border-ink-200 bg-white text-ink-500 hover:text-rose-600 hover:bg-cream-100 inline-flex items-center justify-center disabled:opacity-50"
-            >
-              <Pencil className="size-3.5" strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              onClick={remove}
-              disabled={pending}
-              aria-label="Delete note"
-              className="size-8 rounded-[9px] border border-ink-200 bg-white text-ink-500 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center justify-center disabled:opacity-50"
-            >
-              {pending ? (
-                <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
-              ) : (
-                <Trash2 className="size-3.5" strokeWidth={2} />
-              )}
-            </button>
-          </div>
-        </div>
+        <ul>
+          {resources.map((r) => {
+            const meta =
+              RESOURCE_EXT_META[r.ext] ??
+              RESOURCE_EXT_META[r.kind === "link" ? "link" : "file"];
+            const Icon = meta.icon;
+            const size = r.kind === "file" ? formatBytes(r.sizeBytes) : null;
+            return (
+              <li key={r.id} className="border-t border-ink-100">
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 hover:bg-cream-50 transition-colors cursor-pointer text-left"
+                >
+                  <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+                    <Icon className="size-[20px]" strokeWidth={1.9} aria-hidden />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-semibold text-ink-900 leading-snug truncate">
+                      {r.title}
+                    </div>
+                    <div className="text-[12px] text-ink-500 leading-snug mt-0.5">
+                      {meta.label}
+                      {size ? ` · ${size}` : ""}
+                    </div>
+                  </div>
+                  {r.kind === "link" ? (
+                    <ExternalLink
+                      className="size-4 text-ink-400 shrink-0"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  ) : (
+                    <ChevronRight
+                      className="size-4 text-ink-400 shrink-0"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </li>
+    </section>
   );
 }
 
-function relativeTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const diffMs = Date.now() - d.getTime();
-  const mins = Math.round(diffMs / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.round(hours / 24);
-  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
-  return d.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}

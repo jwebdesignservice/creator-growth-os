@@ -4,7 +4,6 @@ import {
   FileText,
   Share2,
   Clock,
-  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -30,6 +29,17 @@ export function ActivePlanCard({ plan }: { plan: ActivePlan }) {
   const contentLabel = next?.content_type
     ? CONTENT_LABEL[next.content_type] ?? next.content_type
     : null;
+
+  // The 4-phase content pipeline. Counts come straight from the plan's items
+  // and always sum to plan.total, so the bar + legend stay in sync no matter
+  // how posts are distributed (or if there are none).
+  const phases = [
+    { key: "ideas", label: "Idea", count: plan.ideas, bar: "bg-ink-300", dot: "bg-ink-400", text: "text-ink-600" },
+    { key: "planned", label: "Planned", count: plan.planned, bar: "bg-amber-400", dot: "bg-amber-500", text: "text-amber-600" },
+    { key: "inProduction", label: "In Production", count: plan.inProduction, bar: "bg-violet-500", dot: "bg-violet-500", text: "text-violet-600" },
+    { key: "published", label: "Published", count: plan.published, bar: "bg-emerald-500", dot: "bg-emerald-500", text: "text-emerald-600" },
+  ];
+  const allPublished = plan.total > 0 && plan.published === plan.total;
 
   return (
     <section className="card overflow-hidden">
@@ -83,7 +93,7 @@ export function ActivePlanCard({ plan }: { plan: ActivePlan }) {
             <StatChip icon={Clock} label={`Updated ${relativeDay(plan.created_at)}`} />
           </div>
 
-          {/* Progress */}
+          {/* Progress — published share of the plan */}
           <div className="mt-5">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[13px] font-semibold text-ink-900">Progress</span>
@@ -91,14 +101,28 @@ export function ActivePlanCard({ plan }: { plan: ActivePlan }) {
                 {plan.progress}%
               </span>
             </div>
-            <div className="h-2 rounded-full bg-cream-200 overflow-hidden">
-              <div
-                className="h-full bg-rose-500 rounded-full transition-[width] duration-500"
-                style={{ width: `${plan.progress}%` }}
-              />
+            {/* Stacked pipeline bar — each segment is sized by how many posts
+                currently sit in that phase. The green (published) segment width
+                equals the headline %. */}
+            <div className="flex h-2 rounded-full bg-cream-200 overflow-hidden">
+              {plan.total > 0 &&
+                phases.map((p) =>
+                  p.count > 0 ? (
+                    <div
+                      key={p.key}
+                      className={cn("h-full transition-[width] duration-500", p.bar)}
+                      style={{ width: `${(p.count / plan.total) * 100}%` }}
+                      title={`${p.label}: ${p.count}`}
+                    />
+                  ) : null,
+                )}
             </div>
             <div className="mt-1.5 text-[12px] text-ink-500">
-              {plan.ready} of {plan.total} post{plan.total === 1 ? "" : "s"} ready for this week
+              {plan.total === 0
+                ? "No posts in this plan yet — add one to start your week."
+                : allPublished
+                  ? `All ${plan.total} post${plan.total === 1 ? "" : "s"} published — nice work!`
+                  : `${plan.published} of ${plan.total} post${plan.total === 1 ? "" : "s"} published this week`}
             </div>
           </div>
 
@@ -120,10 +144,17 @@ export function ActivePlanCard({ plan }: { plan: ActivePlan }) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-5 shrink-0">
-              <CountStat icon={FileText} count={plan.drafts} label="Drafts" tone="amber" />
-              <CountStat icon={Clock} count={plan.scheduled} label="Scheduled" tone="orange" />
-              <CountStat icon={CheckCircle2} count={plan.ready} label="Ready" tone="green" />
+            {/* Pipeline phase legend — live counts for each stage */}
+            <div className="flex items-center gap-x-4 gap-y-2 flex-wrap shrink-0">
+              {phases.map((p) => (
+                <PhaseStat
+                  key={p.key}
+                  dot={p.dot}
+                  text={p.text}
+                  count={p.count}
+                  label={p.label}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -143,30 +174,24 @@ function StatChip({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   );
 }
 
-const TONE: Record<string, string> = {
-  amber: "text-amber-600",
-  orange: "text-orange-500",
-  green: "text-emerald-600",
-};
-
-function CountStat({
-  icon: Icon,
+function PhaseStat({
+  dot,
+  text,
   count,
   label,
-  tone,
 }: {
-  icon: LucideIcon;
+  dot: string;
+  text: string;
   count: number;
   label: string;
-  tone: keyof typeof TONE;
 }) {
   return (
-    <div className="text-center">
-      <div className={cn("inline-flex items-center gap-1 text-[16px] font-bold tabular-nums", TONE[tone])}>
-        <Icon className="size-3.5" strokeWidth={2.2} />
+    <div className="flex items-center gap-1.5">
+      <span className={cn("size-2 rounded-full shrink-0", dot)} />
+      <span className={cn("text-[15px] font-bold tabular-nums leading-none", text)}>
         {count}
-      </div>
-      <div className="text-[10.5px] text-ink-500 mt-0.5">{label}</div>
+      </span>
+      <span className="text-[11.5px] text-ink-500 leading-none">{label}</span>
     </div>
   );
 }

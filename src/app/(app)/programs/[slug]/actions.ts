@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyMilestoneReached } from "@/lib/notifications/service";
 import { assignTasksFromSource } from "@/lib/tasks/assign";
+import { htmlToPlainText, stripUnsafeNoteHtml } from "@/lib/notes/sanitize";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -111,9 +112,12 @@ export async function createLessonNote(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  const text = body.trim();
-  if (!text) return { ok: false, error: "Write something before saving." };
-  if (text.length > 5000)
+  // Notes carry a small safe-HTML subset (rich text). Sanitize on write and
+  // gate on the *visible* length so formatting markup doesn't eat the budget.
+  const html = stripUnsafeNoteHtml(body).trim();
+  const visible = htmlToPlainText(html);
+  if (!visible) return { ok: false, error: "Write something before saving." };
+  if (visible.length > 5000)
     return { ok: false, error: "Notes are limited to 5000 characters." };
 
   // Resolve lesson → program + title (denormalized onto the note).
@@ -141,7 +145,7 @@ export async function createLessonNote(
       lesson_id: lesson?.id ?? null,
       lesson_slug: lessonSlug,
       lesson_title: lesson?.title ?? null,
-      body: text,
+      body: html,
     })
     .select("id")
     .single();
@@ -166,14 +170,15 @@ export async function updateLessonNote(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  const text = body.trim();
-  if (!text) return { ok: false, error: "Note can't be empty." };
-  if (text.length > 5000)
+  const html = stripUnsafeNoteHtml(body).trim();
+  const visible = htmlToPlainText(html);
+  if (!visible) return { ok: false, error: "Note can't be empty." };
+  if (visible.length > 5000)
     return { ok: false, error: "Notes are limited to 5000 characters." };
 
   const { data, error } = await supabase
     .from("lesson_notes")
-    .update({ body: text })
+    .update({ body: html })
     .eq("id", noteId)
     .eq("user_id", user.id)
     .select("program_id")
@@ -216,6 +221,34 @@ export async function deleteLessonNote(noteId: string): Promise<NoteResult> {
   }
 
   await revalidateNoteProgram(supabase, existing?.program_id ?? null);
+  return { ok: true, id: noteId };
+}
+
+/** Pin / unpin a note (owner-only). Pinned notes float to the top of the list. */
+export async function toggleNotePin(
+  noteId: string,
+  pinned: boolean,
+): Promise<NoteResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data, error } = await supabase
+    .from("lesson_notes")
+    .update({ pinned })
+    .eq("id", noteId)
+    .eq("user_id", user.id)
+    .select("program_id")
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingNotesTable(error.code)) return { ok: false, error: NOTES_UNAVAILABLE };
+    return { ok: false, error: error.message };
+  }
+
+  await revalidateNoteProgram(supabase, data?.program_id ?? null);
   return { ok: true, id: noteId };
 }
 

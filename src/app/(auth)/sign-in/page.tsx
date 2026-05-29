@@ -7,7 +7,21 @@ import { SignInForm } from "./sign-in-form";
 
 export const metadata = { title: "Sign in · Creator Growth OS" };
 
-export default function SignInPage() {
+type SearchParams = Promise<{ redirect?: string | string[] }>;
+
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const raw = Array.isArray(params.redirect)
+    ? params.redirect[0]
+    : params.redirect;
+  // Only forward safe internal paths; the action validates again server-side.
+  const redirectTo =
+    raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : undefined;
+
   return (
     <div className="grid lg:grid-cols-[1fr_520px] min-h-screen bg-cream-100">
       {/* CENTER — form card */}
@@ -31,7 +45,7 @@ export default function SignInPage() {
               confidence.
             </p>
 
-            <SignInForm />
+            <SignInForm redirectTo={redirectTo} />
 
             <div className="mt-5">
               <Link

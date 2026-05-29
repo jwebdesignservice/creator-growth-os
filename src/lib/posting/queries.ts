@@ -26,13 +26,15 @@ export type ActivePlan = {
   description: string | null;
   status: string;
   created_at: string;
-  /** 0-100: produced posts (ready) / total */
+  /** 0-100: published posts (posted | reviewed) / total */
   progress: number;
   total: number;
   platforms: number;
-  drafts: number; // status: idea
-  scheduled: number; // status: planned
-  ready: number; // scripted | filmed | edited | posted | reviewed
+  // Pipeline phase counts — always sum to `total`.
+  ideas: number; // idea
+  planned: number; // planned
+  inProduction: number; // scripted | filmed | edited
+  published: number; // posted | reviewed
   nextPost: {
     scheduled_for: string;
     platform: PlatformKey | null;
@@ -121,11 +123,13 @@ export async function getActivePlan(): Promise<ActivePlan | null> {
   }[];
 
   const total = list.length;
-  const drafts = list.filter((i) => i.status === "idea").length;
-  const scheduled = list.filter((i) => i.status === "planned").length;
-  const READY = new Set(["scripted", "filmed", "edited", "posted", "reviewed"]);
-  const ready = list.filter((i) => READY.has(i.status)).length;
-  const progress = total === 0 ? 0 : Math.round((ready / total) * 100);
+  const ideas = list.filter((i) => i.status === "idea").length;
+  const planned = list.filter((i) => i.status === "planned").length;
+  const IN_PRODUCTION = new Set(["scripted", "filmed", "edited"]);
+  const inProduction = list.filter((i) => IN_PRODUCTION.has(i.status)).length;
+  const PUBLISHED = new Set(["posted", "reviewed"]);
+  const published = list.filter((i) => PUBLISHED.has(i.status)).length;
+  const progress = total === 0 ? 0 : Math.round((published / total) * 100);
   const platforms = new Set(
     list.map((i) => i.platform).filter((p): p is PlatformKey => !!p),
   ).size;
@@ -152,9 +156,10 @@ export async function getActivePlan(): Promise<ActivePlan | null> {
     progress,
     total,
     platforms,
-    drafts,
-    scheduled,
-    ready,
+    ideas,
+    planned,
+    inProduction,
+    published,
     nextPost,
   };
 }

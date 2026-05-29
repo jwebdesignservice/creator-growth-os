@@ -26,7 +26,7 @@ export function DetailTabs({
   const tabs: { key: Tab; label: string; icon: typeof LayoutGrid; badge?: number }[] = [
     { key: "overview", label: "Overview", icon: LayoutGrid },
     { key: "curriculum", label: "Curriculum", icon: ListTree },
-    { key: "resources", label: "Resources", icon: FolderClosed },
+    { key: "resources", label: "Resources & Notes", icon: FolderClosed },
     { key: "tasks", label: "Tasks", icon: CheckSquare, badge: tasksCount },
   ];
 

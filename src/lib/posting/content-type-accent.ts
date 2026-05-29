@@ -35,3 +35,25 @@ const FALLBACK: ContentTypeAccent = {
 export function contentTypeAccent(type: string | null | undefined): ContentTypeAccent {
   return (type ? ACCENTS[type] : undefined) ?? FALLBACK;
 }
+
+const LABELS: Record<string, string> = {
+  reel: "Reel",
+  short_video: "Short Video",
+  story: "Story",
+  carousel: "Carousel",
+  post: "Post",
+  video: "Video",
+  youtube_video: "YouTube Video",
+};
+
+/** Human-readable label for a content-type slug (e.g. "youtube_video" → "YouTube Video"). */
+export function contentTypeLabel(type: string | null | undefined): string {
+  if (!type) return "Post";
+  return (
+    LABELS[type] ??
+    type
+      .split("_")
+      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+      .join(" ")
+  );
+}

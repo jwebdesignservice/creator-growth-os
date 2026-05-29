@@ -7,7 +7,6 @@ import {
   CheckSquare,
   BookOpen,
   UserRound,
-  CalendarDays,
   Clock,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -54,10 +53,6 @@ export function ActiveBuildsSection({
     return <EmptyBuilds />;
   }
 
-  const inProgressCount = builds.filter(
-    (b) => b.status === "in_progress",
-  ).length;
-
   return (
     <section className="space-y-5">
       {/* Header */}
@@ -95,52 +90,6 @@ export function ActiveBuildsSection({
           <BuildCard key={b.id} build={b} featured={i === 0} />
         ))}
       </div>
-
-      {/* Bottom row — momentum nudge + focus session */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="card p-5 flex items-center gap-3">
-          <span className="size-11 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-            <Sparkles
-              className="size-[18px]"
-              strokeWidth={2}
-              fill="currentColor"
-            />
-          </span>
-          <div className="min-w-0">
-            <div className="text-[14px] font-bold text-ink-900">
-              Keep the momentum going
-            </div>
-            <p className="text-[12.5px] text-ink-500 mt-0.5">
-              You have{" "}
-              <span className="font-semibold text-ink-700 tabular-nums">
-                {inProgressCount}
-              </span>{" "}
-              active program build{inProgressCount === 1 ? "" : "s"} in
-              progress.
-            </p>
-          </div>
-        </div>
-        <div className="card p-5 flex items-center gap-3 flex-wrap">
-          <span className="size-11 rounded-full bg-cream-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-            <CalendarDays className="size-[18px]" strokeWidth={2} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="text-[11.5px] text-ink-500 leading-tight">
-              Set build time
-            </div>
-            <div className="text-[14px] font-bold text-ink-900 leading-tight">
-              Focus for 30 min
-            </div>
-          </div>
-          <Link
-            href={builds[0]?.cta.href ?? "/admin/programs"}
-            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] border border-ink-200 bg-white text-[13px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors shrink-0"
-          >
-            Start focus session
-            <ArrowRight className="size-3.5" strokeWidth={2} />
-          </Link>
-        </div>
-      </div>
     </section>
   );
 }
@@ -167,20 +116,6 @@ function BuildCard({
       )}
     >
       <div className="px-5 pt-5 pb-5 flex flex-col gap-4 flex-1">
-        {/* Recommended badge — only on featured card */}
-        {featured && (
-          <div>
-            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-700">
-              <Sparkles
-                className="size-3.5"
-                strokeWidth={2}
-                fill="currentColor"
-              />
-              Recommended to resume
-            </span>
-          </div>
-        )}
-
         {/* Thumbnail + title row */}
         <div className="flex items-start gap-4">
           <BuildThumb build={b} />

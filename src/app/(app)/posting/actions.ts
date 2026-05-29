@@ -203,7 +203,10 @@ export async function duplicatePostingItem(itemId: string): Promise<Result> {
     platform: src.platform as PlatformKey,
     content_type: (src.content_type as string | null) ?? null,
     topic: topic ? `${topic} (copy)` : null,
-    status: (src.status as ContentStatus) ?? "planned",
+    // A duplicate is a fresh piece of content — start it at the beginning of the
+    // pipeline ("planned", the new-post default) rather than inheriting a
+    // "posted"/"filmed"/etc. status from the original, which would be illogical.
+    status: "planned" as ContentStatus,
   };
 
   let insert = await supabase

@@ -54,14 +54,30 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+    return redirectWithSession(url, response);
   }
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return redirectWithSession(url, response);
   }
 
   return response;
+}
+
+/**
+ * Redirect while PRESERVING any auth cookies that `getUser()` refreshed onto
+ * `fromResponse`. Returning a bare `NextResponse.redirect()` drops those
+ * refreshed session cookies, which puts the browser and server out of sync and
+ * logs the user out prematurely (the "random logout" bug). Copying the cookies
+ * keeps the rotated access/refresh tokens in sync — per the Supabase SSR
+ * contract: when returning a different response, carry the cookies over.
+ */
+function redirectWithSession(url: URL, fromResponse: NextResponse): NextResponse {
+  const redirect = NextResponse.redirect(url);
+  fromResponse.cookies.getAll().forEach((cookie) => {
+    redirect.cookies.set(cookie);
+  });
+  return redirect;
 }
