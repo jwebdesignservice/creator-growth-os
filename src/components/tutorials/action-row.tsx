@@ -155,6 +155,7 @@ function CreateNoteModal({
   programSlug?: string | null;
   onClose: () => void;
 }) {
+  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -162,8 +163,10 @@ function CreateNoteModal({
   const router = useRouter();
   const editorRef = useRef<RichNoteEditorHandle>(null);
 
-  const isEmpty = noteIsEmpty(body);
+  const titleText = title.trim();
   const textLen = noteTextLength(body);
+  // A note is valid with just a title, just a body, or both.
+  const isEmpty = !titleText && noteIsEmpty(body);
   const tooLong = textLen > MAX_LEN;
 
   function save() {
@@ -176,7 +179,13 @@ function CreateNoteModal({
       setErr(`Notes are limited to ${MAX_LEN.toLocaleString()} characters.`);
       return;
     }
-    const html = stripUnsafeNoteHtml(body);
+    // The title becomes the note's heading (its first block); the note cards
+    // and reader already style a note's first block as the title, so this needs
+    // no schema change.
+    const esc = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const heading = titleText ? `<p>${esc(titleText)}</p>` : "";
+    const html = stripUnsafeNoteHtml(heading + body);
     startTransition(async () => {
       const res = await createLessonNote(lessonSlug, html);
       if (!res.ok) {
@@ -251,12 +260,32 @@ function CreateNoteModal({
               </span>
             </div>
 
+            {/* Title — becomes the note's heading so notes are easy to scan */}
+            <input
+              type="text"
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  save();
+                } else if (e.key === "Enter") {
+                  // Enter in the title jumps down to the note body.
+                  e.preventDefault();
+                  editorRef.current?.focus();
+                }
+              }}
+              maxLength={120}
+              placeholder="Note title"
+              className="w-full mb-3 h-11 px-3.5 rounded-[12px] border border-ink-200 bg-white text-[15px] font-semibold text-ink-900 placeholder:text-ink-400 placeholder:font-normal outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+            />
+
             {/* WYSIWYG editor — bold/italic/underline + real lists + links */}
             <RichNoteEditor
               ref={editorRef}
               onChange={setBody}
               onSubmit={save}
-              autoFocus
               disabled={pending}
               placeholder="Jot down a key takeaway, an idea to apply, or a question to revisit…"
             />
