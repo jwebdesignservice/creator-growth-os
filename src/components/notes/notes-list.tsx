@@ -121,11 +121,11 @@ export function NotesList({
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
         {/* New note tile (page 1 only) */}
         {newNoteHref && safePage === 1 && (
-          <li className="break-inside-avoid">
+          <li className="break-inside-avoid self-stretch">
             <button
               type="button"
               onClick={() => setComposeOpen(true)}
-              className="group h-full w-full min-h-[180px] flex flex-col items-center justify-center gap-2.5 rounded-[16px] border-2 border-dashed border-ink-200 text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/40 transition-colors"
+              className="group h-full w-full min-h-[180px] flex flex-col items-center justify-center gap-2.5 p-6 rounded-[16px] border-2 border-dashed border-ink-200 text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/40 transition-colors"
             >
               <span className="size-11 rounded-full bg-cream-100 text-ink-500 group-hover:bg-rose-100 group-hover:text-rose-600 inline-flex items-center justify-center transition-colors">
                 <Plus className="size-5" strokeWidth={2} />

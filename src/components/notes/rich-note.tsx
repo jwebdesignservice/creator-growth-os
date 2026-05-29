@@ -7,6 +7,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   Bold,
   Italic,
@@ -14,6 +15,8 @@ import {
   List,
   ListOrdered,
   Link2,
+  Type,
+  ChevronDown,
   Check,
   X,
   type LucideIcon,
@@ -57,7 +60,20 @@ const RICH_TEXT_CLS = cn(
   "[&_i]:italic [&_em]:italic",
   "[&_u]:underline",
   "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
+  // Headings (formatBlock) — Large / Medium / Small.
+  "[&_h1]:text-[20px] [&_h1]:font-bold [&_h1]:text-ink-900 [&_h1]:leading-snug [&_h1]:mt-2 [&_h1]:mb-1.5 [&_h1:first-child]:mt-0",
+  "[&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:text-ink-900 [&_h2]:leading-snug [&_h2]:mt-2 [&_h2]:mb-1.5 [&_h2:first-child]:mt-0",
+  "[&_h3]:text-[15px] [&_h3]:font-semibold [&_h3]:text-ink-900 [&_h3]:leading-snug [&_h3]:mt-1.5 [&_h3]:mb-1 [&_h3:first-child]:mt-0",
+  "[&_h4]:text-[13.5px] [&_h4]:font-semibold [&_h4]:text-ink-700 [&_h4]:leading-snug [&_h4]:mt-1.5 [&_h4]:mb-1 [&_h4:first-child]:mt-0",
 );
+
+/* Block-style options for the editor's "Text style" dropdown (formatBlock). */
+const STYLE_OPTIONS: { tag: string; label: string; cls: string }[] = [
+  { tag: "p", label: "Normal text", cls: "text-[13px] text-ink-700" },
+  { tag: "h1", label: "Large heading", cls: "text-[18px] font-bold text-ink-900" },
+  { tag: "h2", label: "Medium heading", cls: "text-[15.5px] font-bold text-ink-900" },
+  { tag: "h3", label: "Small heading", cls: "text-[13.5px] font-semibold text-ink-900" },
+];
 
 type EditorProps = {
   /** Seed value (HTML). Read once on mount — must be stable for the editor's life. */
@@ -90,6 +106,10 @@ export const RichNoteEditor = forwardRef<RichNoteEditorHandle, EditorProps>(
     const [empty, setEmpty] = useState(() => noteIsEmpty(initialHtml));
     const [linkOpen, setLinkOpen] = useState(false);
     const [linkUrl, setLinkUrl] = useState("");
+    const styleBtnRef = useRef<HTMLButtonElement | null>(null);
+    const [stylePos, setStylePos] = useState<{ top: number; left: number } | null>(
+      null,
+    );
 
     function emit() {
       const el = elRef.current;
@@ -102,6 +122,17 @@ export const RichNoteEditor = forwardRef<RichNoteEditorHandle, EditorProps>(
       elRef.current?.focus();
       document.execCommand(command, false, value);
       emit();
+    }
+
+    // Block formatting (headings / normal text) via the "Text style" dropdown.
+    function openStyleMenu() {
+      const r = styleBtnRef.current?.getBoundingClientRect();
+      if (r) setStylePos({ top: r.bottom + 6, left: r.left });
+    }
+
+    function applyBlock(tag: string) {
+      setStylePos(null);
+      exec("formatBlock", `<${tag}>`);
     }
 
     function rememberSelection() {
@@ -188,6 +219,25 @@ export const RichNoteEditor = forwardRef<RichNoteEditorHandle, EditorProps>(
       >
         {/* Toolbar */}
         <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-ink-100 bg-cream-50/60">
+          <button
+            ref={styleBtnRef}
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => (stylePos ? setStylePos(null) : openStyleMenu())}
+            aria-haspopup="menu"
+            aria-expanded={stylePos !== null}
+            title="Text style (headings)"
+            className={cn(
+              "inline-flex items-center gap-1 h-8 pl-2 pr-1.5 rounded-[8px] transition-colors cursor-pointer",
+              stylePos
+                ? "bg-rose-100 text-rose-700"
+                : "text-ink-600 hover:bg-cream-200 hover:text-ink-900",
+            )}
+          >
+            <Type className="size-3.5" strokeWidth={2} />
+            <ChevronDown className="size-3 opacity-70" strokeWidth={2.5} />
+          </button>
+          <span aria-hidden className="mx-1 h-5 w-px bg-ink-200" />
           <TBtn icon={Bold} label="Bold" onClick={() => exec("bold")} />
           <TBtn icon={Italic} label="Italic" onClick={() => exec("italic")} />
           <TBtn icon={Underline} label="Underline" onClick={() => exec("underline")} />
@@ -201,6 +251,42 @@ export const RichNoteEditor = forwardRef<RichNoteEditorHandle, EditorProps>(
           <span aria-hidden className="mx-1 h-5 w-px bg-ink-200" />
           <TBtn icon={Link2} label="Insert link" active={linkOpen} onClick={openLink} />
         </div>
+
+        {/* Text-style dropdown — portaled so the editor's overflow can't clip it */}
+        {stylePos &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <>
+              <div
+                className="fixed inset-0 z-[70]"
+                onClick={() => setStylePos(null)}
+              />
+              <div
+                role="menu"
+                style={{
+                  position: "fixed",
+                  top: stylePos.top,
+                  left: stylePos.left,
+                  width: 184,
+                }}
+                className="z-[71] rounded-[12px] bg-white border border-ink-100 shadow-card py-1"
+              >
+                {STYLE_OPTIONS.map((o) => (
+                  <button
+                    key={o.tag}
+                    type="button"
+                    role="menuitem"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyBlock(o.tag)}
+                    className="flex w-full items-center px-3 py-1.5 hover:bg-cream-100 transition-colors text-left cursor-pointer"
+                  >
+                    <span className={o.cls}>{o.label}</span>
+                  </button>
+                ))}
+              </div>
+            </>,
+            document.body,
+          )}
 
         {/* Inline link entry */}
         {linkOpen && (
