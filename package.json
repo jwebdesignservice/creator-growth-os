@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:vercel": "node scripts/validate-vercel-config.mjs",
+    "preflight": "npm run typecheck && npm run validate:vercel"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

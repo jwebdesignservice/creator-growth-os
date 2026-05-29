@@ -70,6 +70,12 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
+      - name: Validate vercel.json (Hobby cron limits, etc.)
+        # Fails fast with a clear remediation if vercel.json has a cron
+        # schedule that Vercel's Hobby plan would reject. Caught BEFORE
+        # we burn build minutes only to have Vercel reject the deploy.
+        run: node scripts/validate-vercel-config.mjs
+
       - name: Link project (so the deploy lands on the right project)
         # We pass --project to be explicit. The CLI also reads
         # VERCEL_PROJECT_ID / VERCEL_ORG_ID from env, but linking writes
