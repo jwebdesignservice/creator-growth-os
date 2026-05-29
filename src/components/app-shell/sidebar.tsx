@@ -65,6 +65,15 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
 
+  // Stamp the live open-task count onto the Tasks nav row so the
+  // expanded label gets a badge. Kept inside render so the value
+  // updates with prop changes.
+  const primary = PRIMARY.map((item) =>
+    item.href === "/missions" && taskCount > 0
+      ? { ...item, badge: taskCount }
+      : item,
+  );
+
   // Three logical states represented by two booleans:
   // - collapsed = false, hoverExpanded = *      → expanded (initial 2.5s on mount)
   // - collapsed = true,  hoverExpanded = false  → collapsed icon rail
@@ -129,14 +138,12 @@ export function Sidebar({
         style={{ width: railWidth }}
       >
         {/* Logo — full row with wordmark when expanded; centered icon
-            when collapsed. Height is pinned (h-[70px]) so the wordmark's
-            line-height in expanded mode can never push the row taller
-            than the icon-only collapsed mode. That keeps the nav below
-            it at the exact same y-position across states.            */}
+            when collapsed so it visually balances the column of square
+            nav buttons below. */}
         <Link
           href="/dashboard"
           className={cn(
-            "flex items-center hover:opacity-90 transition-opacity shrink-0 h-[70px]",
+            "flex items-center hover:opacity-90 transition-opacity shrink-0 py-5",
             expanded ? "gap-3 px-5" : "justify-center px-0",
           )}
         >
@@ -151,20 +158,15 @@ export function Sidebar({
         </Link>
 
         {/* Nav — explicit overflow-x-hidden prevents a horizontal
-            scrollbar appearing inside the rail when label widths
-            exceed the collapsed (76px) wrapper. `scrollbar-hide`
-            keeps the nav scrollable on short viewports without
-            painting a visible scrollbar over the rail. */}
+            scrollbar appearing inside the rail. `scrollbar-hide` keeps
+            the nav scrollable on short viewports without painting a
+            visible scrollbar over the rail. */}
         <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <ul className="space-y-1">
-            {PRIMARY.map((item) => (
+            {primary.map((item) => (
               <NavLink
                 key={item.href}
-                item={
-                  item.href === "/missions" && taskCount > 0
-                    ? { ...item, badge: taskCount }
-                    : item
-                }
+                item={item}
                 active={isActive(pathname, item.href)}
                 expanded={expanded}
               />
@@ -189,45 +191,49 @@ export function Sidebar({
           )}
 
           {isAdmin && (
-            <Link
-              href="/admin"
-              title={!expanded ? "Admin Console" : undefined}
-              className={cn(
-                "flex items-center h-10 w-full rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors",
-                expanded ? "pr-3" : "",
-              )}
-            >
-              <span className="size-10 inline-flex items-center justify-center shrink-0">
+            <div className={cn(!expanded && "flex justify-center")}>
+              <Link
+                href="/admin"
+                title={!expanded ? "Admin Console" : undefined}
+                className={cn(
+                  "flex items-center rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors",
+                  expanded
+                    ? "gap-3 px-3 h-10 w-full"
+                    : "size-10 justify-center",
+                )}
+              >
                 <ShieldCheck
-                  className="size-[18px] text-rose-300"
+                  className="size-[18px] text-rose-300 shrink-0"
                   strokeWidth={1.8}
                 />
-              </span>
-              {expanded && (
-                <span className="flex-1 whitespace-nowrap">Admin Console</span>
-              )}
-            </Link>
+                {expanded && (
+                  <span className="flex-1 whitespace-nowrap">Admin Console</span>
+                )}
+              </Link>
+            </div>
           )}
 
           {isDev && (
-            <Link
-              href="/dev"
-              title={!expanded ? "Dev Console" : undefined}
-              className={cn(
-                "mt-2 flex items-center h-10 w-full rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]",
-                expanded ? "pr-3" : "",
-              )}
-            >
-              <span className="size-10 inline-flex items-center justify-center shrink-0">
+            <div className={cn("mt-2", !expanded && "flex justify-center")}>
+              <Link
+                href="/dev"
+                title={!expanded ? "Dev Console" : undefined}
+                className={cn(
+                  "flex items-center rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]",
+                  expanded
+                    ? "gap-3 px-3 h-10 w-full"
+                    : "size-10 justify-center",
+                )}
+              >
                 <Terminal
-                  className="size-[18px] text-[#7AA9FF]"
+                  className="size-[18px] text-[#7AA9FF] shrink-0"
                   strokeWidth={1.8}
                 />
-              </span>
-              {expanded && (
-                <span className="flex-1 whitespace-nowrap">Dev Console</span>
-              )}
-            </Link>
+                {expanded && (
+                  <span className="flex-1 whitespace-nowrap">Dev Console</span>
+                )}
+              </Link>
+            </div>
           )}
         </nav>
 
@@ -262,35 +268,31 @@ function NavLink({
 }) {
   const Icon = item.icon;
   return (
-    <li>
+    <li className={cn(!expanded && "flex justify-center")}>
       <Link
         href={item.href}
         title={!expanded ? item.label : undefined}
         className={cn(
-          // h-10 + w-full in BOTH states pins each row to identical
-          // height and identical left edge — toggling the rail no
-          // longer shifts icons vertically OR horizontally. The icon
-          // always sits inside the same 40x40 cell at the start of
-          // the row; only the label/badge appears when expanded.
-          "group flex items-center h-10 w-full rounded-[10px] text-[13.5px] font-medium transition-colors",
+          "group flex items-center rounded-[10px] text-[13.5px] font-medium transition-colors",
           active
             ? "bg-rose-100 text-rose-700"
             : "text-ink-700 hover:bg-cream-200 hover:text-ink-900",
-          // Collapsed rows get no right padding (the cell IS the row);
-          // expanded rows reserve a 12px right pad so the badge/label
-          // doesn't kiss the right edge.
-          expanded ? "pr-3" : "",
+          // Both states are 40px tall (h-10 / size-10) so toggling the
+          // sidebar doesn't shift rows vertically. Collapsed is a 40x40
+          // square; expanded is a 40-tall row with left-aligned icon
+          // + label. A small x-shift across states is unavoidable.
+          expanded
+            ? "gap-3 px-3 h-10 w-full"
+            : "size-10 justify-center",
         )}
       >
-        <span className="size-10 inline-flex items-center justify-center shrink-0">
-          <Icon
-            className={cn(
-              "size-[18px]",
-              active ? "text-rose-600" : "text-ink-500",
-            )}
-            strokeWidth={1.8}
-          />
-        </span>
+        <Icon
+          className={cn(
+            "size-[18px] shrink-0",
+            active ? "text-rose-600" : "text-ink-500",
+          )}
+          strokeWidth={1.8}
+        />
         {expanded && (
           <>
             <span className="flex-1 whitespace-nowrap">{item.label}</span>
