@@ -26,6 +26,7 @@ import type { ReactNode } from "react";
 import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
 import type { PostingItem, PlatformKey } from "@/lib/posting/queries";
+import { contentTypeAccent } from "@/lib/posting/content-type-accent";
 import { ItemActionsMenu } from "./item-actions-menu";
 
 type Props = {
@@ -116,13 +117,14 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
               {items.map((item) => {
                 const status = STATUS_META[item.status] ?? STATUS_META.planned;
                 const StatusIcon = status.icon;
+                const accent = contentTypeAccent(item.content_type);
                 return (
                   <tr
                     key={item.id}
                     className="border-b border-ink-100 last:border-0 hover:bg-cream-50/60 transition-colors"
                   >
-                    {/* Date & time */}
-                    <td className="py-3.5 px-5 sm:px-6">
+                    {/* Date & time — with a content-type colored left rail */}
+                    <td className={cn("py-3.5 px-5 sm:px-6 border-l-4", accent.border)}>
                       <DateCell when={item.scheduled_for} />
                     </td>
 
@@ -273,14 +275,15 @@ function platformMeta(p: PlatformKey): {
 function ContentTypeCell({ type }: { type: string | null }) {
   if (!type) return <span className="text-ink-400">—</span>;
   const meta = typeMeta(type);
+  const accent = contentTypeAccent(type);
   const Icon = meta.icon;
   return (
     <div className="flex items-center gap-2.5 min-w-0">
-      <span className="size-9 rounded-[10px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+      <span className={cn("size-9 rounded-[10px] inline-flex items-center justify-center shrink-0", accent.tile)}>
         <Icon className="size-4" strokeWidth={1.9} />
       </span>
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[13px] font-medium text-ink-800 truncate">{meta.label}</span>
+        <span className={cn("text-[13px] font-semibold truncate", accent.label)}>{meta.label}</span>
         {meta.format && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-cream-100 text-ink-500 text-[10px] font-semibold shrink-0">
             {meta.format}
