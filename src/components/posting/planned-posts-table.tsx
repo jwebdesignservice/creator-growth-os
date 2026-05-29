@@ -68,10 +68,10 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
             <Sparkles className="size-5" strokeWidth={1.8} />
           </div>
           <p className="text-[14px] text-ink-700 mb-1 font-medium">
-            No planned posts yet
+            No posts planned yet
           </p>
           <p className="text-[12.5px] text-ink-500">
-            Create your first weekly posting plan to start filling your calendar.
+            Use &ldquo;Add Post&rdquo; above to schedule your first post for this plan.
           </p>
         </div>
       ) : (

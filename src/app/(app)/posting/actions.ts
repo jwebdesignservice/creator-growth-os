@@ -141,3 +141,26 @@ export async function deletePostingItem(itemId: string): Promise<Result> {
   revalidatePath("/posting");
   return { ok: true };
 }
+
+/** Move a planned post to a new date/time (drag-and-drop in the calendar). */
+export async function rescheduleItem(
+  itemId: string,
+  scheduledFor: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+  if (!scheduledFor) return { ok: false, error: "Missing target date." };
+
+  const { error } = await supabase
+    .from("posting_plan_items")
+    .update({ scheduled_for: scheduledFor })
+    .eq("id", itemId)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/posting");
+  return { ok: true };
+}
