@@ -1,0 +1,157 @@
+# Trigger a Vercel production deploy on every push to `main`.
+#
+# Why this exists:
+#   The Vercel GitHub App webhook has been flaky on this project —
+#   pushes to main weren't always producing new production deploys, and
+#   when they did, the production-domain alias wasn't always updated.
+#   This workflow makes the path bulletproof:
+#     1. Fire the project deploy hook (creates a fresh production build
+#        from the current commit).
+#     2. Poll Vercel until that deployment lands in `READY` state.
+#     3. Force-alias `creator-growth-os-three.vercel.app` to the new
+#        deployment so the live URL always reflects `main`.
+#
+# Required repo secrets (Settings → Secrets → Actions):
+#   VERCEL_DEPLOY_HOOK_MAIN — the project deploy-hook URL for `main`.
+#   VERCEL_TOKEN            — personal/team token with Deployments + Aliases.
+#   VERCEL_PROJECT_ID       — `prj_…` ID.
+#   VERCEL_TEAM_ID          — `team_…` ID (if the project is on a team).
+#
+# To swap or rotate any of these:
+#   Vercel project → Settings → (Git → Deploy Hooks | Tokens)
+#   and update the secret here.
+
+name: Deploy to Vercel (production)
+
+on:
+  push:
+    branches: [main]
+  # Manual trigger from the Actions tab in case you want to force a
+  # production deploy without pushing.
+  workflow_dispatch:
+
+# One deploy in flight per branch. A new push cancels the old run so we
+# don't waste minutes building a SHA that's already superseded.
+concurrency:
+  group: vercel-deploy-main
+  cancel-in-progress: true
+
+env:
+  PROD_DOMAIN: creator-growth-os-three.vercel.app
+
+jobs:
+  deploy:
+    name: Deploy main → production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Sanity-check secrets
+        run: |
+          for s in VERCEL_DEPLOY_HOOK_MAIN VERCEL_TOKEN VERCEL_PROJECT_ID VERCEL_TEAM_ID; do
+            v="$(eval echo \$$s)"
+            if [ -z "$v" ]; then
+              echo "::error::$s secret is not set."
+              exit 1
+            fi
+          done
+        env:
+          VERCEL_DEPLOY_HOOK_MAIN: ${{ secrets.VERCEL_DEPLOY_HOOK_MAIN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+
+      - name: Fire deploy hook
+        id: hook
+        run: |
+          # The hook returns JSON with { "job": { "id": "..." } }. We
+          # capture the job id so we can poll for completion below.
+          resp=$(curl --fail --silent --show-error -X POST \
+            "${{ secrets.VERCEL_DEPLOY_HOOK_MAIN }}")
+          echo "hook response: $resp"
+          job_id=$(echo "$resp" | jq -r '.job.id // empty')
+          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+
+      - name: Find the new deployment for this commit
+        id: find
+        run: |
+          # Wait up to 60s for Vercel to register a deployment for the
+          # commit that triggered this workflow. (Hook deploys carry the
+          # repo's HEAD SHA as `meta.githubCommitSha`.)
+          sha="${{ github.sha }}"
+          team="${{ secrets.VERCEL_TEAM_ID }}"
+          project="${{ secrets.VERCEL_PROJECT_ID }}"
+          for i in $(seq 1 30); do
+            dep=$(curl --fail --silent \
+              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              "https://api.vercel.com/v6/deployments?projectId=$project&teamId=$team&target=production&limit=5" \
+              | jq -r --arg sha "$sha" '
+                  .deployments
+                  | map(select(.meta.githubCommitSha == $sha or .meta.commitSha == $sha))
+                  | .[0] // empty')
+            if [ -n "$dep" ]; then
+              uid=$(echo "$dep" | jq -r '.uid')
+              url=$(echo "$dep" | jq -r '.url')
+              echo "uid=$uid" >> "$GITHUB_OUTPUT"
+              echo "url=$url" >> "$GITHUB_OUTPUT"
+              echo "Found deployment $uid ($url)"
+              exit 0
+            fi
+            echo "[$i] no deployment yet for $sha, waiting…"
+            sleep 2
+          done
+          # Fallback: most recent production deploy in the last minute.
+          dep=$(curl --fail --silent \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            "https://api.vercel.com/v6/deployments?projectId=$project&teamId=$team&target=production&limit=1" \
+            | jq -r '.deployments[0] // empty')
+          if [ -z "$dep" ]; then
+            echo "::error::Could not locate a Vercel deployment for $sha."
+            exit 1
+          fi
+          echo "uid=$(echo "$dep" | jq -r '.uid')" >> "$GITHUB_OUTPUT"
+          echo "url=$(echo "$dep" | jq -r '.url')" >> "$GITHUB_OUTPUT"
+          echo "Falling back to latest production deployment."
+
+      - name: Wait for deployment to reach READY
+        run: |
+          uid="${{ steps.find.outputs.uid }}"
+          team="${{ secrets.VERCEL_TEAM_ID }}"
+          # Poll up to 12 minutes (Vercel builds for this project run
+          # under 2m, but allow headroom for cold cache + queue time).
+          for i in $(seq 1 144); do
+            state=$(curl --fail --silent \
+              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              "https://api.vercel.com/v13/deployments/$uid?teamId=$team" \
+              | jq -r '.readyState // .state // ""')
+            echo "[$i] $uid → $state"
+            case "$state" in
+              READY)        exit 0 ;;
+              ERROR|CANCELED)
+                echo "::error::Deployment $uid finished in state $state."
+                exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo "::error::Deployment $uid did not reach READY within 12 minutes."
+          exit 1
+
+      - name: Force-alias production domain
+        # Vercel SHOULD auto-promote a deploy built from the production
+        # branch — but on this project it hasn't been reliable. We
+        # explicitly assign the alias so a successful build is always
+        # reflected on the production URL.
+        run: |
+          url="${{ steps.find.outputs.url }}"
+          team="${{ secrets.VERCEL_TEAM_ID }}"
+          resp=$(curl --silent -X POST \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://api.vercel.com/v2/deployments/$url/aliases?teamId=$team" \
+            -d '{"alias":"${{ env.PROD_DOMAIN }}"}')
+          echo "alias response: $resp"
+          # The API returns `{ "error": ... }` on failure.
+          if echo "$resp" | jq -e '.error' > /dev/null; then
+            echo "::error::Alias assignment failed."
+            exit 1
+          fi
+          echo "✓ ${{ env.PROD_DOMAIN }} now points at $url"
