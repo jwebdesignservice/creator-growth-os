@@ -346,3 +346,64 @@ export async function getProgramLearningPoints(
   }
   return out;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Lesson notes — learner-authored notes for a program (Resources tab).
+ * ───────────────────────────────────────────────────────────────────── */
+
+export type ProgramNote = {
+  id: string;
+  body: string;
+  lesson_slug: string | null;
+  lesson_title: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * All of the current user's notes for a program, newest first. Returns an
+ * empty array when there are none — or when migration 0043 hasn't been
+ * applied yet (missing table 42P01 / missing column 42703), so the
+ * Resources tab renders its empty state instead of throwing.
+ */
+export async function getProgramNotes(programId: string): Promise<ProgramNote[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("lesson_notes")
+    .select("id, body, lesson_slug, lesson_title, created_at, updated_at")
+    .eq("user_id", user.id)
+    .eq("program_id", programId)
+    .order("created_at", { ascending: false });
+
+  if (error) return []; // table not migrated yet, or no access — fail soft
+  return (data ?? []) as ProgramNote[];
+}
+
+/**
+ * The current user's notes for a single lesson (by slug), newest first. Powers
+ * the tutorial/lesson page's Notes tab. Fail-soft like getProgramNotes: returns
+ * [] when migration 0043 isn't applied yet (42P01 / 42703) or on any error, so
+ * the Notes tab renders its empty state instead of throwing.
+ */
+export async function getLessonNotes(lessonSlug: string): Promise<ProgramNote[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("lesson_notes")
+    .select("id, body, lesson_slug, lesson_title, created_at, updated_at")
+    .eq("user_id", user.id)
+    .eq("lesson_slug", lessonSlug)
+    .order("created_at", { ascending: false });
+
+  if (error) return [];
+  return (data ?? []) as ProgramNote[];
+}

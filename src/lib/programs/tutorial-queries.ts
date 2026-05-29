@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export type TutorialRow = {
   slug: string;
@@ -16,6 +16,10 @@ export type TutorialRow = {
   moduleTitle: string | null;
   planAccess: "free" | "basic" | "pro";
   completed: boolean;
+  /** How many notes the current user has saved on this tutorial. */
+  notesCount: number;
+  /** How many resources (files/links) are attached to this tutorial. */
+  resourcesCount: number;
   category: "starter" | "growth" | "monetization" | "scale" | null;
   /** UI-friendly category label, eg "Growth Creator" */
   categoryLabel: string;
@@ -66,6 +70,41 @@ export async function getAllTutorials(): Promise<TutorialRow[]> {
     );
   }
 
+  const lessonIds = lessons.map((l) => l.id);
+
+  // Per-lesson count of the current user's saved notes (owner-scoped via RLS).
+  // Fail-soft if lesson_notes (migration 0043) isn't applied yet.
+  const notesByLesson = new Map<string, number>();
+  if (user) {
+    const { data: noteRows } = await supabase
+      .from("lesson_notes")
+      .select("lesson_id")
+      .eq("user_id", user.id)
+      .in("lesson_id", lessonIds);
+    for (const r of noteRows ?? []) {
+      const lid = r.lesson_id as string | null;
+      if (lid) notesByLesson.set(lid, (notesByLesson.get(lid) ?? 0) + 1);
+    }
+  }
+
+  // Per-lesson count of attached resources. lesson_resources (migration 0037)
+  // isn't user-scoped, so read it with the service client like the lesson page
+  // does; fail-soft if the service client or table is unavailable.
+  const resourcesByLesson = new Map<string, number>();
+  try {
+    const svc = createServiceClient();
+    const { data: resRows } = await svc
+      .from("lesson_resources")
+      .select("lesson_id")
+      .in("lesson_id", lessonIds);
+    for (const r of resRows ?? []) {
+      const lid = r.lesson_id as string | null;
+      if (lid) resourcesByLesson.set(lid, (resourcesByLesson.get(lid) ?? 0) + 1);
+    }
+  } catch {
+    // leave resource counts at 0
+  }
+
   return lessons.map((l): TutorialRow => {
     const program = Array.isArray(l.programs)
       ? l.programs[0]
@@ -88,6 +127,8 @@ export async function getAllTutorials(): Promise<TutorialRow[]> {
       moduleTitle: l.module_title ?? null,
       planAccess: l.plan_access as TutorialRow["planAccess"],
       completed: progressByLesson.get(l.id) === true,
+      notesCount: notesByLesson.get(l.id) ?? 0,
+      resourcesCount: resourcesByLesson.get(l.id) ?? 0,
       category: cat,
       categoryLabel: cat ? (CATEGORY_LABEL[cat] ?? cat) : "All Creators",
     };

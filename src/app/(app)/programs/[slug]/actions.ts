@@ -82,6 +82,157 @@ export async function markLessonComplete(
   return { ok: true };
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+ * Lesson notes — learner-authored notes tied to a lesson + program.
+ * Surfaces on the program Resources tab ("My Notes"). All owner-scoped.
+ * If migration 0043 hasn't been applied yet, the table is missing (42P01)
+ * — we return a friendly error instead of crashing.
+ * ───────────────────────────────────────────────────────────────────── */
+
+type NoteResult = { ok: true; id?: string } | { ok: false; error: string };
+
+const NOTES_UNAVAILABLE =
+  "Notes aren't available yet — the database update is still pending.";
+
+function isMissingNotesTable(code?: string) {
+  // 42P01 = undefined_table, 42703 = undefined_column
+  return code === "42P01" || code === "42703";
+}
+
+/** Create a note for the given lesson. Resolves program/lesson metadata
+ *  server-side from the slug so the client can't spoof ownership links. */
+export async function createLessonNote(
+  lessonSlug: string,
+  body: string,
+): Promise<NoteResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Write something before saving." };
+  if (text.length > 5000)
+    return { ok: false, error: "Notes are limited to 5000 characters." };
+
+  // Resolve lesson → program + title (denormalized onto the note).
+  const { data: lesson } = await supabase
+    .from("lessons")
+    .select("id, program_id, title")
+    .eq("slug", lessonSlug)
+    .maybeSingle();
+
+  let programSlug: string | null = null;
+  if (lesson?.program_id) {
+    const { data: program } = await supabase
+      .from("programs")
+      .select("slug")
+      .eq("id", lesson.program_id)
+      .maybeSingle();
+    programSlug = program?.slug ?? null;
+  }
+
+  const { data, error } = await supabase
+    .from("lesson_notes")
+    .insert({
+      user_id: user.id,
+      program_id: lesson?.program_id ?? null,
+      lesson_id: lesson?.id ?? null,
+      lesson_slug: lessonSlug,
+      lesson_title: lesson?.title ?? null,
+      body: text,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    if (isMissingNotesTable(error.code)) return { ok: false, error: NOTES_UNAVAILABLE };
+    return { ok: false, error: error.message };
+  }
+
+  if (programSlug) revalidatePath(`/programs/${programSlug}`, "layout");
+  return { ok: true, id: data.id };
+}
+
+/** Edit the body of an existing note (owner-only). */
+export async function updateLessonNote(
+  noteId: string,
+  body: string,
+): Promise<NoteResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Note can't be empty." };
+  if (text.length > 5000)
+    return { ok: false, error: "Notes are limited to 5000 characters." };
+
+  const { data, error } = await supabase
+    .from("lesson_notes")
+    .update({ body: text })
+    .eq("id", noteId)
+    .eq("user_id", user.id)
+    .select("program_id")
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingNotesTable(error.code)) return { ok: false, error: NOTES_UNAVAILABLE };
+    return { ok: false, error: error.message };
+  }
+
+  await revalidateNoteProgram(supabase, data?.program_id ?? null);
+  return { ok: true, id: noteId };
+}
+
+/** Delete a note (owner-only). */
+export async function deleteLessonNote(noteId: string): Promise<NoteResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  // Capture program_id before deletion so we can revalidate the right page.
+  const { data: existing } = await supabase
+    .from("lesson_notes")
+    .select("program_id")
+    .eq("id", noteId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("lesson_notes")
+    .delete()
+    .eq("id", noteId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    if (isMissingNotesTable(error.code)) return { ok: false, error: NOTES_UNAVAILABLE };
+    return { ok: false, error: error.message };
+  }
+
+  await revalidateNoteProgram(supabase, existing?.program_id ?? null);
+  return { ok: true, id: noteId };
+}
+
+/** Revalidate the program page a note belongs to, looked up by program UUID. */
+async function revalidateNoteProgram(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  programId: string | null,
+) {
+  if (!programId) return;
+  const { data: program } = await supabase
+    .from("programs")
+    .select("slug")
+    .eq("id", programId)
+    .maybeSingle();
+  if (program?.slug) revalidatePath(`/programs/${program.slug}`, "layout");
+}
+
 async function programProgressPct(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,

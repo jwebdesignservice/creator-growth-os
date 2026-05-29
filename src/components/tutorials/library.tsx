@@ -9,6 +9,8 @@ import {
   ChevronDown,
   Search,
   X,
+  NotebookPen,
+  Paperclip,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { TutorialRow } from "@/lib/programs/tutorial-queries";
@@ -414,6 +416,30 @@ function TutorialCard({
                 <>
                   <span aria-hidden>·</span>
                   <span>Lesson {tutorial.moduleNumber}</span>
+                </>
+              )}
+              {tutorial.resourcesCount > 0 && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span
+                    className="inline-flex items-center gap-1"
+                    title={`${tutorial.resourcesCount} resource${tutorial.resourcesCount === 1 ? "" : "s"} attached`}
+                  >
+                    <Paperclip className="size-3" strokeWidth={2} aria-hidden />
+                    {tutorial.resourcesCount}
+                  </span>
+                </>
+              )}
+              {tutorial.notesCount > 0 && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span
+                    className="inline-flex items-center gap-1 text-rose-600 font-medium"
+                    title={`${tutorial.notesCount} note${tutorial.notesCount === 1 ? "" : "s"} saved`}
+                  >
+                    <NotebookPen className="size-3" strokeWidth={2} aria-hidden />
+                    {tutorial.notesCount}
+                  </span>
                 </>
               )}
             </>
