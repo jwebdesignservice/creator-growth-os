@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/cn";
 import { NoteContent, RichNoteEditor } from "@/components/notes/rich-note";
 import { NotePreviewModal } from "@/components/notes/note-preview-modal";
+import { NewNoteModal } from "@/components/notes/note-compose-modal";
 import {
   noteIsEmpty,
   noteTextLength,
@@ -102,6 +103,7 @@ export function NotesList({
   authorName?: string;
 }) {
   const [page, setPage] = useState(1);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const total = notes.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -120,15 +122,16 @@ export function NotesList({
         {/* New note tile (page 1 only) */}
         {newNoteHref && safePage === 1 && (
           <li className="break-inside-avoid">
-            <Link
-              href={newNoteHref}
-              className="group h-full min-h-[180px] flex flex-col items-center justify-center gap-2.5 rounded-[16px] border-2 border-dashed border-ink-200 text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/40 transition-colors"
+            <button
+              type="button"
+              onClick={() => setComposeOpen(true)}
+              className="group h-full w-full min-h-[180px] flex flex-col items-center justify-center gap-2.5 rounded-[16px] border-2 border-dashed border-ink-200 text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/40 transition-colors"
             >
               <span className="size-11 rounded-full bg-cream-100 text-ink-500 group-hover:bg-rose-100 group-hover:text-rose-600 inline-flex items-center justify-center transition-colors">
                 <Plus className="size-5" strokeWidth={2} />
               </span>
               <span className="text-[13.5px] font-medium">New note</span>
-            </Link>
+            </button>
           </li>
         )}
 
@@ -185,6 +188,13 @@ export function NotesList({
           </div>
         </div>
       )}
+
+      {composeOpen && programSlug && (
+        <NewNoteModal
+          programSlug={programSlug}
+          onClose={() => setComposeOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -208,6 +218,17 @@ function NoteCard({
   const [pending, startTransition] = useTransition();
   // Read-only full-note reader, opened by double-clicking the card body.
   const [preview, setPreview] = useState(false);
+  // Card caps the note height; the fade shows only when there's more to read.
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [clamped, setClamped] = useState(false);
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      setClamped(el.scrollHeight - el.clientHeight > 4);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [note.body]);
 
   const accent = pickAccent(note.id, note.pinned);
   const recent = minutesSince(note.created_at) < 60;
@@ -322,14 +343,25 @@ function NoteCard({
               onDoubleClick={() => setPreview(true)}
               title="Double-click to read the full note"
             >
-              <NoteContent
-                html={note.body}
-                className={cn(
-                  "text-[13px] text-ink-700 leading-relaxed",
-                  "[&>*:first-child]:text-[15px] [&>*:first-child]:font-bold [&>*:first-child]:text-ink-900 [&>*:first-child]:leading-snug [&>*:first-child]:mb-2",
-                  "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-0.5 [&_p]:mb-2 [&_strong]:font-semibold [&_a]:text-rose-600",
+              <div
+                ref={contentRef}
+                className="relative max-h-[208px] overflow-hidden"
+              >
+                <NoteContent
+                  html={note.body}
+                  className={cn(
+                    "text-[13px] text-ink-700 leading-relaxed",
+                    "[&>*:first-child]:text-[15px] [&>*:first-child]:font-bold [&>*:first-child]:text-ink-900 [&>*:first-child]:leading-snug [&>*:first-child]:mb-2",
+                    "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-0.5 [&_p]:mb-2 [&_strong]:font-semibold [&_a]:text-rose-600",
+                  )}
+                />
+                {clamped && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent"
+                  />
                 )}
-              />
+              </div>
 
               {showContext && (note.module_title || note.lesson_title) && (
                 <div className="mt-3.5 flex items-center gap-1.5 flex-wrap">
