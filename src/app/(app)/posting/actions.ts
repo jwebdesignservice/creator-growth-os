@@ -81,6 +81,9 @@ export async function createPostingItem(input: {
   platform: PlatformKey;
   content_type?: string;
   topic?: string;
+  goal?: string;
+  notes?: string;
+  status?: ContentStatus;
 }): Promise<Result> {
   const supabase = await createClient();
   const {
@@ -88,15 +91,26 @@ export async function createPostingItem(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  const { error } = await supabase.from("posting_plan_items").insert({
+  const base = {
     plan_id: input.plan_id,
     user_id: user.id,
     scheduled_for: input.scheduled_for ?? null,
     platform: input.platform,
     content_type: input.content_type?.trim() || null,
     topic: input.topic?.trim() || null,
-    status: "planned",
+    status: input.status ?? "planned",
+  };
+
+  // goal + notes arrive with migration 0042 — if it hasn't been applied yet
+  // (42703 = undefined_column), retry without them so the form still saves.
+  let { error } = await supabase.from("posting_plan_items").insert({
+    ...base,
+    goal: input.goal?.trim() || null,
+    notes: input.notes?.trim() || null,
   });
+  if (error && error.code === "42703") {
+    ({ error } = await supabase.from("posting_plan_items").insert(base));
+  }
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/posting");
