@@ -28,6 +28,10 @@ export const NOTE_TAGS = [
   "p",
   "div",
   "span",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
 ] as const;
 
 /**
@@ -70,7 +74,7 @@ export function htmlToPlainText(html: string | null | undefined): string {
   if (!html) return "";
   return html
     .replace(/<\s*br\s*\/?>/gi, "\n")
-    .replace(/<\/\s*(p|div|li)\s*>/gi, "\n")
+    .replace(/<\/\s*(p|div|li|h[1-6])\s*>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
