@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   Activity,
@@ -119,7 +120,14 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
    Root
    ───────────────────────────────────────────────────────────────────────── */
 
-export function StudentsClient({ members }: { members: Member[] }) {
+export function StudentsClient({
+  members,
+  programId,
+}: {
+  members: Member[];
+  programId: string;
+}) {
+  const router = useRouter();
 
   const [query, setQuery]         = useState("");
   const [statusTab, setStatusTab] = useState<StatusTab>("all");
@@ -135,6 +143,14 @@ export function StudentsClient({ members }: { members: Member[] }) {
   function applyStatusTab(v: StatusTab) { setStatusTab(v); setPage(1); }
   function applyPlan(v: PlanFilter)     { setPlan(v); setPage(1); }
   function applySort(v: SortKey)        { setSortKey(v); setPage(1); }
+
+  /* ── Real navigation actions (no backend mutations) ───────────────────
+     Each routes to an existing admin surface instead of a placeholder toast. */
+  function viewReports()                 { router.push(`/admin/programs/${programId}/reports`); }
+  function viewProgress(memberId: string){ router.push(`/admin/users/${memberId}`); }
+  function composeEmail()                { router.push("/admin/emails"); }
+  function messageMember(email: string)  { if (email) window.location.href = `mailto:${email}`; }
+  function reviewCompletions()           { applyStatusTab("completed"); }
 
   useEffect(() => {
     if (!toast) return;
@@ -274,12 +290,16 @@ export function StudentsClient({ members }: { members: Member[] }) {
             <Upload className="size-4 text-ink-500" strokeWidth={2} aria-hidden />
             Export
           </button>
-          <HeaderMoreMenu onAction={(msg) => setToast(msg)} onExport={exportCsv} />
+          <HeaderMoreMenu
+            onExport={exportCsv}
+            onEmailAll={composeEmail}
+            onViewReports={viewReports}
+          />
         </div>
       </header>
 
       {/* ── Metric cards (live, derived from the real member list) ───── */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <MetricCard
           icon={Users}
           label="Enrolled members"
@@ -387,7 +407,7 @@ export function StudentsClient({ members }: { members: Member[] }) {
 
           {/* Table */}
           <div className="overflow-x-auto -mx-1">
-            <table className="w-full min-w-[920px] text-left">
+            <table className="w-full min-w-[680px] xl:min-w-[920px] text-left">
               <thead>
                 <tr className="text-[10.5px] uppercase tracking-[0.14em] text-ink-500 font-bold">
                   <Th>Member</Th>
@@ -409,7 +429,13 @@ export function StudentsClient({ members }: { members: Member[] }) {
                   </tr>
                 ) : (
                   pageRows.map((m) => (
-                    <MemberRow key={m.id} member={m} onToast={(msg) => setToast(msg)} />
+                    <MemberRow
+                      key={m.id}
+                      member={m}
+                      onToast={(msg) => setToast(msg)}
+                      onViewProgress={() => viewProgress(m.id)}
+                      onMessage={() => messageMember(m.email)}
+                    />
                   ))
                 )}
               </tbody>
@@ -437,7 +463,11 @@ export function StudentsClient({ members }: { members: Member[] }) {
           onViewAll={() => applyStatusTab("all")}
         />
         <CompletionOverviewCard completion={completion} />
-        <QuickActionsCard onAction={(msg) => setToast(msg)} />
+        <QuickActionsCard
+          onMessageInactive={composeEmail}
+          onReviewCompletions={reviewCompletions}
+          onViewReports={viewReports}
+        />
       </div>
 
       {/* Toast */}
@@ -500,9 +530,13 @@ function MetricCard({
 function MemberRow({
   member: m,
   onToast,
+  onViewProgress,
+  onMessage,
 }: {
   member: Member;
   onToast: (msg: string) => void;
+  onViewProgress: () => void;
+  onMessage: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -603,12 +637,12 @@ function MemberRow({
               <RowMenuItem
                 icon={Eye}
                 label="View progress"
-                onClick={() => { setMenuOpen(false); onToast(`Opening ${m.name}'s progress`); }}
+                onClick={() => { setMenuOpen(false); onViewProgress(); }}
               />
               <RowMenuItem
                 icon={MessageSquare}
                 label="Message member"
-                onClick={() => { setMenuOpen(false); onToast(`Message to ${m.name} (demo)`); }}
+                onClick={() => { setMenuOpen(false); onMessage(); }}
               />
               <RowMenuItem
                 icon={Mail}
@@ -626,7 +660,7 @@ function MemberRow({
                 icon={Trash2}
                 label="Remove from program"
                 danger
-                onClick={() => { setMenuOpen(false); onToast(`Removed ${m.name} (demo)`); }}
+                onClick={() => { setMenuOpen(false); onToast("Removing members isn't enabled yet"); }}
               />
             </div>
           )}
@@ -749,7 +783,15 @@ function LegendRow({
   );
 }
 
-function QuickActionsCard({ onAction }: { onAction: (msg: string) => void }) {
+function QuickActionsCard({
+  onMessageInactive,
+  onReviewCompletions,
+  onViewReports,
+}: {
+  onMessageInactive: () => void;
+  onReviewCompletions: () => void;
+  onViewReports: () => void;
+}) {
   return (
     <section className="card p-5">
       <h3 className="text-[14px] font-bold text-ink-900 mb-3">Quick actions</h3>
@@ -758,19 +800,19 @@ function QuickActionsCard({ onAction }: { onAction: (msg: string) => void }) {
           icon={Mail}
           title="Message inactive members"
           subtitle="Reach out to members inactive for 7+ days"
-          onClick={() => onAction("Composing message to inactive members (demo)")}
+          onClick={onMessageInactive}
         />
         <QuickAction
           icon={Trophy}
           title="Review completions"
           subtitle="See who recently completed the program"
-          onClick={() => onAction("Showing recent completions (demo)")}
+          onClick={onReviewCompletions}
         />
         <QuickAction
           icon={BarChart3}
           title="View reports"
           subtitle="Detailed analytics and engagement"
-          onClick={() => onAction("Opening reports (demo)")}
+          onClick={onViewReports}
         />
       </ul>
     </section>
@@ -817,11 +859,13 @@ function QuickAction({
    ───────────────────────────────────────────────────────────────────────── */
 
 function HeaderMoreMenu({
-  onAction,
   onExport,
+  onEmailAll,
+  onViewReports,
 }: {
-  onAction: (msg: string) => void;
   onExport: () => void;
+  onEmailAll: () => void;
+  onViewReports: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -851,8 +895,8 @@ function HeaderMoreMenu({
       {open && (
         <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-20 w-[200px] rounded-[12px] bg-white border border-ink-100 shadow-card py-1">
           <RowMenuItem icon={Upload} label="Export CSV" onClick={() => { setOpen(false); onExport(); }} />
-          <RowMenuItem icon={Mail} label="Email all members" onClick={() => { setOpen(false); onAction("Compose to all members (demo)"); }} />
-          <RowMenuItem icon={BarChart3} label="View reports" onClick={() => { setOpen(false); onAction("Opening reports (demo)"); }} />
+          <RowMenuItem icon={Mail} label="Email all members" onClick={() => { setOpen(false); onEmailAll(); }} />
+          <RowMenuItem icon={BarChart3} label="View reports" onClick={() => { setOpen(false); onViewReports(); }} />
         </div>
       )}
     </div>

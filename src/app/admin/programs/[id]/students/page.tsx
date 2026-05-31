@@ -136,7 +136,7 @@ export default async function StudentsPage({ params }: { params: Params }) {
     };
   });
 
-  return <StudentsClient members={members} />;
+  return <StudentsClient members={members} programId={program.id as string} />;
 }
 
 /** Which member tiers can access a program of the given access tier. */
