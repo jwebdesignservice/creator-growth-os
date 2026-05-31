@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { Search } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/sidebar";
+import { TopbarSearch } from "@/components/admin/topbar-search";
 import { ProfileMenu } from "@/components/app-shell/profile-menu";
 import { getAdminContext } from "@/lib/admin/is-admin";
 
@@ -27,17 +27,7 @@ export default async function AdminLayout({
         <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100">
           <div className="flex items-center gap-4 h-[68px] px-6 lg:px-8">
             <div className="flex-1 max-w-[480px]">
-              <div className="relative">
-                <Search
-                  className="absolute left-4 top-1/2 -translate-y-1/2 size-[16px] text-ink-400"
-                  strokeWidth={2}
-                />
-                <input
-                  type="search"
-                  placeholder="Search users, missions, programs..."
-                  className="w-full h-11 pl-11 pr-4 rounded-[14px] bg-white border border-ink-100 placeholder:text-ink-400 text-[13.5px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
-                />
-              </div>
+              <TopbarSearch />
             </div>
             <div className="flex-1" />
             <span className="inline-flex items-center gap-1.5 px-3 h-9 rounded-[10px] bg-rose-100 text-rose-700 text-[12px] font-semibold uppercase tracking-wider">

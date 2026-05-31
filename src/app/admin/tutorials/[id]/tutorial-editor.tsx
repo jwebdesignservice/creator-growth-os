@@ -202,6 +202,7 @@ export function TutorialEditor({
         title:       title.trim(),
         description: description.trim(),
         planAccess,
+        programId,
         visibility,
         internalNotes: internalNotes.trim(),
         category:      category.trim(),
@@ -210,7 +211,7 @@ export function TutorialEditor({
         publishingNotesInternal: publishingNotesInternal.trim(),
       }),
     [
-      title, description, planAccess, visibility, internalNotes,
+      title, description, planAccess, programId, visibility, internalNotes,
       category, tags, learningOutcomes, publishingNotesInternal,
     ],
   );
@@ -273,6 +274,8 @@ export function TutorialEditor({
         title:       title.trim(),
         description: description.trim(),
         plan_access: planAccess,
+        /* Program link — empty string collapses to null (standalone) server-side. */
+        program_id:  programId,
 
         /* Editor-only fields persisted by migration 0034. We always send
          *  the full current value (rather than diffs) so the server's
@@ -461,7 +464,7 @@ export function TutorialEditor({
         <div
           className={cn(
             "grid grid-cols-1 gap-5 items-start",
-            hasRail && "lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]",
+            hasRail && "lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]",
           )}
         >
           {/* ── LEFT: tab content ────────────────────────────────────── */}

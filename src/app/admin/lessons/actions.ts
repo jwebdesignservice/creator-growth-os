@@ -178,6 +178,8 @@ export type LessonPatch = {
   cover_image_url?: string | null;
   duration_seconds?: number;
   plan_access?: "free" | "basic" | "pro";
+  /** Program this lesson/tutorial belongs to. Empty string / null = standalone. */
+  program_id?: string | null;
   module_number?: number;
   module_title?: string;
   sort_order?: number;
@@ -271,6 +273,18 @@ export async function updateLesson(
     }
     update.sort_order = Math.floor(patch.sort_order);
   }
+  if (patch.program_id !== undefined) {
+    const v = (patch.program_id ?? "").toString().trim();
+    // Empty = standalone (no program). A non-empty value must be a UUID so we
+    // never write a bad FK that PostgREST would reject for the whole update.
+    if (
+      v &&
+      !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v)
+    ) {
+      return { ok: false, error: "Invalid program selection." };
+    }
+    update.program_id = v.length > 0 ? v : null;
+  }
 
   /* ── Editor fields (migration 0034) ─────────────────────────────── */
 
@@ -341,6 +355,18 @@ export async function updateLesson(
   // in server actions can't silently block the save.
   const db = createServiceClient();
 
+  // When the program link is changing, remember the previous program so we can
+  // also revalidate the curriculum the lesson is moving *out* of.
+  let previousProgramId: string | null = null;
+  if (patch.program_id !== undefined) {
+    const { data: prev } = await db
+      .from("lessons")
+      .select("program_id")
+      .eq("id", lessonId)
+      .maybeSingle();
+    previousProgramId = (prev?.program_id as string | null) ?? null;
+  }
+
   // The editor fields below ship with migration 0034. If that migration
   // hasn't been applied to the live DB, including them makes PostgREST
   // reject the ENTIRE update (42703). So on that error we retry with just
@@ -390,6 +416,11 @@ export async function updateLesson(
   if (lesson?.program_id) {
     revalidatePath(`/admin/programs/${lesson.program_id}`);
     revalidatePath(`/admin/programs/${lesson.program_id}/curriculum`);
+  }
+  // If the lesson moved out of a different program, refresh that one too.
+  if (previousProgramId && previousProgramId !== lesson?.program_id) {
+    revalidatePath(`/admin/programs/${previousProgramId}`);
+    revalidatePath(`/admin/programs/${previousProgramId}/curriculum`);
   }
   return { ok: true };
 }
