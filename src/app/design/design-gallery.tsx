@@ -46,6 +46,7 @@ import {
   PanelLeft,
   PanelRight,
   PanelTop,
+  Quote,
   Receipt,
   Route,
   Search,
@@ -54,6 +55,7 @@ import {
   Settings,
   Smartphone,
   Sparkles,
+  SquareMenu,
   Table2,
   Tag,
   TextCursorInput,
@@ -157,6 +159,8 @@ import { Spinner, BrandLoader, LoadingButton, SkeletonCard } from "@/design-temp
 import { VideoListItem, VideoUploadCard } from "@/design-templates/video";
 import { InvoiceCard, PlanBillingRow } from "@/design-templates/invoices";
 import { BottomNav, MobileDrawer } from "@/design-templates/mobile";
+import { ProfileMenu, NotificationsDropdown } from "@/design-templates/menus";
+import { Callout, Blockquote, CodeBlock } from "@/design-templates/content";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -640,6 +644,27 @@ const CATEGORIES: Category[] = [
     items: [
       { label: "Bottom nav", code: "BottomNav", node: <BottomNav /> },
       { label: "Nav drawer", code: "MobileDrawer", node: <MobileDrawer /> },
+    ],
+  },
+  {
+    id: "menus",
+    label: "Menus",
+    icon: SquareMenu,
+    blurb: "Header dropdowns — profile / account menu and notifications.",
+    items: [
+      { label: "Profile menu", code: "ProfileMenu", node: <ProfileMenu /> },
+      { label: "Notifications", code: "NotificationsDropdown", node: <NotificationsDropdown /> },
+    ],
+  },
+  {
+    id: "content",
+    label: "Content",
+    icon: Quote,
+    blurb: "Rich-content blocks — callouts, a testimonial blockquote, a code block.",
+    items: [
+      { label: "Callouts", code: "Callout", node: <Callout /> },
+      { label: "Blockquote", code: "Blockquote", node: <Blockquote /> },
+      { label: "Code block", code: "CodeBlock", node: <CodeBlock /> },
     ],
   },
 ];
