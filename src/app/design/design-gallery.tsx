@@ -23,6 +23,7 @@ import {
   CalendarDays,
   ChartColumn,
   CircleUser,
+  Clapperboard,
   ClipboardList,
   Compass,
   DollarSign,
@@ -45,11 +46,13 @@ import {
   PanelLeft,
   PanelRight,
   PanelTop,
+  Receipt,
   Route,
   Search,
   Send,
   Server,
   Settings,
+  Smartphone,
   Sparkles,
   Table2,
   Tag,
@@ -151,6 +154,9 @@ import { SearchResults, EmptyResults } from "@/design-templates/search";
 import { ConnectedAccounts, SettingsToggleRows, DangerZone } from "@/design-templates/settings";
 import { NotFoundState, InlineError, MaintenanceState } from "@/design-templates/errors";
 import { Spinner, BrandLoader, LoadingButton, SkeletonCard } from "@/design-templates/loading";
+import { VideoListItem, VideoUploadCard } from "@/design-templates/video";
+import { InvoiceCard, PlanBillingRow } from "@/design-templates/invoices";
+import { BottomNav, MobileDrawer } from "@/design-templates/mobile";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -604,6 +610,36 @@ const CATEGORIES: Category[] = [
       { label: "Brand loader", code: "BrandLoader", node: <BrandLoader /> },
       { label: "Busy buttons", code: "LoadingButton", node: <LoadingButton /> },
       { label: "Skeleton card", code: "SkeletonCard", node: <SkeletonCard /> },
+    ],
+  },
+  {
+    id: "video",
+    label: "Video",
+    icon: Clapperboard,
+    blurb: "Lesson playlist row and a video upload / processing card.",
+    items: [
+      { label: "Playlist row", code: "VideoListItem", node: <VideoListItem /> },
+      { label: "Upload card", code: "VideoUploadCard", node: <VideoUploadCard /> },
+    ],
+  },
+  {
+    id: "invoices",
+    label: "Invoices",
+    icon: Receipt,
+    blurb: "Invoice / receipt with line items, and a plan billing row.",
+    items: [
+      { label: "Invoice", code: "InvoiceCard", node: <InvoiceCard /> },
+      { label: "Plan billing row", code: "PlanBillingRow", node: <PlanBillingRow /> },
+    ],
+  },
+  {
+    id: "mobile",
+    label: "Mobile",
+    icon: Smartphone,
+    blurb: "Mobile chrome — bottom tab bar and a slide-in nav drawer.",
+    items: [
+      { label: "Bottom nav", code: "BottomNav", node: <BottomNav /> },
+      { label: "Nav drawer", code: "MobileDrawer", node: <MobileDrawer /> },
     ],
   },
 ];
