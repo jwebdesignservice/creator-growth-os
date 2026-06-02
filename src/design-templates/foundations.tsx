@@ -22,6 +22,7 @@ import {
   Ruler,
   Scaling,
   Palette,
+  Droplet,
   Layers,
   Shapes,
   Circle,
@@ -594,6 +595,89 @@ function IconSizes() {
   );
 }
 
+/* ── 16 · Color Roles (semantic tokens) ───────────────────────────────── */
+
+type Role = { v: string; role: string };
+
+function RoleGroup({ title, roles }: { title: string; roles: Role[] }) {
+  return (
+    <div>
+      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{title}</div>
+      <div className="flex flex-wrap gap-3">
+        {roles.map((r) => (
+          <div key={r.v} className="w-[148px]">
+            <div className="h-12 rounded-[10px] border border-ink-100" style={{ backgroundColor: `var(${r.v})` }} />
+            <div className="mt-1.5 text-[11.5px] text-ink-700">{r.role}</div>
+            <code className="text-[10px] font-mono text-ink-400">{r.v}</code>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const SURFACE_ROLES: Role[] = [
+  { v: "--color-bg", role: "App background" },
+  { v: "--color-page", role: "Page background" },
+  { v: "--color-surface", role: "Cards / inputs" },
+  { v: "--color-surface-muted", role: "Hover fills" },
+  { v: "--color-surface-strong", role: "Dividers" },
+];
+const BRAND_ROLES: Role[] = [
+  { v: "--color-brand", role: "Primary action" },
+  { v: "--color-brand-hover", role: "Hover / active" },
+  { v: "--color-brand-soft", role: "Soft fill" },
+  { v: "--color-brand-softer", role: "Softer fill" },
+];
+const STATE_ROLES: Role[] = [
+  { v: "--color-state-success", role: "Success" },
+  { v: "--color-state-warning", role: "Warning" },
+  { v: "--color-state-danger", role: "Danger" },
+  { v: "--color-state-disabled", role: "Disabled" },
+  { v: "--color-pro", role: "Pro / premium" },
+];
+const BORDER_ROLES: Role[] = [
+  { v: "--color-border", role: "Default" },
+  { v: "--color-border-strong", role: "Strong" },
+  { v: "--color-border-brand", role: "Brand" },
+];
+const TEXT_ROLES: Role[] = [
+  { v: "--color-text-primary", role: "Primary" },
+  { v: "--color-text-secondary", role: "Secondary" },
+  { v: "--color-text-muted", role: "Muted" },
+  { v: "--color-text-subtle", role: "Subtle" },
+  { v: "--color-text-brand", role: "Brand" },
+];
+
+function ColorRoles() {
+  return (
+    <div className="w-full space-y-5">
+      <RoleGroup title="Surfaces" roles={SURFACE_ROLES} />
+      <RoleGroup title="Brand" roles={BRAND_ROLES} />
+      <RoleGroup title="State" roles={STATE_ROLES} />
+      <RoleGroup title="Borders" roles={BORDER_ROLES} />
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Text</div>
+        <div className="flex flex-wrap gap-x-6 gap-y-2.5">
+          {TEXT_ROLES.map((r) => (
+            <div key={r.v} className="flex items-center gap-2">
+              <span className="text-[15px] font-semibold" style={{ color: `var(${r.v})` }}>
+                {r.role}
+              </span>
+              <code className="text-[10.5px] font-mono text-ink-400">{r.v}</code>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-[12px] text-ink-400 leading-relaxed">
+        Semantic roles map the raw palette to intent — components reference these (e.g.{" "}
+        <code className="font-mono">--color-surface</code>, <code className="font-mono">--color-brand</code>), never raw{" "}
+        <code className="font-mono">--rose-600</code> directly.
+      </p>
+    </div>
+  );
+}
+
 /* ── Gallery category export ──────────────────────────────────────────── */
 
 type FCategory = {
@@ -632,6 +716,13 @@ export const FOUNDATION_CATEGORIES: FCategory[] = [
     icon: Palette,
     blurb: "Brand, neutral and status palette.",
     items: [{ label: "Color palette", code: "Colors", node: <Colors /> }],
+  },
+  {
+    id: "color-roles",
+    label: "Color Roles",
+    icon: Droplet,
+    blurb: "Semantic tokens — surface, text, brand, state.",
+    items: [{ label: "Semantic colors", code: "ColorRoles", node: <ColorRoles /> }],
   },
   {
     id: "icons",

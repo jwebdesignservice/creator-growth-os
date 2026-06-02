@@ -20,6 +20,7 @@ import {
   AppWindow,
   ArrowLeft,
   Bell,
+  CalendarDays,
   ChartColumn,
   CircleUser,
   ClipboardList,
@@ -27,6 +28,7 @@ import {
   DollarSign,
   Gauge,
   GraduationCap,
+  IdCard,
   Info,
   KeyRound,
   Layers,
@@ -39,6 +41,7 @@ import {
   MousePointerClick,
   NotebookPen,
   PanelLeft,
+  PanelRight,
   PanelTop,
   Route,
   Send,
@@ -132,6 +135,9 @@ import { MissionCard, StreakCard, RewardBar } from "@/design-templates/missions"
 import { ReadinessScore, DealCard, RevenueStat } from "@/design-templates/monetization";
 import { ActivityTimeline, CommunicationThread } from "@/design-templates/timeline";
 import { NoteCard, NoteEditorToolbar } from "@/design-templates/notes";
+import { ContentCalendar, MiniCalendar } from "@/design-templates/calendar";
+import { MediaKitCard, ProfileHeader } from "@/design-templates/media-kit";
+import { UpcomingWidget, SuggestionWidget, LeaderboardWidget } from "@/design-templates/widgets";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -487,6 +493,37 @@ const CATEGORIES: Category[] = [
     items: [
       { label: "Note card", code: "NoteCard", node: <NoteCard /> },
       { label: "Editor toolbar", code: "NoteEditorToolbar", node: <NoteEditorToolbar /> },
+    ],
+  },
+  {
+    id: "calendar",
+    label: "Calendar",
+    icon: CalendarDays,
+    blurb: "Multi-day content calendar strip and a month date picker.",
+    items: [
+      { label: "Content calendar", code: "ContentCalendar", node: <ContentCalendar />, scale: 0.82 },
+      { label: "Mini calendar", code: "MiniCalendar", node: <MiniCalendar /> },
+    ],
+  },
+  {
+    id: "media-kit",
+    label: "Media kit",
+    icon: IdCard,
+    blurb: "Creator one-pager and the profile header.",
+    items: [
+      { label: "Media kit card", code: "MediaKitCard", node: <MediaKitCard /> },
+      { label: "Profile header", code: "ProfileHeader", node: <ProfileHeader /> },
+    ],
+  },
+  {
+    id: "widgets",
+    label: "Widgets",
+    icon: PanelRight,
+    blurb: "Right-rail widgets — upcoming list, suggestion card, leaderboard.",
+    items: [
+      { label: "Upcoming", code: "UpcomingWidget", node: <UpcomingWidget /> },
+      { label: "Suggestion", code: "SuggestionWidget", node: <SuggestionWidget /> },
+      { label: "Leaderboard", code: "LeaderboardWidget", node: <LeaderboardWidget /> },
     ],
   },
 ];
