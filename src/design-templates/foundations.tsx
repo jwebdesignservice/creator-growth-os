@@ -11,6 +11,7 @@
 import type { ReactNode } from "react";
 import {
   Type,
+  Pilcrow,
   Code,
   CaseSensitive,
   Frame,
@@ -678,6 +679,92 @@ function ColorRoles() {
   );
 }
 
+/* ── 17 · Type Details (families · weights · leading · tracking) ──────── */
+
+const FAMILIES = [
+  { label: "Heading · serif display", token: "--font-heading", sample: "Cormorant Garamond", family: "var(--font-heading)" },
+  { label: "Body · sans", token: "--font-body", sample: "DM Sans", family: "var(--font-body)" },
+  { label: "Mono", token: "--font-mono", sample: "ui-monospace 0123", family: "var(--font-mono)" },
+];
+const WEIGHTS = [
+  { n: "regular", val: 400 },
+  { n: "medium", val: 500 },
+  { n: "semibold", val: 600 },
+  { n: "bold", val: 700 },
+];
+const LEADINGS = [
+  { n: "tight", val: 1.2 },
+  { n: "snug", val: 1.35 },
+  { n: "normal", val: 1.5 },
+  { n: "relaxed", val: 1.65 },
+];
+const TRACKINGS = [
+  { n: "tight", val: "-0.02em" },
+  { n: "heading", val: "-0.01em" },
+  { n: "normal", val: "0" },
+  { n: "wide", val: "0.04em" },
+  { n: "wider", val: "0.08em" },
+  { n: "widest", val: "0.12em" },
+];
+const LH_SAMPLE = "Creators turn weekly consistency into compounding growth across every platform they publish on.";
+
+function TypeDetails() {
+  return (
+    <div className="w-full space-y-6">
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Font families</div>
+        <div className="space-y-2.5">
+          {FAMILIES.map((f) => (
+            <div key={f.token} className="flex items-baseline justify-between gap-4 border-b border-ink-100 pb-2.5 last:border-0">
+              <span className="text-[18px] text-ink-900" style={{ fontFamily: f.family }}>{f.sample}</span>
+              <div className="text-right shrink-0">
+                <div className="text-[11px] text-ink-500">{f.label}</div>
+                <code className="text-[10px] font-mono text-ink-400">{f.token}</code>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Weights</div>
+        <div className="flex flex-wrap gap-x-8 gap-y-3">
+          {WEIGHTS.map((w) => (
+            <div key={w.n}>
+              <div className="text-[22px] text-ink-900 leading-none" style={{ fontWeight: w.val }}>Creator</div>
+              <div className="mt-1.5 text-[11px] font-mono text-ink-500">{w.n} · {w.val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Line height</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+          {LEADINGS.map((l) => (
+            <div key={l.n}>
+              <p className="text-[13px] text-ink-800" style={{ lineHeight: l.val }}>{LH_SAMPLE}</p>
+              <div className="mt-1.5 text-[11px] font-mono text-ink-500">{l.n} · {l.val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Letter spacing</div>
+        <div className="space-y-2">
+          {TRACKINGS.map((t) => (
+            <div key={t.n} className="flex items-baseline justify-between gap-4 border-b border-ink-100 pb-2 last:border-0">
+              <span className="text-[15px] text-ink-900" style={{ letterSpacing: t.val }}>Consistency compounds</span>
+              <code className="text-[11px] font-mono text-ink-400 shrink-0">{t.n} · {t.val}</code>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Gallery category export ──────────────────────────────────────────── */
 
 type FCategory = {
@@ -709,6 +796,13 @@ export const FOUNDATION_CATEGORIES: FCategory[] = [
     icon: CaseSensitive,
     blurb: "Fluid body & UI text scale.",
     items: [{ label: "Text size scale", code: "TextSizes", node: <TextSizes /> }],
+  },
+  {
+    id: "type-details",
+    label: "Type Details",
+    icon: Pilcrow,
+    blurb: "Font families, weights, line-height, tracking.",
+    items: [{ label: "Weights · leading · tracking", code: "TypeDetails", node: <TypeDetails /> }],
   },
   {
     id: "colors",
