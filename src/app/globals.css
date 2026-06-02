@@ -326,6 +326,19 @@ select.input {
   color:       var(--ink-500);
 }
 
+/* ─── SCROLLBAR UTILITIES ───────────────────────────────────────────────────
+   Hide the visible scrollbar while keeping the element scrollable via
+   wheel / touch / keyboard. Used on the left sidebar nav so a short
+   viewport never paints a scrollbar over the rail.
+   ─────────────────────────────────────────────────────────────────────────── */
+.scrollbar-hide {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* Legacy Edge / IE */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;                /* Chrome / Safari / Edge */
+}
+
 /* ─── CONTAINER UTILITIES ───────────────────────────────────────────────────
    Standardized max-widths so every page reads with the same canvas size.
    Replace ad-hoc `max-w-[1240px] mx-auto` with `container-dashboard`, etc.

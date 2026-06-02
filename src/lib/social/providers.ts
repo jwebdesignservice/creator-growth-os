@@ -169,6 +169,13 @@ export function getClientCredentials(p: ProviderConfig): {
  * approve/deny. Must match the URL registered in the provider's dashboard.
  */
 export function getRedirectUri(providerKey: ProviderKey): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:8080";
-  return `${appUrl}/api/oauth/${providerKey}/callback`;
+  // Use `||` (not `??`) so an env var set to an empty string also falls
+  // back. A truthy default is critical here: OAuth providers reject any
+  // redirect_uri that isn't a fully-qualified absolute URL, so an empty
+  // appUrl would silently produce `/api/oauth/.../callback` and the
+  // provider returns a "Can't load URL" / "redirect_uri mismatch" error.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8080";
+  // Defensive: strip a single trailing slash so the join is always clean.
+  const base = appUrl.replace(/\/$/, "");
+  return `${base}/api/oauth/${providerKey}/callback`;
 }

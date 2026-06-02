@@ -1,0 +1,109 @@
+# Deploy every push to `main` to Vercel production.
+#
+# Why this workflow exists:
+#   Vercel's GitHub App integration is broken on this project — pushes
+#   to main don't auto-create deployments, deploy hooks accept the POST
+#   but don't actually build, and CLI deploys don't get auto-promoted
+#   to the production-domain alias. The reliable path is to drive the
+#   Vercel CLI ourselves, which is exactly what we did manually:
+#
+#     1. Pull the current production env vars from Vercel.
+#     2. `vercel build` locally on the runner.
+#     3. `vercel deploy --prebuilt --prod` to upload + register.
+#     4. `vercel alias set` to point the production domain at the new
+#        build.
+#
+# Required repo secrets (already configured):
+#   VERCEL_TOKEN       — personal token with Deployments + Aliases.
+#   VERCEL_PROJECT_ID  — `prj_…` ID.
+#   VERCEL_TEAM_ID     — `team_…` org ID. Also passed as VERCEL_ORG_ID
+#                        which is what the CLI expects.
+#
+# To rotate the token: Vercel Settings → Tokens → create new → update
+# the VERCEL_TOKEN repo secret.
+
+name: Deploy to Vercel (production)
+
+on:
+  push:
+    branches: [main]
+  # Manual trigger from the Actions tab for re-deploys without a push.
+  workflow_dispatch:
+
+# One in-flight deploy per branch. A newer push cancels the older job
+# so we don't waste minutes building a commit that's already been
+# superseded.
+concurrency:
+  group: vercel-deploy-main
+  cancel-in-progress: true
+
+env:
+  PROD_DOMAIN: creator-growth-os-three.vercel.app
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_TEAM_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Deploy main → production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Sanity-check secrets
+        run: |
+          for s in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            v="$(eval echo \$$s)"
+            if [ -z "$v" ]; then
+              echo "::error::$s secret is not set."
+              exit 1
+            fi
+          done
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Validate vercel.json (Hobby cron limits, etc.)
+        # Fails fast with a clear remediation if vercel.json has a cron
+        # schedule that Vercel's Hobby plan would reject. Caught BEFORE
+        # we burn build minutes only to have Vercel reject the deploy.
+        run: node scripts/validate-vercel-config.mjs
+
+      - name: Link project (so the deploy lands on the right project)
+        # We pass --project to be explicit. The CLI also reads
+        # VERCEL_PROJECT_ID / VERCEL_ORG_ID from env, but linking writes
+        # .vercel/project.json so the subsequent deploy command has no
+        # ambiguity.
+        run: vercel link --yes --project creator-growth-os --token "$VERCEL_TOKEN"
+
+      - name: Deploy to production (Vercel-side build)
+        id: deploy
+        # We deliberately do NOT use --prebuilt here. The project marks
+        # several env vars (SUPABASE_SERVICE_ROLE_KEY, etc.) as
+        # "Sensitive", which `vercel pull` strips — so any runner-side
+        # build crashes on prerender of /admin/announcements. Letting
+        # Vercel run the build on its own builders gives the build full
+        # access to those Sensitive vars, exactly like `vercel --prod`
+        # does locally (which has been reliable).
+        run: |
+          url="$(vercel deploy --prod --yes --token "$VERCEL_TOKEN")"
+          echo "Deployed: $url"
+          # Strip protocol so we can pass the bare hostname to `alias`.
+          host="${url#https://}"
+          echo "host=$host" >> "$GITHUB_OUTPUT"
+
+      - name: Alias production domain to the new deploy
+        # Belt-and-braces: Vercel SHOULD auto-promote a `--prod` deploy,
+        # but on this project it hasn't been reliable. The alias call
+        # is idempotent and free, so we always run it.
+        run: |
+          vercel alias set "${{ steps.deploy.outputs.host }}" "$PROD_DOMAIN" \
+            --token "$VERCEL_TOKEN"
+          echo "✓ $PROD_DOMAIN now points at ${{ steps.deploy.outputs.host }}"

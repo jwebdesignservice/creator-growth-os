@@ -63,6 +63,15 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
 
+  // Stamp the live open-task count onto the Tasks nav row so the
+  // expanded label gets a badge. Kept inside render so the value
+  // updates with prop changes.
+  const primary = PRIMARY.map((item) =>
+    item.href === "/missions" && taskCount > 0
+      ? { ...item, badge: taskCount }
+      : item,
+  );
+
   // Three logical states represented by two booleans:
   // - collapsed = false, hoverExpanded = *      → expanded (initial 2.5s on mount)
   // - collapsed = true,  hoverExpanded = false  → collapsed icon rail
@@ -147,18 +156,15 @@ export function Sidebar({
         </Link>
 
         {/* Nav — explicit overflow-x-hidden prevents a horizontal
-            scrollbar appearing inside the rail when label widths
-            exceed the collapsed (76px) wrapper. */}
-        <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden">
+            scrollbar appearing inside the rail. `scrollbar-hide` keeps
+            the nav scrollable on short viewports without painting a
+            visible scrollbar over the rail. */}
+        <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <ul className="space-y-1">
-            {PRIMARY.map((item) => (
+            {primary.map((item) => (
               <NavLink
                 key={item.href}
-                item={
-                  item.href === "/missions" && taskCount > 0
-                    ? { ...item, badge: taskCount }
-                    : item
-                }
+                item={item}
                 active={isActive(pathname, item.href)}
                 expanded={expanded}
               />
