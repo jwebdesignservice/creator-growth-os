@@ -86,19 +86,36 @@ async function refreshAccessToken(
 }
 
 async function fetchUserInfo(accessToken: string): Promise<UserInfoResponse> {
-  const url = new URL(TIKTOK_USER_INFO);
-  url.searchParams.set(
-    "fields",
-    "open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count",
-  );
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`user/info failed: ${res.status} ${text.slice(0, 300)}`);
+  // Two-pass fetch: try the full field set (requires user.info.stats);
+  // if TikTok rejects with scope_not_authorized (common in Sandbox or
+  // while user.info.stats is pending review), fall back to the basic
+  // fields that user.info.basic alone unlocks. This lets the sync
+  // succeed end-to-end as soon as a user connects, even before TikTok
+  // approves the stats scope.
+  const STATS_FIELDS =
+    "open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count";
+  const BASIC_FIELDS =
+    "open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,is_verified";
+
+  const fetchWith = async (fields: string) => {
+    const url = new URL(TIKTOK_USER_INFO);
+    url.searchParams.set("fields", fields);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const text = await res.text();
+    return { ok: res.ok, status: res.status, text };
+  };
+
+  let resp = await fetchWith(STATS_FIELDS);
+  // 401 with scope_not_authorized → retry without the stats fields.
+  if (!resp.ok && resp.status === 401 && resp.text.includes("scope_not_authorized")) {
+    resp = await fetchWith(BASIC_FIELDS);
   }
-  return JSON.parse(text) as UserInfoResponse;
+  if (!resp.ok) {
+    throw new Error(`user/info failed: ${resp.status} ${resp.text.slice(0, 300)}`);
+  }
+  return JSON.parse(resp.text) as UserInfoResponse;
 }
 
 export async function syncTikTokAccount(
