@@ -547,6 +547,179 @@ function CollapsedSidebar() {
   );
 }
 
+/* ── Public + specialised patterns ────────────────────────────────────── */
+
+function AuthSplit() {
+  return (
+    <Frame>
+      <div className="flex-1 flex flex-col items-center justify-center gap-2.5 bg-cream-50 p-4">
+        <div className="size-7 rounded-[8px] bg-rose-400 mb-1" />
+        <div className="w-[72%] space-y-2">
+          <div className="h-8 rounded-lg bg-white border border-ink-100" />
+          <div className="h-8 rounded-lg bg-white border border-ink-100" />
+          <div className="h-8 rounded-lg bg-rose-400" />
+        </div>
+      </div>
+      <div className="flex-1 bg-gradient-to-br from-rose-300 via-rose-200 to-cream-200" />
+    </Frame>
+  );
+}
+
+function PricingBody() {
+  return (
+    <div className="flex-1 bg-cream-50 p-3">
+      <div className="flex flex-col items-center gap-1.5 mb-3">
+        <div className="h-3 w-32 rounded bg-ink-300" />
+        <div className="h-2 w-44 rounded bg-ink-100" />
+      </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={cn("rounded-lg border p-2.5 space-y-2", i === 1 ? "border-rose-300 bg-white shadow-sm" : "border-ink-100 bg-white")}>
+            <div className="h-2 w-12 rounded bg-ink-200" />
+            <div className="h-4 w-16 rounded bg-ink-300" />
+            <div className="space-y-1 pt-1">
+              <div className="h-1.5 rounded bg-ink-100" />
+              <div className="h-1.5 rounded bg-ink-100" />
+              <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+            </div>
+            <div className={cn("h-6 rounded-md mt-1", i === 1 ? "bg-rose-400" : "bg-cream-200")} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MediaBody() {
+  const heights = [60, 40, 52, 44, 56, 48, 64, 42];
+  return (
+    <div className="flex-1 bg-cream-50 p-3">
+      <div className="h-2.5 w-20 rounded bg-ink-200 mb-2.5" />
+      <div className="columns-4 gap-2 [&>div]:mb-2 [&>div]:break-inside-avoid">
+        {heights.map((h, i) => (
+          <div key={i} className="rounded-lg bg-white border border-ink-100" style={{ height: h }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ComparisonBody() {
+  return (
+    <div className="flex-1 bg-cream-50 p-3">
+      <div className="rounded-lg bg-white border border-ink-100 overflow-hidden">
+        <div className="grid grid-cols-4 border-b border-ink-100 bg-cream-100">
+          <div className="h-6" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-6 flex items-center justify-center">
+              <div className={cn("h-2 w-10 rounded-full", i === 1 ? "bg-rose-300" : "bg-ink-200")} />
+            </div>
+          ))}
+        </div>
+        {[0, 1, 2, 3, 4].map((r) => (
+          <div key={r} className="grid grid-cols-4 border-b border-ink-100 last:border-0">
+            <div className="h-6 flex items-center px-2">
+              <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+            </div>
+            {[0, 1, 2].map((c) => (
+              <div key={c} className="h-6 flex items-center justify-center">
+                <div className={cn("size-2.5 rounded-full", c <= r % 3 || c === 1 ? "bg-emerald-200" : "bg-ink-100")} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MapBody() {
+  return (
+    <div className="flex-1 bg-cream-50 flex">
+      <div className="w-[120px] shrink-0 border-r border-ink-100 bg-white p-2 space-y-1.5">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={cn("h-9 rounded-md border p-1.5 space-y-1", i === 0 ? "border-rose-200 bg-rose-50" : "border-ink-100")}>
+            <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+            <div className="h-1.5 w-1/2 rounded bg-ink-100" />
+          </div>
+        ))}
+      </div>
+      <div className="flex-1 relative bg-cream-100">
+        <div className="absolute inset-2 rounded-lg bg-white/60 border border-ink-100" />
+        <div className="absolute left-[30%] top-[35%] size-3 rounded-full bg-rose-500 border-2 border-white" />
+        <div className="absolute left-[55%] top-[55%] size-3 rounded-full bg-rose-400 border-2 border-white" />
+        <div className="absolute left-[45%] top-[24%] size-3 rounded-full bg-rose-400 border-2 border-white" />
+      </div>
+    </div>
+  );
+}
+
+function FileBody() {
+  return (
+    <div className="flex-1 bg-cream-50 flex">
+      <div className="w-[96px] shrink-0 border-r border-ink-100 bg-white p-2 space-y-2">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex items-center gap-1.5" style={{ paddingLeft: i > 1 ? 10 : 0 }}>
+            <div className="size-2.5 rounded-sm bg-amber-200" />
+            <div className="h-1.5 flex-1 rounded bg-ink-100" />
+          </div>
+        ))}
+      </div>
+      <div className="flex-1 p-3">
+        <div className="h-2.5 w-20 rounded bg-ink-200 mb-2.5" />
+        <div className="grid grid-cols-4 gap-2">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="space-y-1">
+              <div className="h-9 rounded-md bg-white border border-ink-100" />
+              <div className="h-1.5 w-2/3 rounded bg-ink-100 mx-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PricingMarketing() {
+  return (
+    <Frame>
+      <PricingBody />
+    </Frame>
+  );
+}
+function MediaGallery() {
+  return (
+    <Frame>
+      <NavRail />
+      <MediaBody />
+    </Frame>
+  );
+}
+function ComparisonTable() {
+  return (
+    <Frame>
+      <NavRail />
+      <ComparisonBody />
+    </Frame>
+  );
+}
+function MapList() {
+  return (
+    <Frame>
+      <NavRail />
+      <MapBody />
+    </Frame>
+  );
+}
+function FileBrowser() {
+  return (
+    <Frame>
+      <NavRail />
+      <FileBody />
+    </Frame>
+  );
+}
+
 /* ── Gallery category export ──────────────────────────────────────────── */
 
 type PdCategory = {
@@ -584,6 +757,12 @@ export const PAGE_DESIGN_CATEGORIES: PdCategory[] = [
       { label: "Settings form", code: "SettingsForm", node: <SettingsForm /> },
       { label: "Data table view", code: "DataTableView", node: <DataTableView /> },
       { label: "Profile / detail", code: "ProfileDetail", node: <ProfileDetail /> },
+      { label: "Auth · split", code: "AuthSplit", node: <AuthSplit /> },
+      { label: "Pricing / marketing", code: "PricingMarketing", node: <PricingMarketing /> },
+      { label: "Media gallery", code: "MediaGallery", node: <MediaGallery /> },
+      { label: "Comparison table", code: "ComparisonTable", node: <ComparisonTable /> },
+      { label: "Map + list", code: "MapList", node: <MapList /> },
+      { label: "File browser", code: "FileBrowser", node: <FileBrowser /> },
     ],
   },
 ];
