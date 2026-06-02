@@ -35,11 +35,13 @@ import {
   LayoutGrid,
   LayoutPanelTop,
   LayoutTemplate,
+  LoaderCircle,
   Menu,
   MessageSquare,
   MessagesSquare,
   MousePointerClick,
   NotebookPen,
+  OctagonAlert,
   PanelLeft,
   PanelRight,
   PanelTop,
@@ -47,6 +49,7 @@ import {
   Search,
   Send,
   Server,
+  Settings,
   Sparkles,
   Table2,
   Tag,
@@ -69,6 +72,7 @@ import {
   DisabledButton,
 } from "@/design-templates/buttons";
 import { FOUNDATION_CATEGORIES } from "@/design-templates/foundations";
+import { PAGE_DESIGN_CATEGORIES } from "@/design-templates/page-designs";
 import {
   TextInput,
   TextInputWithError,
@@ -144,6 +148,9 @@ import { UpcomingWidget, SuggestionWidget, LeaderboardWidget } from "@/design-te
 import { SpaceCard, DiscussionRow, ReactionBar } from "@/design-templates/community";
 import { StatusBadges, SystemHealthStrip, MetricStrip } from "@/design-templates/dev-widgets";
 import { SearchResults, EmptyResults } from "@/design-templates/search";
+import { ConnectedAccounts, SettingsToggleRows, DangerZone } from "@/design-templates/settings";
+import { NotFoundState, InlineError, MaintenanceState } from "@/design-templates/errors";
+import { Spinner, BrandLoader, LoadingButton, SkeletonCard } from "@/design-templates/loading";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -162,6 +169,7 @@ type Category = {
 
 const CATEGORIES: Category[] = [
   ...FOUNDATION_CATEGORIES,
+  ...PAGE_DESIGN_CATEGORIES,
   {
     id: "buttons",
     label: "Buttons",
@@ -562,6 +570,40 @@ const CATEGORIES: Category[] = [
     items: [
       { label: "Search results", code: "SearchResults", node: <SearchResults /> },
       { label: "Empty results", code: "EmptyResults", node: <EmptyResults /> },
+    ],
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    blurb: "Connected accounts, toggle rows, and a danger zone.",
+    items: [
+      { label: "Connected accounts", code: "ConnectedAccounts", node: <ConnectedAccounts /> },
+      { label: "Toggle rows", code: "SettingsToggleRows", node: <SettingsToggleRows /> },
+      { label: "Danger zone", code: "DangerZone", node: <DangerZone /> },
+    ],
+  },
+  {
+    id: "errors",
+    label: "Errors",
+    icon: OctagonAlert,
+    blurb: "404, inline error with retry, and a maintenance screen.",
+    items: [
+      { label: "Not found (404)", code: "NotFoundState", node: <NotFoundState /> },
+      { label: "Inline error", code: "InlineError", node: <InlineError /> },
+      { label: "Maintenance", code: "MaintenanceState", node: <MaintenanceState /> },
+    ],
+  },
+  {
+    id: "loading",
+    label: "Loading",
+    icon: LoaderCircle,
+    blurb: "Spinner, brand loader, busy buttons, and a content skeleton.",
+    items: [
+      { label: "Spinner", code: "Spinner", node: <Spinner /> },
+      { label: "Brand loader", code: "BrandLoader", node: <BrandLoader /> },
+      { label: "Busy buttons", code: "LoadingButton", node: <LoadingButton /> },
+      { label: "Skeleton card", code: "SkeletonCard", node: <SkeletonCard /> },
     ],
   },
 ];
