@@ -22,15 +22,19 @@ import {
   ChartColumn,
   CircleUser,
   ClipboardList,
+  Compass,
   DollarSign,
   Gauge,
+  GraduationCap,
   Info,
   KeyRound,
+  Layers,
   LayoutGrid,
   LayoutPanelTop,
   LayoutTemplate,
   Menu,
   MessageSquare,
+  MessagesSquare,
   MousePointerClick,
   PanelLeft,
   PanelTop,
@@ -116,6 +120,10 @@ import { StatTile, StatRow, DeltaStats } from "@/design-templates/stats";
 import { Sparkline, DonutRing, BarChart, SegmentedBar } from "@/design-templates/charts";
 import { PageHeader, SectionCard, FilterBar } from "@/design-templates/sections";
 import { OAuthButtons, PasswordStrength } from "@/design-templates/auth-blocks";
+import { ToastStack, ConfirmDialog, CommandPalette } from "@/design-templates/overlays";
+import { MessageThread, ChatComposer, ChannelList } from "@/design-templates/chat";
+import { ProgramCard, CurriculumAccordion, VideoPlayer } from "@/design-templates/learning";
+import { SelectionCards, StepHeader, ProgressRail } from "@/design-templates/onboarding";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -385,6 +393,50 @@ const CATEGORIES: Category[] = [
     items: [
       { label: "OAuth buttons", code: "OAuthButtons", node: <OAuthButtons /> },
       { label: "Password strength", code: "PasswordStrength", node: <PasswordStrength /> },
+    ],
+  },
+  {
+    id: "overlays",
+    label: "Overlays",
+    icon: Layers,
+    blurb: "Toast stack, confirm dialog, and the command palette.",
+    items: [
+      { label: "Toast stack", code: "ToastStack", node: <ToastStack /> },
+      { label: "Confirm dialog", code: "ConfirmDialog", node: <ConfirmDialog /> },
+      { label: "Command palette", code: "CommandPalette", node: <CommandPalette /> },
+    ],
+  },
+  {
+    id: "chat",
+    label: "Chat",
+    icon: MessagesSquare,
+    blurb: "Community message bubbles, composer, and channel list.",
+    items: [
+      { label: "Message thread", code: "MessageThread", node: <MessageThread /> },
+      { label: "Chat composer", code: "ChatComposer", node: <ChatComposer /> },
+      { label: "Channel list", code: "ChannelList", node: <ChannelList /> },
+    ],
+  },
+  {
+    id: "learning",
+    label: "Learning",
+    icon: GraduationCap,
+    blurb: "Program card, curriculum accordion, and the lesson video player.",
+    items: [
+      { label: "Program card", code: "ProgramCard", node: <ProgramCard /> },
+      { label: "Curriculum accordion", code: "CurriculumAccordion", node: <CurriculumAccordion /> },
+      { label: "Video player", code: "VideoPlayer", node: <VideoPlayer /> },
+    ],
+  },
+  {
+    id: "onboarding",
+    label: "Onboarding",
+    icon: Compass,
+    blurb: "Selectable cards, a step header with progress, and a progress rail.",
+    items: [
+      { label: "Selection cards", code: "SelectionCards", node: <SelectionCards />, scale: 0.85 },
+      { label: "Step header", code: "StepHeader", node: <StepHeader /> },
+      { label: "Progress rail", code: "ProgressRail", node: <ProgressRail /> },
     ],
   },
 ];

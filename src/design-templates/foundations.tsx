@@ -19,9 +19,32 @@ import {
   MoveHorizontal,
   MonitorSmartphone,
   LayoutDashboard,
+  Palette,
+  Layers,
+  Shapes,
+  Circle,
+  Home,
+  Search,
+  Bell,
+  Settings,
+  User,
+  Heart,
+  Star,
+  Calendar,
+  Mail,
+  MessageSquare,
+  Check,
+  Plus,
+  Trash2,
+  Download,
+  Eye,
+  Lock,
+  Zap,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
 
 const SAMPLE = "The quick brown fox jumps over the lazy dog";
 
@@ -48,7 +71,8 @@ function Typography() {
             i < HEADINGS.length - 1 && "border-b border-ink-100",
           )}
         >
-          <span className={cn(h.cls, "text-ink-900 leading-none")}>{h.sample}</span>
+          {/* plain string, not cn(): twMerge would strip the custom .text-h* class */}
+          <span className={`${h.cls} text-ink-900 leading-none`}>{h.sample}</span>
           <span className="shrink-0 whitespace-nowrap text-[11.5px] font-mono text-ink-400">
             {h.name} · {h.size}
           </span>
@@ -118,7 +142,8 @@ function TextSizes() {
             i < TEXT_SIZES.length - 1 && "border-b border-ink-100",
           )}
         >
-          <span className={cn(t.cls, "text-ink-900 truncate")}>{SAMPLE}</span>
+          {/* plain string, not cn(): twMerge would strip the custom .text-* class */}
+          <span className={`${t.cls} text-ink-900 truncate`}>{SAMPLE}</span>
           <span className="shrink-0 whitespace-nowrap text-[11.5px] font-mono text-ink-400">
             {t.name} · {t.size}
           </span>
@@ -330,6 +355,149 @@ function StructureClasses() {
   );
 }
 
+/* ── 10 · Colors ──────────────────────────────────────────────────────── */
+
+const PALETTE: { group: string; colors: [string, string][] }[] = [
+  { group: "Cream — surfaces", colors: [["cream-50", "#FDFBF8"], ["cream-100", "#FAF6F2"], ["cream-200", "#F4ECE3"], ["cream-300", "#E9DDCF"]] },
+  { group: "Rose — brand", colors: [["rose-50", "#FCEFEC"], ["rose-100", "#F7E1DC"], ["rose-200", "#F0CFC8"], ["rose-300", "#E0A89E"], ["rose-400", "#D08171"], ["rose-500", "#C26174"], ["rose-600", "#B9485C"], ["rose-700", "#97384A"]] },
+  { group: "Ink — text & neutral", colors: [["ink-50", "#F7F5F2"], ["ink-100", "#ECE8E3"], ["ink-200", "#DDD7D0"], ["ink-300", "#C2BAB0"], ["ink-400", "#9B928A"], ["ink-500", "#756E66"], ["ink-700", "#3A3631"], ["ink-900", "#1A1816"]] },
+  { group: "Gold & status", colors: [["gold-400", "#D9B66B"], ["gold-500", "#C9A14A"], ["success", "#3DA862"], ["success-bg", "#E2F2E8"]] },
+];
+
+function Colors() {
+  return (
+    <div className="w-full space-y-5">
+      {PALETTE.map((g) => (
+        <div key={g.group}>
+          <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{g.group}</div>
+          <div className="flex flex-wrap gap-3">
+            {g.colors.map(([name, hex]) => (
+              <div key={name} className="w-[104px]">
+                <div className="h-14 rounded-[10px] border border-ink-100" style={{ backgroundColor: hex }} />
+                <div className="mt-1.5 text-[11.5px] font-mono text-ink-700">{name}</div>
+                <div className="text-[10.5px] font-mono text-ink-400">{hex}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── 11 · Icons ───────────────────────────────────────────────────────── */
+
+const ICON_SET: LucideIcon[] = [
+  Home, Search, Bell, Settings, User, Heart, Star, Calendar,
+  Mail, MessageSquare, Check, Plus, Trash2, Download, Eye, Lock, Zap, Sparkles,
+];
+
+function Icons() {
+  return (
+    <div className="w-full space-y-5">
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Lucide · UI icons</div>
+        <div className="flex flex-wrap gap-2.5">
+          {ICON_SET.map((Ic, i) => (
+            <div key={i} className="size-11 rounded-[10px] bg-cream-100 border border-ink-100 flex items-center justify-center text-ink-700">
+              <Ic className="size-[18px]" strokeWidth={1.8} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Brand glyphs</div>
+        <div className="flex flex-wrap gap-2.5">
+          {[InstagramIcon, TiktokIcon, YoutubeIcon].map((G, i) => (
+            <div key={i} className="size-11 rounded-[10px] bg-cream-100 border border-ink-100 flex items-center justify-center text-ink-800">
+              <G size={18} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-[12px] text-ink-400 leading-relaxed">
+        Outline icons from <code className="font-mono">lucide-react</code> at <code className="font-mono">1.8</code> stroke; brand marks are custom SVGs.
+      </p>
+    </div>
+  );
+}
+
+/* ── 12 · Border Radius ───────────────────────────────────────────────── */
+
+const RADII = [
+  { name: "radius-2xs", px: 4 },
+  { name: "radius-xs", px: 6 },
+  { name: "radius-sm", px: 8 },
+  { name: "radius-md", px: 12 },
+  { name: "radius-lg", px: 16 },
+  { name: "radius-xl", px: 20 },
+  { name: "radius-2xl", px: 24 },
+  { name: "radius-3xl", px: 32 },
+];
+
+function BorderRadius() {
+  return (
+    <div className="w-full">
+      <div className="flex flex-wrap gap-x-7 gap-y-5">
+        {RADII.map((r) => (
+          <div key={r.name} className="flex flex-col items-center gap-2">
+            <div className="size-16 bg-rose-100 border border-rose-300" style={{ borderRadius: r.px }} />
+            <div className="text-center leading-tight">
+              <div className="text-[11px] font-mono text-ink-600 tabular-nums">{r.px}px</div>
+              <div className="text-[10px] font-mono text-ink-400">--{r.name}</div>
+            </div>
+          </div>
+        ))}
+        <div className="flex flex-col items-center gap-2">
+          <div className="size-16 bg-rose-100 border border-rose-300 rounded-full" />
+          <div className="text-center leading-tight">
+            <div className="text-[11px] font-mono text-ink-600">full</div>
+            <div className="text-[10px] font-mono text-ink-400">--radius-full</div>
+          </div>
+        </div>
+      </div>
+      <p className="mt-5 text-[12px] text-ink-400 leading-relaxed">
+        Aliases: <code className="font-mono">--radius-card</code> (16px), <code className="font-mono">--radius-button</code> (12px),{" "}
+        <code className="font-mono">--radius-pill</code> (full).
+      </p>
+    </div>
+  );
+}
+
+/* ── 13 · Shadows ─────────────────────────────────────────────────────── */
+
+const SHADOWS = [
+  { name: "shadow-xs", v: "--shadow-xs" },
+  { name: "shadow-sm", v: "--shadow-sm" },
+  { name: "shadow-soft", v: "--shadow-soft" },
+  { name: "shadow-card", v: "--shadow-card" },
+  { name: "shadow-md", v: "--shadow-md" },
+  { name: "shadow-lg", v: "--shadow-lg" },
+  { name: "shadow-xl", v: "--shadow-xl" },
+];
+
+function Shadows() {
+  return (
+    <div className="w-full">
+      <div className="flex flex-wrap gap-6">
+        {SHADOWS.map((s) => (
+          <div key={s.name} className="flex flex-col items-center gap-2.5">
+            <div
+              className="size-20 rounded-[12px] bg-white border border-ink-100/50"
+              style={{ boxShadow: `var(${s.v})` }}
+            />
+            <div className="text-[10.5px] font-mono text-ink-500">{s.name}</div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-5 text-[12px] text-ink-400 leading-relaxed">
+        Applied via <code className="font-mono">shadow-card</code> / <code className="font-mono">shadow-soft</code> utilities; semantic{" "}
+        <code className="font-mono">--shadow-modal</code> and <code className="font-mono">--shadow-popover</code> extend the scale.
+      </p>
+    </div>
+  );
+}
+
 /* ── Gallery category export ──────────────────────────────────────────── */
 
 type FCategory = {
@@ -361,6 +529,34 @@ export const FOUNDATION_CATEGORIES: FCategory[] = [
     icon: CaseSensitive,
     blurb: "Fluid body & UI text scale.",
     items: [{ label: "Text size scale", code: "TextSizes", node: <TextSizes /> }],
+  },
+  {
+    id: "colors",
+    label: "Colors",
+    icon: Palette,
+    blurb: "Brand, neutral and status palette.",
+    items: [{ label: "Color palette", code: "Colors", node: <Colors /> }],
+  },
+  {
+    id: "icons",
+    label: "Icons",
+    icon: Shapes,
+    blurb: "Lucide UI icons + brand glyphs.",
+    items: [{ label: "Icon set", code: "Icons", node: <Icons /> }],
+  },
+  {
+    id: "border-radius",
+    label: "Border Radius",
+    icon: Circle,
+    blurb: "Corner-radius scale + component aliases.",
+    items: [{ label: "Radius scale", code: "BorderRadius", node: <BorderRadius /> }],
+  },
+  {
+    id: "shadows",
+    label: "Shadows",
+    icon: Layers,
+    blurb: "Elevation scale + focus rings.",
+    items: [{ label: "Elevation scale", code: "Shadows", node: <Shadows /> }],
   },
   {
     id: "paddings",
