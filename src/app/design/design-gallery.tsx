@@ -44,13 +44,16 @@ import {
   PanelRight,
   PanelTop,
   Route,
+  Search,
   Send,
+  Server,
   Sparkles,
   Table2,
   Tag,
   TextCursorInput,
   ToggleLeft,
   Trophy,
+  UsersRound,
   Wallet,
   X,
   type LucideIcon,
@@ -138,6 +141,9 @@ import { NoteCard, NoteEditorToolbar } from "@/design-templates/notes";
 import { ContentCalendar, MiniCalendar } from "@/design-templates/calendar";
 import { MediaKitCard, ProfileHeader } from "@/design-templates/media-kit";
 import { UpcomingWidget, SuggestionWidget, LeaderboardWidget } from "@/design-templates/widgets";
+import { SpaceCard, DiscussionRow, ReactionBar } from "@/design-templates/community";
+import { StatusBadges, SystemHealthStrip, MetricStrip } from "@/design-templates/dev-widgets";
+import { SearchResults, EmptyResults } from "@/design-templates/search";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -524,6 +530,38 @@ const CATEGORIES: Category[] = [
       { label: "Upcoming", code: "UpcomingWidget", node: <UpcomingWidget /> },
       { label: "Suggestion", code: "SuggestionWidget", node: <SuggestionWidget /> },
       { label: "Leaderboard", code: "LeaderboardWidget", node: <LeaderboardWidget /> },
+    ],
+  },
+  {
+    id: "community",
+    label: "Community",
+    icon: UsersRound,
+    blurb: "Space card, discussion row, and a reaction bar.",
+    items: [
+      { label: "Space card", code: "SpaceCard", node: <SpaceCard /> },
+      { label: "Discussion row", code: "DiscussionRow", node: <DiscussionRow /> },
+      { label: "Reaction bar", code: "ReactionBar", node: <ReactionBar /> },
+    ],
+  },
+  {
+    id: "dev-widgets",
+    label: "Dev widgets",
+    icon: Server,
+    blurb: "Status badges, system-health strip, and a compact metric strip.",
+    items: [
+      { label: "Status badges", code: "StatusBadges", node: <StatusBadges /> },
+      { label: "System health", code: "SystemHealthStrip", node: <SystemHealthStrip />, scale: 0.85 },
+      { label: "Metric strip", code: "MetricStrip", node: <MetricStrip />, scale: 0.85 },
+    ],
+  },
+  {
+    id: "search",
+    label: "Search",
+    icon: Search,
+    blurb: "Grouped search results with highlighting, and an empty state.",
+    items: [
+      { label: "Search results", code: "SearchResults", node: <SearchResults /> },
+      { label: "Empty results", code: "EmptyResults", node: <EmptyResults /> },
     ],
   },
 ];
