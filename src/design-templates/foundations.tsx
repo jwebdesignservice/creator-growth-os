@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
+import { BRAND_CATEGORIES } from "./brand";
 
 const SAMPLE = "The quick brown fox jumps over the lazy dog";
 
@@ -776,6 +777,7 @@ type FCategory = {
 };
 
 export const FOUNDATION_CATEGORIES: FCategory[] = [
+  ...BRAND_CATEGORIES,
   {
     id: "typography",
     label: "Typography",
