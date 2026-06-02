@@ -720,6 +720,173 @@ function FileBrowser() {
   );
 }
 
+/* ── Focused & power-user patterns ────────────────────────────────────── */
+
+function TwoColFormBody() {
+  return (
+    <div className="flex-1 min-w-0 bg-cream-50 p-3.5 flex gap-3">
+      <div className="flex-1 space-y-2.5">
+        <div className="h-2.5 w-24 rounded bg-ink-300 mb-0.5" />
+        <div className="grid grid-cols-2 gap-2.5">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-8 rounded-lg bg-white border border-ink-100" />
+          ))}
+        </div>
+        <div className="h-16 rounded-lg bg-white border border-ink-100" />
+        <div className="h-7 w-24 rounded-lg bg-rose-400" />
+      </div>
+      <div className="w-[96px] shrink-0 space-y-2">
+        <div className="h-24 rounded-lg bg-white border border-ink-100" />
+        <div className="h-12 rounded-lg bg-cream-100" />
+      </div>
+    </div>
+  );
+}
+
+function NotificationCenterBody() {
+  return (
+    <div className="flex-1 min-w-0 bg-cream-50 overflow-hidden">
+      <div className="mx-auto max-w-[72%] py-3 space-y-2">
+        <div className="h-2 w-12 rounded bg-ink-300" />
+        {[0, 1].map((i) => (
+          <div key={`t${i}`} className="flex items-start gap-2 rounded-lg bg-white border border-ink-100 p-2">
+            <div className="size-6 rounded-full bg-rose-100 shrink-0" />
+            <div className="flex-1 space-y-1">
+              <div className="h-1.5 rounded bg-ink-200" />
+              <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+            </div>
+            <div className="h-1.5 w-6 rounded bg-ink-100 mt-0.5" />
+          </div>
+        ))}
+        <div className="h-2 w-16 rounded bg-ink-300 mt-1" />
+        {[0, 1].map((i) => (
+          <div key={`e${i}`} className="flex items-start gap-2 rounded-lg bg-white border border-ink-100 p-2">
+            <div className="size-6 rounded-full bg-cream-200 shrink-0" />
+            <div className="flex-1 space-y-1">
+              <div className="h-1.5 rounded bg-ink-100" />
+              <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MultiPaneBody() {
+  return (
+    <div className="flex-1 min-w-0 bg-cream-50 flex">
+      <div className="w-[80px] shrink-0 border-r border-ink-100 bg-white p-2 space-y-1.5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className={cn("h-6 rounded-md border", i === 1 ? "border-rose-200 bg-rose-50" : "border-ink-100 bg-cream-50")} />
+        ))}
+      </div>
+      <div className="flex-1 p-2.5 space-y-2 border-r border-ink-100">
+        <div className="h-2.5 w-20 rounded bg-ink-300" />
+        <div className="h-12 rounded-lg bg-white border border-ink-100" />
+        <div className="h-10 rounded-lg bg-white border border-ink-100" />
+      </div>
+      <div className="w-[84px] shrink-0 bg-white p-2 space-y-2">
+        <div className="h-10 rounded-lg bg-cream-100" />
+        <div className="h-2 rounded bg-ink-100" />
+        <div className="h-2 w-2/3 rounded bg-ink-100" />
+      </div>
+    </div>
+  );
+}
+
+function TwoColumnForm() {
+  return (
+    <Frame>
+      <NavRail />
+      <TwoColFormBody />
+    </Frame>
+  );
+}
+function NotificationCenter() {
+  return (
+    <Frame>
+      <NavRail />
+      <NotificationCenterBody />
+    </Frame>
+  );
+}
+function MultiPaneWorkspace() {
+  return (
+    <Frame>
+      <NavRail />
+      <MultiPaneBody />
+    </Frame>
+  );
+}
+function OnboardingFullscreen() {
+  return (
+    <Frame>
+      <div className="flex-1 bg-cream-50 flex flex-col items-center justify-center gap-3 p-4">
+        <div className="flex items-center gap-1.5">
+          <div className="size-4 rounded-full bg-rose-400" />
+          <div className="h-0.5 w-8 bg-rose-200" />
+          <div className="size-4 rounded-full bg-rose-200" />
+          <div className="h-0.5 w-8 bg-ink-100" />
+          <div className="size-4 rounded-full bg-ink-100" />
+        </div>
+        <div className="h-2.5 w-40 rounded bg-ink-300" />
+        <div className="flex gap-2.5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={cn("w-20 h-16 rounded-lg border bg-white", i === 1 ? "border-rose-300 shadow-sm" : "border-ink-100")} />
+          ))}
+        </div>
+        <div className="h-7 w-28 rounded-lg bg-rose-400 mt-1" />
+      </div>
+    </Frame>
+  );
+}
+function ErrorPageLayout() {
+  return (
+    <Frame>
+      <div className="flex-1 bg-cream-50 flex flex-col items-center justify-center gap-2 p-4">
+        <div className="size-10 rounded-xl bg-rose-100" />
+        <div className="h-1.5 w-14 rounded bg-rose-300" />
+        <div className="h-4 w-40 rounded bg-ink-300" />
+        <div className="h-2 w-48 rounded bg-ink-100" />
+        <div className="flex gap-2 mt-1.5">
+          <div className="h-7 w-24 rounded-lg bg-rose-400" />
+          <div className="h-7 w-24 rounded-lg bg-white border border-ink-200" />
+        </div>
+      </div>
+    </Frame>
+  );
+}
+function DocumentInvoice() {
+  return (
+    <Frame>
+      <div className="flex-1 bg-cream-100 flex justify-center p-3 overflow-hidden">
+        <div className="w-[62%] bg-white border border-ink-100 rounded-md shadow-sm p-3 space-y-2">
+          <div className="flex items-start justify-between">
+            <div className="size-6 rounded bg-rose-400" />
+            <div className="space-y-1">
+              <div className="h-1.5 w-12 rounded bg-ink-200 ml-auto" />
+              <div className="h-1.5 w-8 rounded bg-ink-100 ml-auto" />
+            </div>
+          </div>
+          <div className="space-y-1.5 pt-1">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex justify-between">
+                <div className="h-1.5 w-1/2 rounded bg-ink-100" />
+                <div className="h-1.5 w-10 rounded bg-ink-100" />
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-ink-100 pt-1.5 flex justify-between">
+            <div className="h-2 w-12 rounded bg-ink-300" />
+            <div className="h-2 w-12 rounded bg-rose-300" />
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
 /* ── Gallery category export ──────────────────────────────────────────── */
 
 type PdCategory = {
@@ -763,6 +930,12 @@ export const PAGE_DESIGN_CATEGORIES: PdCategory[] = [
       { label: "Comparison table", code: "ComparisonTable", node: <ComparisonTable /> },
       { label: "Map + list", code: "MapList", node: <MapList /> },
       { label: "File browser", code: "FileBrowser", node: <FileBrowser /> },
+      { label: "Two-column form", code: "TwoColumnForm", node: <TwoColumnForm /> },
+      { label: "Notification center", code: "NotificationCenter", node: <NotificationCenter /> },
+      { label: "Multi-pane workspace", code: "MultiPaneWorkspace", node: <MultiPaneWorkspace /> },
+      { label: "Onboarding · fullscreen", code: "OnboardingFullscreen", node: <OnboardingFullscreen /> },
+      { label: "Error / 404 page", code: "ErrorPageLayout", node: <ErrorPageLayout /> },
+      { label: "Document / invoice", code: "DocumentInvoice", node: <DocumentInvoice /> },
     ],
   },
 ];
