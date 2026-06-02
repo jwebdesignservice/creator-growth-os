@@ -134,7 +134,7 @@ export function TemplatesView({ templates }: { templates: TemplateRow[] }) {
           )}
         </div>
       ) : (
-        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {active.map((t) => (
             <TemplateCard
               key={t.id}
@@ -151,7 +151,7 @@ export function TemplatesView({ templates }: { templates: TemplateRow[] }) {
       {archived.length > 0 && (
         <section>
           <h2 className="text-h4 text-ink-900 mb-3">Archived</h2>
-          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {archived.map((t) => (
               <TemplateCard
                 key={t.id}

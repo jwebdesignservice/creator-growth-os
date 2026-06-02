@@ -44,7 +44,7 @@ export function UserEditForms({ userId, category, plan, onboarded }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       <label className="block">
         <span className="block text-[12px] font-medium text-ink-700 mb-1.5">
           Category

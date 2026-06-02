@@ -132,7 +132,7 @@ function MetricSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as AdminMetricKey)}
-        className="appearance-none h-9 pl-3 pr-9 rounded-[10px] bg-white border border-ink-100 text-[13px] font-medium text-ink-900 hover:bg-cream-100 transition-colors cursor-pointer focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 min-w-[180px]"
+        className="appearance-none h-9 pl-3 pr-9 rounded-[10px] bg-white border border-ink-100 text-[13px] font-medium text-ink-900 hover:bg-cream-100 transition-colors cursor-pointer focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 min-w-[160px] lg:min-w-[180px]"
       >
         {METRICS.map((m) => (
           <option key={m.key} value={m.key}>

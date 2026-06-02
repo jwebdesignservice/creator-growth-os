@@ -87,7 +87,7 @@ export function ProgramsToolbar() {
       {/* Search */}
       <form
         onSubmit={onSearchSubmit}
-        className="relative flex-1 min-w-[220px] max-w-md"
+        className="relative flex-1 min-w-[200px] md:max-w-sm lg:max-w-md"
       >
         <Search
           className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-400"

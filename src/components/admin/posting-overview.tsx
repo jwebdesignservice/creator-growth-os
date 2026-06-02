@@ -161,7 +161,7 @@ export function PostingOverview({
       </header>
 
       {/* ── KPI cards ──────────────────────────────────────────────────── */}
-      <section className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4">
+      <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         <Kpi
           icon={CalendarCheck}
           tone="emerald"
@@ -279,7 +279,7 @@ export function PostingOverview({
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[860px]">
+              <table className="w-full text-left md:min-w-[720px] lg:min-w-[860px]">
                 <thead>
                   <tr className="text-[11px] font-semibold text-ink-500 uppercase tracking-wide bg-cream-50">
                     <th className="px-4 py-3">Creator</th>

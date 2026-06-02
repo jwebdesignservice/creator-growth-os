@@ -90,7 +90,7 @@ export function CreateProgramForm() {
           <legend className="text-[12px] font-medium text-ink-700 mb-2">
             Visible to categories
           </legend>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {CATEGORIES.map((c) => (
               <label
                 key={c.value}

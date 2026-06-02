@@ -85,7 +85,7 @@ export function ActiveBuildsSection({
       </header>
 
       {/* 3 cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
         {builds.map((b, i) => (
           <BuildCard key={b.id} build={b} featured={i === 0} />
         ))}

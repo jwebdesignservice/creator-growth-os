@@ -8,22 +8,25 @@ import { cn } from "@/lib/cn";
 import type { InvoiceRow, SubscriptionRow } from "@/lib/billing/queries";
 import {
   Crown,
-  Calendar,
   Check,
   Download,
-  MessageCircle,
-  ArrowRight,
-  Mail,
-  BarChart2,
-  CalendarDays,
-  Bell,
+  CreditCard,
+  ShieldCheck,
+  ExternalLink,
+  HelpCircle,
+  ChevronDown,
 } from "lucide-react";
 
+type Plan = "free" | "basic" | "pro";
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Static billing data (Stripe integration pending)
+// Static plan catalogue (prices/features). Stripe drives the live subscription.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PLAN_INFO = {
+const PLAN_INFO: Record<
+  Plan,
+  { label: string; price: number; description: string; features: string[] }
+> = {
   free: {
     label: "Free",
     price: 0,
@@ -59,15 +62,7 @@ const PLAN_INFO = {
       "1-on-1 coaching calls",
     ],
   },
-} as const;
-
-const INCLUDED_FEATURES: { icon: React.ReactNode; label: string }[] = [
-  { icon: <Mail      className="size-[1.125rem] text-rose-600" strokeWidth={1.8} />, label: "Access to all core courses and tutorials"       },
-  { icon: <BarChart2 className="size-[1.125rem] text-rose-600" strokeWidth={1.8} />, label: "Advanced analytics & performance insights"       },
-  { icon: <CalendarDays className="size-[1.125rem] text-rose-600" strokeWidth={1.8} />, label: "Up to 10 posting plans"                     },
-  { icon: <Bell      className="size-[1.125rem] text-rose-600" strokeWidth={1.8} />, label: "Brand deal alerts and opportunities"            },
-  { icon: <Mail      className="size-[1.125rem] text-rose-600" strokeWidth={1.8} />, label: "Priority email support"                        },
-];
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root export
@@ -80,18 +75,19 @@ export function BillingPageClient({
   stripeReady,
   firstName,
 }: {
-  plan: "free" | "basic" | "pro";
+  plan: Plan;
   subscription: SubscriptionRow | null;
   invoices: InvoiceRow[];
   stripeReady: boolean;
   firstName?: string;
 }) {
+  const hasSubscription = Boolean(subscription?.stripe_subscription_id);
+
   return (
     <PageShell>
-      <div className="w-full max-w-[var(--container-dashboard)] space-y-[var(--space-section-gap)]">
-
-        {/* ── Page header ─────────────────────────────────────────────── */}
-        <div>
+      <div className="container-content space-y-[var(--space-section-gap)]">
+        {/* ── Header ───────────────────────────────────────────────────── */}
+        <header>
           {firstName && (
             <div className="text-rose-600 font-medium text-[13.5px] flex items-center gap-2 mb-2">
               Welcome back, {firstName}! <span aria-hidden>👋</span>
@@ -101,45 +97,64 @@ export function BillingPageClient({
             Billing
           </h1>
           <p className="text-body-sm text-ink-500 mt-1">
-            Manage your subscription, payment methods, and invoices.
+            Manage your subscription, payment method and invoices.
           </p>
           {!stripeReady && (
             <p className="mt-3 text-[12.5px] text-amber-700 bg-amber-50 border border-amber-200 rounded-[10px] px-3 py-2 inline-block">
-              Stripe is not yet configured — checkout & invoices will activate once env vars are set.
+              Stripe is not yet configured — checkout & invoices will activate
+              once env vars are set.
             </p>
           )}
-        </div>
+        </header>
 
-        {/* ── Row 1: Current Plan + Plan Picker ───────────────────────── */}
-        <div className="grid grid-cols-1 xl:grid-cols-[20rem_1fr] xl:items-start gap-[var(--space-grid-gap)]">
-          <CurrentPlanCard
-            plan={plan}
-            subscription={subscription}
-            stripeReady={stripeReady}
-          />
-          <PlanPickerCard currentPlan={plan} stripeReady={stripeReady} />
-        </div>
+        {/* ── Subscription overview (plan + status + key billing facts) ── */}
+        <SubscriptionHero
+          plan={plan}
+          subscription={subscription}
+          stripeReady={stripeReady}
+          hasSubscription={hasSubscription}
+        />
 
-        {/* ── Row 2: 4 info cards ─────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--space-grid-gap)]">
-          <PaymentMethodCard
-            hasSubscription={Boolean(subscription?.stripe_subscription_id)}
-            stripeReady={stripeReady}
-          />
-          <BillingSummaryCard plan={plan} subscription={subscription} />
-          <WhatsIncludedCard plan={plan} />
-          <NeedHelpCard />
-        </div>
+        {/* ── Payment method ───────────────────────────────────────────── */}
+        <PaymentMethodCard
+          hasSubscription={hasSubscription}
+          stripeReady={stripeReady}
+        />
 
-        {/* ── Row 3: Invoices ─────────────────────────────────────────── */}
+        {/* ── Billing history ──────────────────────────────────────────── */}
         <RecentInvoicesCard invoices={invoices} />
+
+        {/* ── Compare plans (secondary, collapsible) ───────────────────── */}
+        <ComparePlansSection plan={plan} stripeReady={stripeReady} />
+
+        {/* ── Support line (replaces the standalone "Need help?" card) ──── */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-x-2.5 gap-y-1.5 pt-1 text-body-sm text-ink-500">
+          <span className="inline-flex items-center gap-1.5">
+            <HelpCircle className="size-4 text-ink-400" strokeWidth={2} />
+            Questions about billing?
+          </span>
+          <span className="hidden sm:inline text-ink-300">·</span>
+          <Link
+            href="/support"
+            className="font-semibold text-rose-600 hover:text-rose-700 transition-colors"
+          >
+            Contact support
+          </Link>
+          <span className="text-ink-300">·</span>
+          <Link
+            href="/support"
+            className="font-semibold text-rose-600 hover:text-rose-700 transition-colors"
+          >
+            Billing FAQ
+          </Link>
+        </div>
       </div>
     </PageShell>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action hooks (checkout / portal)
+// Action hooks (checkout / portal) — unchanged wiring to the billing API
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useCheckout() {
@@ -187,175 +202,327 @@ function usePortal() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Current Plan
+// 1. Subscription hero — merges the old "Current Plan" + "Billing Summary"
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CurrentPlanCard({
+function SubscriptionHero({
   plan,
   subscription,
   stripeReady,
+  hasSubscription,
 }: {
-  plan: "free" | "basic" | "pro";
+  plan: Plan;
   subscription: SubscriptionRow | null;
   stripeReady: boolean;
+  hasSubscription: boolean;
 }) {
-  const info  = PLAN_INFO[plan];
+  const info = PLAN_INFO[plan];
   const isPro = plan === "pro";
-  const { start: startCheckout, pending } = useCheckout();
-  const nextPaymentDate = subscription?.current_period_end
+  const isFree = info.price === 0;
+  const { start: startCheckout, pending: checkoutPending, error: checkoutError } =
+    useCheckout();
+  const { open: openPortal, pending: portalPending, error: portalError } =
+    usePortal();
+
+  const cancelling = subscription?.cancel_at_period_end ?? false;
+  const periodEnd = subscription?.current_period_end
     ? new Date(subscription.current_period_end).toLocaleDateString(undefined, {
-        month: "long",
+        month: "short",
         day: "numeric",
         year: "numeric",
       })
     : "—";
-  const statusLabel =
-    subscription?.status === "active"
-      ? "Active"
-      : subscription?.status === "trialing"
-        ? "Trial"
-        : subscription?.status === "past_due"
-          ? "Past due"
-          : subscription?.status === "canceled"
-            ? "Cancelled"
-            : "Active";
-  const statusColor =
-    subscription?.status === "past_due"
-      ? "bg-amber-100 text-amber-700"
-      : subscription?.status === "canceled"
-        ? "bg-ink-100 text-ink-600"
-        : "bg-emerald-100 text-emerald-700";
+  const status = deriveStatus(subscription?.status, cancelling);
+  const error = checkoutError ?? portalError;
 
   return (
-    <div className="card p-[var(--space-card-padding)] flex flex-col">
-      <h2 className="text-[13px] font-semibold text-ink-900 mb-[var(--space-card-padding-sm)]">
-        Current Plan
-      </h2>
-
-      {/* Plan icon + name */}
-      <div className="flex items-center gap-[var(--space-stack-lg)] mb-[var(--space-grid-gap)]">
-        <div className="size-[clamp(3.25rem,5vw,4rem)] rounded-full bg-rose-100 flex items-center justify-center shrink-0">
-          <Crown
-            className="size-[clamp(1.375rem,2.5vw,1.75rem)] text-rose-500"
-            strokeWidth={1.5}
-          />
-        </div>
-        <div>
-          <div className="font-display text-page-title text-ink-900 leading-none">
-            {info.label}
+    <section className="card overflow-hidden">
+      {/* Identity + primary actions */}
+      <div className="p-[var(--space-card-padding)] flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-4 min-w-0">
+          <span className="size-14 rounded-2xl bg-rose-100 grid place-items-center shrink-0">
+            <Crown className="size-7 text-rose-600" strokeWidth={1.6} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h2 className="font-display text-h4 text-ink-900 leading-none">
+                {info.label} plan
+              </h2>
+              <StatusBadge label={status.label} tone={status.tone} />
+            </div>
+            <p className="text-body-sm text-ink-500 mt-1.5">
+              {isFree ? (
+                "Free — no payment required"
+              ) : (
+                <>
+                  <span className="font-bold text-ink-900 tabular-nums">
+                    {info.price} kr
+                  </span>{" "}
+                  per month
+                </>
+              )}
+            </p>
           </div>
-          <div className="text-body-sm text-ink-500 mt-1">
-            <span className="font-bold text-ink-900">{info.price}</span>
-            <span className="ml-1">kr/month</span>
-          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          {!isPro && (
+            <Button
+              size="md"
+              disabled={!stripeReady || checkoutPending}
+              onClick={() => startCheckout("pro")}
+            >
+              {checkoutPending ? "Redirecting…" : "Upgrade to Pro"}
+            </Button>
+          )}
+          {hasSubscription && (
+            <Button
+              size="md"
+              variant={isPro ? "primary" : "outline"}
+              disabled={!stripeReady || portalPending}
+              onClick={openPortal}
+            >
+              {portalPending ? "Opening…" : "Manage subscription"}
+              <ExternalLink className="size-4" strokeWidth={2} />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Details grid */}
-      <div className="space-y-[var(--space-stack-md)] mb-[var(--space-grid-gap)]">
-        <DetailRow label="Status">
-          <span className={cn("inline-flex items-center h-6 px-2.5 rounded-full text-[12px] font-semibold", statusColor)}>
-            {statusLabel}
-          </span>
-        </DetailRow>
-        <DetailRow label="Next payment">
-          <span className="inline-flex items-center gap-1.5 text-small text-ink-700">
-            <Calendar className="size-3.5 text-ink-400 shrink-0" strokeWidth={2} />
-            {nextPaymentDate}
-          </span>
-        </DetailRow>
-        <DetailRow label="Billing cycle">
-          <span className="text-small text-ink-700">Monthly</span>
-        </DetailRow>
-        <DetailRow label="Plan">
-          <span className="text-small text-ink-700 capitalize">
-            {plan}
-          </span>
-        </DetailRow>
-      </div>
+      {error && (
+        <p className="px-[var(--space-card-padding)] -mt-2 pb-2 text-[12.5px] text-rose-600">
+          {error}
+        </p>
+      )}
 
-      {/* Actions — natural placement below details (card hugs content at xl+ via items-start) */}
-      <div className="space-y-3">
-        {!isPro && (
-          <Button
-            className="w-full"
-            size="md"
-            disabled={!stripeReady || pending}
-            onClick={() => startCheckout("pro")}
-          >
-            {pending ? "Redirecting…" : "Upgrade to Pro"}
-          </Button>
-        )}
-        <div className="flex items-center justify-center">
-          <Link
-            href="#plans"
-            className="inline-flex items-center gap-1 text-[13px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
-          >
-            Compare all plans <ArrowRight className="size-3.5" strokeWidth={2.5} />
-          </Link>
+      {/* Key billing facts — stacked on mobile, 3-up from sm */}
+      <dl className="border-t border-ink-100 bg-cream-50/50 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-ink-100">
+        <Fact label={cancelling ? "Plan ends" : "Next payment"} value={periodEnd} />
+        <Fact label="Amount due" value={cancelling || isFree ? "—" : `${info.price} kr`} />
+        <Fact label="Billing cycle" value={isFree ? "—" : "Monthly"} />
+      </dl>
+
+      {cancelling && (
+        <div className="border-t border-amber-200 bg-amber-50 px-[var(--space-card-padding)] py-3 text-[12.5px] text-amber-700">
+          Your plan stays active until {periodEnd}, then switches to Free.
         </div>
-      </div>
+      )}
+    </section>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-[var(--space-card-padding)] py-4">
+      <dt className="text-label-caps text-ink-400">{label}</dt>
+      <dd className="text-body-sm font-semibold text-ink-900 mt-1 tabular-nums">
+        {value}
+      </dd>
     </div>
   );
 }
 
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+function StatusBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "emerald" | "amber" | "ink";
+}) {
+  const tones = {
+    emerald: "bg-emerald-100 text-emerald-700",
+    amber: "bg-amber-100 text-amber-700",
+    ink: "bg-ink-100 text-ink-600",
+  } as const;
   return (
-    <div className="flex items-center justify-between gap-3 min-w-0">
-      <span className="text-small text-ink-500 shrink-0">{label}</span>
-      <div className="shrink-0">{children}</div>
-    </div>
+    <span
+      className={cn(
+        "inline-flex items-center h-6 px-2.5 rounded-full text-[12px] font-semibold",
+        tones[tone],
+      )}
+    >
+      {label}
+    </span>
   );
 }
 
+function deriveStatus(
+  status: SubscriptionRow["status"] | undefined,
+  cancelling: boolean,
+): { label: string; tone: "emerald" | "amber" | "ink" } {
+  if (cancelling) return { label: "Cancels soon", tone: "amber" };
+  switch (status) {
+    case "past_due":
+      return { label: "Past due", tone: "amber" };
+    case "incomplete":
+      return { label: "Incomplete", tone: "amber" };
+    case "canceled":
+      return { label: "Cancelled", tone: "ink" };
+    case "trialing":
+      return { label: "Trial", tone: "emerald" };
+    default:
+      return { label: "Active", tone: "emerald" };
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Plan Picker
+// 2. Payment method
 // ─────────────────────────────────────────────────────────────────────────────
 
-function PlanPickerCard({
-  currentPlan,
+function PaymentMethodCard({
+  hasSubscription,
   stripeReady,
 }: {
-  currentPlan: "free" | "basic" | "pro";
+  hasSubscription: boolean;
   stripeReady: boolean;
 }) {
+  const { open, pending, error } = usePortal();
+
   return (
-    <div id="plans" className="card p-[var(--space-card-padding)]">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 mb-[var(--space-card-padding-sm)]">
-        <h2 className="text-[13px] font-semibold text-ink-900">Choose Your Plan</h2>
-        <span className="text-[12px] font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full shrink-0">
-          Save 16% with Pro
-        </span>
+    <section className="card p-[var(--space-card-padding)]">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+        <div className="flex items-center gap-4 min-w-0">
+          <span className="size-12 rounded-xl bg-cream-100 border border-ink-100 grid place-items-center shrink-0">
+            {hasSubscription ? (
+              <MastercardIcon size="lg" />
+            ) : (
+              <CreditCard className="size-5 text-ink-400" strokeWidth={1.7} />
+            )}
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-card-title font-semibold text-ink-900">
+              Payment method
+            </h3>
+            <p className="text-body-sm text-ink-500 mt-0.5 flex items-center gap-1.5">
+              {hasSubscription ? (
+                <>
+                  <ShieldCheck
+                    className="size-4 text-emerald-500 shrink-0"
+                    strokeWidth={2}
+                  />
+                  Securely managed in Stripe
+                </>
+              ) : (
+                "No payment method on file yet"
+              )}
+            </p>
+          </div>
+        </div>
+
+        {hasSubscription ? (
+          <Button
+            variant="outline"
+            size="md"
+            className="shrink-0"
+            disabled={!stripeReady || pending}
+            onClick={open}
+          >
+            {pending ? "Opening…" : "Update card"}
+          </Button>
+        ) : (
+          <span className="text-[12.5px] text-ink-400 shrink-0">
+            Added when you upgrade
+          </span>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-[var(--space-grid-gap-sm)]">
-        {(["free", "basic", "pro"] as const).map((key) => (
-          <PlanCard
-            key={key}
-            planKey={key}
-            currentPlan={currentPlan}
-            stripeReady={stripeReady}
-          />
-        ))}
-      </div>
-    </div>
+      {error && <p className="mt-3 text-[12.5px] text-rose-600">{error}</p>}
+    </section>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. Compare plans — collapsible. Collapsed by default once the user is on a
+// paid plan (keeps the page lean); expanded on Free so upgrades stay visible.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ComparePlansSection({
+  plan,
+  stripeReady,
+}: {
+  plan: Plan;
+  stripeReady: boolean;
+}) {
+  const [open, setOpen] = useState(plan === "free");
+
+  return (
+    <section id="plans" className="card overflow-hidden scroll-mt-6">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="compare-plans-body"
+        className="w-full flex items-center justify-between gap-3 p-[var(--space-card-padding)] text-left hover:bg-cream-50/60 transition-colors"
+      >
+        <div className="min-w-0">
+          <h2 className="font-display text-h5 text-ink-900 leading-tight">
+            Compare plans
+          </h2>
+          <p className="text-body-sm text-ink-500 mt-1">
+            {open
+              ? "Upgrade, downgrade or cancel anytime from the Stripe portal."
+              : "See everything each plan includes."}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="hidden sm:inline-flex items-center h-7 px-2.5 rounded-full bg-rose-50 text-[12px] font-semibold text-rose-700">
+            Save 16% with Pro
+          </span>
+          <span className="size-8 rounded-full border border-ink-200 grid place-items-center text-ink-500">
+            <ChevronDown
+              className={cn(
+                "size-4 transition-transform duration-300",
+                open && "rotate-180",
+              )}
+              strokeWidth={2}
+            />
+          </span>
+        </div>
+      </button>
+
+      {/* Smooth expand via grid-rows 0fr → 1fr (no animation plugin needed) */}
+      <div
+        id="compare-plans-body"
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          {/* pt-4 leaves room for the Pro card's floating "Most Popular" badge */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[var(--space-grid-gap-sm)] px-[var(--space-card-padding)] pb-[var(--space-card-padding)] pt-4 border-t border-ink-100">
+            {(["free", "basic", "pro"] as const).map((key) => (
+              <PlanCard
+                key={key}
+                planKey={key}
+                currentPlan={plan}
+                stripeReady={stripeReady}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Plan card (used in the "Compare plans" grid)
+// ─────────────────────────────────────────────────────────────────────────────
 
 function PlanCard({
   planKey,
   currentPlan,
   stripeReady,
 }: {
-  planKey: "free" | "basic" | "pro";
-  currentPlan: "free" | "basic" | "pro";
+  planKey: Plan;
+  currentPlan: Plan;
   stripeReady: boolean;
 }) {
-  const info      = PLAN_INFO[planKey];
+  const info = PLAN_INFO[planKey];
   const isCurrent = planKey === currentPlan;
-  const isPro     = planKey === "pro";
-  const isFree    = planKey === "free";
+  const isPro = planKey === "pro";
+  const isFree = planKey === "free";
   const { start: startCheckout, pending } = useCheckout();
 
   return (
@@ -365,8 +532,8 @@ function PlanCard({
         isCurrent
           ? "border-rose-300 bg-cream-50/60 shadow-sm"
           : isPro
-          ? "border-2 border-rose-500 bg-white shadow-card ring-4 ring-rose-100"
-          : "border-ink-100 bg-white",
+            ? "border-2 border-rose-500 bg-white shadow-card ring-4 ring-rose-100"
+            : "border-ink-100 bg-white",
       )}
     >
       {/* Floating "Most Popular" badge — overlaps card top edge for premium lift */}
@@ -389,9 +556,7 @@ function PlanCard({
           )}
         </div>
         <div className="flex items-baseline gap-1">
-          <span className="font-display text-h4 text-ink-900">
-            {info.price}
-          </span>
+          <span className="font-display text-h4 text-ink-900">{info.price}</span>
           <span className="text-[11px] text-ink-500">kr/month</span>
         </div>
         <p className="text-tiny text-ink-500 mt-1 leading-snug">
@@ -442,9 +607,7 @@ function PlanCard({
               className="size-3.5 text-rose-500 mt-[0.15rem] shrink-0"
               strokeWidth={2.5}
             />
-            <span className="text-tiny text-ink-700 leading-snug">
-              {f}
-            </span>
+            <span className="text-tiny text-ink-700 leading-snug">{f}</span>
           </li>
         ))}
       </ul>
@@ -453,202 +616,7 @@ function PlanCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Payment Method
-// ─────────────────────────────────────────────────────────────────────────────
-
-function PaymentMethodCard({
-  hasSubscription,
-  stripeReady,
-}: {
-  hasSubscription: boolean;
-  stripeReady: boolean;
-}) {
-  const { open, pending } = usePortal();
-  return (
-    <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
-      <h3 className="text-[13px] font-semibold text-ink-900 mb-4">Payment Method</h3>
-
-      <div className="flex items-center gap-3 p-3.5 rounded-[12px] bg-cream-50 border border-ink-100 mb-4">
-        <div className="shrink-0">
-          <MastercardIcon size="lg" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-ink-900 leading-snug">
-            {hasSubscription
-              ? "Managed in Stripe"
-              : "No payment method yet"}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-[12px] text-ink-500">
-              {hasSubscription
-                ? "Open the portal to update card details."
-                : "Upgrade to add a payment method."}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        disabled={!stripeReady || !hasSubscription || pending}
-        onClick={open}
-        className="w-full h-11 sm:h-9 rounded-[10px] border border-ink-200 text-[12.5px] font-semibold text-rose-600 hover:bg-cream-100 transition-colors mt-auto disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {pending ? "Opening…" : "Update Payment Method"}
-      </button>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. Billing Summary
-// ─────────────────────────────────────────────────────────────────────────────
-
-function BillingSummaryCard({
-  plan,
-  subscription,
-}: {
-  plan: "free" | "basic" | "pro";
-  subscription: SubscriptionRow | null;
-}) {
-  const info = PLAN_INFO[plan];
-  const nextDate = subscription?.current_period_end
-    ? new Date(subscription.current_period_end).toLocaleDateString(undefined, {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "—";
-  const cancelling = subscription?.cancel_at_period_end ?? false;
-
-  return (
-    <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
-      <h3 className="text-[13px] font-semibold text-ink-900 mb-4">Billing Summary</h3>
-
-      <div className="space-y-3 flex-1">
-        <SummaryRow label="Next payment date" value={nextDate} />
-        <SummaryRow label="Amount due" value={`${info.price} kr`} />
-        <SummaryRow label="Billing cycle" value="Monthly" />
-        <SummaryRow label="Account status">
-          {cancelling ? (
-            <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-amber-100 text-[12px] font-semibold text-amber-700">
-              Cancels at period end
-            </span>
-          ) : (
-            <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-emerald-100 text-[12px] font-semibold text-emerald-700">
-              In Good Standing
-            </span>
-          )}
-        </SummaryRow>
-      </div>
-
-      <div className="mt-4 pt-4 border-t border-ink-100">
-        <Link
-          href="/support"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
-        >
-          Billing help & FAQ <ArrowRight className="size-3.5" strokeWidth={2.5} />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function SummaryRow({
-  label,
-  value,
-  children,
-}: {
-  label: string;
-  value?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2 min-w-0">
-      <span className="text-[12.5px] text-ink-500 shrink-0">{label}</span>
-      {children ?? (
-        <span className="text-[12.5px] font-semibold text-ink-800 text-right truncate">
-          {value}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. What's Included
-// ─────────────────────────────────────────────────────────────────────────────
-
-function WhatsIncludedCard({ plan }: { plan: "free" | "basic" | "pro" }) {
-  const info = PLAN_INFO[plan];
-
-  return (
-    <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
-      <h3 className="text-[13px] font-semibold text-ink-900 mb-4">
-        What&apos;s Included in {info.label}
-      </h3>
-
-      <ul className="space-y-[var(--space-stack-md)] flex-1">
-        {INCLUDED_FEATURES.map(({ icon, label }) => (
-          <li key={label} className="flex items-start gap-2.5">
-            <div className="size-[1.75rem] rounded-[8px] bg-rose-50 flex items-center justify-center shrink-0 mt-0.5">
-              {icon}
-            </div>
-            <span className="text-[12.5px] text-ink-700 leading-snug">{label}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-4 pt-4 border-t border-ink-100">
-        <Link
-          href="#plans"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
-        >
-          View full comparison <ArrowRight className="size-3.5" strokeWidth={2.5} />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 6. Need Help?
-// ─────────────────────────────────────────────────────────────────────────────
-
-function NeedHelpCard() {
-  return (
-    <div className="card p-[var(--space-card-padding-sm)] flex flex-col">
-      <h3 className="text-[13px] font-semibold text-ink-900 mb-4">Need Help?</h3>
-
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-3">
-        <div className="size-14 rounded-full bg-rose-50 flex items-center justify-center mb-3">
-          <MessageCircle className="size-6 text-rose-400" strokeWidth={1.5} />
-        </div>
-        <p className="text-[12.5px] text-ink-500 leading-snug mb-4 max-w-[10rem]">
-          We&apos;re here to help with any billing questions.
-        </p>
-        <Link
-          href="/support"
-          className="w-full h-11 sm:h-9 inline-flex items-center justify-center rounded-[10px] border border-rose-300 text-[12.5px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
-        >
-          Contact Support
-        </Link>
-      </div>
-
-      <div className="pt-4 border-t border-ink-100 flex justify-center">
-        <Link
-          href="/support"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
-        >
-          View Help Center <ArrowRight className="size-3.5" strokeWidth={2.5} />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 7. Recent Invoices
+// 5. Billing history (invoices)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function RecentInvoicesCard({ invoices }: { invoices: InvoiceRow[] }) {
@@ -656,7 +624,7 @@ function RecentInvoicesCard({ invoices }: { invoices: InvoiceRow[] }) {
     return (
       <div className="card p-[var(--space-card-padding)] text-center">
         <h3 className="text-[13px] font-semibold text-ink-900 mb-2">
-          Recent Invoices
+          Billing history
         </h3>
         <p className="text-[12.5px] text-ink-500">
           No invoices yet. They&apos;ll appear here after your first payment.
@@ -671,7 +639,7 @@ function RecentInvoicesCard({ invoices }: { invoices: InvoiceRow[] }) {
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center justify-between gap-4 px-[var(--space-table-cell-x)] py-4 border-b border-ink-100">
-        <h3 className="text-[13px] font-semibold text-ink-900">Recent Invoices</h3>
+        <h3 className="text-[13px] font-semibold text-ink-900">Billing history</h3>
       </div>
 
       {/* Mobile (<sm): stacked invoice cards */}
@@ -723,11 +691,16 @@ function RecentInvoicesCard({ invoices }: { invoices: InvoiceRow[] }) {
       <div className="hidden sm:block overflow-x-auto">
         <div className="min-w-[var(--table-min-width)]">
           <div className="grid grid-cols-[1fr_1.1fr_2fr_0.9fr_0.9fr_2.5rem] gap-3 px-[var(--space-table-cell-x)] py-3 bg-cream-50 border-b border-ink-100">
-            {["Date", "Invoice #", "Description", "Status", "Amount", ""].map((h, i) => (
-              <span key={i} className="text-[11px] font-semibold text-ink-500 uppercase tracking-wide">
-                {h}
-              </span>
-            ))}
+            {["Date", "Invoice #", "Description", "Status", "Amount", ""].map(
+              (h, i) => (
+                <span
+                  key={i}
+                  className="text-[11px] font-semibold text-ink-500 uppercase tracking-wide"
+                >
+                  {h}
+                </span>
+              ),
+            )}
           </div>
 
           <div className="divide-y divide-ink-50">

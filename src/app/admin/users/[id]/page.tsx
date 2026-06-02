@@ -154,7 +154,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
           <h2 className="text-h4 text-ink-900 mb-4">
             Subscription
           </h2>
-          <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 text-[13px]">
+          <dl className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-3 text-[13px]">
             <Field label="Plan" value={subscription.plan} />
             <Field label="Status" value={subscription.status} />
             <Field

@@ -57,7 +57,7 @@ export function ConnectSocialCard({ connections }: Props) {
         <span className="chip chip-rose shrink-0">Analytics sync</span>
       </header>
 
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <ul className="rounded-[14px] border border-ink-100 bg-white divide-y divide-ink-100 overflow-hidden">
         {connections.map((c) => (
           <PlatformRow
             key={c.platform}
@@ -154,9 +154,9 @@ function PlatformRow({
   }
 
   return (
-    <li className="rounded-[12px] bg-cream-50 border border-ink-100 overflow-hidden">
+    <li className="bg-white">
       {/* Main row: icon · label/status · CTA */}
-      <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="flex items-center gap-4 px-5 py-4">
         <span className="size-9 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
           <Icon className="text-rose-600" size={16} />
         </span>
@@ -258,8 +258,8 @@ function PlatformRow({
       {hintBelow && (
         <div
           className={cn(
-            "px-3 -mt-0.5 text-[10.5px] leading-snug",
-            secondaryHint ? "pb-0.5" : "pb-2.5",
+            "px-5 -mt-1 text-[10.5px] leading-snug",
+            secondaryHint ? "pb-1" : "pb-3.5",
             hintTone === "error" ? "text-rose-600" : "text-ink-400",
           )}
         >
@@ -267,7 +267,7 @@ function PlatformRow({
         </div>
       )}
       {secondaryHint && (
-        <div className="px-3 pb-2.5 text-[10.5px] text-ink-400 leading-snug">
+        <div className="px-5 pb-3.5 text-[10.5px] text-ink-400 leading-snug">
           {secondaryHint}
         </div>
       )}

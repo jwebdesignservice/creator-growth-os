@@ -136,7 +136,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
       </header>
 
       {/* KPI row — real values, no invented deltas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <Kpi icon={Users} label="Enrolled members" value={data.kpis.enrolled} caption="with access to this program" />
         <Kpi icon={CheckCircle2} label="Completion rate" value={`${data.kpis.completionRate}%`} caption="finished every lesson" />
         <Kpi icon={TrendingUp} label="Avg. progress" value={`${data.kpis.avgProgress}%`} caption="across enrolled members" />
@@ -232,7 +232,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
           <SectionHeader title="Student progress" subtitle="Members making the most progress" />
           {data.students.length > 0 ? (
             <div className="overflow-x-auto -mx-1">
-              <table className="w-full text-left border-collapse min-w-[560px]">
+              <table className="w-full text-left border-collapse min-w-[480px]">
                 <thead>
                   <tr className="text-[10.5px] uppercase tracking-[0.08em] text-ink-400">
                     <th className="font-semibold pb-2.5 px-1">Member</th>

@@ -113,7 +113,7 @@ function Modal({
         onClick={(e) => e.stopPropagation()}
         className={cn(
           "relative w-full rounded-[18px] bg-white shadow-card border border-ink-100 p-6 max-h-[85vh] overflow-y-auto",
-          size === "lg" ? "max-w-2xl" : "max-w-md",
+          size === "lg" ? "max-w-[640px] md:max-w-2xl" : "max-w-md",
         )}
       >
         <header className="flex items-start justify-between gap-3 mb-4">

@@ -184,7 +184,7 @@ export default async function AdminProgramDetailPage({
       </header>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,360px)] gap-5 items-start">
         {/* ── Left: numbered setup cards ──────────────────────────────── */}
         <div className="space-y-5 min-w-0">
           <StepCard

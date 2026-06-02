@@ -11,7 +11,6 @@ import {
   CheckSquare,
   BarChart3,
   Users,
-  CreditCard,
   Settings,
   Sparkles,
   ShieldCheck,
@@ -43,7 +42,6 @@ const PRIMARY: NavItem[] = [
 ];
 
 const SECONDARY: NavItem[] = [
-  { label: "Billing", href: "/billing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

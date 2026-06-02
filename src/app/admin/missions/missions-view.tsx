@@ -174,7 +174,7 @@ export function MissionsView({
       </div>
 
       {/* Create card + right rail */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_320px] gap-6 items-start">
         <div ref={formRef} className="scroll-mt-6">
           <CreateMissionForm editing={editing} onDone={() => setEditing(null)} />
         </div>

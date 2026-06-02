@@ -544,7 +544,7 @@ export function ComposeForm({
               <Users className="size-4 text-rose-600" strokeWidth={2} />
               <h2 className="text-[15px] font-bold text-ink-900">Audience</h2>
             </header>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="Send to">
                 <Select
                   value={audience}

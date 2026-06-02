@@ -74,3 +74,44 @@ export async function getReferralStats(): Promise<ReferralStats | null> {
     })),
   };
 }
+
+/**
+ * One row of the user's invite history (where they are the referrer).
+ *
+ * Read-only and RLS-scoped: `referrals_select_own` lets a user read only
+ * the rows where they are the referrer. The referee's identity is
+ * deliberately *not* selected — `profiles` is self-only readable, and
+ * surfacing another creator's name/email to their referrer would leak
+ * personal data. The UI therefore renders each invite by status +
+ * timestamps, never by identity.
+ */
+export type ReferralActivityItem = {
+  id: string;
+  status: "pending" | "qualified" | "reverted";
+  createdAt: string;
+  qualifiedAt: string | null;
+};
+
+export async function getReferralActivity(
+  limit = 50,
+): Promise<ReferralActivityItem[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("referrals")
+    .select("id, status, created_at, qualified_at")
+    .eq("referrer_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    status: r.status as ReferralActivityItem["status"],
+    createdAt: r.created_at as string,
+    qualifiedAt: (r.qualified_at as string | null) ?? null,
+  }));
+}

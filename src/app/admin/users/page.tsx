@@ -1,15 +1,9 @@
 import Link from "next/link";
 import { Filter, Search } from "lucide-react";
 import { getUsersList } from "@/lib/admin/queries";
+import { UsersTable } from "./users-table";
 
 export const metadata = { title: "Users · Admin · Creator Growth OS" };
-
-const CATEGORY_LABEL: Record<string, string> = {
-  starter: "Starter Creator",
-  growth: "Growth Creator",
-  monetization: "Monetization Creator",
-  scale: "Scale Creator",
-};
 
 type Search = Promise<{
   q?: string;
@@ -52,7 +46,7 @@ export default async function AdminUsersPage({
       </header>
 
       {/* Filters */}
-      <form className="card p-4 grid grid-cols-1 md:grid-cols-[1fr_180px_180px_auto] gap-3">
+      <form className="card p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_180px_180px_auto] gap-3">
         <label className="relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400"
@@ -96,99 +90,37 @@ export default async function AdminUsersPage({
         </button>
       </form>
 
-      {/* Table */}
-      <section className="card overflow-hidden">
-        {rows.length === 0 ? (
-          <div className="p-10 text-center text-[13px] text-ink-500">
-            No users match these filters.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
-              <thead>
-                <tr className="text-[10.5px] tracking-[0.12em] uppercase text-ink-500 bg-cream-100/60">
-                  <th className="font-semibold py-3 px-5">User</th>
-                  <th className="font-semibold py-3 px-2">Plan</th>
-                  <th className="font-semibold py-3 px-2">Category</th>
-                  <th className="font-semibold py-3 px-2">Streak</th>
-                  <th className="font-semibold py-3 px-2">Onboarded</th>
-                  <th className="font-semibold py-3 px-2">Joined</th>
-                  <th className="py-3 px-5" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((u) => (
-                  <tr key={u.id} className="border-t border-ink-100">
-                    <td className="py-3 px-5">
-                      <div className="text-ink-900 font-medium">
-                        {u.full_name ?? u.email.split("@")[0]}
-                      </div>
-                      <div className="text-[11.5px] text-ink-500">{u.email}</div>
-                    </td>
-                    <td className="py-3 px-2">
-                      <span className="chip chip-rose capitalize">{u.plan}</span>
-                    </td>
-                    <td className="py-3 px-2 text-ink-700">
-                      {CATEGORY_LABEL[u.category] ?? u.category}
-                    </td>
-                    <td className="py-3 px-2 text-ink-700 tabular-nums">
-                      {u.daily_streak}d
-                    </td>
-                    <td className="py-3 px-2">
-                      {u.onboarded ? (
-                        <span className="chip chip-success">Yes</span>
-                      ) : (
-                        <span className="chip bg-cream-100 text-ink-500">No</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-2 text-ink-500 tabular-nums">
-                      {new Date(u.created_at).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="py-3 px-5 text-right">
-                      <Link
-                        href={`/admin/users/${u.id}`}
-                        className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700"
-                      >
-                        Manage
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* Whop-style table — drag-to-reorder columns, click-to-sort, Edit
+          columns popover, CSV export. Filtering/pagination stay URL-driven
+          (form above, footer below) so back/forward + shareable URLs still
+          work. */}
+      <UsersTable rows={rows} total={total} page={page} pageSize={pageSize} />
 
-        {totalPages > 1 && (
-          <footer className="border-t border-ink-100 px-5 py-3 flex items-center justify-between text-[12.5px] text-ink-500">
-            <span>
-              Page {page + 1} of {totalPages}
-            </span>
-            <div className="flex items-center gap-2">
-              {page > 0 && (
-                <Link
-                  href={buildHref(sp, { page: page - 1 })}
-                  className="px-3 h-8 rounded-[8px] border border-ink-200 text-ink-700 hover:bg-cream-100 inline-flex items-center"
-                >
-                  Previous
-                </Link>
-              )}
-              {page < totalPages - 1 && (
-                <Link
-                  href={buildHref(sp, { page: page + 1 })}
-                  className="px-3 h-8 rounded-[8px] border border-ink-200 text-ink-700 hover:bg-cream-100 inline-flex items-center"
-                >
-                  Next
-                </Link>
-              )}
-            </div>
-          </footer>
-        )}
-      </section>
+      {totalPages > 1 && (
+        <footer className="card px-5 py-3 flex items-center justify-between text-[12.5px] text-ink-500">
+          <span>
+            Page {page + 1} of {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            {page > 0 && (
+              <Link
+                href={buildHref(sp, { page: page - 1 })}
+                className="px-3 h-8 rounded-[8px] border border-ink-200 text-ink-700 hover:bg-cream-100 inline-flex items-center"
+              >
+                Previous
+              </Link>
+            )}
+            {page < totalPages - 1 && (
+              <Link
+                href={buildHref(sp, { page: page + 1 })}
+                className="px-3 h-8 rounded-[8px] border border-ink-200 text-ink-700 hover:bg-cream-100 inline-flex items-center"
+              >
+                Next
+              </Link>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

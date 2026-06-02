@@ -285,7 +285,7 @@ export default async function AdminProgramsPage({
         rows.length === 0 ? (
           <EmptyState hasFilters={hasActiveFilters} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {rows.map((p) => (
               <ProgramGridCard
                 key={p.id}

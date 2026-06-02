@@ -181,7 +181,7 @@ export function HistoryView({
       </header>
 
       {/* ── Banners ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
         <div className="rounded-[14px] border border-success/20 bg-success-bg/40 px-4 py-3 flex items-center gap-3">
           <CheckCircle2 className="size-5 text-success shrink-0" strokeWidth={2} />
           <div className="flex-1 min-w-0">
@@ -290,7 +290,7 @@ export function HistoryView({
           </div>
 
           {/* ── Stat cards ─────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
             {stats.map((s) => (
               <StatCard key={s.key} stat={s} />
             ))}
