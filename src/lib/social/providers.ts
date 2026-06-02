@@ -104,12 +104,21 @@ export const PROVIDERS: Record<ProviderKey, ProviderConfig> = {
 
   // TikTok for Developers. Display API gives basic profile + open videos;
   // analytics is gated behind a separate partner program.
+  //
+  // TEMPORARY: user.info.stats is removed from the scopes array while
+  // we're going through TikTok's Production review. TikTok's Sandbox
+  // silently drops user.info.stats from the granted token even though
+  // the dashboard lists it, which makes our user/info call fail with
+  // scope_not_authorized. By only requesting user.info.basic here we
+  // can record a clean demo of the OAuth flow for the review submission.
+  // Once TikTok approves the app, restore "user.info.stats" to this
+  // array and we'll start pulling follower_count again.
   tiktok: {
     key: "tiktok",
     label: "TikTok",
     authUrl: "https://www.tiktok.com/v2/auth/authorize/",
     tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
-    scopes: ["user.info.basic", "user.info.stats"],
+    scopes: ["user.info.basic"],
     scopeSeparator: ",",
     clientIdEnv: "TIKTOK_CLIENT_KEY",
     clientSecretEnv: "TIKTOK_CLIENT_SECRET",
