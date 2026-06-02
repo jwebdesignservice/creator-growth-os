@@ -9,6 +9,7 @@
 import type { ReactNode } from "react";
 import { LayoutPanelLeft, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { EMAIL_DESIGN_CATEGORIES } from "./email-designs";
 
 /* ── Wireframe primitives ─────────────────────────────────────────────── */
 
@@ -938,4 +939,5 @@ export const PAGE_DESIGN_CATEGORIES: PdCategory[] = [
       { label: "Document / invoice", code: "DocumentInvoice", node: <DocumentInvoice /> },
     ],
   },
+  ...EMAIL_DESIGN_CATEGORIES,
 ];
