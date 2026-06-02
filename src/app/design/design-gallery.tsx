@@ -16,6 +16,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
+  Activity,
   AppWindow,
   ArrowLeft,
   Bell,
@@ -36,6 +37,7 @@ import {
   MessageSquare,
   MessagesSquare,
   MousePointerClick,
+  NotebookPen,
   PanelLeft,
   PanelTop,
   Route,
@@ -45,6 +47,8 @@ import {
   Tag,
   TextCursorInput,
   ToggleLeft,
+  Trophy,
+  Wallet,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -124,6 +128,10 @@ import { ToastStack, ConfirmDialog, CommandPalette } from "@/design-templates/ov
 import { MessageThread, ChatComposer, ChannelList } from "@/design-templates/chat";
 import { ProgramCard, CurriculumAccordion, VideoPlayer } from "@/design-templates/learning";
 import { SelectionCards, StepHeader, ProgressRail } from "@/design-templates/onboarding";
+import { MissionCard, StreakCard, RewardBar } from "@/design-templates/missions";
+import { ReadinessScore, DealCard, RevenueStat } from "@/design-templates/monetization";
+import { ActivityTimeline, CommunicationThread } from "@/design-templates/timeline";
+import { NoteCard, NoteEditorToolbar } from "@/design-templates/notes";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -437,6 +445,48 @@ const CATEGORIES: Category[] = [
       { label: "Selection cards", code: "SelectionCards", node: <SelectionCards />, scale: 0.85 },
       { label: "Step header", code: "StepHeader", node: <StepHeader /> },
       { label: "Progress rail", code: "ProgressRail", node: <ProgressRail /> },
+    ],
+  },
+  {
+    id: "missions",
+    label: "Missions",
+    icon: Trophy,
+    blurb: "Mission card, weekly streak, and an XP / level reward bar.",
+    items: [
+      { label: "Mission card", code: "MissionCard", node: <MissionCard />, scale: 0.85 },
+      { label: "Streak card", code: "StreakCard", node: <StreakCard /> },
+      { label: "Reward bar", code: "RewardBar", node: <RewardBar /> },
+    ],
+  },
+  {
+    id: "monetization",
+    label: "Monetization",
+    icon: Wallet,
+    blurb: "Readiness score, brand-deal pipeline, and a revenue stat.",
+    items: [
+      { label: "Readiness score", code: "ReadinessScore", node: <ReadinessScore />, scale: 0.78 },
+      { label: "Deal pipeline", code: "DealCard", node: <DealCard /> },
+      { label: "Revenue stat", code: "RevenueStat", node: <RevenueStat /> },
+    ],
+  },
+  {
+    id: "timeline",
+    label: "Timeline",
+    icon: Activity,
+    blurb: "Vertical activity feed and a support communication thread.",
+    items: [
+      { label: "Activity timeline", code: "ActivityTimeline", node: <ActivityTimeline /> },
+      { label: "Communication thread", code: "CommunicationThread", node: <CommunicationThread /> },
+    ],
+  },
+  {
+    id: "notes",
+    label: "Notes",
+    icon: NotebookPen,
+    blurb: "Saved rich-note card and the rich-text editor toolbar.",
+    items: [
+      { label: "Note card", code: "NoteCard", node: <NoteCard /> },
+      { label: "Editor toolbar", code: "NoteEditorToolbar", node: <NoteEditorToolbar /> },
     ],
   },
 ];

@@ -19,6 +19,8 @@ import {
   MoveHorizontal,
   MonitorSmartphone,
   LayoutDashboard,
+  Ruler,
+  Scaling,
   Palette,
   Layers,
   Shapes,
@@ -498,6 +500,100 @@ function Shadows() {
   );
 }
 
+/* ── 14 · Control Sizes ───────────────────────────────────────────────── */
+
+const CONTROL_SIZES: { group: string; items: { n: string; px: number }[] }[] = [
+  { group: "Buttons", items: [{ n: "sm · h-9", px: 36 }, { n: "md · h-11", px: 44 }, { n: "lg · h-12", px: 48 }] },
+  { group: "Inputs", items: [{ n: "default · h-11", px: 44 }, { n: "compact · h-8", px: 32 }] },
+  { group: "Badges", items: [{ n: "default", px: 24 }, { n: "small", px: 20 }] },
+  { group: "Nav", items: [{ n: "sidebar item", px: 44 }] },
+];
+
+function ControlSizes() {
+  return (
+    <div className="w-full space-y-5">
+      {CONTROL_SIZES.map((g) => (
+        <div key={g.group}>
+          <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{g.group}</div>
+          <div className="flex items-end flex-wrap gap-4">
+            {g.items.map((it) => (
+              <div key={it.n} className="flex flex-col items-center gap-2">
+                <div
+                  className="w-[116px] rounded-[10px] bg-rose-100 border border-rose-200 flex items-center justify-center"
+                  style={{ height: it.px }}
+                >
+                  <span className="text-[11px] font-semibold text-rose-700 tabular-nums">{it.px}px</span>
+                </div>
+                <span className="text-[10.5px] font-mono text-ink-400">{it.n}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <p className="text-[12px] text-ink-400 leading-relaxed">
+        Heights from <code className="font-mono">--btn-height-*</code>, <code className="font-mono">--input-height</code>,{" "}
+        <code className="font-mono">--badge-height</code>. 44px is the comfortable touch target.
+      </p>
+    </div>
+  );
+}
+
+/* ── 15 · Icon Sizes ──────────────────────────────────────────────────── */
+
+const ICON_SIZES = [
+  { name: "2xs", px: 10 }, { name: "xs", px: 12 }, { name: "sm", px: 14 }, { name: "md", px: 16 },
+  { name: "lg", px: 20 }, { name: "xl", px: 24 }, { name: "2xl", px: 32 }, { name: "3xl", px: 48 },
+];
+
+const ICON_CONTAINERS = [
+  { name: "2xs", px: 20 }, { name: "xs", px: 24 }, { name: "sm", px: 28 }, { name: "md", px: 32 },
+  { name: "lg", px: 40 }, { name: "xl", px: 48 }, { name: "2xl", px: 56 }, { name: "3xl", px: 64 },
+];
+
+function IconSizes() {
+  return (
+    <div className="w-full space-y-5">
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Glyph sizes</div>
+        <div className="flex items-end flex-wrap gap-x-5 gap-y-3">
+          {ICON_SIZES.map((s) => (
+            <div key={s.name} className="flex flex-col items-center gap-1.5">
+              <div className="flex items-end justify-center" style={{ height: 48 }}>
+                <Sparkles size={s.px} className="text-rose-600" strokeWidth={1.8} />
+              </div>
+              <span className="text-[10px] font-mono text-ink-400 tabular-nums">
+                {s.name} · {s.px}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Icon containers</div>
+        <div className="flex items-end flex-wrap gap-x-4 gap-y-3">
+          {ICON_CONTAINERS.map((c) => (
+            <div key={c.name} className="flex flex-col items-center gap-1.5">
+              <div
+                className="rounded-[10px] bg-rose-100 text-rose-600 flex items-center justify-center"
+                style={{ width: c.px, height: c.px }}
+              >
+                <Sparkles size={Math.round(c.px * 0.45)} strokeWidth={1.8} />
+              </div>
+              <span className="text-[10px] font-mono text-ink-400 tabular-nums">
+                {c.name} · {c.px}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-[12px] text-ink-400 leading-relaxed">
+        Glyph sizes <code className="font-mono">--icon-2xs…3xl</code> (10→48px); container bubbles{" "}
+        <code className="font-mono">--icon-container-*</code> (20→64px).
+      </p>
+    </div>
+  );
+}
+
 /* ── Gallery category export ──────────────────────────────────────────── */
 
 type FCategory = {
@@ -599,5 +695,19 @@ export const FOUNDATION_CATEGORIES: FCategory[] = [
     icon: LayoutDashboard,
     blurb: "Container, card and spacing utilities.",
     items: [{ label: "Structure", code: "StructureClasses", node: <StructureClasses /> }],
+  },
+  {
+    id: "control-sizes",
+    label: "Control Sizes",
+    icon: Ruler,
+    blurb: "Button, input, badge and nav heights.",
+    items: [{ label: "Control heights", code: "ControlSizes", node: <ControlSizes /> }],
+  },
+  {
+    id: "icon-sizes",
+    label: "Icon Sizes",
+    icon: Scaling,
+    blurb: "Glyph + icon-container size scale.",
+    items: [{ label: "Icon size scale", code: "IconSizes", node: <IconSizes /> }],
   },
 ];
