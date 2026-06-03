@@ -20,6 +20,7 @@ export async function createEvent(
   const startsRaw = String(formData.get("starts_at") ?? "").trim();
   const durationRaw = String(formData.get("duration_min") ?? "").trim();
   const url = String(formData.get("url") ?? "").trim() || null;
+  const cover = String(formData.get("cover_image_url") ?? "").trim() || null;
 
   if (!title) return { ok: false, error: "Title is required." };
   if (!EVENT_KIND_VALUES.includes(kind))
@@ -39,7 +40,7 @@ export async function createEvent(
   if (url && !/^https?:\/\//i.test(url))
     return { ok: false, error: "Join link must start with http:// or https://" };
 
-  const { error } = await ctx.supabase.from("community_events").insert({
+  const payload: Record<string, unknown> = {
     title,
     kind,
     description,
@@ -47,13 +48,18 @@ export async function createEvent(
     starts_at,
     duration_min,
     url,
-  });
+  };
+  if (cover) payload.cover_image_url = cover;
+
+  const { error } = await ctx.supabase
+    .from("community_events")
+    .insert(payload);
   if (error) {
     if (error.code === "42703")
       return {
         ok: false,
         error:
-          "Event types need migration 0051 — run it in the SQL editor, then try again.",
+          "A database update is still pending — run the latest migrations (0051–0052) in the SQL editor, then try again.",
       };
     return { ok: false, error: error.message };
   }

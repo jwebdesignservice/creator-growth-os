@@ -1,20 +1,22 @@
 import { redirect } from "next/navigation";
-import { CalendarDays, Users, type LucideIcon } from "lucide-react";
+import { Users, type LucideIcon } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
+import { createClient } from "@/lib/supabase/server";
 import {
   listSpaces,
   listRecentPosts,
-  listUpcomingEvents,
+  listAllEvents,
   listMemberSpotlight,
   listRepliesForPosts,
   getPostVotes,
   getPostReactions,
   getPostAttachments,
-  type CommunityEvent,
+  getPostPolls,
   type PostVotes,
   type PostReaction,
   type PostAttachment,
+  type PostPoll,
 } from "@/lib/community/queries";
 import { DiscussionList } from "@/components/community/discussion-list";
 import { InlineComposer } from "@/components/community/inline-composer";
@@ -23,7 +25,7 @@ import {
   type CommunityTab,
 } from "@/components/community/community-tabs";
 import { ChatTab } from "@/components/community/chat-tab";
-import { EventCard } from "@/components/community/event-card";
+import { EventsExplorer } from "@/components/community/events-explorer";
 
 export const metadata = { title: "Community · Creator Growth OS" };
 
@@ -78,19 +80,31 @@ export default async function CommunityPage({
     active === "feed" && posts.length
       ? await getPostAttachments(posts.map((p) => p.id))
       : new Map();
+  const pollsByPost: Map<string, PostPoll> =
+    active === "feed" && posts.length
+      ? await getPostPolls(posts.map((p) => p.id), ctx.user.id)
+      : new Map();
   const feedPosts = posts.map((p) => ({
     ...p,
     replies: repliesByPost.get(p.id) ?? [],
     votes: votesByPost.get(p.id) ?? NO_VOTES,
     reactions: reactionsByPost.get(p.id) ?? [],
     attachments: attachmentsByPost.get(p.id) ?? [],
+    poll: pollsByPost.get(p.id) ?? null,
   }));
-  const events = active === "events" ? await listUpcomingEvents(12) : [];
+  // Admins can pin threads — surface the controls only to them.
+  const isAdmin =
+    active === "feed"
+      ? (await (await createClient()).rpc("is_admin")).data === true
+      : false;
+  const events = active === "events" ? await listAllEvents(100) : [];
   const members = active === "members" ? await listMemberSpotlight(12) : [];
 
   return (
     <PageShell>
-      <div className="space-y-4">
+      {/* Pull the heading up on desktop so the space above it matches the
+          16px gap below it (the shell's --space-page-y is 20–32px). */}
+      <div className="space-y-4 lg:[margin-top:calc(1rem_-_var(--space-page-y))]">
         {/* Page title */}
         <header className="flex items-center gap-2.5">
           <span className="size-9 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
@@ -101,20 +115,21 @@ export default async function CommunityPage({
           </h1>
         </header>
 
-        {/* Tabs — standalone navigation, separate from the content below */}
-        <CommunityTabs active={active} />
+        {/* Tabs — on the Events tab they share a row with the filters
+            (rendered inside EventsExplorer); standalone on the other tabs. */}
+        {active !== "events" && <CommunityTabs active={active} />}
 
-        {/* Feed — composer + feed together in one panel */}
+        {/* Feed — composer card, then the threads as their own cards below */}
         {active === "feed" && (
-          <div className="card overflow-hidden">
-            <div className="border-b border-ink-100">
+          <div className="space-y-4">
+            <div className="card overflow-hidden">
               <InlineComposer
                 spaces={spaceOptions}
                 userId={ctx.user.id}
                 flat
               />
             </div>
-            <DiscussionList posts={feedPosts} flat />
+            <DiscussionList posts={feedPosts} isAdmin={isAdmin} />
           </div>
         )}
 
@@ -128,7 +143,12 @@ export default async function CommunityPage({
           />
         )}
 
-        {active === "events" && <EventsSection events={events} />}
+        {active === "events" && (
+          <EventsExplorer
+            events={events}
+            tabs={<CommunityTabs active={active} />}
+          />
+        )}
         {active === "members" && (
           <div className="card overflow-hidden">
             <MembersSection members={members} />
@@ -138,31 +158,6 @@ export default async function CommunityPage({
     </PageShell>
   );
 }
-
-/* ─── Events tab (card grid — picked from design gallery #5/#6) ───────── */
-
-function EventsSection({ events }: { events: CommunityEvent[] }) {
-  if (events.length === 0) {
-    return (
-      <div className="card overflow-hidden">
-        <EmptyState
-          icon={CalendarDays}
-          title="No upcoming events"
-          body="Live sessions, Q&As and workshops will show up here. Check back soon."
-        />
-      </div>
-    );
-  }
-
-  return (
-    <ul className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-      {events.map((e) => (
-        <EventCard key={e.id} event={e} />
-      ))}
-    </ul>
-  );
-}
-
 
 /* ─── Members tab (borderless tiles inside the panel) ─────────────────── */
 

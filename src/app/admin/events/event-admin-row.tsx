@@ -25,6 +25,7 @@ export type EventRowData = {
   joined_count: number;
   url: string | null;
   kind: string | null;
+  cover_image_url: string | null;
 };
 
 /** Per-type pill styling — mirrors the Programs "Access" column colour coding. */
@@ -89,16 +90,25 @@ export function EventAdminRow({ event: e }: { event: EventRowData }) {
         pending && "opacity-60",
       )}
     >
-      {/* Date tile */}
+      {/* Cover image (if any) or date tile */}
       <td className="py-4 pl-6 lg:pl-8 pr-3">
-        <div className="w-[78px] h-[52px] rounded-[10px] bg-gradient-to-br from-rose-100 via-rose-50 to-cream-100 border border-rose-100 flex flex-col items-center justify-center shrink-0">
-          <span className="text-[9px] font-semibold uppercase tracking-wide text-rose-600 leading-none">
-            {date.toLocaleString(undefined, { month: "short" })}
-          </span>
-          <span className="text-[18px] font-bold text-rose-700 leading-tight">
-            {date.getDate()}
-          </span>
-        </div>
+        {e.cover_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={e.cover_image_url}
+            alt=""
+            className="w-[78px] h-[52px] rounded-[10px] object-cover border border-ink-100 shrink-0"
+          />
+        ) : (
+          <div className="w-[78px] h-[52px] rounded-[10px] bg-gradient-to-br from-rose-100 via-rose-50 to-cream-100 border border-rose-100 flex flex-col items-center justify-center shrink-0">
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-rose-600 leading-none">
+              {date.toLocaleString(undefined, { month: "short" })}
+            </span>
+            <span className="text-[18px] font-bold text-rose-700 leading-tight">
+              {date.getDate()}
+            </span>
+          </div>
+        )}
       </td>
 
       {/* Event name + description */}

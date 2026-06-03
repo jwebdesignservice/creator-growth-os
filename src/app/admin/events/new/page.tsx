@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { EventForm } from "../event-form";
 
 export const metadata = { title: "New event · Admin · Creator Growth OS" };
 
-export default function NewEventPage() {
+export default async function NewEventPage() {
+  const ctx = await getShellContext();
+  if (!ctx) redirect("/sign-in");
+
   return (
     <div className="space-y-6 container-app max-w-3xl">
       <header>
@@ -23,7 +28,7 @@ export default function NewEventPage() {
       </header>
 
       <section className="card p-6">
-        <EventForm redirectTo="/admin/events" />
+        <EventForm userId={ctx.user.id} redirectTo="/admin/events" />
       </section>
     </div>
   );

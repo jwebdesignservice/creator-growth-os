@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyCommunityReply } from "@/lib/notifications/service";
 import { POST_REACTIONS } from "@/lib/community/reactions";
+import { requireAdminClient } from "@/lib/admin/require-admin";
 import type { PostAttachment } from "@/lib/community/queries";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -13,6 +14,7 @@ export async function createPost(
   title: string,
   body: string,
   attachments: PostAttachment[] = [],
+  poll: { options: { id: string; text: string }[] } | null = null,
 ): Promise<Result> {
   const supabase = await createClient();
   const {
@@ -20,8 +22,21 @@ export async function createPost(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
+  // Normalise + validate the poll (single-choice, ≥2 non-empty options).
+  const cleanPoll = poll?.options
+    ? {
+        options: poll.options
+          .map((o) => ({ id: String(o.id), text: String(o.text).trim() }))
+          .filter((o) => o.text.length > 0),
+      }
+    : null;
+  const hasPoll = !!cleanPoll && cleanPoll.options.length >= 2;
+
   if (!title.trim()) return { ok: false, error: "Title is required." };
-  if (!body.trim()) return { ok: false, error: "Body is required." };
+  if (cleanPoll && !hasPoll)
+    return { ok: false, error: "A poll needs at least 2 options." };
+  if (!body.trim() && !hasPoll && attachments.length === 0)
+    return { ok: false, error: "Add a description, a poll, or an attachment." };
 
   const { data: space } = await supabase
     .from("community_spaces")
@@ -39,6 +54,7 @@ export async function createPost(
     body: body.trim(),
   };
   if (attachments.length > 0) payload.attachments = attachments;
+  if (hasPoll) payload.poll = cleanPoll;
 
   const { error } = await supabase.from("community_posts").insert(payload);
   if (error) {
@@ -46,7 +62,7 @@ export async function createPost(
       return {
         ok: false,
         error:
-          "Image/video attachments aren't available yet — the database update (migration 0050) is still pending.",
+          "This needs a database update that's still pending — run the latest migrations (0050 for media, 0053 for polls) and try again.",
       };
     return { ok: false, error: error.message };
   }
@@ -277,6 +293,77 @@ export async function reactToReply(
   if (error) {
     if (error.code === "42P01")
       return { ok: false, error: REPLY_REACTIONS_UNAVAILABLE };
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/community");
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Poll votes — community_poll_votes (migration 0053)
+// ─────────────────────────────────────────────────────────────────────
+
+const POLLS_UNAVAILABLE =
+  "Polls aren't available yet — the database update (migration 0053) is still pending.";
+
+/** Cast or change the current user's single-choice vote on a post's poll. */
+export async function votePoll(
+  postId: string,
+  optionId: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data: post, error: selErr } = await supabase
+    .from("community_posts")
+    .select("poll")
+    .eq("id", postId)
+    .maybeSingle();
+  if (selErr?.code === "42703") return { ok: false, error: POLLS_UNAVAILABLE };
+
+  const options =
+    (post?.poll as { options?: { id: string }[] } | null)?.options ?? [];
+  if (!options.some((o) => o.id === optionId))
+    return { ok: false, error: "That poll option no longer exists." };
+
+  const { error } = await supabase.from("community_poll_votes").upsert(
+    { post_id: postId, user_id: user.id, option_id: optionId },
+    { onConflict: "post_id,user_id" },
+  );
+  if (error) {
+    if (error.code === "42P01") return { ok: false, error: POLLS_UNAVAILABLE };
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/community");
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Pin / unpin a thread — admin only (migration 0054)
+// ─────────────────────────────────────────────────────────────────────
+
+export async function setPostPinned(
+  postId: string,
+  pinned: boolean,
+): Promise<Result> {
+  const ctx = await requireAdminClient();
+  if (!ctx.ok) return ctx;
+
+  const { error } = await ctx.supabase
+    .from("community_posts")
+    .update({ pinned_at: pinned ? new Date().toISOString() : null })
+    .eq("id", postId);
+  if (error) {
+    if (error.code === "42703")
+      return {
+        ok: false,
+        error: "Pinning needs migration 0054 — run it in the SQL editor first.",
+      };
     return { ok: false, error: error.message };
   }
 
