@@ -6,7 +6,6 @@ import {
   FolderPlus,
   Upload,
   Plus,
-  Search,
   ChevronDown,
   LayoutGrid,
   List,
@@ -32,7 +31,7 @@ import {
   archiveLesson,
   duplicateTutorial,
 } from "@/app/admin/lessons/actions";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export type TutorialCardData = {
   id: string;
@@ -64,7 +63,9 @@ export function TutorialsView({
   counts: { all: number; drafts: number; published: number; archived: number };
 }) {
   const [tab, setTab] = useState<Tab>("all");
-  const [search, setSearch] = useState("");
+  // Search is driven by the admin topbar via the shared `?q=` URL param.
+  const searchParams = useSearchParams();
+  const search = searchParams.get("q") ?? "";
   const [sort, setSort] = useState<Sort>("newest");
   const [view, setView] = useState<View>("grid");
 
@@ -222,20 +223,6 @@ export function TutorialsView({
 
       {/* ── Filter bar ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-400"
-            strokeWidth={2}
-          />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tutorials..."
-            className="w-full h-11 pl-10 pr-3 rounded-[12px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 transition-colors"
-          />
-        </div>
-
         <FilterSelect
           value={sort}
           onChange={(v) => setSort(v as Sort)}
