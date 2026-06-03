@@ -2,8 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { linkReferral } from "@/lib/referrals/service";
+import { REF_COOKIE, sanitizeReferralCode } from "@/lib/referrals/cookie";
 
 type FormResult = { error?: string; success?: string };
 
@@ -79,7 +81,13 @@ export async function signUpWithPassword(
   const fullName = String(formData.get("full_name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const acceptTerms = formData.get("accept_terms") === "on";
-  const referralCode = String(formData.get("referral_code") ?? "").trim();
+  // The hidden field is populated by the sign-up page (from `?ref=` or the
+  // cookie). Fall back to the cookie directly here too, in case the page was
+  // server-rendered before the cookie was readable or the field was stripped.
+  const cookieStore = await cookies();
+  const referralCode =
+    sanitizeReferralCode(String(formData.get("referral_code") ?? "")) ??
+    sanitizeReferralCode(cookieStore.get(REF_COOKIE)?.value);
 
   if (!email || !password) return { error: "Email and password are required." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
@@ -104,6 +112,13 @@ export async function signUpWithPassword(
   // self-referral, already linked) don't block signup.
   if (referralCode && data.user) {
     await linkReferral(data.user.id, referralCode);
+  }
+
+  // Clear the attribution cookie now that this signup has consumed it, so it
+  // can't bleed into a different signup later on the same browser. Safe no-op
+  // when the cookie was never set.
+  if (cookieStore.get(REF_COOKIE)) {
+    cookieStore.delete({ name: REF_COOKIE, path: "/" });
   }
 
   // If Supabase auto-confirms (confirmation disabled) we land directly in

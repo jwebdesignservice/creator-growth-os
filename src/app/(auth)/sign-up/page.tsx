@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Gift, Sparkles, Heart } from "lucide-react";
 import {
   AuthHeroPhoto,
   FeatureOverlayCard,
   NotebookCallout,
 } from "@/components/auth/hero-photo";
+import { REF_COOKIE, sanitizeReferralCode } from "@/lib/referrals/cookie";
 import { SignUpForm } from "./sign-up-form";
 
 export const metadata = { title: "Create account · Creator Growth OS" };
@@ -17,8 +19,13 @@ export default async function SignUpPage({
   searchParams: SearchParams;
 }) {
   const { ref } = await searchParams;
-  // Sanitize: codes are lowercase alphanumeric (see generate_referral_code).
-  const referralCode = ref?.replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 16) || null;
+  // Prefer a fresh `?ref=`; otherwise fall back to the cookie that `proxy.ts`
+  // dropped when the visitor first arrived via a referral link, so attribution
+  // isn't lost if they navigated away and came back without the query param.
+  const cookieStore = await cookies();
+  const referralCode =
+    sanitizeReferralCode(ref) ??
+    sanitizeReferralCode(cookieStore.get(REF_COOKIE)?.value);
 
   return (
     <div className="grid lg:grid-cols-[1fr_560px] min-h-screen">
