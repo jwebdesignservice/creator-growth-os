@@ -21,7 +21,7 @@ export function LessonVideoPlayer({ title, duration, videoUrl, coverUrl }: Props
   // Real uploaded video → native HTML5 player + admin-chosen cover poster.
   if (videoUrl) {
     return (
-      <section className="rounded-[18px] overflow-hidden border border-ink-100 bg-black relative aspect-video">
+      <section id="lesson-video" className="scroll-mt-24 rounded-[18px] overflow-hidden border border-ink-100 bg-black relative aspect-video">
         <video
           key={videoUrl}
           src={videoUrl}
@@ -38,7 +38,7 @@ export function LessonVideoPlayer({ title, duration, videoUrl, coverUrl }: Props
 
   // No video uploaded yet → decorative placeholder (design comp).
   return (
-    <section className="rounded-[18px] overflow-hidden border border-ink-100 bg-cream-200 relative aspect-video">
+    <section id="lesson-video" className="scroll-mt-24 rounded-[18px] overflow-hidden border border-ink-100 bg-cream-200 relative aspect-video">
       {/* Decorative cover */}
       <div
         className="absolute inset-0 bg-gradient-to-br from-rose-100/50 via-cream-200 to-rose-200/40"

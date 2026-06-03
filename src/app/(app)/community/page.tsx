@@ -9,13 +9,10 @@ import {
   listUpcomingEvents,
   listMemberSpotlight,
 } from "@/lib/community/queries";
-import { SpaceCard } from "@/components/community/space-card";
 import { DiscussionList } from "@/components/community/discussion-list";
 import { NewPostForm } from "@/components/community/new-post-form";
 
 export const metadata = { title: "Community · Creator Growth OS" };
-
-const HUES = ["rose", "cream", "warm"] as const;
 
 export default async function CommunityPage() {
   const ctx = await getShellContext();
@@ -29,7 +26,8 @@ export default async function CommunityPage() {
   ]);
 
   const firstName = ctx.name.split(" ")[0];
-  const featured = spaces.find((s) => s.featured) ?? spaces[0];
+  // `spaces` still drives the New Post form's category picker — we just no
+  // longer render the (non-navigable) space cards / featured banner.
   const spaceOptions = spaces.map((s) => ({ slug: s.slug, name: s.name }));
 
   return (
@@ -51,27 +49,6 @@ export default async function CommunityPage() {
           </div>
           <NewPostForm spaces={spaceOptions} />
         </header>
-
-        {featured && <FeaturedSpace space={featured} />}
-
-        <section>
-          <h2 className="text-[16px] font-semibold text-ink-900 mb-3">
-            Category spaces
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {spaces.map((s, i) => (
-              <SpaceCard
-                key={s.id}
-                slug={s.slug}
-                name={s.name}
-                description={s.description}
-                member_count={s.member_count}
-                featured={s.featured}
-                hue={HUES[i % HUES.length]}
-              />
-            ))}
-          </div>
-        </section>
 
         <section>
           <Link
@@ -132,44 +109,6 @@ export default async function CommunityPage() {
         </section>
       </div>
     </PageShell>
-  );
-}
-
-function FeaturedSpace({
-  space,
-}: {
-  space: {
-    slug: string;
-    name: string;
-    description: string | null;
-    member_count: number;
-  };
-}) {
-  return (
-    <section className="relative overflow-hidden rounded-[24px] bg-rose-50/60 border border-rose-100 p-6 lg:p-8">
-      <div className="relative z-10 grid lg:grid-cols-[1fr_auto] items-center gap-6">
-        <div>
-          <div className="text-rose-600 font-medium text-[12px] uppercase tracking-wide mb-2">
-            Featured Circle
-          </div>
-          <h2 className="text-h2 lg:text-[32px] text-ink-900 leading-tight mb-2">
-            {space.name}
-          </h2>
-          <p className="text-[14px] text-ink-700 max-w-2xl">
-            {space.description}
-          </p>
-          <div className="text-[12.5px] text-ink-500 mt-3">
-            {space.member_count.toLocaleString()} active members
-          </div>
-        </div>
-        <Link
-          href={`/community?space=${space.slug}`}
-          className="inline-flex items-center justify-center h-12 px-6 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[14.5px] font-semibold transition-colors shadow-sm shrink-0"
-        >
-          Enter circle
-        </Link>
-      </div>
-    </section>
   );
 }
 

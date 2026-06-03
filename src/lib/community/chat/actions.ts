@@ -348,8 +348,66 @@ export async function editMessage(
 // ── Link preview (Open Graph unfurl) — used internally by sendMessage ─
 
 import type { LinkPreview } from "./types";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 
 const URL_RE = /(https?:\/\/[^\s<>"']+)/i;
+
+/**
+ * SSRF guard. `fetchLinkPreview` fetches a URL a user pasted into chat, so we
+ * must make sure it points at a genuinely public host — otherwise a crafted
+ * link could make the server probe internal services (cloud metadata at
+ * 169.254.169.254, localhost admin ports, RFC-1918 ranges, etc.).
+ */
+function isPrivateAddress(ip: string): boolean {
+  if (isIP(ip) === 4) {
+    const p = ip.split(".").map(Number);
+    if (p[0] === 10) return true; // 10.0.0.0/8
+    if (p[0] === 127) return true; // loopback
+    if (p[0] === 0) return true; // "this" network
+    if (p[0] === 169 && p[1] === 254) return true; // link-local + metadata
+    if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true; // 172.16.0.0/12
+    if (p[0] === 192 && p[1] === 168) return true; // 192.168.0.0/16
+    if (p[0] === 100 && p[1] >= 64 && p[1] <= 127) return true; // CGNAT 100.64/10
+    return false;
+  }
+  // IPv6
+  const lower = ip.toLowerCase();
+  if (lower === "::1" || lower === "::") return true;
+  if (lower.startsWith("fe80")) return true; // link-local
+  if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // unique-local
+  const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/); // IPv4-mapped
+  if (mapped) return isPrivateAddress(mapped[1]);
+  return false;
+}
+
+/** Validate a URL is http(s) to a public host; returns the URL or null. */
+async function toSafePublicUrl(raw: string): Promise<string | null> {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  const host = u.hostname;
+  if (isIP(host)) return isPrivateAddress(host) ? null : u.toString();
+  if (
+    host === "localhost" ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return null;
+  }
+  try {
+    const results = await lookup(host, { all: true });
+    if (results.length === 0) return null;
+    if (results.some((r) => isPrivateAddress(r.address))) return null;
+  } catch {
+    return null;
+  }
+  return u.toString();
+}
 
 /** Extract og:title, og:description, og:image, og:site_name from HTML. */
 function parseOg(html: string, url: string): LinkPreview {
@@ -444,22 +502,48 @@ export async function fetchLinkPreview(
 ): Promise<LinkPreview | null> {
   const match = body.match(URL_RE);
   if (!match) return null;
-  const url = match[1];
+  const originalUrl = match[1];
+
+  // SSRF guard: confirm the target resolves to a public host before fetching.
+  let target = await toSafePublicUrl(originalUrl);
+  if (!target) return null;
+
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { "User-Agent": "CreatorGrowthOS-Bot/1.0 (+link-preview)" },
-      redirect: "follow",
-    });
+
+    // Handle redirects manually (max 3 hops) so each Location is re-validated
+    // against the SSRF guard — a public URL could otherwise 30x-redirect into
+    // an internal address.
+    let res: Response | null = null;
+    for (let hop = 0; hop < 3; hop++) {
+      res = await fetch(target, {
+        signal: controller.signal,
+        headers: { "User-Agent": "CreatorGrowthOS-Bot/1.0 (+link-preview)" },
+        redirect: "manual",
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        if (!loc) break;
+        const next = await toSafePublicUrl(new URL(loc, target).toString());
+        if (!next) {
+          clearTimeout(timer);
+          return null;
+        }
+        target = next;
+        continue;
+      }
+      break;
+    }
     clearTimeout(timer);
-    if (!res.ok) return null;
+
+    if (!res || !res.ok) return null;
     const ct = res.headers.get("content-type") ?? "";
     if (!/text\/html/i.test(ct)) return null;
     // Only read up to ~256KB to avoid memory blowup on huge pages
     const text = (await res.text()).slice(0, 256_000);
-    const preview = parseOg(text, url);
+    // Show the preview under the URL the user actually pasted.
+    const preview = parseOg(text, originalUrl);
     // Only return if we got at least a title or image — otherwise it's useless
     if (!preview.title && !preview.image) return null;
     return preview;
