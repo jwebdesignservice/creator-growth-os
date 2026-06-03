@@ -129,11 +129,19 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     `Payment received: ${amount} ${invoice.currency.toUpperCase()}.`,
   );
 
-  // Referral qualification: any successful payment by a referred user
-  // promotes their referral from pending → qualified, and may trigger a
-  // milestone reward for the referrer. qualifyReferral() is idempotent so
-  // repeated invoices don't double-count.
-  await qualifyReferral(userId);
+  // Referral qualification: a referred user's payment promotes their
+  // referral from pending → qualified, and may trigger a milestone reward
+  // for the referrer. qualifyReferral() is idempotent so repeated invoices
+  // don't double-count.
+  //
+  // GATE — must be a *real* payment. A $0 invoice (a 100%-off promo code at
+  // checkout, or a free-trial cycle) must NOT qualify the referral: the
+  // reward is earned only when the invitee actually pays for a plan, never
+  // for a free signup. If the first invoice is $0, the next non-zero invoice
+  // will qualify them instead.
+  if (invoice.amount_paid > 0) {
+    await qualifyReferral(userId);
+  }
 }
 
 async function handleInvoiceFailed(invoice: Stripe.Invoice) {
