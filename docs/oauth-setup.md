@@ -149,3 +149,66 @@ per platform is **data sync** — actually calling the provider's API to
 fetch follower count, views, etc., and writing them into the
 `social_accounts` and `performance_entries` tables. That lives in
 `src/lib/social/<provider>.ts` and is implemented per-platform.
+
+## Production review / verification status
+
+> Snapshot as of **2026-06-03**. This tracks what each platform is waiting
+> on before OAuth works for *all* users (not just admins/test users).
+> Update this section whenever a status changes.
+
+### TikTok — ⏳ awaiting production review
+
+- **Submitted** for production review. TikTok quotes ~48h to hear back.
+- **Works now for:** the app's own sandbox/developer accounts only.
+- **Temporary code state (revert after approval):**
+  - `src/lib/social/providers.ts` — scope reduced to `["user.info.basic"]`;
+    `user.info.stats` was removed because sandbox wouldn't grant it.
+  - `src/lib/social/tiktok.ts` — `fetchUserInfo` does a two-pass fetch
+    (tries the stats fields, falls back to basic fields on a 401
+    `scope_not_authorized`). Safe to keep, but the stats path only returns
+    data once the scope is approved.
+- **🔖 Come back to:** once approved, restore `user.info.stats` to
+  `PROVIDERS.tiktok.scopes`, redeploy, reconnect, and confirm follower/like
+  stats flow through.
+- Domain verification files live in `/public` (both the trailing-slash and
+  no-slash prefix variants TikTok required).
+
+### Instagram + Facebook (one Meta app) — ⏳ in App Review
+
+- **App is LIVE.** Login **works today for Admins / Developers / Testers and
+  test users only** — not the general public yet.
+- **Business Verification:** submitted (~48h wait).
+- **🔖 Come back to:** after Business Verification clears, complete the
+  per-permission App Review forms (each needs a screencast) for:
+  `instagram_basic`, `pages_show_list`, `pages_read_engagement`,
+  `instagram_manage_insights`. `instagram_manage_insights` is the slowest to
+  clear. Until every scope is approved, only roled/test users can connect.
+- **Already configured:** App Domains, OAuth redirect URIs, Website platform,
+  Terms of Service URL, Privacy Policy URL.
+- Reminder: the connecting user needs an Instagram **Business/Creator**
+  account linked to a Facebook Page.
+
+### YouTube (Google) — ⏸️ PAUSED (blocked on custom domain)
+
+- **In Testing mode.** Only accounts added under **Test users** can connect
+  (e.g. jackshopify22@gmail.com, jwebdesign.service@gmail.com).
+- `youtube.readonly` is a **sensitive scope** and is declared under Data
+  access.
+- **App-name mismatch error:** ✅ FIXED — the `/` landing page now renders the
+  "Profluencer" name Google's verifier cross-checks (confirmed resolved).
+- **Blocker:** Google branding/OAuth verification requires proving domain
+  ownership in Google Search Console, but we're on a shared `*.vercel.app`
+  subdomain we don't own → can't verify. Decision was to **pause** Google
+  verification until we have a custom domain.
+- **🔖 Come back to:** after buying a custom domain → verify it in Search
+  Console → resume the OAuth verification → submit the sensitive-scope review.
+  Until then, only test users can connect.
+
+### 🔖 When the custom domain is acquired (affects all platforms)
+
+1. Update `NEXT_PUBLIC_APP_URL` everywhere (`.env.local` + Vercel env).
+2. Update the redirect URIs in **all** provider dashboards (TikTok, Meta,
+   Google) to the new domain.
+3. Re-do domain verification for the new domain: TikTok verification files,
+   Meta **App Domains**, Google **Search Console**.
+4. Resume the paused Google YouTube verification.

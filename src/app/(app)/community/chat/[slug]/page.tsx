@@ -53,9 +53,14 @@ export default async function CommunityChatChannelPage({
     <div
       className="flex overflow-hidden px-[var(--mobile-content-x)] lg:px-[var(--space-page-x)] py-4 gap-4"
       style={{
-        // Inline style avoids Tailwind arbitrary-value resolution quirks.
-        // dvh handles mobile browser chrome correctly.
-        height: "calc(100dvh - var(--topbar-height))",
+        // Pin the chat surface to exactly the space below the topbar so the
+        // PAGE never scrolls — only the message list (overflow-y-auto) does,
+        // and the channels panel stays static. Inline style avoids Tailwind
+        // arbitrary-value resolution quirks; dvh handles mobile browser
+        // chrome correctly. The 5.5rem fallback mirrors --topbar-height in
+        // containers.css so a missing/invalid token can't silently collapse
+        // this to height:auto (which would let the whole page scroll).
+        height: "calc(100dvh - var(--topbar-height, 5.5rem))",
       }}
     >
       <ChannelList

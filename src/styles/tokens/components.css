@@ -71,7 +71,10 @@
   --table-min-width: 36rem;    /* prevents layout break before scroll kicks in */
 
   /* ── Sidebar ───────────────────────────────────────────────────────────── */
-  --sidebar-width:      var(--sidebar-width);    /* from containers.css      */
+  /* --sidebar-width lives in containers.css. Do NOT redeclare it as
+     `var(--sidebar-width)` here — a custom property that references itself is
+     a cyclic dependency and computes to the guaranteed-invalid value, which
+     silently breaks every consumer. */
   --sidebar-padding-x:  var(--space-sidebar-x);
   --sidebar-padding-y:  var(--space-sidebar-y);
   --sidebar-item-height:2.75rem;   /* 44px — comfortable touch target        */
@@ -80,7 +83,11 @@
   --sidebar-font-size:  var(--text-nav);
 
   /* ── Topbar ────────────────────────────────────────────────────────────── */
-  --topbar-height:     var(--topbar-height);     /* from containers.css      */
+  /* --topbar-height lives in containers.css (5.5rem). Do NOT redeclare it as
+     `var(--topbar-height)` — the self-reference made it invalid app-wide,
+     which collapsed `min-h-[var(--topbar-height)]` on the topbar AND the
+     `calc(100dvh - var(--topbar-height))` height on the community chat page
+     (causing the whole page to scroll instead of just the message list). */
   --topbar-padding-x:  var(--space-topbar-x);
   --topbar-gap:        0.75rem;
   --topbar-search-width: clamp(12rem, 20vw, 18rem);
