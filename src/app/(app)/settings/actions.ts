@@ -53,11 +53,13 @@ export async function saveCreatorInfo(data: {
 
   const admin = createServiceClient();
 
-  // Update profile bio (stored in main_goal) + niche + platform
+  // Persist bio to its own `bio` column (added in 0005). It used to be stored
+  // in `main_goal`, which collided with the onboarding "main goal" value and
+  // showed up mislabelled on the profile page — fixed here.
   const { error: profileErr } = await admin
     .from("profiles")
     .update({
-      main_goal:        data.bio,
+      bio:              data.bio,
       niche:            data.niche,
       primary_platform: data.primary_platform ?? null,
       updated_at:       new Date().toISOString(),

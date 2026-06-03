@@ -142,7 +142,7 @@ export function BillingPageClient({
           </Link>
           <span className="text-ink-300">·</span>
           <Link
-            href="/support"
+            href="/support/faq#billing"
             className="font-semibold text-rose-600 hover:text-rose-700 transition-colors"
           >
             Billing FAQ

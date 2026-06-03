@@ -11,6 +11,7 @@ import {
   Phone,
   CalendarClock,
   ArrowRight,
+  FileText,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { Avatar } from "@/components/app-shell/avatar";
@@ -49,11 +50,12 @@ export default async function ProfilePage() {
   // Pull a couple of extra fields the shell context doesn't surface (created_at)
   // so we can show "Member since". One light read; failures fall back gracefully.
   let memberSince: string | null = null;
+  let bio: string | null = null;
   try {
     const supabase = await createClient();
     const { data } = await supabase
       .from("profiles")
-      .select("created_at")
+      .select("created_at, bio")
       .eq("id", user.id)
       .maybeSingle();
     if (data?.created_at) {
@@ -62,8 +64,9 @@ export default async function ProfilePage() {
         year: "numeric",
       });
     }
+    bio = (data?.bio as string | null) ?? null;
   } catch {
-    /* non-fatal — Member since just won't render */
+    /* non-fatal — Member since / bio just won't render */
   }
 
   const fullName =
@@ -181,6 +184,12 @@ export default async function ProfilePage() {
           </header>
 
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field
+              icon={FileText}
+              label="Bio"
+              value={bio}
+              wide
+            />
             <Field
               icon={Sparkles}
               label="Primary platform"
