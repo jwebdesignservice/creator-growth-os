@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Sparkles, CalendarDays, Star, MessageSquare, ArrowRight } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import {
@@ -8,197 +12,253 @@ import {
   listRecentPosts,
   listUpcomingEvents,
   listMemberSpotlight,
+  listRepliesForPosts,
+  getPostVotes,
+  getPostReactions,
+  getPostAttachments,
+  type CommunityEvent,
+  type PostVotes,
+  type PostReaction,
+  type PostAttachment,
 } from "@/lib/community/queries";
 import { DiscussionList } from "@/components/community/discussion-list";
-import { NewPostForm } from "@/components/community/new-post-form";
+import { InlineComposer } from "@/components/community/inline-composer";
+import {
+  CommunityTabs,
+  type CommunityTab,
+} from "@/components/community/community-tabs";
+import { ChatTab } from "@/components/community/chat-tab";
 
 export const metadata = { title: "Community · Creator Growth OS" };
 
-export default async function CommunityPage() {
+const VALID_TABS: CommunityTab[] = ["feed", "chat", "events", "members"];
+
+const NO_VOTES: PostVotes = { likes: 0, dislikes: 0, myVote: 0 };
+
+type SearchParams = Promise<{ tab?: string; c?: string }>;
+
+/**
+ * Community hub — a single connected panel: the page title sits above one
+ * card that holds the segmented tabs (header) and the active section's
+ * content, divided by hairlines instead of separate floating boxes. Only one
+ * mode (Feed / Chat / Events / Members) shows at a time.
+ *
+ * Front-end only: every section reuses the existing community queries.
+ */
+export default async function CommunityPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
-  const [spaces, posts, events, spotlight] = await Promise.all([
-    listSpaces(),
-    listRecentPosts(),
-    listUpcomingEvents(),
-    listMemberSpotlight(),
-  ]);
+  const { tab, c } = await searchParams;
+  const active: CommunityTab = VALID_TABS.includes(tab as CommunityTab)
+    ? (tab as CommunityTab)
+    : "feed";
 
-  const firstName = ctx.name.split(" ")[0];
-  // `spaces` still drives the New Post form's category picker — we just no
-  // longer render the (non-navigable) space cards / featured banner.
+  const spaces = await listSpaces();
   const spaceOptions = spaces.map((s) => ({ slug: s.slug, name: s.name }));
+
+  // Fetch only what the active tab needs. Chat fetches its own data inside
+  // <ChatTab>, so the other tabs stay lean.
+  const posts = active === "feed" ? await listRecentPosts(20) : [];
+  // Pull each post's replies + like/dislike tallies so the feed can show the
+  // conversation and votes inline.
+  const repliesByPost =
+    active === "feed" && posts.length
+      ? await listRepliesForPosts(posts.map((p) => p.id), ctx.user.id)
+      : new Map();
+  const votesByPost: Map<string, PostVotes> =
+    active === "feed" && posts.length
+      ? await getPostVotes(posts.map((p) => p.id), ctx.user.id)
+      : new Map();
+  const reactionsByPost: Map<string, PostReaction[]> =
+    active === "feed" && posts.length
+      ? await getPostReactions(posts.map((p) => p.id), ctx.user.id)
+      : new Map();
+  const attachmentsByPost: Map<string, PostAttachment[]> =
+    active === "feed" && posts.length
+      ? await getPostAttachments(posts.map((p) => p.id))
+      : new Map();
+  const feedPosts = posts.map((p) => ({
+    ...p,
+    replies: repliesByPost.get(p.id) ?? [],
+    votes: votesByPost.get(p.id) ?? NO_VOTES,
+    reactions: reactionsByPost.get(p.id) ?? [],
+    attachments: attachmentsByPost.get(p.id) ?? [],
+  }));
+  const events = active === "events" ? await listUpcomingEvents(12) : [];
+  const members = active === "members" ? await listMemberSpotlight(12) : [];
 
   return (
     <PageShell>
-      <div className="space-y-7 max-w-[1600px] mx-auto">
-        <header className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
-              <Sparkles className="size-4" strokeWidth={2} />
-              Welcome to the Community, {firstName}
-            </div>
-            <h1 className="text-h1 text-ink-900 mb-1">
-              Creator Community
-            </h1>
-            <p className="text-ink-500 text-[14px]">
-              Connect with creators in your category, join accountability spaces
-              and ask questions.
-            </p>
-          </div>
-          <NewPostForm spaces={spaceOptions} />
+      <div className="space-y-4">
+        {/* Page title */}
+        <header className="flex items-center gap-2.5">
+          <span className="size-9 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+            <Users className="size-[18px]" strokeWidth={2} />
+          </span>
+          <h1 className="text-h3 text-ink-900 leading-none">
+            Creator Community
+          </h1>
         </header>
 
-        <section>
-          <Link
-            href="/community/chat"
-            className="relative block overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-100 via-rose-50 to-cream-100 border-2 border-rose-200 hover:border-rose-300 hover:shadow-lg transition-all group"
-          >
-            {/* Decorative floating chat bubbles */}
-            <div className="absolute right-8 top-6 size-12 rounded-[14px] bg-white shadow-md rotate-[8deg] flex items-center justify-center opacity-90 hidden md:flex">
-              <MessageSquare className="size-5 text-rose-500" strokeWidth={2} />
+        {/* Tabs — standalone navigation, separate from the content below */}
+        <CommunityTabs active={active} />
+
+        {/* Feed — composer + feed together in one panel */}
+        {active === "feed" && (
+          <div className="card overflow-hidden">
+            <div className="border-b border-ink-100">
+              <InlineComposer
+                spaces={spaceOptions}
+                userId={ctx.user.id}
+                flat
+              />
             </div>
-            <div className="absolute right-28 top-16 size-10 rounded-[12px] bg-rose-300/30 rotate-[-12deg] hidden md:block" />
-            <div className="absolute right-16 bottom-6 size-8 rounded-[10px] bg-white/80 shadow-sm rotate-[15deg] hidden md:block" />
-
-            <div className="relative p-7 lg:p-9 grid lg:grid-cols-[1fr_auto] items-center gap-6">
-              <div className="flex items-start gap-5">
-                <div className="size-16 rounded-[18px] bg-rose-600 flex items-center justify-center shrink-0 shadow-md">
-                  <MessageSquare className="size-7 text-white" strokeWidth={2} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-semibold">
-                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Live now
-                    </span>
-                  </div>
-                  <h2 className="text-h2 text-ink-900 leading-tight mb-1">
-                    Community Chat
-                  </h2>
-                  <p className="text-[14px] text-ink-700 max-w-xl">
-                    Talk to other creators, ask questions, and get real-time answers
-                    from coaches.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="inline-flex items-center gap-2 h-12 px-5 rounded-[14px] bg-rose-600 group-hover:bg-rose-700 text-white text-[14.5px] font-semibold shadow-sm transition-colors">
-                  Join chat
-                  <ArrowRight className="size-4" strokeWidth={2.5} />
-                </span>
-              </div>
-            </div>
-          </Link>
-        </section>
-
-        <section className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5">
-          <div>
-            <h2 className="text-[16px] font-semibold text-ink-900 mb-3">
-              Recent discussions
-            </h2>
-            <DiscussionList posts={posts} />
+            <DiscussionList posts={feedPosts} flat />
           </div>
+        )}
 
-          <div className="space-y-5">
-            <UpcomingEvents events={events} />
-            <MemberSpotlight members={spotlight} />
+        {/* Chat — full real-time chat (its own two-pane surface) */}
+        {active === "chat" && (
+          <ChatTab
+            activeSlug={c}
+            userId={ctx.user.id}
+            userName={ctx.name}
+            userAvatar={ctx.profile?.avatar_url ?? null}
+          />
+        )}
+
+        {active === "events" && (
+          <div className="card overflow-hidden">
+            <EventsSection events={events} />
           </div>
-        </section>
+        )}
+        {active === "members" && (
+          <div className="card overflow-hidden">
+            <MembersSection members={members} />
+          </div>
+        )}
       </div>
     </PageShell>
   );
 }
 
-function UpcomingEvents({
-  events,
-}: {
-  events: Awaited<ReturnType<typeof listUpcomingEvents>>;
-}) {
+/* ─── Events tab (flat divided rows inside the panel) ─────────────────── */
+
+function EventsSection({ events }: { events: CommunityEvent[] }) {
+  if (events.length === 0) {
+    return (
+      <EmptyState
+        icon={CalendarDays}
+        title="No upcoming events"
+        body="Live sessions, Q&As and workshops will show up here. Check back soon."
+      />
+    );
+  }
+
   return (
-    <div className="card p-5">
-      <header className="flex items-center justify-between mb-3">
-        <h3 className="text-h4 text-ink-900">
-          Upcoming events
-        </h3>
-        <CalendarDays className="size-4 text-ink-400" strokeWidth={2} />
-      </header>
-      {events.length === 0 ? (
-        <p className="text-[13px] text-ink-500">No events scheduled yet.</p>
-      ) : (
-        <ul className="space-y-3">
-          {events.map((e) => {
-            const date = new Date(e.starts_at);
-            return (
-              <li key={e.id} className="flex items-start gap-3">
-                <div className="flex flex-col items-center justify-center size-12 rounded-[10px] bg-rose-100 text-rose-700 shrink-0">
-                  <span className="text-[10px] font-medium uppercase tracking-wide">
-                    {date.toLocaleString(undefined, { month: "short" })}
-                  </span>
-                  <span className="text-[15px] font-semibold leading-none">
-                    {date.getDate()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13.5px] font-medium text-ink-900 line-clamp-1">
-                    {e.title}
-                  </div>
-                  <div className="text-[11.5px] text-ink-500">
-                    {date.toLocaleTimeString([], {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}{" "}
-                    · {e.host_name ?? "Coach"} · {e.joined_count} joined
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+    <ul>
+      {events.map((e) => {
+        const date = new Date(e.starts_at);
+        return (
+          <li
+            key={e.id}
+            className="p-4 sm:p-5 border-b border-ink-100 last:border-0 flex items-start gap-4"
+          >
+            <div className="flex flex-col items-center justify-center size-14 rounded-[14px] bg-rose-100 text-rose-700 shrink-0">
+              <span className="text-[10px] font-semibold uppercase tracking-wide">
+                {date.toLocaleString(undefined, { month: "short" })}
+              </span>
+              <span className="text-[18px] font-bold leading-none">
+                {date.getDate()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-h5 text-ink-900 leading-snug">{e.title}</h3>
+              {e.description && (
+                <p className="text-[13px] text-ink-500 leading-snug mt-0.5 line-clamp-2">
+                  {e.description}
+                </p>
+              )}
+              <div className="mt-2 flex items-center gap-2.5 flex-wrap text-[12px] text-ink-500">
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="size-3.5" strokeWidth={2} />
+                  {date.toLocaleTimeString([], {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <span aria-hidden>·</span>
+                <span>{e.host_name ?? "Coach"}</span>
+                <span aria-hidden>·</span>
+                <span>{e.joined_count} joined</span>
+              </div>
+            </div>
+            {e.url && (
+              <a
+                href={e.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center h-9 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors shrink-0 self-center"
+              >
+                Join
+              </a>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-function MemberSpotlight({
+/* ─── Members tab (borderless tiles inside the panel) ─────────────────── */
+
+function MembersSection({
   members,
 }: {
   members: Awaited<ReturnType<typeof listMemberSpotlight>>;
 }) {
-  if (members.length === 0) return null;
+  if (members.length === 0) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="No members to show yet"
+        body="As creators join and complete onboarding, they'll appear here."
+      />
+    );
+  }
+
   return (
-    <div className="card p-5">
-      <header className="flex items-center justify-between mb-3">
-        <h3 className="text-h4 text-ink-900">
-          Member spotlight
-        </h3>
-        <Star className="size-4 text-ink-400" strokeWidth={2} />
-      </header>
-      <ul className="space-y-3">
+    <div className="p-3 sm:p-4">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
         {members.map((m) => {
           const name = m.display_name ?? m.full_name ?? "Creator";
-          const initial = name.charAt(0).toUpperCase();
           return (
-            <li key={m.id} className="flex items-center gap-3">
+            <li
+              key={m.id}
+              className="p-3 flex items-center gap-3 rounded-[12px] hover:bg-cream-50 transition-colors"
+            >
               {m.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={m.avatar_url}
                   alt={name}
-                  className="size-10 rounded-full object-cover shrink-0"
+                  className="size-11 rounded-full object-cover shrink-0"
                 />
               ) : (
-                <div className="size-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-semibold text-[14px] shrink-0">
-                  {initial}
+                <div className="size-11 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-semibold text-[15px] shrink-0">
+                  {name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <div className="text-[13.5px] font-medium text-ink-900 truncate">
+              <div className="min-w-0">
+                <div className="text-[14px] font-semibold text-ink-900 truncate">
                   {name}
                 </div>
-                <div className="text-[11.5px] text-ink-500 capitalize">
+                <div className="text-[12px] text-ink-500 capitalize truncate">
                   {m.category ?? "creator"}
                   {m.primary_platform ? ` · ${m.primary_platform}` : ""}
                 </div>
@@ -207,6 +267,28 @@ function MemberSpotlight({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/* ─── Shared empty state (flat — sits inside the panel) ───────────────── */
+
+function EmptyState({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="p-10 text-center">
+      <span className="inline-flex items-center justify-center size-12 rounded-full bg-rose-50 text-rose-500 mb-3">
+        <Icon className="size-6" strokeWidth={1.8} />
+      </span>
+      <h3 className="text-h4 text-ink-900 mb-1">{title}</h3>
+      <p className="text-[13px] text-ink-500 max-w-sm mx-auto">{body}</p>
     </div>
   );
 }

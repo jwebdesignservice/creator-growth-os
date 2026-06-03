@@ -12,6 +12,13 @@ type Props = {
   channels: ChatChannel[];
   currentSlug: string;
   isAdmin: boolean;
+  /**
+   * When true, channel links stay inside the community Chat tab
+   * (`/community?tab=chat&c=<slug>`) instead of the standalone chat route.
+   * A plain boolean (not a function) so it's serializable from the server
+   * component that embeds this in the tab.
+   */
+  inTab?: boolean;
 };
 
 /**
@@ -127,7 +134,7 @@ function CreateChannelForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-export function ChannelList({ channels, currentSlug, isAdmin }: Props) {
+export function ChannelList({ channels, currentSlug, isAdmin, inTab }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -186,7 +193,7 @@ export function ChannelList({ channels, currentSlug, isAdmin }: Props) {
               return (
                 <li key={c.id}>
                   <Link
-                    href={`/community/chat/${c.slug}`}
+                    href={inTab ? `/community?tab=chat&c=${c.slug}` : `/community/chat/${c.slug}`}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
                       "flex items-center gap-2.5 px-3 py-2 mx-2 rounded-[10px] text-[13.5px] font-medium transition-colors group",
