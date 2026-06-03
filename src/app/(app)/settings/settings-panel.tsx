@@ -43,6 +43,7 @@ type ProfileRow = {
   plan: Plan;
   follower_base: string | null;
   niche: string | null;
+  bio: string | null;
   main_goal: string | null;
   primary_platform: string | null;
 } | null;
@@ -316,7 +317,7 @@ function CreatorBrandCard({
 }) {
   const [pillars, setPillars] = useState<string[]>(initialPillars);
   const [newPillar, setNewPillar] = useState("");
-  const [bio, setBio] = useState(profile?.main_goal ?? "");
+  const [bio, setBio] = useState(profile?.bio ?? "");
   const [niche, setNiche] = useState(profile?.niche ?? "");
   const [platform, setPlatform] = useState<string | null>(
     profile?.primary_platform ?? null,

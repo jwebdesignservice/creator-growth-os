@@ -233,7 +233,7 @@ const SECTIONS: Section[] = [
         a: (
           <>
             Share your link from{" "}
-            <FaqLink href="/settings/referrals">Settings → Invite friends</FaqLink>
+            <FaqLink href="/settings/invites">Settings → Invites</FaqLink>
             . When invited creators subscribe to a paid plan, you earn free
             months — 1 month free at 3 referrals and 3 months free at 9.
           </>

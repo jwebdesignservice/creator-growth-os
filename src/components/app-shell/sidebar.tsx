@@ -332,7 +332,7 @@ function BottomCtaIcons({ plan }: { plan: "free" | "basic" | "pro" }) {
         </Link>
       )}
       <Link
-        href="/settings/referrals"
+        href="/settings/invites"
         title="Invite friends"
         aria-label="Invite friends"
         className="flex items-center justify-center size-10 rounded-[10px] bg-rose-100 hover:bg-rose-200 transition-colors"
@@ -363,7 +363,7 @@ function BottomCtaCard({ plan }: { plan: "free" | "basic" | "pro" }) {
         </>
       )}
       <CtaRow
-        href="/settings/referrals"
+        href="/settings/invites"
         icon={Gift}
         label="Invite friends"
       />
