@@ -7,7 +7,16 @@ import { SignInForm } from "./sign-in-form";
 
 export const metadata = { title: "Sign in · Creator Growth OS" };
 
-type SearchParams = Promise<{ redirect?: string | string[] }>;
+type SearchParams = Promise<{
+  redirect?: string | string[];
+  error?: string | string[];
+}>;
+
+/** Friendly copy for the `?error=` codes other pages redirect here with. */
+const SIGN_IN_ERRORS: Record<string, string> = {
+  auth_callback_failed:
+    "That sign-in link was invalid or has expired. Please sign in again.",
+};
 
 export default async function SignInPage({
   searchParams,
@@ -21,6 +30,13 @@ export default async function SignInPage({
   // Only forward safe internal paths; the action validates again server-side.
   const redirectTo =
     raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : undefined;
+  const errorParam = Array.isArray(params.error)
+    ? params.error[0]
+    : params.error;
+  const errorMessage = errorParam
+    ? (SIGN_IN_ERRORS[errorParam] ??
+      "Something went wrong. Please sign in again.")
+    : null;
 
   return (
     <div className="grid lg:grid-cols-[1fr_520px] min-h-screen bg-cream-100">
@@ -44,6 +60,12 @@ export default async function SignInPage({
               Continue your creator journey and grow your influence with
               confidence.
             </p>
+
+            {errorMessage && (
+              <div className="mb-4 px-4 py-3 rounded-[10px] bg-rose-50 border border-rose-200 text-[13px] text-rose-700">
+                {errorMessage}
+              </div>
+            )}
 
             <SignInForm redirectTo={redirectTo} />
 

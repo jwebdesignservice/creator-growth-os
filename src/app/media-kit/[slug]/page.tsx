@@ -43,6 +43,10 @@ export default async function MediaKitPublicPage({
     profile?.display_name ?? profile?.full_name ?? "Creator";
   const stats = Object.entries(typedKit.audience_stats ?? {});
   const rates = Object.entries(typedKit.rates ?? {});
+  // This page is public (anyone with the link). The creator controls the link
+  // URLs, so restrict them to http(s) — drop javascript:/data:/etc. that could
+  // execute in a visitor's browser.
+  const safeLinks = (typedKit.links ?? []).filter((l) => isSafeHttpUrl(l.url));
 
   return (
     <main className="min-h-screen bg-cream-100 px-4 py-10 lg:py-14">
@@ -133,13 +137,13 @@ export default async function MediaKitPublicPage({
             </section>
           )}
 
-          {typedKit.links && typedKit.links.length > 0 && (
+          {safeLinks.length > 0 && (
             <section>
               <h2 className="text-[12px] font-semibold text-ink-500 uppercase tracking-wide mb-3">
                 Links
               </h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {typedKit.links.map((l, i) => (
+                {safeLinks.map((l, i) => (
                   <li key={i}>
                     <a
                       href={l.url}
@@ -166,4 +170,19 @@ export default async function MediaKitPublicPage({
       </div>
     </main>
   );
+}
+
+/**
+ * Guard for user-supplied link URLs on the public media kit. Only absolute
+ * http(s) URLs are allowed through; anything else (javascript:, data:, mailto
+ * smuggling, malformed values) is rejected so it can't be rendered as a
+ * clickable href on a page anyone can open.
+ */
+function isSafeHttpUrl(url: string): boolean {
+  try {
+    const u = new URL(url.trim());
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }

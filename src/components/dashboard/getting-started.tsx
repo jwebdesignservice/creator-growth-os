@@ -20,7 +20,7 @@ const STEPS: { icon: LucideIcon; title: string; desc: string; href: string }[] =
     icon: MessageSquare,
     title: "Connect your socials",
     desc: "Link Instagram, TikTok & more",
-    href: "/settings",
+    href: "/settings/connected-accounts",
   },
   {
     icon: PenLine,
@@ -75,7 +75,7 @@ export function GettingStarted() {
         href="/support"
         className="mt-5 inline-flex items-center gap-1 text-[13px] font-medium text-rose-600 hover:text-rose-700"
       >
-        View onboarding guide <ArrowRight className="size-3.5" strokeWidth={2} />
+        Browse help &amp; guides <ArrowRight className="size-3.5" strokeWidth={2} />
       </Link>
     </div>
   );
