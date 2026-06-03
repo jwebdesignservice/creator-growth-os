@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarPlus } from "lucide-react";
 import { createEvent } from "./actions";
 import { EVENT_KINDS } from "@/lib/community/event-kinds";
@@ -11,7 +12,8 @@ const inputCls =
   "w-full h-11 px-4 rounded-[12px] bg-white border border-ink-200 text-[14px] focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100";
 const labelCls = "block text-[12.5px] font-medium text-ink-700 mb-1.5";
 
-export function EventForm() {
+export function EventForm({ redirectTo }: { redirectTo?: string } = {}) {
+  const router = useRouter();
   const initial: State = { ok: false, error: "" };
   const [state, formAction, pending] = useActionState<State, FormData>(
     createEvent,
@@ -21,8 +23,11 @@ export function EventForm() {
 
   const formRef = useRef<HTMLFormElement | null>(null);
   useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+    if (state.ok) {
+      formRef.current?.reset();
+      if (redirectTo) router.push(redirectTo);
+    }
+  }, [state, redirectTo, router]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
