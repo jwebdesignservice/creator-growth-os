@@ -33,6 +33,7 @@ export type CommunityEvent = {
   duration_min: number;
   joined_count: number;
   url: string | null;
+  kind: string | null;
 };
 
 export async function listSpaces(): Promise<CommunitySpace[]> {
@@ -92,15 +93,29 @@ export async function listRecentPosts(limit = 8): Promise<CommunityPost[]> {
 
 export async function listUpcomingEvents(limit = 4): Promise<CommunityEvent[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const cols =
+    "id, title, description, host_name, starts_at, duration_min, joined_count, url";
+  const nowIso = new Date().toISOString();
+
+  // Prefer selecting `kind` (migration 0051). Fall back without it so events
+  // still render before that migration is applied.
+  const primary = await supabase
     .from("community_events")
-    .select(
-      "id, title, description, host_name, starts_at, duration_min, joined_count, url",
-    )
-    .gte("starts_at", new Date().toISOString())
+    .select(`${cols}, kind`)
+    .gte("starts_at", nowIso)
     .order("starts_at", { ascending: true })
     .limit(limit);
-  return (data ?? []) as CommunityEvent[];
+  let rows = primary.data as unknown as CommunityEvent[] | null;
+  if (primary.error?.code === "42703") {
+    const fb = await supabase
+      .from("community_events")
+      .select(cols)
+      .gte("starts_at", nowIso)
+      .order("starts_at", { ascending: true })
+      .limit(limit);
+    rows = fb.data as unknown as CommunityEvent[] | null;
+  }
+  return (rows ?? []).map((e) => ({ ...e, kind: e.kind ?? null }));
 }
 
 export async function listMemberSpotlight(limit = 3) {
