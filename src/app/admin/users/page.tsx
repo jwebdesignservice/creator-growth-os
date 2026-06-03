@@ -29,15 +29,12 @@ export default async function AdminUsersPage({
 
   return (
     <div className="flex flex-col -mx-6 lg:-mx-8 -my-6 lg:-my-8 h-[calc(100vh_-_69px)]">
-      <header className="shrink-0 px-6 lg:px-8 py-4">
-        <h1 className="text-page-title text-ink-900">Users</h1>
-      </header>
-
-      {/* One cohesive dense panel — toolbar (filters + actions), table, footer —
-          matching the "Data table · V2 dense" design. Member search lives in the
-          global topbar (routes to ?q=); the hidden field carries the active
-          query through when filters are applied. */}
-      <UsersTable rows={rows} total={total} page={page} pageSize={pageSize}>
+      {/* One cohesive dense panel — the "Users" title sits on the toolbar row
+          (left of the filters), with table actions on the right, matching the
+          "Data table · V2 dense" design. Member search lives in the global
+          topbar (routes to ?q=); the hidden field carries the active query
+          through when filters are applied. */}
+      <UsersTable rows={rows} total={total} page={page} pageSize={pageSize} title="Users">
         <form className="flex flex-wrap items-center gap-2.5">
           <input type="hidden" name="q" defaultValue={sp.q ?? ""} />
           <select

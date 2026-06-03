@@ -619,7 +619,7 @@ function ProgramPathRail({
   }, 0);
 
   return (
-    <aside className="lg:sticky lg:top-4 self-start">
+    <aside className="lg:sticky lg:top-[calc(var(--topbar-height)_+_1rem)] self-start lg:max-h-[calc(100vh_-_var(--topbar-height)_-_2rem)] lg:overflow-y-auto">
       <div className="mb-3">
         <h2 className="text-[15px] font-semibold text-ink-900 flex items-center gap-2">
           <CalendarDays className="size-4 text-rose-500" strokeWidth={1.8} />
