@@ -16,17 +16,14 @@ import { cn } from "@/lib/cn";
 import {
   markNotificationRead,
   markAllNotificationsRead,
-  saveNotificationPreferences,
 } from "./actions";
 import type {
   NotificationWithGroup,
-  NotificationPreferences,
   NotificationFilter,
   NotificationGroup,
   NotificationCategory,
   NotificationType,
 } from "@/lib/notifications/types";
-import { DEFAULT_PREFERENCES } from "@/lib/notifications/types";
 import {
   Bell,
   CheckSquare,
@@ -37,10 +34,7 @@ import {
   Crown,
   Radio,
   SlidersHorizontal,
-  ArrowRight,
-  Headphones,
   CheckCircle2,
-  ChevronRight,
   MessageCircle,
   Check,
 } from "lucide-react";
@@ -89,24 +83,14 @@ function getIconSlot(type: NotificationType): NotifIconSlot {
 
 interface Props {
   notifications: NotificationWithGroup[];
-  preferences:   NotificationPreferences;
-  unreadCount:   number;
   firstName?:    string;
 }
 
-export function NotificationsPageClient({ notifications, preferences, unreadCount, firstName }: Props) {
+export function NotificationsPageClient({ notifications, firstName }: Props) {
   return (
-    <PageShell rail={<NotificationsRail initialPrefs={preferences} initialUnread={unreadCount} />}>
+    <PageShell>
       <div className="w-full max-w-[1180px]">
         <NotificationsMain initialItems={notifications} firstName={firstName} />
-
-        {/* Inline rail content for <xl viewers — desktop rail is `hidden xl:flex`. */}
-        <div className="xl:hidden mt-8 space-y-4">
-          <SummaryCard unreadCount={unreadCount} />
-          <QuickActionsCard />
-          <PreferencesCard initialPrefs={preferences} />
-          <HelpCard />
-        </div>
       </div>
     </PageShell>
   );
@@ -414,197 +398,6 @@ function NotifIconBubble({ slot, avatarName }: { slot: NotifIconSlot; avatarName
   return (
     <div className={cn("size-10 rounded-full flex items-center justify-center", config.bg)}>
       {config.icon}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Right rail
-// ─────────────────────────────────────────────────────────────────────────────
-
-function NotificationsRail({
-  initialPrefs,
-  initialUnread,
-}: {
-  initialPrefs: NotificationPreferences;
-  initialUnread: number;
-}) {
-  return (
-    <aside className="hidden xl:flex flex-col w-[300px] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
-      <div className="p-5 space-y-4">
-        <SummaryCard unreadCount={initialUnread} />
-        <QuickActionsCard />
-        <PreferencesCard initialPrefs={initialPrefs} />
-        <HelpCard />
-      </div>
-    </aside>
-  );
-}
-
-function SummaryCard({ unreadCount }: { unreadCount: number }) {
-  return (
-    <div className="card p-5 text-center">
-      <div className="size-14 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-3">
-        <Bell className="size-6 text-rose-600" strokeWidth={1.8} />
-      </div>
-      <div className="text-h1 text-ink-900 leading-none">{unreadCount}</div>
-      <div className="text-[13px] font-semibold text-ink-700 mt-1">Unread</div>
-      <div className="text-[12px] text-ink-500 mt-0.5">
-        {unreadCount === 0 ? "You're all caught up!" : "Stay on top of your updates."}
-      </div>
-    </div>
-  );
-}
-
-function QuickActionsCard() {
-  const actions = [
-    { label: "View Today's Tasks",  href: "/missions",  icon: CheckSquare  },
-    { label: "Open Posting Plan",   href: "/posting",   icon: CalendarDays },
-    { label: "Continue Program",    href: "/programs",  icon: PlayCircle   },
-    { label: "Visit Community",     href: "/community", icon: CheckCircle2 },
-  ] as const;
-
-  return (
-    <div className="card p-4">
-      <div className="text-[13px] font-semibold text-ink-900 mb-3">Quick Actions</div>
-      <ul className="space-y-1">
-        {actions.map(({ label, href, icon: Icon }) => (
-          <li key={href}>
-            <Link
-              href={href}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] hover:bg-cream-100 transition-colors group"
-            >
-              <Icon className="size-4 text-ink-400 group-hover:text-rose-600 transition-colors shrink-0" strokeWidth={1.8} />
-              <span className="flex-1 text-[13px] text-ink-700 group-hover:text-ink-900 transition-colors">{label}</span>
-              <ChevronRight className="size-3.5 text-ink-300 group-hover:text-ink-500 transition-colors" strokeWidth={2} />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Preferences card — two-channel toggle panel
-// ─────────────────────────────────────────────────────────────────────────────
-
-type PrefChannel = "inapp" | "email";
-
-const INAPP_ROWS: { key: keyof NotificationPreferences; label: string }[] = [
-  { key: "inapp_tasks",     label: "Tasks & Reminders"   },
-  { key: "inapp_programs",  label: "Programs & Tutorials" },
-  { key: "inapp_community", label: "Community Replies"   },
-  { key: "inapp_events",    label: "Events & Webinars"   },
-  { key: "inapp_system",    label: "System Updates"      },
-];
-
-const EMAIL_ROWS: { key: keyof NotificationPreferences; label: string }[] = [
-  { key: "email_digest",          label: "Weekly Digest"   },
-  { key: "email_alerts",          label: "Instant Alerts"  },
-  { key: "email_product_updates", label: "Product Updates" },
-];
-
-function PreferencesCard({ initialPrefs }: { initialPrefs: NotificationPreferences }) {
-  const [channel, setChannel] = useState<PrefChannel>("inapp");
-  const [prefs, setPrefs]     = useState(initialPrefs);
-  const [saved,  setSaved]    = useState(false);
-  const [, startTransition]   = useTransition();
-
-  function handleToggle(key: keyof NotificationPreferences) {
-    const updated = { ...prefs, [key]: !prefs[key as keyof typeof prefs] };
-    setPrefs(updated as NotificationPreferences);
-    setSaved(false);
-
-    startTransition(async () => {
-      const result = await saveNotificationPreferences({ [key]: updated[key as keyof typeof updated] });
-      if (result.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    });
-  }
-
-  const rows = channel === "inapp" ? INAPP_ROWS : EMAIL_ROWS;
-
-  return (
-    <div className="card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-[13px] font-semibold text-ink-900">Notification Channels</div>
-        {saved && (
-          <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-            <Check className="size-3" strokeWidth={3} /> Saved
-          </span>
-        )}
-      </div>
-
-      {/* Channel tabs */}
-      <div className="flex gap-1 p-1 rounded-[10px] bg-cream-100 mb-3">
-        {(["inapp", "email"] as PrefChannel[]).map((ch) => (
-          <button
-            key={ch}
-            type="button"
-            onClick={() => setChannel(ch)}
-            className={cn(
-              "flex-1 h-7 rounded-[8px] text-[11.5px] font-semibold transition-colors",
-              channel === ch ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-700",
-            )}
-          >
-            {ch === "inapp" ? "In-App" : "Email"}
-          </button>
-        ))}
-      </div>
-
-      {/* Toggle rows */}
-      <div className="space-y-0">
-        {rows.map((item) => (
-          <div
-            key={item.key}
-            className="flex items-center justify-between py-2 border-b border-ink-50 last:border-0"
-          >
-            <span className="text-[12.5px] text-ink-700 truncate pr-2">{item.label}</span>
-            <button
-              type="button"
-              onClick={() => handleToggle(item.key)}
-              className={cn(
-                "text-[12px] font-bold shrink-0 transition-colors",
-                prefs[item.key] ? "text-rose-600" : "text-ink-400",
-              )}
-            >
-              {prefs[item.key] ? "On" : "Off"}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <Link
-        href="/settings"
-        className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
-      >
-        Manage all preferences <ArrowRight className="size-3.5" strokeWidth={2.5} />
-      </Link>
-    </div>
-  );
-}
-
-function HelpCard() {
-  return (
-    <div className="card p-4 relative overflow-hidden">
-      <div className="pr-12">
-        <div className="text-[13px] font-semibold text-ink-900 mb-1">Need Help?</div>
-        <p className="text-[12px] text-ink-500 leading-snug mb-3">
-          Learn how notifications help you stay consistent and grow faster.
-        </p>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
-        >
-          Visit Help Center <ArrowRight className="size-3.5" strokeWidth={2.5} />
-        </Link>
-      </div>
-      <div className="absolute bottom-2 right-3 opacity-20">
-        <Headphones className="size-12 text-rose-400" strokeWidth={1.2} />
-      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 /* Sidebars ──────────────────────────────────────────────────────────────
    App navigation rails. AppSidebar = full sectioned nav with a profile
-   footer; CompactSidebar = icon-only rail for dense layouts.
+   footer; CompactSidebar = icon-only rail for dense layouts. Items carry a
+   keyboard-focus ring and the active state reads in rose.
    ───────────────────────────────────────────────────────────────────── */
 
 import {
@@ -15,6 +16,10 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
+
+const FOCUS =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-200";
 
 type NavItem = { icon: LucideIcon; label: string; active?: boolean };
 const NAV: { section: string; items: NavItem[] }[] = [
@@ -60,20 +65,15 @@ export function AppSidebar() {
                     key={it.label}
                     href="#"
                     aria-current={it.active ? "page" : undefined}
-                    className={
-                      "flex items-center gap-3 h-10 px-2.5 rounded-[10px] text-[13.5px] transition-colors " +
-                      (it.active
+                    className={cn(
+                      "flex items-center gap-3 h-10 px-2.5 rounded-[10px] text-[13.5px] transition-colors",
+                      FOCUS,
+                      it.active
                         ? "bg-rose-50 text-rose-700 font-semibold"
-                        : "text-ink-500 hover:bg-cream-100 hover:text-ink-900")
-                    }
+                        : "text-ink-500 hover:bg-cream-100 hover:text-ink-900",
+                    )}
                   >
-                    <Icon
-                      className={
-                        "size-[18px] shrink-0 " +
-                        (it.active ? "text-rose-600" : "text-ink-400")
-                      }
-                      strokeWidth={1.9}
-                    />
+                    <Icon className={cn("size-[18px] shrink-0", it.active ? "text-rose-600" : "text-ink-400")} strokeWidth={1.9} />
                     {it.label}
                   </a>
                 );
@@ -84,17 +84,11 @@ export function AppSidebar() {
       </nav>
 
       <div className="border-t border-ink-100 p-3 space-y-0.5 shrink-0">
-        <a
-          href="#"
-          className="flex items-center gap-3 h-10 px-2.5 rounded-[10px] text-[13.5px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
-        >
+        <a href="#" className={cn("flex items-center gap-3 h-10 px-2.5 rounded-[10px] text-[13.5px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors", FOCUS)}>
           <Settings className="size-[18px] text-ink-400" strokeWidth={1.9} />
           Settings
         </a>
-        <a
-          href="#"
-          className="flex items-center gap-3 h-10 px-2.5 rounded-[10px] text-[13.5px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
-        >
+        <a href="#" className={cn("flex items-center gap-3 h-10 px-2.5 rounded-[10px] text-[13.5px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors", FOCUS)}>
           <LifeBuoy className="size-[18px] text-ink-400" strokeWidth={1.9} />
           Support
         </a>
@@ -104,30 +98,31 @@ export function AppSidebar() {
 }
 
 export function CompactSidebar() {
-  const items: LucideIcon[] = [
-    LayoutDashboard,
-    BarChart3,
-    Send,
-    GraduationCap,
-    Users,
-    Settings,
+  const items: { icon: LucideIcon; label: string }[] = [
+    { icon: LayoutDashboard, label: "Dashboard" },
+    { icon: BarChart3, label: "Performance" },
+    { icon: Send, label: "Posting" },
+    { icon: GraduationCap, label: "Programs" },
+    { icon: Users, label: "Community" },
+    { icon: Settings, label: "Settings" },
   ];
   return (
     <aside className="w-[72px] h-[460px] rounded-[18px] border border-ink-100 bg-white flex flex-col items-center py-4 gap-2">
       <span className="size-10 rounded-[12px] bg-rose-600 text-white flex items-center justify-center mb-2">
         <Sparkles className="size-5" strokeWidth={2} />
       </span>
-      {items.map((Icon, i) => (
+      {items.map(({ icon: Icon, label }, i) => (
         <a
-          key={i}
+          key={label}
           href="#"
-          aria-label="Nav item"
-          className={
-            "inline-flex items-center justify-center size-11 rounded-[12px] transition-colors " +
-            (i === 0
-              ? "bg-rose-50 text-rose-600"
-              : "text-ink-400 hover:bg-cream-100 hover:text-ink-700")
-          }
+          aria-label={label}
+          aria-current={i === 0 ? "page" : undefined}
+          title={label}
+          className={cn(
+            "inline-flex items-center justify-center size-11 rounded-[12px] transition-colors",
+            FOCUS,
+            i === 0 ? "bg-rose-50 text-rose-600" : "text-ink-400 hover:bg-cream-100 hover:text-ink-700",
+          )}
         >
           <Icon className="size-[20px]" strokeWidth={1.9} />
         </a>

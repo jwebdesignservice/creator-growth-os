@@ -211,15 +211,16 @@ function BuildCard({
         </div>
         <Link
           href={b.cta.href}
+          aria-label={b.cta.label}
+          title={b.cta.label}
           className={cn(
-            "inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] text-[12.5px] font-semibold transition-colors shrink-0",
+            "inline-flex items-center justify-center size-9 rounded-[10px] transition-colors shrink-0",
             featured
               ? "bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
               : "bg-cream-100 text-ink-700 hover:bg-cream-200",
           )}
         >
-          {b.cta.label}
-          <ArrowRight className="size-3.5" strokeWidth={2} />
+          <ArrowRight className="size-4" strokeWidth={2} />
         </Link>
       </footer>
     </article>

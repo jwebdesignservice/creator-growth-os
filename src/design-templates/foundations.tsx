@@ -45,11 +45,28 @@ import {
   Lock,
   Zap,
   Sparkles,
+  // ── expanded icon-bank set (grouped in ICON_GROUPS below) ──
+  LayoutGrid, Compass, Menu, PanelLeft, ChevronRight, ChevronDown,
+  ArrowRight, ArrowLeft, ArrowUpRight, ExternalLink, MoreHorizontal,
+  X, Pencil, Copy, Save, Upload, Share2, RefreshCw, RotateCcw, Filter,
+  SlidersHorizontal, LogOut, Power,
+  Image, Film, Video, Play, Pause, Camera, Mic, Music, Volume2,
+  File, FileText, Folder, FolderOpen, Paperclip, Link,
+  MessageCircle, Send, Phone, AtSign, Inbox, Megaphone,
+  CheckCircle2, AlertTriangle, AlertCircle, Info, XCircle, HelpCircle,
+  Ban, ShieldCheck, BadgeCheck, Unlock,
+  DollarSign, CreditCard, ShoppingCart, ShoppingBag, Wallet, Receipt,
+  Tag, Percent, Gift, TrendingUp, TrendingDown, BarChart3, PieChart,
+  ThumbsUp, Bookmark, Flame, Award, Trophy, Crown, Rocket, Users, UserPlus,
+  Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, Quote, Link2,
+  Clock, Key, Globe, MapPin, Flag, Hash, Sun, Moon, Wifi, Cloud,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/brand-icons";
 import { BRAND_CATEGORIES } from "./brand";
+import { A11Y_CATEGORIES } from "./a11y";
+import { GUIDELINE_CATEGORIES } from "./guidelines";
 
 const SAMPLE = "The quick brown fox jumps over the lazy dog";
 
@@ -392,24 +409,75 @@ function Colors() {
 
 /* ── 11 · Icons ───────────────────────────────────────────────────────── */
 
-const ICON_SET: LucideIcon[] = [
-  Home, Search, Bell, Settings, User, Heart, Star, Calendar,
-  Mail, MessageSquare, Check, Plus, Trash2, Download, Eye, Lock, Zap, Sparkles,
+/* The icon bank — grouped by purpose so it's browsable, not a flat wall. */
+const ICON_GROUPS: { label: string; icons: LucideIcon[] }[] = [
+  { label: "Navigation", icons: [
+    Home, LayoutGrid, LayoutDashboard, Compass, Menu, Search, PanelLeft,
+    ChevronRight, ChevronDown, ArrowRight, ArrowLeft, ArrowUpRight, ExternalLink, MoreHorizontal,
+  ] },
+  { label: "Actions", icons: [
+    Plus, Check, X, Pencil, Trash2, Copy, Save, Download, Upload, Share2,
+    RefreshCw, RotateCcw, Filter, SlidersHorizontal, Settings, LogOut, Power,
+  ] },
+  { label: "Media & files", icons: [
+    Image, Film, Video, Play, Pause, Camera, Mic, Music, Volume2,
+    File, FileText, Folder, FolderOpen, Paperclip, Link,
+  ] },
+  { label: "Communication", icons: [
+    Mail, MessageSquare, MessageCircle, Bell, Send, Phone, AtSign, Inbox, Megaphone,
+  ] },
+  { label: "Status & feedback", icons: [
+    CheckCircle2, AlertTriangle, AlertCircle, Info, XCircle, HelpCircle,
+    Ban, ShieldCheck, BadgeCheck, Eye, Lock, Unlock,
+  ] },
+  { label: "Commerce & data", icons: [
+    DollarSign, CreditCard, ShoppingCart, ShoppingBag, Wallet, Receipt, Tag,
+    Percent, Gift, TrendingUp, TrendingDown, BarChart3, PieChart,
+  ] },
+  { label: "Creator & social", icons: [
+    Heart, Star, ThumbsUp, Bookmark, Flame, Award, Trophy, Crown,
+    Sparkles, Zap, Rocket, Users, UserPlus, User,
+  ] },
+  { label: "Text & editing", icons: [
+    Type, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, Quote, Code, Link2,
+  ] },
+  { label: "Objects & time", icons: [
+    Calendar, Clock, Key, Globe, MapPin, Flag, Hash, Sun, Moon, Wifi, Cloud,
+  ] },
 ];
 
 function Icons() {
+  const total = ICON_GROUPS.reduce((n, g) => n + g.icons.length, 0);
   return (
-    <div className="w-full space-y-5">
-      <div>
-        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Lucide · UI icons</div>
-        <div className="flex flex-wrap gap-2.5">
-          {ICON_SET.map((Ic, i) => (
-            <div key={i} className="size-11 rounded-[10px] bg-cream-100 border border-ink-100 flex items-center justify-center text-ink-700">
-              <Ic className="size-[18px]" strokeWidth={1.8} />
-            </div>
-          ))}
-        </div>
+    <div className="w-full space-y-6">
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">
+          Lucide · UI icons
+        </span>
+        <span className="text-[11px] text-ink-300 tabular-nums">{total} icons</span>
       </div>
+
+      {ICON_GROUPS.map((g) => (
+        <div key={g.label}>
+          <div className="mb-2.5 flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-rose-500/90">
+              {g.label}
+            </span>
+            <span className="text-[10.5px] text-ink-300 tabular-nums">{g.icons.length}</span>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {g.icons.map((Ic, i) => (
+              <div
+                key={i}
+                className="size-11 rounded-[10px] bg-cream-100 border border-ink-100 flex items-center justify-center text-ink-700 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+              >
+                <Ic className="size-[18px]" strokeWidth={1.8} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
       <div>
         <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Brand glyphs</div>
         <div className="flex flex-wrap gap-2.5">
@@ -420,8 +488,10 @@ function Icons() {
           ))}
         </div>
       </div>
+
       <p className="text-[12px] text-ink-400 leading-relaxed">
-        Outline icons from <code className="font-mono">lucide-react</code> at <code className="font-mono">1.8</code> stroke; brand marks are custom SVGs.
+        {total} outline icons from <code className="font-mono">lucide-react</code> at{" "}
+        <code className="font-mono">1.8</code> stroke, grouped by purpose; brand marks are custom SVGs.
       </p>
     </div>
   );
@@ -897,4 +967,6 @@ export const FOUNDATION_CATEGORIES: FCategory[] = [
     blurb: "Glyph + icon-container size scale.",
     items: [{ label: "Icon size scale", code: "IconSizes", node: <IconSizes /> }],
   },
+  ...A11Y_CATEGORIES,
+  ...GUIDELINE_CATEGORIES,
 ];

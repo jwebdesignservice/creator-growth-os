@@ -1,7 +1,7 @@
 /* Mobile ─────────────────────────────────────────────────────────────────
    Mobile navigation chrome — the bottom tab bar (with an elevated center
-   action) and a slide-in nav drawer. Mirrors app-shell/bottom-nav.tsx and
-   mobile-drawer.tsx, framed so they read as mobile in the gallery.
+   action) and a slide-in nav drawer. Framed so they read as mobile in the
+   gallery; every tab and row is a real, focusable target.
    ───────────────────────────────────────────────────────────────────── */
 
 import {
@@ -16,6 +16,10 @@ import {
   Send,
   type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
+
+const TAB_FOCUS =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-200";
 
 export function BottomNav() {
   const items: { label: string; Icon: LucideIcon; active?: boolean; center?: boolean }[] = [
@@ -30,33 +34,36 @@ export function BottomNav() {
       <div className="h-[120px] bg-cream-100 flex items-center justify-center text-[12px] text-ink-400">
         App content
       </div>
-      <nav className="bg-white/95 border-t border-ink-100">
+      <nav className="bg-white/95 border-t border-ink-100" aria-label="Primary">
         <ul className="relative grid grid-cols-5 h-[64px] items-stretch px-1">
           {items.map((it) => {
             const Icon = it.Icon;
             if (it.center) {
               return (
                 <li key={it.label} className="flex items-end justify-center">
-                  <div className="inline-flex flex-col items-center gap-1 -translate-y-3">
+                  <button type="button" aria-label={it.label} className="inline-flex flex-col items-center gap-1 -translate-y-3 cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2">
                     <span className="inline-flex items-center justify-center size-[48px] rounded-full bg-rose-500 text-white shadow-card ring-4 ring-white">
                       <Icon className="size-[20px]" strokeWidth={2} />
                     </span>
                     <span className="text-[10px] font-medium text-ink-500">{it.label}</span>
-                  </div>
+                  </button>
                 </li>
               );
             }
             return (
               <li key={it.label} className="flex">
-                <span
-                  className={
-                    "flex-1 inline-flex flex-col items-center justify-center gap-1 " +
-                    (it.active ? "text-rose-600" : "text-ink-500")
-                  }
+                <button
+                  type="button"
+                  aria-current={it.active ? "page" : undefined}
+                  className={cn(
+                    "flex-1 inline-flex flex-col items-center justify-center gap-1 rounded-[10px] cursor-pointer transition-colors",
+                    TAB_FOCUS,
+                    it.active ? "text-rose-600" : "text-ink-500 hover:text-ink-800",
+                  )}
                 >
                   <Icon className="size-[20px]" strokeWidth={it.active ? 2 : 1.8} />
                   <span className="text-[10px] leading-none font-medium">{it.label}</span>
-                </span>
+                </button>
               </li>
             );
           })}
@@ -84,24 +91,27 @@ export function MobileDrawer() {
           </span>
           <span className="text-[14px] font-bold text-ink-900">Creator OS</span>
         </span>
-        <span className="size-8 rounded-[10px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-100">
+        <button type="button" aria-label="Close menu" className="size-8 rounded-[10px] inline-flex items-center justify-center text-ink-400 hover:bg-cream-100 hover:text-ink-700 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200">
           <X className="size-4" strokeWidth={2} />
-        </span>
+        </button>
       </div>
       <nav className="p-3 space-y-0.5">
         {nav.map((it) => {
           const Icon = it.Icon;
           return (
-            <span
+            <button
               key={it.label}
-              className={
-                "flex items-center gap-3 h-11 px-3 rounded-[12px] text-[14px] " +
-                (it.active ? "bg-rose-50 text-rose-700 font-semibold" : "text-ink-700")
-              }
+              type="button"
+              aria-current={it.active ? "page" : undefined}
+              className={cn(
+                "flex w-full items-center gap-3 h-11 px-3 rounded-[12px] text-[14px] text-left cursor-pointer transition-colors",
+                TAB_FOCUS,
+                it.active ? "bg-rose-50 text-rose-700 font-semibold" : "text-ink-700 hover:bg-cream-100",
+              )}
             >
-              <Icon className={"size-[20px] " + (it.active ? "text-rose-600" : "text-ink-400")} strokeWidth={1.9} />
+              <Icon className={cn("size-[20px]", it.active ? "text-rose-600" : "text-ink-400")} strokeWidth={1.9} />
               {it.label}
-            </span>
+            </button>
           );
         })}
       </nav>

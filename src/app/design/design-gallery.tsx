@@ -19,52 +19,95 @@ import {
   Activity,
   AppWindow,
   ArrowLeft,
+  Award,
+  Banknote,
   Bell,
+  CalendarClock,
   CalendarDays,
+  CalendarRange,
   ChartColumn,
+  ChartPie,
+  CircleGauge,
   CircleUser,
   Clapperboard,
   ClipboardList,
+  Clock,
+  Coffee,
+  Columns3,
   Compass,
   DollarSign,
+  Eye,
+  Flag,
+  Flame,
+  Funnel,
+  GalleryHorizontal,
   Gauge,
+  Gift,
   GraduationCap,
+  Grid3x3,
+  Hash,
   IdCard,
+  Images,
+  Inbox,
   Info,
+  Keyboard,
   KeyRound,
   Layers,
   LayoutGrid,
   LayoutPanelTop,
   LayoutTemplate,
+  Lightbulb,
+  Link2,
+  ListChecks,
   LoaderCircle,
+  Megaphone,
   Menu,
+  MessageCircleMore,
   MessageSquare,
+  MessageSquarePlus,
+  MessageSquareWarning,
   MessagesSquare,
   MousePointerClick,
   NotebookPen,
   OctagonAlert,
   PanelLeft,
   PanelRight,
+  PanelRightOpen,
   PanelTop,
+  Paperclip,
   Quote,
   Receipt,
+  Rocket,
   Route,
   Search,
   Send,
-  Server,
   Settings,
+  ShieldCheck,
+  ShoppingBag,
+  SlidersHorizontal,
   Smartphone,
   Sparkles,
+  SquareKanban,
   SquareMenu,
+  SquarePen,
+  Star,
   Table2,
   Tag,
+  Target,
   TextCursorInput,
+  Ticket,
   ToggleLeft,
+  TrendingUp,
   Trophy,
+  Users,
   UsersRound,
+  Vote,
   Wallet,
+  Workflow,
+  Wrench,
   X,
   type LucideIcon,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -78,6 +121,8 @@ import {
 } from "@/design-templates/buttons";
 import { FOUNDATION_CATEGORIES } from "@/design-templates/foundations";
 import { PAGE_DESIGN_CATEGORIES } from "@/design-templates/page-designs";
+import { PAGE_EXPLORATION_CATEGORIES } from "@/design-templates/page-explorations";
+import { EXTRA_CATEGORIES } from "@/design-templates/extra-categories";
 import {
   TextInput,
   TextInputWithError,
@@ -103,7 +148,6 @@ import {
   PlannedPostsTable,
   DealTrackerTable,
   EmailHistoryTable,
-  DevMonitoringTable,
 } from "@/design-templates/tables";
 import { ModalLauncher } from "@/design-templates/modals";
 import { TabStrip } from "@/design-templates/tabs";
@@ -134,7 +178,35 @@ import {
   PostCard,
   PostStatusPill,
   PipelineProgress,
+  ActivePlanCard,
 } from "@/design-templates/posting";
+import {
+  TodaysPlanTimeline,
+  AudienceGrowthCard,
+  ContentActivityCard,
+  TodaysProgressCard,
+  GettingStartedCard,
+} from "@/design-templates/dashboard";
+import {
+  FeaturedLessonHero,
+  TutorialCard,
+  CreatorDrillRow,
+} from "@/design-templates/tutorials";
+import {
+  ConnectSocialCard,
+  PerformanceKpiTiles,
+  PlatformMixDonut,
+} from "@/design-templates/performance";
+import {
+  FeaturedHero,
+  WhatYoullLearn,
+  TemplatesDownloads,
+} from "@/design-templates/program-surfaces";
+import { AnalyticsPanel, TrendChartEmpty } from "@/design-templates/analytics";
+import { AdminStatTiles, ActiveBuildCard, UsersBreakdown } from "@/design-templates/admin";
+import { ProfileCompletionCard, AudienceSnapshotCard } from "@/design-templates/profile";
+import { CurrentPlanCard, UpgradeProCard, PaymentMethodRow } from "@/design-templates/billing";
+import { NotificationCenterPanel } from "@/design-templates/notification-center";
 import { StatTile, StatRow, DeltaStats } from "@/design-templates/stats";
 import { Sparkline, DonutRing, BarChart, SegmentedBar } from "@/design-templates/charts";
 import { PageHeader, SectionCard, FilterBar } from "@/design-templates/sections";
@@ -151,7 +223,6 @@ import { ContentCalendar, MiniCalendar } from "@/design-templates/calendar";
 import { MediaKitCard, ProfileHeader } from "@/design-templates/media-kit";
 import { UpcomingWidget, SuggestionWidget, LeaderboardWidget } from "@/design-templates/widgets";
 import { SpaceCard, DiscussionRow, ReactionBar } from "@/design-templates/community";
-import { StatusBadges, SystemHealthStrip, MetricStrip } from "@/design-templates/dev-widgets";
 import { SearchResults, EmptyResults } from "@/design-templates/search";
 import { ConnectedAccounts, SettingsToggleRows, DangerZone } from "@/design-templates/settings";
 import { NotFoundState, InlineError, MaintenanceState } from "@/design-templates/errors";
@@ -161,6 +232,57 @@ import { InvoiceCard, PlanBillingRow } from "@/design-templates/invoices";
 import { BottomNav, MobileDrawer } from "@/design-templates/mobile";
 import { ProfileMenu, NotificationsDropdown } from "@/design-templates/menus";
 import { Callout, Blockquote, CodeBlock } from "@/design-templates/content";
+import { StarRating, ReviewCard, RatingSummary } from "@/design-templates/ratings";
+import { FeatureMatrix, BillingToggle } from "@/design-templates/comparison";
+import { DateRangePicker, TimePicker, Combobox } from "@/design-templates/pickers";
+import { KanbanBoard, TaskCard } from "@/design-templates/board";
+import { RangeSlider, DualRangeSlider, SteppedSlider } from "@/design-templates/sliders";
+import { MediaGrid, Lightbox } from "@/design-templates/gallery";
+import { WelcomeHero, SnapshotCard } from "@/design-templates/hero";
+import { SetupChecklist, ChecklistProgress } from "@/design-templates/checklist";
+import { ContributionHeatmap, WeeklyActivity } from "@/design-templates/heatmap";
+import { WizardPanel, WizardComplete } from "@/design-templates/wizard";
+import { AnnouncementBar, PinnedBanner, InfoBanner } from "@/design-templates/banners";
+import { ReplyComposer, CommentBox } from "@/design-templates/composer";
+import { CardCarousel, Dots } from "@/design-templates/carousel";
+import { DetailDrawer, FilterDrawer } from "@/design-templates/drawer";
+import { TrendStatCard, TrendStatRow } from "@/design-templates/trends";
+import { InlineEdit, NumberStepper, TagInput } from "@/design-templates/fields";
+import { SelectionToolbar, TableToolbar } from "@/design-templates/toolbar";
+import { ShortcutsSheet } from "@/design-templates/shortcuts";
+import { CommentThread } from "@/design-templates/threads";
+import { AttachmentList, AttachmentChips } from "@/design-templates/attachments";
+import { DayAgenda, EventCard } from "@/design-templates/agenda";
+import { ReferralCard, ReferralTiers } from "@/design-templates/referral";
+import { OtpInput, VerifyEmail } from "@/design-templates/verification";
+import { AudienceFunnel, RetentionCohort } from "@/design-templates/funnels";
+import { ScoreGauge, GoalMeter } from "@/design-templates/gauges";
+import { RegionBreakdown, DeviceBreakdown } from "@/design-templates/breakdowns";
+import { GoalCard, GoalRing } from "@/design-templates/goals";
+import { LinkInBioCard, SocialLinksRow } from "@/design-templates/link-in-bio";
+import { AgeGenderBars, TopFans } from "@/design-templates/audience";
+import { PitchTemplateCard, OutreachTracker } from "@/design-templates/outreach";
+import { BestTimeHeatmap, FormatPerformance } from "@/design-templates/posting-insights";
+import { HashtagResearch, HashtagSet } from "@/design-templates/hashtags";
+import { CaptionGenerator, HookSuggestions } from "@/design-templates/ai-assist";
+import { IgPostPreview, PostGridPreview } from "@/design-templates/post-preview";
+import { AchievementUnlocked, BadgeShelf } from "@/design-templates/achievement";
+import { EarningsOverview, PayoutSchedule } from "@/design-templates/earnings";
+import { IdeaCaptureCard, IdeasList } from "@/design-templates/ideas";
+import { TrendingSounds, TrendingTopics } from "@/design-templates/trending";
+import { ProductCard, CheckoutSummary } from "@/design-templates/products";
+import { PromoCodeCard, DiscountBanner } from "@/design-templates/promo";
+import { TipJarCard, SupporterList } from "@/design-templates/support-creator";
+import { CommentsInbox, PollResult } from "@/design-templates/engagement";
+import { CountdownCard, WaitlistForm } from "@/design-templates/launch";
+import {
+  DeleteConfirm,
+  LeaveConfirm,
+  WarningConfirm,
+  AlertAcknowledge,
+  SuccessDialog,
+  PromptDialog,
+} from "@/design-templates/dialogs";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data — one entry per template variant. `scale` shrinks wide/tall previews so
@@ -180,6 +302,8 @@ type Category = {
 const CATEGORIES: Category[] = [
   ...FOUNDATION_CATEGORIES,
   ...PAGE_DESIGN_CATEGORIES,
+  ...PAGE_EXPLORATION_CATEGORIES,
+  ...EXTRA_CATEGORIES,
   {
     id: "buttons",
     label: "Buttons",
@@ -277,6 +401,108 @@ const CATEGORIES: Category[] = [
       { label: "Platform glyphs", code: "PlatformGlyphs", node: <PlatformGlyphs /> },
       { label: "Status pill", code: "PostStatusPill", node: <PostStatusPill /> },
       { label: "Pipeline progress", code: "PipelineProgress", node: <PipelineProgress /> },
+      { label: "Active plan card", code: "ActivePlanCard", node: <ActivePlanCard />, scale: 0.85 },
+    ],
+  },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: Gauge,
+    blurb: "Learner-home composites — Today's Plan timeline, KPI cards, getting-started links.",
+    items: [
+      { label: "Today's Plan timeline", code: "TodaysPlanTimeline", node: <TodaysPlanTimeline /> },
+      { label: "Audience Growth card", code: "AudienceGrowthCard", node: <AudienceGrowthCard /> },
+      { label: "Content Activity card", code: "ContentActivityCard", node: <ContentActivityCard /> },
+      { label: "Today's Progress card", code: "TodaysProgressCard", node: <TodaysProgressCard /> },
+      { label: "Getting Started card", code: "GettingStartedCard", node: <GettingStartedCard /> },
+    ],
+  },
+  {
+    id: "performance",
+    label: "Performance",
+    icon: Activity,
+    blurb: "Analytics surfaces — connect-social rows, KPI tiles with empty state, platform-mix donut.",
+    items: [
+      { label: "Connect social card", code: "ConnectSocialCard", node: <ConnectSocialCard />, scale: 0.9 },
+      { label: "KPI tiles · empty state", code: "PerformanceKpiTiles", node: <PerformanceKpiTiles /> },
+      { label: "Platform mix donut", code: "PlatformMixDonut", node: <PlatformMixDonut /> },
+    ],
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: ChartColumn,
+    blurb: "The weekly overview panel — range tabs, delta stat rows, line chart with tooltip.",
+    scale: 0.85,
+    items: [
+      { label: "Analytics panel", code: "AnalyticsPanel", node: <AnalyticsPanel /> },
+      { label: "Trend chart · empty", code: "TrendChartEmpty", node: <TrendChartEmpty /> },
+    ],
+  },
+  {
+    id: "program-surfaces",
+    label: "Program surfaces",
+    icon: GraduationCap,
+    blurb: "Program-detail surfaces — featured hero, what-you'll-learn outcomes, templates & downloads.",
+    scale: 0.85,
+    items: [
+      { label: "Featured hero", code: "FeaturedHero", node: <FeaturedHero /> },
+      { label: "What you'll learn", code: "WhatYoullLearn", node: <WhatYoullLearn /> },
+      { label: "Templates & downloads", code: "TemplatesDownloads", node: <TemplatesDownloads /> },
+    ],
+  },
+  {
+    id: "admin",
+    label: "Admin",
+    icon: Wrench,
+    blurb: "Admin-console surfaces — metric stat tiles, active-build project card, breakdown bars.",
+    items: [
+      { label: "Stat tiles", code: "AdminStatTiles", node: <AdminStatTiles /> },
+      { label: "Active build card", code: "ActiveBuildCard", node: <ActiveBuildCard /> },
+      { label: "Users breakdown", code: "UsersBreakdown", node: <UsersBreakdown /> },
+    ],
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    icon: IdCard,
+    blurb: "Profile & settings rail — completion ring with checklist, audience snapshot.",
+    items: [
+      { label: "Profile completion", code: "ProfileCompletionCard", node: <ProfileCompletionCard /> },
+      { label: "Audience snapshot", code: "AudienceSnapshotCard", node: <AudienceSnapshotCard /> },
+    ],
+  },
+  {
+    id: "tutorials",
+    label: "Tutorials",
+    icon: Clapperboard,
+    blurb: "Tutorials library — featured-lesson hero, tutorial grid card, creator-drill row.",
+    scale: 0.9,
+    items: [
+      { label: "Featured lesson hero", code: "FeaturedLessonHero", node: <FeaturedLessonHero /> },
+      { label: "Tutorial card", code: "TutorialCard", node: <TutorialCard /> },
+      { label: "Creator drill row", code: "CreatorDrillRow", node: <CreatorDrillRow /> },
+    ],
+  },
+  {
+    id: "billing",
+    label: "Billing",
+    icon: Wallet,
+    blurb: "Subscription surfaces — current-plan summary, Upgrade-to-Pro accent, payment method.",
+    items: [
+      { label: "Current plan card", code: "CurrentPlanCard", node: <CurrentPlanCard /> },
+      { label: "Upgrade Pro card", code: "UpgradeProCard", node: <UpgradeProCard /> },
+      { label: "Payment method row", code: "PaymentMethodRow", node: <PaymentMethodRow /> },
+    ],
+  },
+  {
+    id: "notification-center",
+    label: "Notification center",
+    icon: Bell,
+    blurb: "The full notifications inbox — filter tabs, mark-all-read, category-bordered rows.",
+    scale: 0.95,
+    items: [
+      { label: "Notification center", code: "NotificationCenterPanel", node: <NotificationCenterPanel /> },
     ],
   },
   {
@@ -300,7 +526,6 @@ const CATEGORIES: Category[] = [
       { label: "Planned posts", code: "PlannedPostsTable", node: <PlannedPostsTable /> },
       { label: "Brand deal tracker", code: "DealTrackerTable", node: <DealTrackerTable /> },
       { label: "Email history", code: "EmailHistoryTable", node: <EmailHistoryTable /> },
-      { label: "Dev monitoring table", code: "DevMonitoringTable", node: <DevMonitoringTable />, scale: 0.72 },
     ],
   },
   {
@@ -562,17 +787,6 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "dev-widgets",
-    label: "Dev widgets",
-    icon: Server,
-    blurb: "Status badges, system-health strip, and a compact metric strip.",
-    items: [
-      { label: "Status badges", code: "StatusBadges", node: <StatusBadges /> },
-      { label: "System health", code: "SystemHealthStrip", node: <SystemHealthStrip />, scale: 0.85 },
-      { label: "Metric strip", code: "MetricStrip", node: <MetricStrip />, scale: 0.85 },
-    ],
-  },
-  {
     id: "search",
     label: "Search",
     icon: Search,
@@ -667,9 +881,555 @@ const CATEGORIES: Category[] = [
       { label: "Code block", code: "CodeBlock", node: <CodeBlock /> },
     ],
   },
+  {
+    id: "ratings",
+    label: "Ratings",
+    icon: Star,
+    blurb: "Star scale, review card, and an aggregate rating summary.",
+    items: [
+      { label: "Star rating", code: "StarRating", node: <StarRating /> },
+      { label: "Review card", code: "ReviewCard", node: <ReviewCard /> },
+      { label: "Rating summary", code: "RatingSummary", node: <RatingSummary /> },
+    ],
+  },
+  {
+    id: "comparison",
+    label: "Comparison",
+    icon: Columns3,
+    blurb: "Plan feature matrix and a monthly / yearly billing toggle.",
+    items: [
+      { label: "Feature matrix", code: "FeatureMatrix", node: <FeatureMatrix /> },
+      { label: "Billing toggle", code: "BillingToggle", node: <BillingToggle /> },
+    ],
+  },
+  {
+    id: "pickers",
+    label: "Pickers",
+    icon: CalendarRange,
+    blurb: "Date-range picker, time picker, and a searchable combobox.",
+    items: [
+      { label: "Date range", code: "DateRangePicker", node: <DateRangePicker /> },
+      { label: "Time picker", code: "TimePicker", node: <TimePicker /> },
+      { label: "Combobox", code: "Combobox", node: <Combobox /> },
+    ],
+  },
+  {
+    id: "dialogs",
+    label: "Dialogs",
+    icon: MessageSquareWarning,
+    blurb: "Confirm, alert & prompt dialogs that replace the browser's native window.confirm / alert / prompt.",
+    scale: 0.85,
+    items: [
+      { label: "Delete confirm", code: "DeleteConfirm", node: <DeleteConfirm /> },
+      { label: "Leave confirm", code: "LeaveConfirm", node: <LeaveConfirm /> },
+      { label: "Warning confirm", code: "WarningConfirm", node: <WarningConfirm /> },
+      { label: "Alert", code: "AlertAcknowledge", node: <AlertAcknowledge /> },
+      { label: "Success", code: "SuccessDialog", node: <SuccessDialog /> },
+      { label: "Prompt", code: "PromptDialog", node: <PromptDialog /> },
+    ],
+  },
+  {
+    id: "board",
+    label: "Board",
+    icon: SquareKanban,
+    blurb: "Kanban board with status columns and a rich task card.",
+    items: [
+      { label: "Kanban board", code: "KanbanBoard", node: <KanbanBoard />, scale: 0.85 },
+      { label: "Task card", code: "TaskCard", node: <TaskCard /> },
+    ],
+  },
+  {
+    id: "sliders",
+    label: "Sliders",
+    icon: SlidersHorizontal,
+    blurb: "Range inputs — single value, dual min/max, and stepped.",
+    items: [
+      { label: "Range slider", code: "RangeSlider", node: <RangeSlider /> },
+      { label: "Dual range", code: "DualRangeSlider", node: <DualRangeSlider /> },
+      { label: "Stepped slider", code: "SteppedSlider", node: <SteppedSlider /> },
+    ],
+  },
+  {
+    id: "gallery",
+    label: "Gallery",
+    icon: Images,
+    blurb: "Media thumbnail grid and a lightbox with a thumbnail strip.",
+    items: [
+      { label: "Media grid", code: "MediaGrid", node: <MediaGrid /> },
+      { label: "Lightbox", code: "Lightbox", node: <Lightbox /> },
+    ],
+  },
+  {
+    id: "hero",
+    label: "Hero",
+    icon: Megaphone,
+    blurb: "Dashboard welcome hero (gradient + CTAs) and a snapshot card.",
+    scale: 0.85,
+    items: [
+      { label: "Welcome hero", code: "WelcomeHero", node: <WelcomeHero /> },
+      { label: "Snapshot card", code: "SnapshotCard", node: <SnapshotCard /> },
+    ],
+  },
+  {
+    id: "checklist",
+    label: "Checklist",
+    icon: ListChecks,
+    blurb: "Guided setup steps and a progress checklist with a bar.",
+    items: [
+      { label: "Setup checklist", code: "SetupChecklist", node: <SetupChecklist /> },
+      { label: "Progress checklist", code: "ChecklistProgress", node: <ChecklistProgress /> },
+    ],
+  },
+  {
+    id: "heatmap",
+    label: "Heatmap",
+    icon: Grid3x3,
+    blurb: "Contribution-style activity heatmap and a weekly activity bar.",
+    items: [
+      { label: "Contribution heatmap", code: "ContributionHeatmap", node: <ContributionHeatmap /> },
+      { label: "Weekly activity", code: "WeeklyActivity", node: <WeeklyActivity /> },
+    ],
+  },
+  {
+    id: "wizard",
+    label: "Wizard",
+    icon: Workflow,
+    blurb: "Full multi-step form panel and a completion step.",
+    scale: 0.85,
+    items: [
+      { label: "Wizard panel", code: "WizardPanel", node: <WizardPanel /> },
+      { label: "Complete step", code: "WizardComplete", node: <WizardComplete /> },
+    ],
+  },
+  {
+    id: "banners",
+    label: "Banners",
+    icon: Flag,
+    blurb: "Announcement bar, pinned-message strip, and a subtle info banner.",
+    items: [
+      { label: "Announcement bar", code: "AnnouncementBar", node: <AnnouncementBar /> },
+      { label: "Pinned banner", code: "PinnedBanner", node: <PinnedBanner /> },
+      { label: "Info banner", code: "InfoBanner", node: <InfoBanner /> },
+    ],
+  },
+  {
+    id: "composer",
+    label: "Composer",
+    icon: MessageSquarePlus,
+    blurb: "Support reply box (reply/note toggle) and a simple comment box.",
+    items: [
+      { label: "Reply composer", code: "ReplyComposer", node: <ReplyComposer /> },
+      { label: "Comment box", code: "CommentBox", node: <CommentBox /> },
+    ],
+  },
+  {
+    id: "carousel",
+    label: "Carousel",
+    icon: GalleryHorizontal,
+    blurb: "Horizontal card carousel with arrows + dots, and a dot stepper.",
+    items: [
+      { label: "Card carousel", code: "CardCarousel", node: <CardCarousel /> },
+      { label: "Dots", code: "Dots", node: <Dots /> },
+    ],
+  },
+  {
+    id: "drawer",
+    label: "Drawer",
+    icon: PanelRightOpen,
+    blurb: "Right-side detail drawer and a filter drawer.",
+    scale: 0.85,
+    items: [
+      { label: "Detail drawer", code: "DetailDrawer", node: <DetailDrawer /> },
+      { label: "Filter drawer", code: "FilterDrawer", node: <FilterDrawer /> },
+    ],
+  },
+  {
+    id: "trends",
+    label: "Trend stats",
+    icon: TrendingUp,
+    blurb: "KPI tiles with an embedded sparkline + delta.",
+    items: [
+      { label: "Trend stat card", code: "TrendStatCard", node: <TrendStatCard /> },
+      { label: "Trend stat row", code: "TrendStatRow", node: <TrendStatRow />, scale: 0.78 },
+    ],
+  },
+  {
+    id: "fields",
+    label: "Fields",
+    icon: SquarePen,
+    blurb: "Inline-edit, number stepper, and a tag input.",
+    items: [
+      { label: "Inline edit", code: "InlineEdit", node: <InlineEdit /> },
+      { label: "Number stepper", code: "NumberStepper", node: <NumberStepper /> },
+      { label: "Tag input", code: "TagInput", node: <TagInput /> },
+    ],
+  },
+  {
+    id: "toolbar",
+    label: "Toolbar",
+    icon: Wrench,
+    blurb: "Bulk-selection action bar and a table toolbar.",
+    items: [
+      { label: "Selection toolbar", code: "SelectionToolbar", node: <SelectionToolbar /> },
+      { label: "Table toolbar", code: "TableToolbar", node: <TableToolbar /> },
+    ],
+  },
+  {
+    id: "shortcuts",
+    label: "Shortcuts",
+    icon: Keyboard,
+    blurb: "Keyboard-shortcuts cheat sheet with grouped key bindings.",
+    items: [
+      { label: "Shortcuts sheet", code: "ShortcutsSheet", node: <ShortcutsSheet /> },
+    ],
+  },
+  {
+    id: "threads",
+    label: "Threads",
+    icon: MessageCircleMore,
+    blurb: "Nested comment thread with replies, likes, and reply actions.",
+    items: [
+      { label: "Comment thread", code: "CommentThread", node: <CommentThread /> },
+    ],
+  },
+  {
+    id: "attachments",
+    label: "Attachments",
+    icon: Paperclip,
+    blurb: "Uploaded-file list (with progress) and inline attachment chips.",
+    items: [
+      { label: "Attachment list", code: "AttachmentList", node: <AttachmentList /> },
+      { label: "Attachment chips", code: "AttachmentChips", node: <AttachmentChips /> },
+    ],
+  },
+  {
+    id: "agenda",
+    label: "Agenda",
+    icon: CalendarClock,
+    blurb: "Day agenda with positioned events, and a single event card.",
+    items: [
+      { label: "Day agenda", code: "DayAgenda", node: <DayAgenda /> },
+      { label: "Event card", code: "EventCard", node: <EventCard /> },
+    ],
+  },
+  {
+    id: "referral",
+    label: "Referral",
+    icon: Gift,
+    blurb: "Invite & earn card with a code, and a reward-tier track.",
+    items: [
+      { label: "Referral card", code: "ReferralCard", node: <ReferralCard /> },
+      { label: "Reward tiers", code: "ReferralTiers", node: <ReferralTiers /> },
+    ],
+  },
+  {
+    id: "verification",
+    label: "Verification",
+    icon: ShieldCheck,
+    blurb: "One-time-code (OTP) input and a verify-email card.",
+    items: [
+      { label: "OTP input", code: "OtpInput", node: <OtpInput /> },
+      { label: "Verify email", code: "VerifyEmail", node: <VerifyEmail /> },
+    ],
+  },
+  {
+    id: "funnels",
+    label: "Funnel",
+    icon: Funnel,
+    blurb: "Creator audience funnel (reach → customers) and audience retention.",
+    items: [
+      { label: "Audience funnel", code: "AudienceFunnel", node: <AudienceFunnel /> },
+      { label: "Retention cohort", code: "RetentionCohort", node: <RetentionCohort /> },
+    ],
+  },
+  {
+    id: "gauges",
+    label: "Scores",
+    icon: CircleGauge,
+    blurb: "Readiness score dial and a goal-progress meter.",
+    items: [
+      { label: "Score gauge", code: "ScoreGauge", node: <ScoreGauge /> },
+      { label: "Goal meter", code: "GoalMeter", node: <GoalMeter /> },
+    ],
+  },
+  {
+    id: "breakdowns",
+    label: "Breakdowns",
+    icon: ChartPie,
+    blurb: "Audience distribution — by region and by device.",
+    items: [
+      { label: "Region breakdown", code: "RegionBreakdown", node: <RegionBreakdown /> },
+      { label: "Device breakdown", code: "DeviceBreakdown", node: <DeviceBreakdown /> },
+    ],
+  },
+  {
+    id: "goals",
+    label: "Goals",
+    icon: Target,
+    blurb: "Creator growth goals — a goal card and a circular goal ring.",
+    items: [
+      { label: "Goal card", code: "GoalCard", node: <GoalCard /> },
+      { label: "Goal ring", code: "GoalRing", node: <GoalRing /> },
+    ],
+  },
+  {
+    id: "link-in-bio",
+    label: "Link in bio",
+    icon: Link2,
+    blurb: "A creator's public link-in-bio page and a social-stats row.",
+    items: [
+      { label: "Link-in-bio card", code: "LinkInBioCard", node: <LinkInBioCard /> },
+      { label: "Social links row", code: "SocialLinksRow", node: <SocialLinksRow /> },
+    ],
+  },
+  {
+    id: "audience",
+    label: "Audience",
+    icon: Users,
+    blurb: "Audience demographics (age + gender) and a top-fans list.",
+    items: [
+      { label: "Age & gender", code: "AgeGenderBars", node: <AgeGenderBars /> },
+      { label: "Top fans", code: "TopFans", node: <TopFans /> },
+    ],
+  },
+  {
+    id: "outreach",
+    label: "Outreach",
+    icon: Send,
+    blurb: "Brand-pitch templates and an outreach tracker (sent → replied).",
+    items: [
+      { label: "Pitch templates", code: "PitchTemplateCard", node: <PitchTemplateCard /> },
+      { label: "Outreach tracker", code: "OutreachTracker", node: <OutreachTracker /> },
+    ],
+  },
+  {
+    id: "posting-insights",
+    label: "Posting insights",
+    icon: Clock,
+    blurb: "Best-time-to-post heatmap and format-performance breakdown.",
+    items: [
+      { label: "Best time", code: "BestTimeHeatmap", node: <BestTimeHeatmap /> },
+      { label: "Format performance", code: "FormatPerformance", node: <FormatPerformance /> },
+    ],
+  },
+  {
+    id: "hashtags",
+    label: "Hashtags",
+    icon: Hash,
+    blurb: "Hashtag research (volume + difficulty) and a saved hashtag set.",
+    items: [
+      { label: "Hashtag research", code: "HashtagResearch", node: <HashtagResearch /> },
+      { label: "Saved set", code: "HashtagSet", node: <HashtagSet /> },
+    ],
+  },
+  {
+    id: "ai-assist",
+    label: "AI assist",
+    icon: Sparkles,
+    blurb: "AI caption generator and AI hook suggestions.",
+    items: [
+      { label: "Caption generator", code: "CaptionGenerator", node: <CaptionGenerator /> },
+      { label: "Hook suggestions", code: "HookSuggestions", node: <HookSuggestions /> },
+    ],
+  },
+  {
+    id: "post-preview",
+    label: "Post preview",
+    icon: Eye,
+    blurb: "Instagram-style post mock and a 3×3 profile-grid preview.",
+    items: [
+      { label: "Post preview", code: "IgPostPreview", node: <IgPostPreview /> },
+      { label: "Grid preview", code: "PostGridPreview", node: <PostGridPreview /> },
+    ],
+  },
+  {
+    id: "achievement",
+    label: "Achievement",
+    icon: Award,
+    blurb: "Achievement-unlocked celebration and a badge shelf.",
+    items: [
+      { label: "Unlocked", code: "AchievementUnlocked", node: <AchievementUnlocked /> },
+      { label: "Badge shelf", code: "BadgeShelf", node: <BadgeShelf /> },
+    ],
+  },
+  {
+    id: "earnings",
+    label: "Earnings",
+    icon: Banknote,
+    blurb: "Income by source and a payout schedule.",
+    items: [
+      { label: "Earnings overview", code: "EarningsOverview", node: <EarningsOverview /> },
+      { label: "Payout schedule", code: "PayoutSchedule", node: <PayoutSchedule /> },
+    ],
+  },
+  {
+    id: "ideas",
+    label: "Ideas",
+    icon: Lightbulb,
+    blurb: "Quick idea capture and a saved-ideas list with status.",
+    items: [
+      { label: "Idea capture", code: "IdeaCaptureCard", node: <IdeaCaptureCard /> },
+      { label: "Ideas list", code: "IdeasList", node: <IdeasList /> },
+    ],
+  },
+  {
+    id: "trending",
+    label: "Trending",
+    icon: Flame,
+    blurb: "Trending sounds (with waveform) and trending topics.",
+    items: [
+      { label: "Trending sounds", code: "TrendingSounds", node: <TrendingSounds /> },
+      { label: "Trending topics", code: "TrendingTopics", node: <TrendingTopics /> },
+    ],
+  },
+  {
+    id: "products",
+    label: "Products",
+    icon: ShoppingBag,
+    blurb: "A digital-product / course card and a checkout order summary.",
+    items: [
+      { label: "Product card", code: "ProductCard", node: <ProductCard /> },
+      { label: "Checkout summary", code: "CheckoutSummary", node: <CheckoutSummary /> },
+    ],
+  },
+  {
+    id: "promo",
+    label: "Promo",
+    icon: Ticket,
+    blurb: "A promo-code card and a discount announcement banner.",
+    items: [
+      { label: "Promo code", code: "PromoCodeCard", node: <PromoCodeCard /> },
+      { label: "Discount banner", code: "DiscountBanner", node: <DiscountBanner /> },
+    ],
+  },
+  {
+    id: "tip-jar",
+    label: "Tip jar",
+    icon: Coffee,
+    blurb: "A fan tip-jar card and a recent-supporters list.",
+    items: [
+      { label: "Tip jar", code: "TipJarCard", node: <TipJarCard /> },
+      { label: "Supporters", code: "SupporterList", node: <SupporterList /> },
+    ],
+  },
+  {
+    id: "engagement",
+    label: "Engagement",
+    icon: Inbox,
+    blurb: "Incoming-comments inbox and a story-poll result.",
+    items: [
+      { label: "Comments inbox", code: "CommentsInbox", node: <CommentsInbox /> },
+      { label: "Poll result", code: "PollResult", node: <PollResult /> },
+    ],
+  },
+  {
+    id: "launch",
+    label: "Launch",
+    icon: Rocket,
+    blurb: "A launch countdown timer and a waitlist signup.",
+    items: [
+      { label: "Countdown", code: "CountdownCard", node: <CountdownCard /> },
+      { label: "Waitlist", code: "WaitlistForm", node: <WaitlistForm /> },
+    ],
+  },
 ];
 
+/* ── Category order ────────────────────────────────────────
+   The style guide reads top → bottom in a deliberate sequence. CATEGORIES is
+   sorted in place by this list; any id NOT listed falls to the end, so a
+   newly-added category is never dropped — just appended until ranked here. */
+const CATEGORY_ORDER: string[] = [
+  // Brand
+  "brand",
+  // Foundations · type
+  "typography", "type-details", "text-sizes", "html-tags",
+  // Foundations · color
+  "colors", "color-roles",
+  // Foundations · iconography
+  "icons", "icon-sizes",
+  // Foundations · shape & elevation
+  "border-radius", "shadows",
+  // Foundations · spacing & sizing
+  "paddings", "margins", "spacers", "control-sizes",
+  // Foundations · layout
+  "max-widths", "responsive", "structure",
+  // Guidelines
+  "microcopy", "formatting", "accessibility",
+  // Components · form controls
+  "buttons", "inputs", "fields", "tag-input", "copy-field", "forms", "toggles", "pickers", "sliders",
+  "color-picker", "rating-input", "avatar-upload", "inline-edit",
+  // Components · display atoms
+  "badges", "avatars", "tooltips", "ratings", "tabs",
+  // Components · surfaces & overlays
+  "cards", "sections", "banners", "modals", "dialogs", "drawer", "overlays", "popover", "share-sheet", "shortcuts", "attachments",
+  // Components · navigation
+  "navbars", "sidebars", "navigation", "menus", "toolbar", "tree-view",
+  // Components · feedback & states
+  "notifications", "feedback", "loading", "errors", "empty-states",
+  // Components · data display
+  "tables", "stats", "scorecard", "charts", "trends", "heatmap", "analytics", "audience", "posting-insights", "trending", "funnels", "gauges", "breakdowns", "survey",
+  "board", "gallery", "carousel", "hero", "testimonials", "checklist", "comparison", "before-after", "calendar", "agenda", "booking",
+  // Content & messaging
+  "content", "composer", "chat", "threads", "comments", "ideas",
+  // Page layouts
+  "page-designs",
+  // Page designs · explorations (full-page wireframe studies, V1–V4)
+  "pdx-app-shell", "pdx-dashboard", "pdx-bento", "pdx-report",
+  "pdx-data-table", "pdx-list-detail", "pdx-tabs", "pdx-document", "pdx-scaffold",
+  "pdx-profile", "pdx-creator", "pdx-members", "pdx-account", "pdx-settings", "pdx-prefs",
+  "pdx-kanban", "pdx-gantt", "pdx-calendar", "pdx-booking", "pdx-tracker",
+  "pdx-inbox", "pdx-chat", "pdx-feed", "pdx-community", "pdx-activity", "pdx-heatmap", "pdx-reviews",
+  "pdx-search", "pdx-filters", "pdx-command",
+  "pdx-grid", "pdx-media",
+  "pdx-forms", "pdx-wizard", "pdx-survey", "pdx-import",
+  "pdx-auth",
+  "pdx-pricing", "pdx-compare", "pdx-checkout", "pdx-billing", "pdx-calc", "pdx-channels",
+  "pdx-docs", "pdx-changelog", "pdx-consent", "pdx-empty", "pdx-error", "pdx-landing", "pdx-modals", "pdx-workspace", "pdx-tags",
+  "page-layouts", "email-designs",
+  // Feature blocks · core
+  "dashboard", "performance", "posting", "program-surfaces", "admin",
+  // Feature blocks · learning & onboarding
+  "learning", "tutorials", "certificate", "onboarding", "wizard", "tour", "faq",
+  // Feature blocks · engagement
+  "missions", "achievement", "goals", "engagement", "community", "referral", "countdown", "launch", "gift-redeem",
+  // Feature blocks · monetization
+  "monetization", "pricing", "plan-gating", "access-tiers", "products", "promo", "checkout", "billing", "usage", "invoices", "tip-jar", "earnings", "trust",
+  // Feature blocks · creator surfaces
+  "timeline", "notes", "media-kit", "profile", "link-in-bio", "post-preview", "hashtags", "email-capture",
+  // Feature blocks · utility & connections
+  "widgets", "integrations", "search", "settings", "support", "video", "mobile", "ai-assist", "qr-code", "outreach",
+  // Feature blocks · account & security
+  "auth", "security", "verification", "notification-center", "announcement", "consent",
+];
+
+const orderRank = (id: string) => {
+  const i = CATEGORY_ORDER.indexOf(id);
+  return i === -1 ? CATEGORY_ORDER.length : i;
+};
+CATEGORIES.sort((a, b) => orderRank(a.id) - orderRank(b.id));
+
 const TOTAL = CATEGORIES.reduce((n, c) => n + c.items.length, 0);
+
+/* Sidebar grouping — collapse the categories into logical, collapsible sections.
+   Grouped by source membership (robust to the orderRank sort above). */
+const _idsOf = (arr: Category[]) => new Set(arr.map((c) => c.id));
+const _foundIds = _idsOf(FOUNDATION_CATEGORIES);
+const _pageDesignIds = _idsOf(PAGE_DESIGN_CATEGORIES);
+const _pageExploreIds = _idsOf(PAGE_EXPLORATION_CATEGORIES);
+const _extraIds = _idsOf(EXTRA_CATEGORIES);
+const NAV_GROUPS: { label: string; cats: Category[]; defaultOpen: boolean }[] = [
+  { label: "Foundations", cats: CATEGORIES.filter((c) => _foundIds.has(c.id)), defaultOpen: false },
+  {
+    label: "Elements",
+    cats: CATEGORIES.filter(
+      (c) => !_foundIds.has(c.id) && !_pageDesignIds.has(c.id) && !_pageExploreIds.has(c.id) && !_extraIds.has(c.id),
+    ),
+    defaultOpen: true,
+  },
+  { label: "Patterns", cats: CATEGORIES.filter((c) => _extraIds.has(c.id)), defaultOpen: true },
+  { label: "Page designs", cats: CATEGORIES.filter((c) => _pageDesignIds.has(c.id)), defaultOpen: false },
+  { label: "Page explorations", cats: CATEGORIES.filter((c) => _pageExploreIds.has(c.id)), defaultOpen: false },
+].filter((g) => g.cats.length > 0);
 
 function plural(n: number) {
   return `${n} component${n === 1 ? "" : "s"}`;
@@ -740,7 +1500,7 @@ export function DesignGallery() {
       <div className="mx-auto max-w-[1280px] px-5 sm:px-8 grid grid-cols-1 lg:grid-cols-[232px_1fr] gap-8 lg:gap-12 pb-24">
         {/* Sidebar */}
         <aside className="hidden lg:block">
-          <nav className="sticky top-[72px] py-10 space-y-7">
+          <nav className="sticky top-[72px] max-h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden py-8 pr-1 space-y-6">
             <div>
               <p className="px-2.5 mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
                 Start here
@@ -770,41 +1530,52 @@ export function DesignGallery() {
               <p className="px-2.5 mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
                 Components
               </p>
-              <div className="flex flex-col gap-0.5">
-                {CATEGORIES.map((cat) => {
-                  const active = activeId === cat.id;
-                  const Icon = cat.icon;
-                  return (
-                    <a
-                      key={cat.id}
-                      href={`#${cat.id}`}
-                      aria-current={active ? "true" : undefined}
-                      className={cn(
-                        "flex items-center gap-2.5 h-9 px-2.5 rounded-[9px] text-[13px] transition-colors",
-                        active
-                          ? "bg-rose-50 text-rose-700 font-semibold"
-                          : "text-ink-600 hover:bg-cream-200 hover:text-ink-900",
-                      )}
-                    >
-                      <Icon
-                        className={cn(
-                          "size-4 shrink-0",
-                          active ? "text-rose-600" : "text-ink-400",
-                        )}
-                        strokeWidth={1.9}
+              <div className="flex flex-col gap-1">
+                {NAV_GROUPS.map((group) => (
+                  <details key={group.label} open={group.defaultOpen} className="group">
+                    <summary className="flex items-center gap-2 h-8 px-2.5 rounded-[9px] text-[12px] font-semibold text-ink-700 cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden hover:bg-cream-200 transition-colors">
+                      <ChevronRight
+                        className="size-3.5 shrink-0 text-ink-400 transition-transform group-open:rotate-90"
+                        strokeWidth={2}
                       />
-                      {cat.label}
-                      <span
-                        className={cn(
-                          "ml-auto text-[11px] tabular-nums",
-                          active ? "text-rose-400" : "text-ink-300",
-                        )}
-                      >
-                        {cat.items.length}
-                      </span>
-                    </a>
-                  );
-                })}
+                      {group.label}
+                      <span className="ml-auto text-[10.5px] text-ink-300 tabular-nums">{group.cats.length}</span>
+                    </summary>
+                    <div className="flex flex-col gap-0.5 mt-0.5 mb-1.5 ml-3 pl-2.5 border-l border-ink-100">
+                      {group.cats.map((cat) => {
+                        const active = activeId === cat.id;
+                        const Icon = cat.icon;
+                        return (
+                          <a
+                            key={cat.id}
+                            href={`#${cat.id}`}
+                            aria-current={active ? "true" : undefined}
+                            className={cn(
+                              "flex items-center gap-2.5 h-8 px-2.5 rounded-[9px] text-[12.5px] transition-colors",
+                              active
+                                ? "bg-rose-50 text-rose-700 font-semibold"
+                                : "text-ink-600 hover:bg-cream-200 hover:text-ink-900",
+                            )}
+                          >
+                            <Icon
+                              className={cn("size-3.5 shrink-0", active ? "text-rose-600" : "text-ink-400")}
+                              strokeWidth={1.9}
+                            />
+                            <span className="truncate">{cat.label}</span>
+                            <span
+                              className={cn(
+                                "ml-auto text-[10.5px] tabular-nums shrink-0",
+                                active ? "text-rose-400" : "text-ink-300",
+                              )}
+                            >
+                              {cat.items.length}
+                            </span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </details>
+                ))}
               </div>
             </div>
           </nav>

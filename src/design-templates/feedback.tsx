@@ -22,7 +22,7 @@ export function EmptyState() {
       </p>
       <button
         type="button"
-        className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-medium shadow-sm transition-colors"
+        className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[13.5px] font-medium shadow-sm cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50"
       >
         <Plus className="size-4" strokeWidth={2.2} />
         New program
@@ -44,7 +44,7 @@ export function Banner() {
         </p>
         <button
           type="button"
-          className="mt-2 inline-flex items-center h-8 px-3 rounded-[9px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors"
+          className="mt-2 inline-flex items-center h-8 px-3 rounded-[9px] bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[12.5px] font-semibold cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-rose-50"
         >
           Reconnect
         </button>
@@ -52,7 +52,7 @@ export function Banner() {
       <button
         type="button"
         aria-label="Dismiss"
-        className="shrink-0 inline-flex items-center justify-center size-7 rounded-full hover:bg-rose-100 text-rose-500 transition-colors"
+        className="shrink-0 inline-flex items-center justify-center size-7 rounded-full hover:bg-rose-100 text-rose-500 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
       >
         <X className="size-4" strokeWidth={2} />
       </button>
@@ -68,8 +68,14 @@ export function ProgressBars() {
           <span className="text-ink-700 font-medium">Course progress</span>
           <span className="text-ink-900 font-semibold tabular-nums">68%</span>
         </div>
-        <div className="h-2.5 rounded-full bg-cream-200 overflow-hidden">
-          <div className="h-full rounded-full bg-rose-600" style={{ width: "68%" }} />
+        <div
+          role="progressbar"
+          aria-valuenow={68}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          className="h-2.5 rounded-full bg-cream-200 overflow-hidden"
+        >
+          <div className="h-full rounded-full bg-rose-600 transition-[width] duration-500" style={{ width: "68%" }} />
         </div>
       </div>
       <div>
@@ -77,9 +83,15 @@ export function ProgressBars() {
           <span className="text-ink-700 font-medium">Storage used</span>
           <span className="text-ink-900 font-semibold tabular-nums">2.1 / 5 GB</span>
         </div>
-        <div className="h-2.5 rounded-full bg-cream-200 overflow-hidden">
+        <div
+          role="progressbar"
+          aria-valuenow={42}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          className="h-2.5 rounded-full bg-cream-200 overflow-hidden"
+        >
           <div
-            className="h-full rounded-full bg-emerald-500"
+            className="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
             style={{ width: "42%" }}
           />
         </div>
@@ -116,7 +128,7 @@ export function Accordion() {
   const items = [
     {
       q: "How is program access granted?",
-      a: "Access is based on each member's plan tier — Free, Basic, Pro, or Diamond — not per-program purchase.",
+      a: "Access is based on each member's plan tier — Free, Basic, or Pro — not per-program purchase.",
     },
     {
       q: "Can I export member progress?",
@@ -138,7 +150,8 @@ export function Accordion() {
               type="button"
               onClick={() => setOpen(isOpen ? -1 : i)}
               aria-expanded={isOpen}
-              className="flex items-center justify-between w-full gap-3 px-4 py-3.5 text-left"
+              aria-controls={`dt-faq-${i}`}
+              className="flex items-center justify-between w-full gap-3 px-4 py-3.5 text-left cursor-pointer hover:bg-cream-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-200"
             >
               <span className="text-[13.5px] font-semibold text-ink-900">
                 {it.q}
@@ -152,7 +165,7 @@ export function Accordion() {
               />
             </button>
             {isOpen && (
-              <p className="px-4 pb-4 -mt-1 text-[13px] text-ink-500 leading-snug">
+              <p id={`dt-faq-${i}`} className="px-4 pb-4 -mt-1 text-[13px] text-ink-500 leading-snug">
                 {it.a}
               </p>
             )}

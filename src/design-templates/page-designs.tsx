@@ -23,9 +23,9 @@ function Topbar() {
         <div className="h-1 w-14 rounded bg-ink-200" />
       </div>
       <div className="ml-auto flex items-center gap-1.5">
-        <div className="size-3.5 rounded-full bg-ink-100" />
-        <div className="size-3.5 rounded-full bg-ink-100" />
-        <div className="size-4 rounded-full bg-cream-300" />
+        <div className="size-4 rounded-md bg-cream-100 border border-ink-100" />
+        <div className="size-4 rounded-md bg-cream-100 border border-ink-100" />
+        <div className="size-4 rounded-full bg-cream-300 border border-ink-100" />
       </div>
     </div>
   );
@@ -35,11 +35,14 @@ function Topbar() {
 function IconRail() {
   return (
     <div className="w-10 shrink-0 border-r border-ink-100 bg-white flex flex-col items-center py-2.5 gap-2">
-      <div className="size-4 rounded-[5px] bg-rose-400 mb-1" />
-      <div className="size-4 rounded-[5px] bg-rose-200" />
-      <div className="size-4 rounded-[5px] bg-ink-100" />
-      <div className="size-4 rounded-[5px] bg-ink-100" />
-      <div className="size-4 rounded-[5px] bg-ink-100" />
+      <div className="size-4 rounded-[5px] bg-rose-500 mb-1" />
+      <div className="size-6 rounded-md bg-rose-50 flex items-center justify-center">
+        <div className="size-3.5 rounded-[4px] bg-rose-400" />
+      </div>
+      <div className="size-4 rounded-[5px] bg-ink-200" />
+      <div className="size-4 rounded-[5px] bg-ink-200" />
+      <div className="size-4 rounded-[5px] bg-ink-200" />
+      <div className="mt-auto size-5 rounded-full bg-cream-200 border border-ink-100" />
     </div>
   );
 }
@@ -47,7 +50,7 @@ function IconRail() {
 /* Wider labelled nav rail */
 function NavRail() {
   return (
-    <div className="w-[104px] shrink-0 border-r border-ink-100 bg-white p-2.5">
+    <div className="w-[104px] shrink-0 border-r border-ink-100 bg-white p-2.5 flex flex-col">
       <div className="flex items-center gap-1.5 mb-3">
         <div className="size-3 rounded-[4px] bg-rose-500" />
         <div className="h-2 w-12 rounded bg-ink-200" />
@@ -60,9 +63,12 @@ function NavRail() {
           </div>
         ))}
       </div>
-      <div className="mt-3 pt-2.5 border-t border-ink-100 flex items-center gap-1.5">
-        <div className="size-4 rounded-full bg-cream-200 shrink-0" />
-        <div className="h-1.5 w-8 rounded bg-ink-100" />
+      <div className="mt-auto pt-2.5 border-t border-ink-100 flex items-center gap-1.5">
+        <div className="size-5 rounded-full bg-cream-200 border border-ink-100 shrink-0" />
+        <div className="flex-1 space-y-1">
+          <div className="h-1.5 w-10 rounded bg-ink-200" />
+          <div className="h-1 w-7 rounded bg-ink-100" />
+        </div>
       </div>
     </div>
   );
@@ -172,7 +178,7 @@ function Body({ tabs }: { tabs?: boolean }) {
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="w-[560px] shrink-0 h-[268px] rounded-[14px] border border-ink-200 bg-cream-50 overflow-hidden flex flex-col shadow-sm">
+    <div className="w-[560px] shrink-0 h-[268px] rounded-[14px] border border-ink-200 bg-cream-50 overflow-hidden flex flex-col shadow-md">
       <Topbar />
       <div className="flex flex-1 min-h-0">{children}</div>
     </div>
@@ -182,10 +188,12 @@ function Frame({ children }: { children: ReactNode }) {
 /* ── Detail helpers (charts / nav) ────────────────────────────────────── */
 
 function Bars({ data, className = "h-[52px]", bar = "bg-rose-200" }: { data: number[]; className?: string; bar?: string }) {
+  const peak = Math.max(...data);
+  const peakBar = bar === "bg-rose-200" ? "bg-rose-400" : bar;
   return (
     <div className={cn("flex items-end gap-1.5", className)}>
       {data.map((h, i) => (
-        <div key={i} className={cn("flex-1 rounded-t", bar)} style={{ height: `${h}%` }} />
+        <div key={i} className={cn("flex-1 rounded-t", h === peak ? peakBar : bar)} style={{ height: `${h}%` }} />
       ))}
     </div>
   );
@@ -195,7 +203,7 @@ function Donut({ size = 46, tone = "border-rose-300", track = "border-cream-200"
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div className={cn("absolute inset-0 rounded-full border-[5px]", track)} />
-      <div className={cn("absolute inset-0 rounded-full border-[5px] border-r-transparent border-b-transparent", tone)} />
+      <div className={cn("absolute inset-0 rounded-full border-[5px] border-b-transparent", tone)} />
     </div>
   );
 }
@@ -473,10 +481,21 @@ function DoubleSidebarV2() {
           </div>
         </div>
         <div className="p-3 space-y-2">
-          <div className="h-16 rounded-lg bg-white border border-ink-100" />
+          <div className="h-16 rounded-lg bg-white border border-ink-100 p-2.5 flex items-center gap-2.5">
+            <div className="size-11 rounded-lg bg-cream-100 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-1.5 w-1/3 rounded bg-ink-200" />
+              <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+              <div className="h-1.5 w-1/2 rounded bg-ink-100" />
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="h-12 rounded-lg bg-white border border-ink-100" />
-            <div className="h-12 rounded-lg bg-white border border-ink-100" />
+            {[0, 1].map((i) => (
+              <div key={i} className="h-12 rounded-lg bg-white border border-ink-100 p-2 flex flex-col justify-between">
+                <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+                <div className="h-2.5 w-1/2 rounded bg-ink-300" />
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -762,7 +781,13 @@ function SidebarRightRail() {
               </div>
             ))}
           </div>
-          <div className="h-20 rounded-lg bg-white border border-ink-100" />
+          <div className="h-20 rounded-lg bg-white border border-ink-100 p-2.5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-1.5 w-16 rounded bg-ink-200" />
+              <div className="h-1.5 w-8 rounded-full bg-cream-200" />
+            </div>
+            <Bars data={[48, 66, 52, 78, 60, 72]} className="h-[44px]" />
+          </div>
         </div>
       </div>
       <div className="w-[92px] shrink-0 border-l border-ink-100 bg-white p-2.5 space-y-2">
@@ -1975,7 +2000,7 @@ function DocumentInvoice() {
 
 function ContentFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="w-[560px] shrink-0 h-[268px] rounded-[14px] border border-ink-200 bg-cream-50 overflow-hidden shadow-sm">
+    <div className="w-[560px] shrink-0 h-[268px] rounded-[14px] border border-ink-200 bg-cream-50 overflow-hidden shadow-md">
       {children}
     </div>
   );
@@ -2035,7 +2060,11 @@ function PageOnlyTwoColumn() {
               <div className="mb-2 h-2 w-1/3 rounded bg-ink-200" />
               <Bars data={[50, 72, 48, 80, 60]} className="h-[44px]" />
             </div>
-            <div className="h-16 rounded-lg bg-white border border-ink-100" />
+            <div className="h-16 rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
+              <div className="h-1.5 w-1/2 rounded bg-ink-200" />
+              <div className="h-1.5 rounded bg-ink-100" />
+              <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+            </div>
           </div>
           <div className="space-y-2.5">
             <div className="rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
@@ -2063,7 +2092,7 @@ function PageOnlyCentered() {
             <div className="h-1.5 w-16 rounded bg-ink-100" />
             <div className="h-1.5 w-10 rounded bg-ink-100" />
           </div>
-          <div className="h-20 rounded-lg bg-white border border-ink-100" />
+          <div className="h-20 rounded-lg bg-cream-100 border border-ink-100" />
           <div className="space-y-1.5">
             <div className="h-1.5 w-full rounded bg-ink-100" />
             <div className="h-1.5 w-5/6 rounded bg-ink-100" />
@@ -2430,8 +2459,16 @@ function TabbedSubnav() {
           </div>
           <div className="flex-1 space-y-2 border-l border-ink-100 pl-3">
             <div className="h-2.5 w-1/3 rounded bg-ink-300" />
-            <div className="h-16 rounded-lg bg-white border border-ink-100" />
-            <div className="h-9 rounded-lg bg-white border border-ink-100" />
+            <div className="h-16 rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
+              <div className="h-1.5 w-1/2 rounded bg-ink-200" />
+              <div className="h-1.5 rounded bg-ink-100" />
+              <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+            </div>
+            <div className="h-9 rounded-lg bg-white border border-ink-100 flex items-center gap-2 px-2">
+              <div className="size-5 rounded-full bg-cream-200" />
+              <div className="h-1.5 w-1/3 rounded bg-ink-100" />
+              <div className="ml-auto h-1.5 w-8 rounded bg-ink-100" />
+            </div>
           </div>
         </div>
       </div>
@@ -2460,7 +2497,12 @@ function TabbedSubnavV2() {
         </div>
         <div className="p-3 grid grid-cols-3 gap-2.5">
           {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-[52px] rounded-lg bg-white border border-ink-100" />
+            <div key={i} className="h-[52px] rounded-lg bg-white border border-ink-100 overflow-hidden">
+              <div className="h-7 bg-cream-100" />
+              <div className="p-1">
+                <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -2578,7 +2620,14 @@ function FullWidthCenteredV2() {
             ))}
           </div>
           <div className="px-3.5 pt-2.5">
-            <div className="h-16 rounded-lg bg-white border border-ink-100" />
+            <div className="h-16 rounded-lg bg-white border border-ink-100 p-2.5 flex items-center gap-2.5">
+              <div className="h-full w-16 rounded bg-cream-100 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-1.5 w-1/3 rounded bg-ink-200" />
+                <div className="h-1.5 rounded bg-ink-100" />
+                <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2601,8 +2650,20 @@ function FullWidthCenteredV3() {
           </div>
           <div className="grid grid-cols-[1fr_140px] gap-3">
             <div className="space-y-2.5">
-              <div className="h-24 rounded-lg bg-white border border-ink-100" />
-              <div className="h-14 rounded-lg bg-white border border-ink-100" />
+              <div className="h-24 rounded-lg bg-white border border-ink-100 p-2.5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="h-1.5 w-16 rounded bg-ink-200" />
+                  <div className="h-1.5 w-8 rounded-full bg-cream-200" />
+                </div>
+                <Bars data={[44, 62, 50, 76, 58, 70, 54]} className="h-[52px]" />
+              </div>
+              <div className="h-14 rounded-lg bg-white border border-ink-100 p-2 flex items-center gap-2">
+                <div className="size-9 rounded-md bg-cream-100 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-1.5 w-1/2 rounded bg-ink-200" />
+                  <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+                </div>
+              </div>
             </div>
             <div className="space-y-2.5">
               <div className="rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
@@ -2666,10 +2727,27 @@ function FullWidthFluidV3() {
           <div className="flex-1 p-3 space-y-2.5">
             <div className="h-2 w-1/3 rounded bg-ink-200" />
             <div className="grid grid-cols-2 gap-2.5">
-              <div className="h-20 rounded-lg bg-white border border-ink-100" />
-              <div className="h-20 rounded-lg bg-white border border-ink-100" />
-              <div className="h-14 rounded-lg bg-white border border-ink-100" />
-              <div className="h-14 rounded-lg bg-white border border-ink-100" />
+              <div className="h-20 rounded-lg bg-white border border-ink-100 p-2.5">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="h-1.5 w-12 rounded bg-ink-200" />
+                  <div className="h-1.5 w-6 rounded-full bg-cream-200" />
+                </div>
+                <Bars data={[48, 66, 52, 74, 60]} className="h-[40px]" />
+              </div>
+              <div className="h-20 rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="size-3.5 rounded-full bg-cream-200" />
+                    <div className="h-1.5 flex-1 rounded bg-ink-100" />
+                  </div>
+                ))}
+              </div>
+              {[0, 1].map((i) => (
+                <div key={i} className="h-14 rounded-lg bg-white border border-ink-100 p-2 flex flex-col justify-between">
+                  <div className="h-1.5 w-2/3 rounded bg-ink-100" />
+                  <div className="h-2.5 w-1/2 rounded bg-ink-300" />
+                </div>
+              ))}
             </div>
           </div>
           <div className="w-[132px] shrink-0 border-l border-ink-100 bg-white p-2.5 space-y-2">
@@ -2706,7 +2784,14 @@ function CenteredNarrowV2() {
               <div className="h-1.5 rounded bg-ink-100" />
               <div className="h-1.5 w-4/5 rounded bg-ink-100" />
             </div>
-            <div className="h-16 rounded-lg bg-white border border-ink-100" />
+            <div className="h-16 rounded-lg bg-white border border-ink-100 p-2 flex items-center gap-2">
+              <div className="size-10 rounded-md bg-cream-100 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-1.5 w-1/2 rounded bg-ink-200" />
+                <div className="h-1.5 rounded bg-ink-100" />
+                <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+              </div>
+            </div>
             <div className="space-y-1.5">
               <div className="h-1.5 rounded bg-ink-100" />
               <div className="h-1.5 w-3/4 rounded bg-ink-100" />
@@ -2897,8 +2982,16 @@ function ListDetailV2() {
             ))}
           </div>
           <div className="p-3 space-y-2">
-            <div className="h-16 rounded-lg bg-white border border-ink-100" />
-            <div className="h-10 rounded-lg bg-white border border-ink-100" />
+            <div className="h-16 rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
+              <div className="h-1.5 w-1/2 rounded bg-ink-200" />
+              <div className="h-1.5 rounded bg-ink-100" />
+              <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+            </div>
+            <div className="h-10 rounded-lg bg-white border border-ink-100 flex items-center gap-2 px-2">
+              <div className="size-5 rounded-full bg-cream-200" />
+              <div className="h-1.5 w-1/3 rounded bg-ink-100" />
+              <div className="ml-auto h-1.5 w-8 rounded bg-ink-100" />
+            </div>
           </div>
         </div>
       </div>
@@ -3182,7 +3275,16 @@ function CollapsedSidebarV2() {
               <div className="h-2.5 w-1/2 rounded bg-ink-300" />
             </div>
           ))}
-          <div className="col-span-3 h-16 rounded-lg bg-white border border-ink-100" />
+          <div className="col-span-3 h-16 rounded-lg bg-white border border-ink-100 p-2.5 flex items-center gap-3">
+            <div className="flex-1">
+              <Bars data={[44, 60, 50, 72, 56, 68, 52]} className="h-[40px]" />
+            </div>
+            <div className="w-16 shrink-0 space-y-1.5">
+              <div className="h-1.5 w-2/3 rounded bg-ink-200" />
+              <div className="h-2.5 w-1/2 rounded bg-ink-300" />
+              <div className="h-1.5 w-3/5 rounded-full bg-emerald-200" />
+            </div>
+          </div>
         </div>
       </div>
     </Frame>
@@ -3851,7 +3953,13 @@ function ProfileDetailV3() {
         <div className="p-3 grid grid-cols-[1fr_130px] gap-3">
           <div className="space-y-2">
             <div className="h-2 w-1/3 rounded bg-ink-300" />
-            <div className="h-20 rounded-lg bg-white border border-ink-100" />
+            <div className="h-20 rounded-lg bg-white border border-ink-100 p-2.5">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="h-1.5 w-16 rounded bg-ink-200" />
+                <div className="h-1.5 w-8 rounded-full bg-cream-200" />
+              </div>
+              <Bars data={[46, 64, 52, 76, 58, 70, 54]} className="h-[44px]" />
+            </div>
             <div className="h-1.5 w-full rounded bg-ink-100" />
           </div>
           <div className="space-y-2">
@@ -3913,7 +4021,11 @@ function DetailStickyAsideV3() {
             ))}
           </div>
           <div className="pt-2.5 space-y-2">
-            <div className="h-16 rounded-lg bg-white border border-ink-100" />
+            <div className="h-16 rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
+              <div className="h-1.5 w-1/2 rounded bg-ink-200" />
+              <div className="h-1.5 rounded bg-ink-100" />
+              <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+            </div>
             <div className="h-1.5 w-full rounded bg-ink-100" />
             <div className="h-1.5 w-2/3 rounded bg-ink-100" />
           </div>
@@ -4647,7 +4759,11 @@ function MultiPaneWorkspaceV2() {
         </div>
         <div className="flex-1 p-2 space-y-1.5 border-r border-ink-100 min-w-0">
           <div className="h-2 w-1/2 rounded bg-ink-300" />
-          <div className="h-16 rounded-lg bg-white border border-ink-100" />
+          <div className="h-16 rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
+            <div className="h-1.5 w-1/2 rounded bg-ink-200" />
+            <div className="h-1.5 rounded bg-ink-100" />
+            <div className="h-1.5 w-3/4 rounded bg-ink-100" />
+          </div>
         </div>
         <div className="w-[84px] shrink-0 bg-white p-1.5 space-y-1.5">
           <div className="h-2 w-2/3 rounded bg-ink-300" />
@@ -4905,7 +5021,13 @@ function PageOnlyTwoColumnV2() {
         <div className="flex-1 p-4 space-y-2.5">
           <div className="h-3 w-28 rounded bg-ink-300" />
           <div className="h-2 w-40 rounded bg-ink-100" />
-          <div className="mt-1 h-28 rounded-lg bg-white border border-ink-100" />
+          <div className="mt-1 h-28 rounded-lg bg-white border border-ink-100 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="h-2 w-16 rounded bg-ink-200" />
+              <div className="h-2 w-10 rounded-full bg-cream-200" />
+            </div>
+            <Bars data={[44, 62, 50, 76, 58, 72, 54, 66]} className="h-[64px]" />
+          </div>
         </div>
       </div>
     </ContentFrame>
@@ -4930,8 +5052,18 @@ function PageOnlyTwoColumnV3() {
           <div className="h-3.5 w-1/3 rounded bg-ink-300" />
           <div className="h-2 w-1/2 rounded bg-ink-100" />
           <div className="mt-1 grid grid-cols-2 gap-2.5">
-            <div className="h-20 rounded-lg bg-white border border-ink-100" />
-            <div className="h-20 rounded-lg bg-white border border-ink-100" />
+            <div className="h-20 rounded-lg bg-white border border-ink-100 p-2.5">
+              <div className="mb-2 h-1.5 w-2/3 rounded bg-ink-200" />
+              <Bars data={[48, 66, 54, 78, 60]} className="h-[44px]" />
+            </div>
+            <div className="h-20 rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <div className="size-3.5 rounded-full bg-cream-200" />
+                  <div className="h-1.5 flex-1 rounded bg-ink-100" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

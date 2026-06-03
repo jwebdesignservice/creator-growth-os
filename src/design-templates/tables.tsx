@@ -1,8 +1,7 @@
 /* Tables ───────────────────────────────────────────────────────────────
-   Every distinct table *system* in the product, rendered presentationally
-   with sample data (no fetching / no server actions — interactive controls
-   are shown static for the gallery). Each export mirrors the markup of a
-   real table so the gallery stays a faithful style reference:
+   Every distinct table *system* in the product, shown with sample data —
+   from a simple record list to rich scheduling and pipeline tables. They
+   share one header / row / chip / pagination rhythm:
 
      • UsersTable         — basic record list (card + status chips)
      • AdminUsersTable    — advanced data table (sortable headers, column
@@ -67,10 +66,10 @@ export function UsersTable() {
       <table className="w-full text-left">
         <thead className="bg-cream-100/70 border-b border-ink-100">
           <tr>
-            <th className="px-4 py-3 text-[11.5px] uppercase tracking-wider text-ink-500 font-semibold">Name</th>
-            <th className="px-4 py-3 text-[11.5px] uppercase tracking-wider text-ink-500 font-semibold">Role</th>
-            <th className="px-4 py-3 text-[11.5px] uppercase tracking-wider text-ink-500 font-semibold">Status</th>
-            <th className="px-4 py-3 text-right"></th>
+            <th scope="col" className="px-4 py-3 text-[11.5px] uppercase tracking-wider text-ink-500 font-semibold">Name</th>
+            <th scope="col" className="px-4 py-3 text-[11.5px] uppercase tracking-wider text-ink-500 font-semibold">Role</th>
+            <th scope="col" className="px-4 py-3 text-[11.5px] uppercase tracking-wider text-ink-500 font-semibold">Status</th>
+            <th scope="col" className="px-4 py-3 text-right"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-ink-100">
@@ -82,7 +81,7 @@ export function UsersTable() {
               </td>
               <td className="px-4 py-3 text-[13px] text-ink-700">{r.role}</td>
               <td className="px-4 py-3">
-                <span className={"inline-flex items-center px-2 h-6 rounded-full text-[11px] font-semibold " + STATUS_STYLES[r.status]}>
+                <span className={"inline-flex items-center px-2 h-6 rounded-full text-[11px] font-semibold capitalize " + STATUS_STYLES[r.status]}>
                   {r.status}
                 </span>
               </td>
@@ -90,7 +89,7 @@ export function UsersTable() {
                 <button
                   type="button"
                   aria-label="Row actions"
-                  className="inline-flex items-center justify-center size-8 rounded-full hover:bg-cream-200 text-ink-500"
+                  className="inline-flex items-center justify-center size-8 rounded-full hover:bg-cream-200 text-ink-500 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
                 >
                   <MoreHorizontal className="size-4" strokeWidth={2} />
                 </button>
@@ -106,8 +105,7 @@ export function UsersTable() {
 /* ═══════════════════════════════════════════════════════════════════════
    2 · Advanced admin data table — sortable headers (drag grips + sort
    arrows), Export / Edit-columns controls, avatar cells, plan/status
-   chips, pinned contact actions. (Static: shows the controls; the live
-   admin table at /admin/users wires drag-reorder, sort and a column popover.)
+   chips, and pinned contact actions.
    ═══════════════════════════════════════════════════════════════════════ */
 
 type AdminRow = {
@@ -143,11 +141,11 @@ export function AdminUsersTable() {
   return (
     <div className="space-y-4 w-full">
       <div className="flex items-center justify-end gap-2">
-        <button type="button" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white hover:bg-cream-100 text-[12.5px] font-medium text-ink-700 transition-colors">
+        <button type="button" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white hover:bg-cream-100 active:bg-cream-200 text-[12.5px] font-medium text-ink-700 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50">
           <Download className="size-3.5" strokeWidth={2} />
           Export
         </button>
-        <button type="button" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white hover:bg-cream-100 text-[12.5px] font-medium text-ink-700 transition-colors">
+        <button type="button" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-ink-200 bg-white hover:bg-cream-100 active:bg-cream-200 text-[12.5px] font-medium text-ink-700 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50">
           <Settings2 className="size-3.5" strokeWidth={2} />
           Edit
         </button>
@@ -243,7 +241,7 @@ export function SupportTicketsTable() {
         <div className="flex items-center gap-2.5">
           <div className="relative w-[220px]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-[14px] text-ink-400" strokeWidth={2} aria-hidden />
-            <input readOnly placeholder="Search" className="w-full h-10 pl-10 pr-3 rounded-[10px] bg-white border border-ink-200 text-[13px] text-ink-900 placeholder:text-ink-400" />
+            <input readOnly placeholder="Search" className="w-full h-10 pl-10 pr-3 rounded-[10px] bg-white border border-ink-200 text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors" />
           </div>
           <span className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-rose-600 text-white text-[13px] font-semibold shadow-sm">
             <Plus className="size-[15px]" strokeWidth={2.4} />
@@ -258,7 +256,7 @@ export function SupportTicketsTable() {
             key={f}
             className={cn(
               "inline-flex items-center h-7 px-2.5 rounded-full text-[11.5px] font-medium border",
-              i === 0 ? "bg-ink-900 text-cream-100 border-ink-900" : "bg-white border-ink-200 text-ink-700",
+              i === 0 ? "bg-rose-600 text-white border-rose-600" : "bg-white border-ink-200 text-ink-700",
             )}
           >
             {f}
@@ -309,7 +307,7 @@ export function SupportTicketsTable() {
             <ChevronLeft className="size-3.5" strokeWidth={2.2} aria-hidden /> Previous
           </span>
           {["1", "2", "3", "4", "5"].map((p) => (
-            <span key={p} className={cn("inline-flex items-center justify-center size-8 rounded-full text-[12.5px] font-semibold tabular-nums", p === "1" ? "bg-gold-500 text-white" : "text-ink-700")}>{p}</span>
+            <span key={p} className={cn("inline-flex items-center justify-center size-8 rounded-full text-[12.5px] font-semibold tabular-nums", p === "1" ? "bg-rose-600 text-white" : "text-ink-700")}>{p}</span>
           ))}
           <span className="inline-flex items-center justify-center size-8 text-[12.5px] text-ink-400">&hellip;</span>
           <span className="inline-flex items-center justify-center size-8 rounded-full text-[12.5px] font-semibold tabular-nums text-ink-700">12</span>

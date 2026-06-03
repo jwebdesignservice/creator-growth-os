@@ -1,9 +1,6 @@
 import { redirect } from "next/navigation";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
-import {
-  getUserNotifications,
-  getNotificationPreferences,
-} from "@/lib/notifications/queries";
+import { getUserNotifications } from "@/lib/notifications/queries";
 import { NotificationsPageClient } from "./notifications-panel";
 
 export const metadata = { title: "Notifications | Creator Growth OS" };
@@ -17,18 +14,11 @@ export default async function NotificationsPage() {
     (ctx.profile?.display_name ?? ctx.profile?.full_name ?? ctx.user.email?.split("@")[0] ?? "Creator")
       .split(" ")[0];
 
-  // Run all three queries in parallel — getShellContext is cached so
-  // unreadNotificationCount is already available without an extra round-trip.
-  const [notifications, preferences] = await Promise.all([
-    getUserNotifications(userId),
-    getNotificationPreferences(userId),
-  ]);
+  const notifications = await getUserNotifications(userId);
 
   return (
     <NotificationsPageClient
       notifications={notifications}
-      preferences={preferences}
-      unreadCount={ctx.unreadNotificationCount}
       firstName={firstName}
     />
   );

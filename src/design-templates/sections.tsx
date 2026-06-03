@@ -1,8 +1,8 @@
 /* Sections ──────────────────────────────────────────────────────────────
    The page chrome every screen is built from: a page header (title +
-   subtitle + action), a section card (header + trailing slot + body), and
-   a filter / toolbar row. Mirrors dev-page-header, dev-section-card, and
-   the many *-filter-bar components, using the app-wide tokens.
+   subtitle + action), a section card (header + trailing link + body list),
+   and a filter / toolbar row. These set the spacing and hierarchy rhythm
+   the rest of the platform follows.
    ───────────────────────────────────────────────────────────────────── */
 
 import {
@@ -15,6 +15,10 @@ import {
   UserPlus,
   Upload,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
+
+const FOCUS =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50";
 
 export function PageHeader() {
   return (
@@ -27,7 +31,10 @@ export function PageHeader() {
       </div>
       <button
         type="button"
-        className="shrink-0 inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-medium shadow-sm transition-colors"
+        className={cn(
+          "shrink-0 inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[13.5px] font-medium shadow-sm cursor-pointer transition-colors",
+          FOCUS,
+        )}
       >
         <Plus className="size-4" strokeWidth={2.2} />
         Connect platform
@@ -48,17 +55,17 @@ export function SectionCard() {
         <h3 className="text-h5 text-ink-900">Recent activity</h3>
         <a
           href="#"
-          className="inline-flex items-center gap-1 text-[12.5px] text-rose-600 font-medium hover:text-rose-700"
+          className={cn("inline-flex items-center gap-1 text-[12.5px] text-rose-600 font-medium hover:text-rose-700 rounded-[6px] px-0.5", FOCUS)}
         >
           View all
           <ArrowUpRight className="size-3.5" strokeWidth={2} />
         </a>
       </header>
-      <ul className="space-y-3">
+      <ul className="-mx-2">
         {rows.map((r, i) => {
           const Icon = r.icon;
           return (
-            <li key={i} className="flex items-center gap-3">
+            <li key={i} className="flex items-center gap-3 px-2 py-2.5 rounded-[10px] hover:bg-cream-50 transition-colors">
               <span className="size-9 rounded-full bg-cream-100 text-ink-500 inline-flex items-center justify-center shrink-0">
                 <Icon className="size-4" strokeWidth={1.9} />
               </span>
@@ -82,14 +89,14 @@ export function FilterBar() {
       {/* Primary search */}
       <div className="relative flex-[2] min-w-[240px]">
         <Search
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-400"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
           strokeWidth={1.9}
         />
         <input
           type="search"
           readOnly
           placeholder="Search members…"
-          className="w-full h-11 pl-10 pr-3 rounded-[10px] bg-white border border-ink-100 text-[13.5px] text-ink-700 placeholder:text-ink-400 outline-none"
+          className="w-full h-11 pl-10 pr-3 rounded-[10px] bg-white border border-ink-200 text-[13.5px] text-ink-700 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
         />
       </div>
 
@@ -107,7 +114,7 @@ export function FilterBar() {
               <select
                 defaultValue={f.value}
                 aria-label={f.label}
-                className="appearance-none w-full h-10 pl-3 pr-8 rounded-[10px] bg-cream-100 border border-ink-100 text-[12.5px] text-ink-900 font-medium outline-none cursor-pointer"
+                className="appearance-none w-full h-10 pl-3 pr-8 rounded-[10px] bg-cream-100 border border-ink-200 text-[12.5px] text-ink-900 font-medium cursor-pointer focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
               >
                 <option>{f.value}</option>
                 <option>Other</option>
@@ -124,7 +131,10 @@ export function FilterBar() {
       {/* Reset */}
       <button
         type="button"
-        className="inline-flex items-center gap-1.5 h-10 px-3 rounded-[10px] text-[12.5px] font-medium text-ink-500 hover:text-ink-900 hover:bg-cream-100 transition-colors self-end"
+        className={cn(
+          "inline-flex items-center gap-1.5 h-10 px-3 rounded-[10px] text-[12.5px] font-medium text-ink-500 hover:text-ink-900 hover:bg-cream-100 cursor-pointer transition-colors self-end",
+          FOCUS,
+        )}
       >
         <RotateCcw className="size-3.5" strokeWidth={1.9} />
         Reset

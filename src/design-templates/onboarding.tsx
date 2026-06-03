@@ -1,7 +1,7 @@
 /* Onboarding ─────────────────────────────────────────────────────────────
    The onboarding flow's building blocks — large selectable cards, a step
-   header with progress, and a vertical progress rail. Mirrors
-   src/components/onboarding/{selection-card,step-header,rail}.tsx.
+   header with a segmented progress bar, and a vertical progress rail that
+   carries the user through the first-run setup.
    ───────────────────────────────────────────────────────────────────── */
 
 "use client";
@@ -32,7 +32,7 @@ export function SelectionCards() {
             onClick={() => toggle(o.key)}
             aria-pressed={selected}
             className={cn(
-              "relative text-left rounded-[16px] border-2 p-5 transition-colors",
+              "relative text-left rounded-[16px] border-2 p-5 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50",
               selected
                 ? "border-rose-500 bg-rose-50/70"
                 : "border-ink-100 bg-white hover:border-ink-200 hover:bg-cream-100/50",
@@ -105,7 +105,7 @@ export function ProgressRail() {
         {steps.map((s, i) => {
           const last = i === steps.length - 1;
           return (
-            <li key={s.label} className="flex gap-3">
+            <li key={s.label} aria-current={s.active ? "step" : undefined} className="flex gap-3">
               <div className="flex flex-col items-center">
                 <span
                   className={cn(

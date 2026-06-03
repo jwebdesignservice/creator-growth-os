@@ -1,9 +1,7 @@
 /* Auth blocks ───────────────────────────────────────────────────────────
    Authentication building blocks shared by sign-in / sign-up / reset —
-   the OAuth provider buttons and the live password-strength meter.
-   Mirrors src/components/ui/oauth-buttons.tsx and
-   src/components/auth/password-strength.tsx (presentational; the strength
-   logic is inlined so the template stays self-contained).
+   the OAuth provider buttons and the live password-strength meter (weak /
+   medium / strong) with its rule checklist.
    ───────────────────────────────────────────────────────────────────── */
 
 "use client";
@@ -18,14 +16,14 @@ export function OAuthButtons() {
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 hover:bg-cream-100 text-[14px] font-medium text-ink-900 transition-colors"
+          className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 hover:bg-cream-100 active:bg-cream-200 text-[14px] font-medium text-ink-900 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50"
         >
           <GoogleLogo />
           Google
         </button>
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 hover:bg-cream-100 text-[14px] font-medium text-ink-900 transition-colors"
+          className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-white border border-ink-200 hover:bg-cream-100 active:bg-cream-200 text-[14px] font-medium text-ink-900 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50"
         >
           <AppleLogo />
           Apple
@@ -56,12 +54,12 @@ export function PasswordStrength() {
   const strength = pw.length === 0 ? "empty" : met <= 1 ? "weak" : met === 2 ? "medium" : "strong";
   const filled = strength === "strong" ? 3 : strength === "medium" ? 2 : strength === "weak" ? 1 : 0;
   const fillTone =
-    strength === "strong" ? "bg-success" : strength === "medium" ? "bg-gold-500" : "bg-rose-500";
+    strength === "strong" ? "bg-success" : strength === "medium" ? "bg-amber-500" : "bg-rose-500";
   const dotTone =
     strength === "strong"
       ? "text-success bg-success/15"
       : strength === "medium"
-        ? "text-gold-500 bg-gold-500/15"
+        ? "text-amber-600 bg-amber-500/15"
         : "text-rose-600 bg-rose-100";
   const label = strength === "strong" ? "Strong" : strength === "medium" ? "Medium" : "Weak";
 
@@ -72,12 +70,12 @@ export function PasswordStrength() {
         type="text"
         value={pw}
         onChange={(e) => setPw(e.target.value)}
-        className="w-full h-11 px-3.5 rounded-[12px] bg-white border border-ink-100 text-[13.5px] text-ink-900 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
+        className="w-full h-11 px-3.5 rounded-[12px] bg-white border border-ink-200 text-[13.5px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
       />
 
       <div className="rounded-[14px] bg-cream-100 border border-ink-100 p-4 mt-3">
         {/* Meter */}
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-1.5 mb-2" aria-live="polite">
           <span
             className={cn(
               "inline-flex items-center justify-center size-4 rounded-full",

@@ -1,7 +1,7 @@
 /* Stats ─────────────────────────────────────────────────────────────────
    The KPI / metric tiles used throughout the product — dashboard,
-   performance, posting, admin, and the dev dashboard all lean on these.
-   Mirrors src/components/admin/stat-tile.tsx, generalised for the gallery.
+   performance, posting and admin all lean on these. One label + value +
+   sub-line rhythm, a tonal icon tile, and an optional delta pill.
    ───────────────────────────────────────────────────────────────────── */
 
 import {
@@ -46,7 +46,7 @@ export function StatTile({
         {Icon && (
           <span
             className={cn(
-              "size-9 rounded-full inline-flex items-center justify-center",
+              "size-9 rounded-[10px] inline-flex items-center justify-center",
               t.bg,
               t.fg,
             )}
@@ -55,7 +55,7 @@ export function StatTile({
           </span>
         )}
       </div>
-      <div className="text-[28px] font-semibold text-ink-900 leading-none tabular-nums mb-1">
+      <div className="text-[28px] font-bold text-ink-900 leading-none tabular-nums mb-1">
         {primary}
       </div>
       {sub && <div className="text-[12px] text-ink-500">{sub}</div>}
@@ -101,7 +101,7 @@ export function DeltaStats() {
           </div>
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 mt-2 px-2 h-6 rounded-full text-[11.5px] font-semibold",
+              "inline-flex items-center gap-0.5 mt-2 px-2 h-6 rounded-full text-[11.5px] font-semibold tabular-nums",
               it.up ? "bg-success-bg text-success" : "bg-rose-100 text-rose-700",
             )}
           >

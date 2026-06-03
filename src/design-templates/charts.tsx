@@ -1,7 +1,7 @@
 /* Charts ────────────────────────────────────────────────────────────────
-   Lightweight SVG/CSS data-viz used across dashboard, performance and the
-   dev dashboard — sparklines, progress rings, mini bar charts, and a
-   distribution bar. Mirrors src/components/dashboard/{sparkline,donut}.tsx.
+   Lightweight SVG/CSS data-viz used across the dashboard and performance
+   surfaces — sparklines, progress rings, mini bar charts, and a stacked
+   distribution bar. Calm rose/cream palette, no chart library.
    ───────────────────────────────────────────────────────────────────── */
 
 export function Sparkline() {
@@ -59,6 +59,8 @@ export function DonutRing() {
 
   return (
     <div
+      role="img"
+      aria-label={`${percent}% complete`}
       className="relative inline-flex items-center justify-center"
       style={{ width: size, height: size }}
     >
@@ -109,6 +111,7 @@ export function BarChart() {
               <div
                 className="w-full rounded-t-[6px] bg-rose-500/85 hover:bg-rose-500 transition-colors"
                 style={{ height: `${(b.v / max) * 100}%` }}
+                title={`${b.d}: ${b.v}`}
               />
             </div>
             <span className="text-[10.5px] text-ink-400">{b.d}</span>
@@ -121,10 +124,9 @@ export function BarChart() {
 
 export function SegmentedBar() {
   const segs = [
-    { label: "Free", value: 52, bar: "bg-ink-300", dot: "bg-ink-300" },
-    { label: "Basic", value: 28, bar: "bg-rose-400", dot: "bg-rose-400" },
-    { label: "Pro", value: 14, bar: "bg-rose-600", dot: "bg-rose-600" },
-    { label: "Diamond", value: 6, bar: "bg-gold-500", dot: "bg-gold-500" },
+    { label: "Free", value: 58, bar: "bg-ink-300", dot: "bg-ink-300" },
+    { label: "Basic", value: 30, bar: "bg-rose-400", dot: "bg-rose-400" },
+    { label: "Pro", value: 12, bar: "bg-rose-600", dot: "bg-rose-600" },
   ];
   const total = segs.reduce((n, s) => n + s.value, 0);
   return (
@@ -139,13 +141,14 @@ export function SegmentedBar() {
             key={s.label}
             className={s.bar}
             style={{ width: `${(s.value / total) * 100}%` }}
+            title={`${s.label}: ${s.value}%`}
           />
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4">
+      <div className="grid grid-cols-3 gap-x-4 gap-y-2 mt-4">
         {segs.map((s) => (
           <div key={s.label} className="flex items-center gap-2 text-[12px]">
-            <span className={"size-2.5 rounded-full " + s.dot} />
+            <span className={"size-2.5 rounded-full shrink-0 " + s.dot} />
             <span className="text-ink-700">{s.label}</span>
             <span className="ml-auto text-ink-400 tabular-nums">{s.value}%</span>
           </div>

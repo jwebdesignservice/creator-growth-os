@@ -1,9 +1,15 @@
 /* Errors ─────────────────────────────────────────────────────────────────
    Error & off-happy-path states — a 404 page, an inline error with retry,
-   and a maintenance screen. The app-wide error language (rose/cream).
+   and a maintenance screen, in the app's rose/cream language. Actions share
+   the same hover / active / keyboard-focus treatment as the button set.
    ───────────────────────────────────────────────────────────────────── */
 
 import { House, RefreshCw, Wrench, TriangleAlert } from "lucide-react";
+
+const PRIMARY =
+  "inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[13px] font-semibold shadow-sm cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50";
+const SECONDARY =
+  "inline-flex items-center h-10 px-4 rounded-[10px] bg-white border border-ink-200 hover:bg-cream-100 active:bg-cream-200 text-ink-900 text-[13px] font-medium cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50";
 
 export function NotFoundState() {
   return (
@@ -14,19 +20,11 @@ export function NotFoundState() {
         The page you&apos;re looking for doesn&apos;t exist or may have moved.
       </p>
       <div className="flex items-center gap-2 mt-5">
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold transition-colors"
-        >
+        <button type="button" className={PRIMARY}>
           <House className="size-4" strokeWidth={2} />
           Back home
         </button>
-        <button
-          type="button"
-          className="inline-flex items-center h-10 px-4 rounded-[10px] bg-cream-200 hover:bg-cream-300 text-ink-900 text-[13px] font-medium transition-colors"
-        >
-          Contact support
-        </button>
+        <button type="button" className={SECONDARY}>Contact support</button>
       </div>
     </div>
   );
@@ -45,7 +43,7 @@ export function InlineError() {
         </p>
         <button
           type="button"
-          className="mt-3 inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors"
+          className="mt-3 inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[12.5px] font-semibold cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-rose-50"
         >
           <RefreshCw className="size-3.5" strokeWidth={2} />
           Retry

@@ -78,6 +78,84 @@ function BrandIcons() {
   );
 }
 
+/* ── Brand guidelines (clear space · misuse · avatar · share) ─────────── */
+
+function BrandClearSpace() {
+  return (
+    <div className="inline-flex p-5 border border-dashed border-rose-300 rounded-[12px]">
+      <span className="size-12 rounded-[12px] bg-rose-600 text-white inline-flex items-center justify-center">
+        <Crown size={26} strokeWidth={1.6} />
+      </span>
+    </div>
+  );
+}
+
+function MisuseMark({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative">
+      {children}
+      <span className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-white border border-rose-300 text-rose-600 flex items-center justify-center text-[9px] font-bold">
+        ✕
+      </span>
+    </div>
+  );
+}
+
+function BrandMisuse() {
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <MisuseMark>
+        <span className="h-12 w-[88px] rounded-[12px] bg-rose-600 text-white inline-flex items-center justify-center">
+          <Crown size={26} strokeWidth={1.6} />
+        </span>
+      </MisuseMark>
+      <MisuseMark>
+        <span className="size-12 rounded-[12px] bg-emerald-500 text-white inline-flex items-center justify-center">
+          <Crown size={26} strokeWidth={1.6} />
+        </span>
+      </MisuseMark>
+      <MisuseMark>
+        <span className="size-12 rounded-[12px] bg-rose-200 text-rose-300 inline-flex items-center justify-center">
+          <Crown size={26} strokeWidth={1.6} />
+        </span>
+      </MisuseMark>
+    </div>
+  );
+}
+
+function BrandAvatar() {
+  return (
+    <div className="flex items-center gap-4">
+      <span className="size-14 rounded-full bg-rose-600 text-white inline-flex items-center justify-center shadow-sm">
+        <Crown size={28} strokeWidth={1.6} />
+      </span>
+      <span className="size-10 rounded-full bg-rose-600 text-white inline-flex items-center justify-center shadow-sm">
+        <Crown size={20} strokeWidth={1.6} />
+      </span>
+      <span className="size-8 rounded-full bg-ink-900 text-rose-400 inline-flex items-center justify-center">
+        <Crown size={16} strokeWidth={1.7} />
+      </span>
+    </div>
+  );
+}
+
+function BrandShareCard() {
+  return (
+    <div className="w-[280px] rounded-[12px] overflow-hidden border border-ink-100 shadow-sm">
+      <div className="h-28 bg-gradient-to-br from-rose-300 via-rose-200 to-cream-200 flex items-center justify-center">
+        <span className="size-12 rounded-[12px] bg-rose-600 text-white inline-flex items-center justify-center shadow-sm">
+          <Crown size={26} strokeWidth={1.6} />
+        </span>
+      </div>
+      <div className="p-3 bg-white space-y-1.5">
+        <div className="h-2.5 w-2/3 rounded bg-ink-300" />
+        <div className="h-2 w-full rounded bg-ink-100" />
+        <div className="h-2 w-1/2 rounded bg-ink-100" />
+      </div>
+    </div>
+  );
+}
+
 /* ── Gallery category export ──────────────────────────────────────────── */
 
 type BrandCategory = {
@@ -101,6 +179,10 @@ export const BRAND_CATEGORIES: BrandCategory[] = [
       { label: "Monochrome", code: "BrandMonochrome", node: <BrandMonochrome /> },
       { label: "Reversed · on dark", code: "BrandReversed", node: <BrandReversed /> },
       { label: "App icon & favicon", code: "BrandIcons", node: <BrandIcons /> },
+      { label: "Clear space", code: "BrandClearSpace", node: <BrandClearSpace /> },
+      { label: "Misuse · don'ts", code: "BrandMisuse", node: <BrandMisuse /> },
+      { label: "Social avatar", code: "BrandAvatar", node: <BrandAvatar /> },
+      { label: "Share card", code: "BrandShareCard", node: <BrandShareCard /> },
     ],
   },
 ];

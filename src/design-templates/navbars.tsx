@@ -1,10 +1,14 @@
 /* Navbars ───────────────────────────────────────────────────────────────
    Top navigation bars — the in-app admin topbar and a marketing-site
    navbar. Framed in a bordered shell so they read as a real bar inside
-   the gallery's preview card.
+   the gallery's preview card. Controls share one keyboard-focus ring.
    ───────────────────────────────────────────────────────────────────── */
 
 import { Search, Bell, Sparkles, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/cn";
+
+const FOCUS =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-100";
 
 export function AppTopbar() {
   return (
@@ -13,21 +17,21 @@ export function AppTopbar() {
         <div className="flex items-center gap-4 h-[68px] px-5">
           <div className="flex-1 max-w-[320px] relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
               strokeWidth={2}
             />
             <input
               type="search"
               readOnly
               placeholder="Search members by name or email…"
-              className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-ink-100 text-[13.5px] text-ink-700 placeholder:text-ink-400 outline-none"
+              className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-ink-200 text-[13.5px] text-ink-700 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
             />
           </div>
           <div className="flex-1" />
           <button
             type="button"
             aria-label="Notifications"
-            className="relative inline-flex items-center justify-center size-10 rounded-full hover:bg-cream-200 text-ink-500 transition-colors"
+            className={cn("relative inline-flex items-center justify-center size-10 rounded-full hover:bg-cream-200 text-ink-500 cursor-pointer transition-colors", FOCUS)}
           >
             <Bell className="size-[18px]" strokeWidth={1.9} />
             <span className="absolute top-2 right-2 size-2 rounded-full bg-rose-500 ring-2 ring-cream-100" />
@@ -37,7 +41,8 @@ export function AppTopbar() {
           </span>
           <button
             type="button"
-            className="inline-flex items-center gap-2 h-10 pl-1 pr-2.5 rounded-full hover:bg-cream-200 transition-colors"
+            aria-label="Account menu"
+            className={cn("inline-flex items-center gap-2 h-10 pl-1 pr-2.5 rounded-full hover:bg-cream-200 cursor-pointer transition-colors", FOCUS)}
           >
             <span className="size-8 rounded-full bg-rose-600 text-white text-[12.5px] font-semibold inline-flex items-center justify-center">
               JW
@@ -66,12 +71,12 @@ export function MarketingNavbar() {
             <a
               key={l}
               href="#"
-              className={
-                "h-9 px-3 inline-flex items-center rounded-[9px] text-[13.5px] font-medium transition-colors " +
-                (i === 0
-                  ? "text-ink-900"
-                  : "text-ink-500 hover:text-ink-900 hover:bg-cream-100")
-              }
+              aria-current={i === 0 ? "page" : undefined}
+              className={cn(
+                "h-9 px-3 inline-flex items-center rounded-[9px] text-[13.5px] font-medium transition-colors",
+                FOCUS,
+                i === 0 ? "text-ink-900 bg-cream-100" : "text-ink-500 hover:text-ink-900 hover:bg-cream-100",
+              )}
             >
               {l}
             </a>
@@ -80,13 +85,13 @@ export function MarketingNavbar() {
         <div className="flex-1" />
         <a
           href="#"
-          className="hidden sm:inline-flex items-center h-9 px-3 rounded-[10px] text-[13.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
+          className={cn("hidden sm:inline-flex items-center h-9 px-3 rounded-[10px] text-[13.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors", FOCUS)}
         >
           Sign in
         </a>
         <a
           href="#"
-          className="inline-flex items-center h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold shadow-sm transition-colors"
+          className={cn("inline-flex items-center h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[13.5px] font-semibold shadow-sm transition-colors", FOCUS)}
         >
           Get started
         </a>
