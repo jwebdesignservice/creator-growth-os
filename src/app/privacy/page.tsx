@@ -144,14 +144,21 @@ export default function PrivacyPage() {
               9. Contact
             </h2>
             <p>
-              Questions about your data? Visit{" "}
+              Questions about your data? Email our support team at{" "}
+              <a
+                href="mailto:hei@bwstudio.no"
+                className="text-rose-600 font-medium hover:text-rose-700"
+              >
+                hei@bwstudio.no
+              </a>
+              . Signed-in users can also reach us from the in-app{" "}
               <Link
                 href="/support"
                 className="text-rose-600 font-medium hover:text-rose-700"
               >
                 Support
               </Link>{" "}
-              or reach our support team from there.
+              page.
             </p>
           </section>
         </div>

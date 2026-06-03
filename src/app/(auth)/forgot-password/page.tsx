@@ -19,7 +19,25 @@ export const metadata = { title: "Forgot password · Creator Growth OS" };
  * `requestPasswordReset` server action, same success/error states — only
  * the surrounding layout and copy have been rebuilt.
  */
-export default function ForgotPasswordPage() {
+type SearchParams = Promise<{ error?: string | string[] }>;
+
+export default async function ForgotPasswordPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const errorParam = Array.isArray(params.error)
+    ? params.error[0]
+    : params.error;
+  // The reset-password page bounces here with ?error=expired when the recovery
+  // link is no longer valid. Tell the user why they're back instead of silently
+  // showing a blank form.
+  const notice =
+    errorParam === "expired"
+      ? "Your password reset link has expired. Enter your email below to get a fresh one."
+      : null;
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-cream-100">
       {/* ── LEFT — illustration / brand panel ──────────────────────────── */}
@@ -90,6 +108,12 @@ export default function ForgotPasswordPage() {
               No worries — we&apos;ll send you reset instructions.
             </p>
           </header>
+
+          {notice && (
+            <div className="mb-5 px-4 py-3 rounded-[10px] bg-amber-50 border border-amber-200 text-[13px] text-amber-800 text-center">
+              {notice}
+            </div>
+          )}
 
           <ForgotForm />
 
