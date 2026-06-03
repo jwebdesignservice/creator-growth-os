@@ -18,3 +18,19 @@ export const EVENT_KIND_VALUES: string[] = EVENT_KINDS.map((k) => k.value);
 export function eventKindLabel(value: string | null | undefined): string {
   return EVENT_KINDS.find((k) => k.value === value)?.label ?? "Event";
 }
+
+/** The member-facing join CTA label, tailored to the event type. */
+export function eventJoinCta(value: string | null | undefined): string {
+  switch (value) {
+    case "live":
+      return "Join live session";
+    case "qa":
+      return "Join the Q&A";
+    case "workshop":
+      return "Join workshop";
+    case "call":
+      return "Join the call";
+    default:
+      return "Join session";
+  }
+}
