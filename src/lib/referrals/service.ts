@@ -15,6 +15,7 @@
 // Each milestone is grantable exactly once per user (enforced by
 // referral_rewards.unique(user_id, milestone)).
 
+import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/server";
 import { notifyBillingUpdate } from "@/lib/notifications/service";
@@ -25,6 +26,24 @@ const MILESTONES: readonly MilestoneTier[] = [
   { threshold: 3, monthsFree: 1 },
   { threshold: 9, monthsFree: 3 },
 ];
+
+// Pull the coupon ids out of a subscription's (expanded) `discounts` array so
+// we can append a new reward without clobbering existing ones. Shared by the
+// grant path and the queued-apply path. Stripe's `discounts` is
+// `Array<string | Discount>`; with `expand: ['discounts']` each entry is a
+// full Discount whose `source.coupon` is the coupon (id or object).
+function extractCouponDiscounts(
+  discounts: Stripe.Subscription["discounts"] | null | undefined,
+): { coupon: string }[] {
+  return (discounts ?? [])
+    .map((d): { coupon: string } | null => {
+      if (typeof d === "string") return null; // shouldn't happen with expand
+      const c = d.source?.coupon;
+      if (!c) return null;
+      return { coupon: typeof c === "string" ? c : c.id };
+    })
+    .filter((x): x is { coupon: string } => x !== null);
+}
 
 // ── linkReferral ──────────────────────────────────────────────────────
 // Called from the signup action once the auth user exists. `code` is the
@@ -201,30 +220,25 @@ async function grantMilestoneReward(
       });
       stripeCouponId = coupon.id;
 
-      if (sub.stripe_subscription_id && sub.status !== "canceled") {
+      // Only attach to a LIVE (active) subscription. If the referrer is on
+      // Free, mid-trial, or canceled, we leave the reward queued
+      // (applied_to_subscription=false) and applyQueuedRewards() attaches it
+      // once they're active — this also stops a trial period from silently
+      // eating into the coupon's free months.
+      if (sub.stripe_subscription_id && sub.status === "active") {
         // CRITICAL: stripe.subscriptions.update with `discounts` REPLACES
         // the array. We must fetch current discounts and append, otherwise
         // we'd wipe out any prior reward or checkout promo code.
-        //
-        // Subscription.discounts is `Array<string | Discount>` — by default
-        // string IDs; passing `expand: ['discounts']` returns full objects
-        // so we can read the coupon out of each one's `source`.
         const current = await stripe.subscriptions.retrieve(
           sub.stripe_subscription_id,
           { expand: ["discounts"] },
         );
-        const existing: { coupon: string }[] = (current.discounts ?? [])
-          .map((d): { coupon: string } | null => {
-            if (typeof d === "string") return null; // shouldn't happen with expand
-            const c = d.source?.coupon;
-            if (!c) return null;
-            return { coupon: typeof c === "string" ? c : c.id };
-          })
-          .filter((x): x is { coupon: string } => x !== null);
-
-        await stripe.subscriptions.update(sub.stripe_subscription_id, {
-          discounts: [...existing, { coupon: coupon.id }],
-        });
+        const existing = extractCouponDiscounts(current.discounts);
+        if (!existing.some((d) => d.coupon === coupon.id)) {
+          await stripe.subscriptions.update(sub.stripe_subscription_id, {
+            discounts: [...existing, { coupon: coupon.id }],
+          });
+        }
         applied = true;
       }
     } catch (err) {
@@ -243,11 +257,103 @@ async function grantMilestoneReward(
     })
     .eq("id", reserved.id);
 
-  // ── 4. Notify (only the winning invocation reaches here).
+  // ── 4. Notify (only the winning invocation reaches here). Word it to match
+  // reality: attached now, or queued until they're on a paid plan.
   const label =
     tier.monthsFree === 1 ? "1 month free" : `${tier.monthsFree} months free`;
   await notifyBillingUpdate(
     referrerId,
-    `You hit ${tier.threshold} qualified referrals — ${label} has been added to your subscription.`,
+    applied
+      ? `You hit ${tier.threshold} qualified referrals — ${label} has been added to your subscription.`
+      : `You hit ${tier.threshold} qualified referrals and earned ${label}! It'll be applied automatically as soon as you're on a paid plan.`,
   );
+}
+
+// ── applyQueuedRewards ────────────────────────────────────────────────
+// Attaches any earned-but-unapplied referral rewards to the user's now-active
+// subscription. Called from the Stripe webhook whenever a subscription row is
+// synced (checkout completed / subscription updated). This closes the loop for
+// a referrer who earned a reward while on Free (or mid-trial) and only later
+// subscribed: at grant time there was no live subscription to attach the
+// coupon to, so the reward sat queued — now we apply it.
+//
+// Idempotent: rewards are flipped to applied_to_subscription=true once
+// attached, and we dedupe by coupon id before appending, so repeated webhook
+// deliveries never double-attach.
+export async function applyQueuedRewards(userId: string): Promise<void> {
+  const svc = createServiceClient();
+
+  const { data: queued } = await svc
+    .from("referral_rewards")
+    .select("id, milestone, months_free, stripe_coupon_id")
+    .eq("user_id", userId)
+    .eq("applied_to_subscription", false);
+
+  if (!queued || queued.length === 0) return; // common case: nothing queued
+
+  const { data: sub } = await svc
+    .from("subscriptions")
+    .select("stripe_subscription_id, status")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // Can only attach to a live, active subscription. Trialing / free / canceled
+  // → leave queued and retry on the next sync (e.g. when a trial converts).
+  if (!sub?.stripe_subscription_id || sub.status !== "active") return;
+
+  for (const reward of queued) {
+    try {
+      // Ensure the coupon exists. Free referrers had no Stripe customer at
+      // grant time (stripe_coupon_id=null), so mint it now.
+      let couponId = reward.stripe_coupon_id;
+      if (!couponId) {
+        const coupon = await stripe.coupons.create({
+          name: `Referral reward: ${reward.months_free} month${reward.months_free > 1 ? "s" : ""} free (${reward.milestone} referrals)`,
+          percent_off: 100,
+          duration: "repeating",
+          duration_in_months: reward.months_free,
+          metadata: {
+            kind: "referral_milestone",
+            referrer_id: userId,
+            milestone: String(reward.milestone),
+          },
+        });
+        couponId = coupon.id;
+      }
+
+      // Append (never replace) to existing discounts; dedupe by coupon id.
+      const current = await stripe.subscriptions.retrieve(
+        sub.stripe_subscription_id,
+        { expand: ["discounts"] },
+      );
+      const existing = extractCouponDiscounts(current.discounts);
+      if (!existing.some((d) => d.coupon === couponId)) {
+        await stripe.subscriptions.update(sub.stripe_subscription_id, {
+          discounts: [...existing, { coupon: couponId }],
+        });
+      }
+
+      await svc
+        .from("referral_rewards")
+        .update({ stripe_coupon_id: couponId, applied_to_subscription: true })
+        .eq("id", reward.id);
+
+      const label =
+        reward.months_free === 1
+          ? "1 month free"
+          : `${reward.months_free} months free`;
+      await notifyBillingUpdate(
+        userId,
+        `Your referral reward (${label}) is now active on your subscription.`,
+      );
+    } catch (err) {
+      // Leave this one queued; the next subscription sync retries it. Don't let
+      // one reward's failure block the others or fail the webhook.
+      console.error(
+        "[referrals] applyQueuedRewards: failed to attach reward",
+        reward.id,
+        err,
+      );
+    }
+  }
 }

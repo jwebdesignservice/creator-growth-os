@@ -47,6 +47,18 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+  // First-time subscribers get the advertised 7-day free trial; anyone who
+  // has billed before goes straight to a paying subscription. This keeps the
+  // sign-up "7-day free trial" promise real while stopping people from farming
+  // endless trials by cancelling and re-subscribing. Card is still collected
+  // up front (Stripe Checkout default for trials) and auto-charges at day 7
+  // unless they cancel — matching the "cancel anytime" copy.
+  const { count: priorInvoices } = await supabase
+    .from("invoices")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  const offerTrial = (priorInvoices ?? 0) === 0;
+
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "subscription",
     customer: customerId,
@@ -55,7 +67,10 @@ export async function POST(req: NextRequest) {
     cancel_url: `${appUrl}/billing?status=cancelled`,
     allow_promotion_codes: true,
     metadata: { user_id: user.id, plan },
-    subscription_data: { metadata: { user_id: user.id, plan } },
+    subscription_data: {
+      metadata: { user_id: user.id, plan },
+      ...(offerTrial ? { trial_period_days: 7 } : {}),
+    },
   };
 
   const session = await stripe.checkout.sessions.create(params);

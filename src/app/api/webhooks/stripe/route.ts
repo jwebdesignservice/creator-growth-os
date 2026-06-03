@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/server";
 import { notifyBillingUpdate } from "@/lib/notifications/service";
-import { qualifyReferral } from "@/lib/referrals/service";
+import { qualifyReferral, applyQueuedRewards } from "@/lib/referrals/service";
 
 export const runtime = "nodejs";
 
@@ -208,6 +208,12 @@ async function syncSubscriptionRow(
           : "Subscription updated.",
     );
   }
+
+  // The subscription just went live (or updated) — attach any referral
+  // rewards this user earned while they had no active subscription to apply
+  // them to (e.g. they referred friends on the Free plan, then subscribed).
+  // No-op for the vast majority of users (nothing queued).
+  await applyQueuedRewards(userId);
 }
 
 async function resolveUserId(
