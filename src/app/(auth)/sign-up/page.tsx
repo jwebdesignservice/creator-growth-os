@@ -99,10 +99,10 @@ function TrialBadge() {
         <Gift className="size-4" strokeWidth={2} />
       </div>
       <div className="text-[12px] text-ink-700 font-medium leading-tight">
-        Start your
+        7-day free trial
       </div>
       <div className="text-h5 text-ink-900 leading-tight">
-        7-day free trial
+        on any paid plan
       </div>
       <div className="text-[10.5px] text-ink-500 mt-1 leading-tight">
         No long-term commitment.
