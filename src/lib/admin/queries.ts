@@ -194,6 +194,7 @@ export type AdminEvent = {
   joined_count: number;
   url: string | null;
   kind: string | null;
+  cover_image_url: string | null;
 };
 
 /**
@@ -207,17 +208,21 @@ export async function getAdminEvents(): Promise<AdminEvent[]> {
     "id, title, description, host_name, starts_at, duration_min, joined_count, url";
   const primary = await supabase
     .from("community_events")
-    .select(`${cols}, kind`)
+    .select(`${cols}, kind, cover_image_url`)
     .order("starts_at", { ascending: true });
   let rows = primary.data as unknown as AdminEvent[] | null;
   if (primary.error?.code === "42703") {
     const fb = await supabase
       .from("community_events")
-      .select(cols)
+      .select(`${cols}, kind`)
       .order("starts_at", { ascending: true });
     rows = fb.data as unknown as AdminEvent[] | null;
   }
-  return (rows ?? []).map((e) => ({ ...e, kind: e.kind ?? null }));
+  return (rows ?? []).map((e) => ({
+    ...e,
+    kind: e.kind ?? null,
+    cover_image_url: e.cover_image_url ?? null,
+  }));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
