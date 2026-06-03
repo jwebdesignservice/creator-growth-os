@@ -82,7 +82,7 @@ export function Topbar({
       </div>
 
       {/* ── Desktop bar (lg+) ────────────────────────────────────────────── */}
-      <div className="hidden lg:flex items-center gap-4 min-h-[var(--topbar-height)] py-4 px-6 lg:px-8">
+      <div className="hidden lg:flex items-center gap-4 min-h-[var(--topbar-height)] py-2.5 px-6 lg:px-8">
         {/* Search trigger — opens the global command palette.
             Renders as an input-shaped button so it visually matches the
             previous search field, but it's a real <button> so keyboard +
