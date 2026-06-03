@@ -20,6 +20,7 @@ import {
   Monitor,
   Clock,
   Play,
+  PlayCircle,
   Pause,
   Volume2,
   VolumeX,
@@ -45,6 +46,7 @@ import {
 import { cn } from "@/lib/cn";
 import { toast } from "@/components/ui/toast";
 import { ThumbnailTab } from "./thumbnail-tab";
+import { VideoTab } from "./video-tab";
 import { ControlsTab } from "./controls-tab";
 import type { LessonControls } from "./controls-types";
 import { OverviewTab, AtAGlanceCard } from "./overview-tab";
@@ -93,6 +95,7 @@ export type ProgramOption = { id: string; title: string };
 type TabKey =
   | "overview"
   | "metadata"
+  | "video"
   | "thumbnail"
   | "lesson-path"
   | "resources"
@@ -103,6 +106,7 @@ type Tab = { key: TabKey; label: string; icon: LucideIcon };
 const TABS: Tab[] = [
   { key: "overview",      label: "Overview",      icon: Info             },
   { key: "metadata",      label: "Metadata",      icon: Sparkles         },
+  { key: "video",         label: "Video",         icon: PlayCircle       },
   { key: "thumbnail",     label: "Thumbnail",     icon: ImageIcon        },
   { key: "lesson-path",   label: "Lesson path",   icon: RouteIcon        },
   { key: "resources",     label: "Resources",     icon: Folder           },
@@ -483,6 +487,12 @@ export function TutorialEditor({
                 programId={programId}          setProgramId={setProgramId}
                 programs={programs}
                 TITLE_MAX={TITLE_MAX} DESC_MAX={DESC_MAX} NOTE_MAX={NOTE_MAX}
+              />
+            ) : activeTab === "video" ? (
+              <VideoTab
+                lessonId={lesson.id}
+                videoUrl={lesson.videoUrl}
+                durationSeconds={lesson.durationSeconds}
               />
             ) : activeTab === "thumbnail" ? (
               <ThumbnailTab

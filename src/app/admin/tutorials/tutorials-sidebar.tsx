@@ -32,6 +32,7 @@ const EDITOR_TABS: ReadonlyArray<{
 }> = [
   { key: "overview",      label: "Overview",      icon: "info" },
   { key: "metadata",      label: "Metadata",      icon: "sparkles" },
+  { key: "video",         label: "Video",         icon: "play-circle" },
   { key: "thumbnail",     label: "Thumbnail",     icon: "image" },
   { key: "lesson-path",   label: "Lesson path",   icon: "route", beta: true },
   { key: "resources",     label: "Resources",     icon: "folder" },
