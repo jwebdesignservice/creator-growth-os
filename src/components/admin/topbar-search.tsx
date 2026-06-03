@@ -7,21 +7,21 @@ import { Search } from "lucide-react";
 /**
  * Admin topbar search — adapts to the current admin section.
  *
- * On sections that filter by the shared `?q=` param it searches that page in
- * place, live: typing updates `?q=` on the current route (debounced) and the
- * page re-filters. The placeholder reflects what it actually searches.
- * Everywhere else it falls back to the global member search
- * (`/admin/users?q=`), which is the most complete search surface.
+ * On a known section it searches that page in place, live: typing updates the
+ * page's own URL search param (debounced) and the page re-filters. The
+ * placeholder reflects what it actually searches. Everywhere else it falls back
+ * to the global member search (`/admin/users?q=`), the most complete surface.
  *
- * To make another section live-searchable: read `?q=` on that page and add it
- * to LIVE_SECTIONS below.
+ * To make another section live-searchable: ensure that page reads a URL search
+ * param, then add it here with the matching `param` key.
  */
-const LIVE_SECTIONS: { prefix: string; placeholder: string; label: string }[] = [
-  { prefix: "/admin/tutorials", placeholder: "Search tutorials…", label: "Search tutorials" },
-  { prefix: "/admin/users", placeholder: "Search members by name or email…", label: "Search members" },
+const SECTIONS: { prefix: string; placeholder: string; label: string; param: string }[] = [
+  { prefix: "/admin/tutorials", placeholder: "Search tutorials…", label: "Search tutorials", param: "q" },
+  { prefix: "/admin/users", placeholder: "Search members by name or email…", label: "Search members", param: "q" },
+  { prefix: "/admin/programs", placeholder: "Search programs…", label: "Search programs", param: "search" },
 ];
 
-const GLOBAL = {
+const FALLBACK = {
   placeholder: "Search members by name or email…",
   label: "Search members",
 };
@@ -31,49 +31,53 @@ export function TopbarSearch() {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
 
-  const section = LIVE_SECTIONS.find((s) => pathname.startsWith(s.prefix));
+  const section = SECTIONS.find((s) => pathname.startsWith(s.prefix));
   const live = Boolean(section);
-  const cfg = section ?? GLOBAL;
+  const param = section?.param ?? null;
+  const placeholder = section?.placeholder ?? FALLBACK.placeholder;
+  const label = section?.label ?? FALLBACK.label;
+  const activeQuery = param ? (searchParams.get(param) ?? "") : "";
 
-  const [q, setQ] = useState(() => searchParams.get("q") ?? "");
+  const [q, setQ] = useState(activeQuery);
 
   // Reset the field to the section's active query when the section changes
   // (search is per-page). Done during render — React's "adjust state when a
-  // prop changes" pattern — so our own `?q=` writes below never clobber typing.
+  // prop changes" pattern — so our own URL writes below never clobber typing.
   const [prevPath, setPrevPath] = useState(pathname);
   if (prevPath !== pathname) {
     setPrevPath(pathname);
-    setQ(searchParams.get("q") ?? "");
+    setQ(activeQuery);
   }
 
-  // Live sections: push the query into `?q=` on the current route, debounced so
-  // server-backed pages (Users) don't refetch on every keystroke.
+  // Apply the query to the page's own search param on the current route,
+  // preserving other params and resetting pagination. Debounced so server-
+  // backed pages don't refetch on every keystroke.
+  function apply(value: string) {
+    if (!param) return;
+    const params = new URLSearchParams(searchParams.toString());
+    const v = value.trim();
+    if ((params.get(param) ?? "") === v) return;
+    if (v) params.set(param, v);
+    else params.delete(param);
+    params.delete("page");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
   useEffect(() => {
     if (!live) return;
-    const handle = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      const value = q.trim();
-      if ((params.get("q") ?? "") === value) return;
-      if (value) params.set("q", value);
-      else params.delete("q");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    }, 220);
+    const handle = setTimeout(() => apply(q), 220);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, live, pathname]);
+  }, [q, live, param, pathname]);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const value = q.trim();
+    const v = q.trim();
     if (live) {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) params.set("q", value);
-      else params.delete("q");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      apply(q);
     } else {
-      router.push(value ? `/admin/users?q=${encodeURIComponent(value)}` : "/admin/users");
+      router.push(v ? `/admin/users?q=${encodeURIComponent(v)}` : "/admin/users");
     }
   }
 
@@ -88,8 +92,8 @@ export function TopbarSearch() {
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder={cfg.placeholder}
-        aria-label={cfg.label}
+        placeholder={placeholder}
+        aria-label={label}
         className="w-full h-11 pl-11 pr-4 rounded-[14px] bg-white border border-ink-100 placeholder:text-ink-400 text-[13.5px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
       />
     </form>

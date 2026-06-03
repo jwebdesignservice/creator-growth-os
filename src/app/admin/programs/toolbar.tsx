@@ -10,7 +10,6 @@ import {
 } from "react";
 import {
   Filter,
-  Search,
   ChevronDown,
   LayoutGrid,
   Table2,
@@ -29,7 +28,6 @@ export function ProgramsToolbar() {
   const router = useRouter();
   const params = useSearchParams();
   const [, startTransition] = useTransition();
-  const [search, setSearch] = useState(params.get("search") ?? "");
 
   function pushParams(next: URLSearchParams) {
     // Any toolbar change resets pagination.
@@ -45,11 +43,6 @@ export function ProgramsToolbar() {
     if (value) next.set(key, value);
     else next.delete(key);
     pushParams(next);
-  }
-
-  function onSearchSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setParam("search", search);
   }
 
   const currentSort = params.get("sort") ?? "newest";
@@ -83,24 +76,6 @@ export function ProgramsToolbar() {
           />
         )}
       </Popover>
-
-      {/* Search */}
-      <form
-        onSubmit={onSearchSubmit}
-        className="relative flex-1 min-w-[200px] md:max-w-sm lg:max-w-md"
-      >
-        <Search
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-400"
-          strokeWidth={2}
-        />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search programs..."
-          className="w-full h-11 pl-10 pr-3 rounded-[12px] border border-ink-200 bg-white text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-400 transition-colors"
-        />
-      </form>
 
       {/* Sort */}
       <DropdownSelect
