@@ -24,8 +24,8 @@ export function PerformanceRail({
   insights,
 }: Props) {
   return (
-    <aside className="hidden xl:flex flex-col w-[336px] shrink-0 h-screen sticky top-0 border-l border-ink-100 bg-cream-100 overflow-y-auto">
-      <div className="p-5 space-y-4">
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-3 items-start">
         {/* This Week's Snapshot */}
         <section className="card p-4">
           <div className="flex items-center justify-between mb-3">
@@ -132,23 +132,27 @@ export function PerformanceRail({
             </ul>
           )}
         </section>
+        </div>
 
-        {/* Pro upsell for revenue */}
+        {/* Pro upsell for revenue — full-width banner now that this lives in
+            the main column instead of the right rail. */}
         {plan !== "pro" && (
-          <section className="rounded-[16px] bg-rose-50/80 border border-rose-100 p-4">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles className="size-4 text-rose-500" strokeWidth={2} />
-              <span className="text-[13px] font-semibold text-ink-900">
-                Track revenue with Pro
-              </span>
+          <section className="rounded-[16px] bg-rose-50/80 border border-rose-100 p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Sparkles className="size-4 text-rose-500" strokeWidth={2} />
+                <span className="text-[13px] font-semibold text-ink-900">
+                  Track revenue with Pro
+                </span>
+              </div>
+              <p className="text-[12px] text-ink-700 leading-snug">
+                Add weekly income and brand-deal revenue. See revenue trends
+                alongside your audience growth.
+              </p>
             </div>
-            <p className="text-[12px] text-ink-700 leading-snug mb-3">
-              Add weekly income and brand-deal revenue. See revenue trends
-              alongside your audience growth.
-            </p>
             <Link
               href="/billing?upgrade=pro"
-              className="inline-flex w-full items-center justify-center gap-1.5 h-10 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-medium transition-colors cursor-pointer shrink-0"
             >
               <Lock className="size-3.5" strokeWidth={2} />
               Upgrade to Pro
@@ -156,6 +160,5 @@ export function PerformanceRail({
           </section>
         )}
       </div>
-    </aside>
   );
 }
