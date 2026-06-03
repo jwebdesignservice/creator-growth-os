@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { toast } from "@/components/ui/toast";
 import {
   toggleLessonPublished,
   deleteLesson,
@@ -894,7 +895,7 @@ function DuplicateMenuItem({ id }: { id: string }) {
     startTransition(async () => {
       const res = await duplicateTutorial(id);
       if (res.ok && res.id) router.push(`/admin/tutorials/${res.id}`);
-      else if (!res.ok) window.alert(res.error);
+      else if (!res.ok) toast(res.error, "error");
     });
   }
 

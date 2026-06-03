@@ -41,6 +41,7 @@ import {
   SquarePen,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { toast } from "@/components/ui/toast";
 import {
   toggleLessonPublished,
   archiveLesson,
@@ -567,7 +568,7 @@ function ModuleCard({
     startTransition(async () => {
       const res = await duplicateModule(programId, m.id);
       if (res.ok) router.refresh();
-      else window.alert(res.error);
+      else toast(res.error, "error");
     });
   }
 
@@ -1177,7 +1178,7 @@ function LessonKebab({
     startAction(async () => {
       const res = await setLessonPreview(lesson.id, !isPreview);
       if (res.ok) router.refresh();
-      else window.alert(res.error);
+      else toast(res.error, "error");
     });
   }
 
@@ -1186,7 +1187,7 @@ function LessonKebab({
     startAction(async () => {
       const res = await duplicateLesson(lesson.id);
       if (res.ok) router.refresh();
-      else window.alert(res.error);
+      else toast(res.error, "error");
     });
   }
 
