@@ -4,7 +4,6 @@ import { Sparkles } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
-import { FeaturedProgram } from "@/components/programs/featured-program";
 import { ProgramsGrid } from "@/components/programs/programs-grid";
 import type { ProgramRow } from "@/components/programs/program-card";
 import { getProgressForPrograms } from "@/lib/programs/queries";
@@ -82,50 +81,13 @@ export default async function ProgramsPage({
       })
     : [];
 
-  // When the gate is active, surface Start Here as the featured program so the
-  // hero CTA points into onboarding (and is never itself locked).
-  const featured = gateActive
-    ? programs.find((p) => p.slug === ONBOARDING_PROGRAM_SLUG) ?? programs[0]
-    : programs.find((p) => p.status === "in_progress") ?? programs[0];
-
-  const firstName = ctx.name.split(" ")[0];
-
   return (
     <PageShell>
       <div className="space-y-6 sm:space-y-7">
-        {/* Header */}
-        <header>
-          <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
-            <Sparkles className="size-4" strokeWidth={2} />
-            Welcome back, {firstName}!
-          </div>
-          <h1 className="text-h1 text-ink-900 mb-1">
-            Influencer Programs
-          </h1>
-          <p className="text-ink-500 text-[14px]">
-            Structured creator growth paths tailored to your stage, goals and
-            category.
-          </p>
-        </header>
-
         {programs.length === 0 ? (
           <ProgramsEmptyState />
         ) : (
           <>
-            {/* Featured */}
-            {featured && (
-              <FeaturedProgram
-                slug={featured.slug}
-                title={featured.title}
-                description={featured.description}
-                category_label={featured.category_label ?? "Growth Creator"}
-                total_lessons={featured.total_lessons ?? 24}
-                total_tasks={featured.total_tasks ?? 18}
-                estimated_days={featured.estimated_days ?? 30}
-                progress={featured.progress ?? 0}
-              />
-            )}
-
             {/* Grid + filters */}
             <ProgramsGrid programs={programs} />
 

@@ -4,7 +4,6 @@ import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getAllTutorials } from "@/lib/programs/tutorial-queries";
 import { TutorialLibrary } from "@/components/tutorials/library";
-import { FeaturedTutorial } from "@/components/tutorials/featured";
 import {
   getOnboardingGate,
   isGateActive,
@@ -66,48 +65,9 @@ export default async function TutorialsPage({
       )
     : all;
 
-  // Featured = first non-completed lesson the user can access, else first
-  const featured =
-    tutorials.find(
-      (t) => !t.completed && (t.planAccess !== "pro" || ctx.plan === "pro"),
-    ) ?? tutorials[0];
-
-  const firstName = ctx.name.split(" ")[0];
-
   return (
     <PageShell>
       <div className="space-y-6 sm:space-y-7 max-w-[1600px] mx-auto">
-        {/* Header */}
-        <header>
-          <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
-            <Sparkles className="size-4" strokeWidth={2} />
-            Welcome back, {firstName}!
-          </div>
-          <h1 className="text-h1 text-ink-900 mb-1">
-            Tutorials
-          </h1>
-          <p className="text-ink-500 text-[14px]">
-            Learn practical creator skills, drills, templates and assignments to
-            grow your influence.
-          </p>
-        </header>
-
-        {/* Featured */}
-        {featured && (
-          <FeaturedTutorial
-            slug={featured.slug}
-            title={featured.title}
-            description={
-              featured.description ??
-              "A focused, practical lesson — built around what actually moves the needle for creators at your stage."
-            }
-            duration={featured.duration}
-            difficulty={featured.difficulty}
-            moduleTitle={featured.moduleTitle}
-            coverUrl={featured.coverUrl}
-          />
-        )}
-
         {/* Library */}
         {tutorials.length === 0 ? (
           <div className="card p-10 text-center">

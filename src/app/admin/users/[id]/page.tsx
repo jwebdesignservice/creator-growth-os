@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Flame, Mail } from "lucide-react";
+import {
+  ChevronLeft,
+  Flame,
+  Mail,
+  Target,
+  Activity,
+  CalendarDays,
+  ClipboardList,
+  type LucideIcon,
+} from "lucide-react";
 import { getUserDetail } from "@/lib/admin/queries";
 import { UserEditForms } from "./edit-forms";
 
@@ -43,6 +52,25 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
     day: "numeric",
     year: "numeric",
   });
+  const joinedAgo = timeAgo(profile.created_at);
+
+  // Does this user have any onboarding answers on file? Drives a clean empty
+  // state instead of a grid of em-dashes for users who haven't onboarded.
+  const onboardingAnswered =
+    [
+      profile.primary_platform,
+      profile.follower_base,
+      profile.niche,
+      profile.main_goal,
+      profile.bottleneck,
+      profile.weekly_pace,
+      profile.content_frequency,
+    ].some((v) => v && v !== "") ||
+    [
+      profile.top_value_priorities,
+      profile.focus_formats,
+      profile.help_needs,
+    ].some((v) => Array.isArray(v) && v.length > 0);
 
   return (
     <div className="container-app space-y-6">
@@ -82,7 +110,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
             </div>
             <a
               href={`mailto:${profile.email}`}
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-white border border-ink-200 text-[13.5px] font-medium text-ink-900 hover:bg-cream-100 transition-colors shrink-0 pb-0"
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-white border border-ink-200 text-[13.5px] font-medium text-ink-900 hover:bg-cream-100 transition-colors shrink-0"
             >
               <Mail className="size-4 text-ink-500" strokeWidth={1.9} />
               Email
@@ -113,16 +141,23 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
           {/* Stats strip */}
           <div className="mt-5 grid grid-cols-3 rounded-[14px] border border-ink-100 bg-cream-50/60 divide-x divide-ink-100 overflow-hidden">
             <HeroStat
+              icon={Target}
               label="Missions"
               value={aggregates.missionsCompleted}
               sub={`of ${aggregates.missionsAssigned}`}
             />
             <HeroStat
+              icon={Activity}
               label="Weeks Logged"
               value={aggregates.weeksLogged}
               sub="performance"
             />
-            <HeroStat label="Joined" value={joinedShort} sub={joinedFull} />
+            <HeroStat
+              icon={CalendarDays}
+              label="Joined"
+              value={joinedShort}
+              sub={joinedAgo}
+            />
           </div>
         </div>
       </section>
@@ -149,6 +184,18 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
           {/* Onboarding answers */}
           <section className="card p-6">
             <h2 className="text-h4 text-ink-900 mb-4">Onboarding Answers</h2>
+            {!onboardingAnswered ? (
+              <div className="text-center py-6">
+                <div className="inline-flex items-center justify-center size-11 rounded-full bg-cream-100 text-ink-400 mb-2.5">
+                  <ClipboardList className="size-5" strokeWidth={1.8} />
+                </div>
+                <p className="text-[13px] text-ink-500">
+                  {profile.onboarded
+                    ? "No onboarding answers on file."
+                    : "This user hasn't completed onboarding yet."}
+                </p>
+              </div>
+            ) : (
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-[13px]">
               <Field label="Primary platform" value={profile.primary_platform} />
               <Field label="Follower base" value={profile.follower_base} />
@@ -185,6 +232,7 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
                 }
               />
             </dl>
+            )}
           </section>
         </div>
 
@@ -212,6 +260,12 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
                 }
               />
               <Field label="Joined" value={joinedFull} />
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-ink-500 shrink-0">User ID</dt>
+                <dd className="text-ink-700 font-mono text-[11px] text-right break-all">
+                  {profile.id}
+                </dd>
+              </div>
             </dl>
           </section>
 
@@ -256,18 +310,23 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
 }
 
 function HeroStat({
+  icon: Icon,
   label,
   value,
   sub,
 }: {
+  icon: LucideIcon;
   label: string;
   value: string | number;
   sub: string;
 }) {
   return (
     <div className="px-4 py-3.5">
-      <div className="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
-        {label}
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Icon className="size-3.5 text-rose-500" strokeWidth={2} />
+        <span className="text-[10.5px] uppercase tracking-wider text-ink-500 font-semibold">
+          {label}
+        </span>
       </div>
       <div className="text-[22px] font-bold text-ink-900 leading-none tabular-nums">
         {value}
@@ -277,6 +336,16 @@ function HeroStat({
       )}
     </div>
   );
+}
+
+function timeAgo(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? "" : "s"} ago`;
 }
 
 function Field({

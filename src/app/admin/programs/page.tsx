@@ -194,23 +194,21 @@ export default async function AdminProgramsPage({
 
   return (
     <div className="flex flex-col -mx-6 lg:-mx-8 -my-6 lg:-my-8 h-[calc(100vh_-_69px)]">
-      {/* ── Header — compact & full-bleed, with the primary action ────── */}
-      <header className="shrink-0 px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
-        <h1 className="text-page-title text-ink-900">Programs</h1>
-        <Link
-          href="/create-new"
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm shrink-0"
-        >
-          <Plus className="size-4" strokeWidth={2.5} />
-          New program
-        </Link>
-      </header>
-
-      {/* ── One cohesive full-bleed band: toolbar + results + footer ──── */}
-      <section className="bg-white border-t border-ink-100 flex flex-col flex-1 min-h-0">
-        {/* Toolbar — filters, search, sort, status, and the grid/table View toggle */}
-        <div className="px-6 lg:px-8 py-2.5 border-b border-ink-100 shrink-0">
-          <ProgramsToolbar />
+      {/* ── One cohesive full-bleed band: title + toolbar + action, then results + footer ──── */}
+      <section className="bg-white flex flex-col flex-1 min-h-0">
+        {/* Title, toolbar (filter / sort / status / view) and the primary action — all on one row */}
+        <div className="px-6 lg:px-8 py-3 border-b border-ink-100 shrink-0 flex items-center gap-x-4 gap-y-3 flex-wrap">
+          <h1 className="text-page-title text-ink-900 shrink-0">Programs</h1>
+          <div className="flex-1 min-w-0">
+            <ProgramsToolbar />
+          </div>
+          <Link
+            href="/create-new"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm shrink-0"
+          >
+            <Plus className="size-4" strokeWidth={2.5} />
+            New program
+          </Link>
         </div>
 
         {/* ── Results: table OR grid — fills the height; scrolls if needed ── */}

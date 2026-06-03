@@ -37,6 +37,8 @@ type Props = {
   total: number;
   page: number;
   pageSize: number;
+  /** Page title rendered at the start of the panel toolbar row. */
+  title?: string;
   /** Filter controls rendered into the panel toolbar (left side). */
   children?: ReactNode;
 };
@@ -50,7 +52,7 @@ type Props = {
  * owned by the parent page; this component only handles the interactive
  * polish + client-side row sort within the current page.
  */
-export function UsersTable({ rows, total, page, pageSize, children }: Props) {
+export function UsersTable({ rows, total, page, pageSize, title, children }: Props) {
   const searchParams = useSearchParams();
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pageHref = (p: number) => {
@@ -215,10 +217,13 @@ export function UsersTable({ rows, total, page, pageSize, children }: Props) {
   }
 
   return (
-    <section className="bg-white border-t border-ink-100 flex flex-col flex-1 min-h-0">
-      {/* Toolbar — filters (from the page) on the left, table actions on the
+    <section className="bg-white flex flex-col flex-1 min-h-0">
+      {/* Toolbar — the page title + filters on the left, table actions on the
           right, matching the "Data table · V2 dense" toolbar. */}
-      <div className="flex items-center gap-3 px-6 lg:px-8 py-2.5 border-b border-ink-100 flex-wrap shrink-0">
+      <div className="flex items-center gap-3 px-6 lg:px-8 py-3 border-b border-ink-100 flex-wrap shrink-0">
+        {title && (
+          <h1 className="text-page-title text-ink-900 shrink-0">{title}</h1>
+        )}
         {children}
         <div className="ml-auto flex items-center gap-2">
         <button

@@ -403,7 +403,12 @@ function TutorialCard({
         <h3 className="text-[14px] font-semibold text-ink-900 leading-snug line-clamp-2 group-hover:text-rose-700 transition-colors">
           {tutorial.title}
         </h3>
-        <div className="mt-1 text-[12px] text-ink-500 inline-flex items-center gap-1.5 flex-wrap">
+        {tutorial.description && (
+          <p className="mt-1.5 text-[12px] text-ink-500 leading-snug line-clamp-3">
+            {clampSentences(tutorial.description, 2)}
+          </p>
+        )}
+        <div className="mt-2 text-[12px] text-ink-500 inline-flex items-center gap-1.5 flex-wrap">
           {proLocked ? (
             <span className="inline-flex items-center gap-1 text-rose-700 font-medium">
               <Lock className="size-3" strokeWidth={2} />
@@ -457,4 +462,17 @@ function prettyContentType(t: string) {
   if (t === "checklist") return "Checklist";
   if (t === "assignment") return "Assignment";
   return t;
+}
+
+/**
+ * Show at most `max` sentences of a description. If the text has more than
+ * that, the kept sentences end with an ellipsis (so a long blurb reads as
+ * "Sentence one. Sentence two. …").
+ */
+function clampSentences(text: string | null | undefined, max = 2): string {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return "";
+  const sentences = trimmed.match(/[^.!?]+[.!?]+(?:["'”’)\]]+)?/g);
+  if (!sentences || sentences.length <= max) return trimmed;
+  return sentences.slice(0, max).join(" ").replace(/\s+/g, " ").trim() + " …";
 }

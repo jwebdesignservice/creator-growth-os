@@ -189,6 +189,8 @@ export function TutorialsView({
           </div>
         </header>
 
+        {/* ── Videos container — tabs + sort sit at its top, right above the grid ── */}
+        <div className="flex flex-col flex-1 min-h-0 bg-cream-50">
         {/* Tabs (left) + sort & the grid/list View toggle (right) */}
         <div className="px-6 lg:px-8 pt-2.5 border-b border-ink-100 shrink-0 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1 -mb-px">
@@ -266,7 +268,7 @@ export function TutorialsView({
         <div
           className={cn(
             "flex-1 min-h-0 overflow-auto",
-            view === "grid" && "px-6 lg:px-8 py-4 bg-cream-50",
+            view === "grid" ? "px-6 lg:px-8 py-4" : "bg-white",
           )}
         >
           {filtered.length === 0 ? (
@@ -294,6 +296,7 @@ export function TutorialsView({
               ))}
             </ul>
           )}
+        </div>
         </div>
 
         {/* Footer — context hint + count, matching the Programs footer band */}

@@ -92,11 +92,11 @@ export function LessonTabs({
   const [tab, setTab] = useState<TabKey>("overview");
 
   return (
-    <section className="card overflow-hidden">
-      {/* Tab bar */}
+    <section>
+      {/* Tab bar — sits directly on the page (no surrounding card) */}
       <div
         role="tablist"
-        className="flex items-center gap-1 px-2 sm:px-4 border-b border-ink-100 overflow-x-auto"
+        className="flex items-center gap-1 border-b border-ink-100 overflow-x-auto"
       >
         {TABS.map((t) => {
           const active = tab === t.key;
@@ -132,22 +132,22 @@ export function LessonTabs({
 
       {/* Active panel */}
       {tab === "overview" && (
-        <div className="p-5 sm:p-6">
+        <div className="pt-5 sm:pt-6">
           <OverviewPanel description={description} />
         </div>
       )}
       {tab === "path" && (
-        <div className="p-5 sm:p-6">
+        <div className="pt-5 sm:pt-6">
           <PathPanel chapters={chapters} />
         </div>
       )}
       {tab === "resources" && (
-        <div className="p-5 sm:p-6">
+        <div className="pt-5 sm:pt-6">
           <ResourcesPanel resources={resources} />
         </div>
       )}
       {tab === "notes" && (
-        <div className="p-5 sm:p-6">
+        <div className="pt-5 sm:pt-6">
           <LessonNotes
             notes={notes}
             lessonSlug={lessonSlug}
