@@ -110,12 +110,14 @@ export default async function TutorialsPage({
 
         {/* Library */}
         {tutorials.length === 0 ? (
-          <div className="card p-10 text-center text-ink-500 text-[14px]">
-            No tutorials seeded yet. Apply migration{" "}
-            <code className="text-ink-900 bg-cream-100 px-1.5 py-0.5 rounded">
-              0003_lessons_seed.sql
-            </code>{" "}
-            to populate the lessons table.
+          <div className="card p-10 text-center">
+            <h2 className="text-h4 text-ink-900 mb-1.5">
+              No tutorials yet
+            </h2>
+            <p className="text-[13.5px] text-ink-500 max-w-md mx-auto">
+              New tutorials are on the way. Check back soon — or head into a
+              Program to keep making progress in the meantime.
+            </p>
           </div>
         ) : (
           <TutorialLibrary tutorials={tutorials} userPlan={ctx.plan} />

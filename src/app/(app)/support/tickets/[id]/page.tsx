@@ -5,6 +5,7 @@ import {
   Calendar,
   Clock,
   Cpu,
+  Download,
   FileText,
   Inbox,
   Mail,
@@ -16,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
+import { createClient } from "@/lib/supabase/server";
 import { getMyTicketByPublicId, getTicketMessages } from "@/lib/support/queries";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { UserTicketRealtime } from "@/components/support/user-ticket-realtime";
@@ -97,6 +99,19 @@ export default async function TicketDetailPage({ params }: Props) {
   if (!ticket) notFound();
 
   const messages      = await getTicketMessages(ticket.id);
+
+  // The attachment lives in the private `support-attachments` bucket — mint a
+  // short-lived signed URL so the owner can actually open/download what they
+  // sent (previously the file was shown by name only, with no way to view it).
+  let attachmentUrl: string | null = null;
+  if (ticket.attachmentPath) {
+    const supabase = await createClient();
+    const { data: signed } = await supabase.storage
+      .from("support-attachments")
+      .createSignedUrl(ticket.attachmentPath, 60 * 10);
+    attachmentUrl = signed?.signedUrl ?? null;
+  }
+
   const status        = ticketStatusLabel(ticket.status);
   const topic         = SUPPORT_TOPICS.find((t) => t.key === (ticket.topic as SupportTicketTopic));
   const pageLabel     = SUPPORT_PAGE_OPTIONS.find((o) => o.value === ticket.pageAffected)?.label ?? ticket.pageAffected ?? "—";
@@ -234,9 +249,21 @@ export default async function TicketDetailPage({ params }: Props) {
                       </p>
                     )}
                   </div>
-                  <span className="text-[11.5px] text-ink-500 shrink-0 hidden sm:inline">
-                    Sent with request
-                  </span>
+                  {attachmentUrl ? (
+                    <a
+                      href={attachmentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-cream-50 transition-colors shrink-0"
+                    >
+                      <Download className="size-3.5" strokeWidth={2} aria-hidden />
+                      Download
+                    </a>
+                  ) : (
+                    <span className="text-[11.5px] text-ink-500 shrink-0 hidden sm:inline">
+                      Sent with request
+                    </span>
+                  )}
                 </div>
               </section>
             )}

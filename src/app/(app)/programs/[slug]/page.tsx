@@ -2,7 +2,6 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import {
   Play,
-  Folder,
   Users,
   BookOpen,
   BarChart3,
@@ -12,7 +11,6 @@ import {
   FileText,
   FileSpreadsheet,
   Files,
-  ChevronRight,
   Link2,
   Sparkles,
   Star,
@@ -37,6 +35,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/app-shell/avatar";
 import { CurriculumAccordion } from "@/components/programs/curriculum-accordion";
 import { DetailTabs } from "@/components/programs/detail-tabs";
+import { ViewResourcesButton } from "@/components/programs/view-resources-button";
 import {
   getCurriculumForProgram,
   getProgramProgress,
@@ -373,13 +372,7 @@ function ProgramHero({
               <Play className="size-4" fill="currentColor" />
               Continue Program
             </Link>
-            <button
-              type="button"
-              className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-[14px] bg-white border border-ink-200 text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors cursor-pointer"
-            >
-              <Folder className="size-4" strokeWidth={2} />
-              View Resources
-            </button>
+            <ViewResourcesButton />
           </div>
         </div>
 
@@ -714,9 +707,6 @@ function TemplatesDownloads() {
       icon: FileText,
     },
   ];
-  const ready = items.length;
-  const proCount = items.filter((it) => it.pro).length;
-
   return (
     <section className="card overflow-hidden">
       {/* Header — matches This Week's Linked Tasks chrome */}
@@ -747,11 +737,10 @@ function TemplatesDownloads() {
           const Icon = it.icon;
           return (
             <li key={it.title} className="border-t border-ink-100">
-              <button
-                type="button"
-                className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 hover:bg-cream-50 transition-colors cursor-pointer text-left"
-              >
-                <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+              {/* Non-interactive until real downloadable files exist — shown as
+                  "Coming soon" rather than a dead button that does nothing. */}
+              <div className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 text-left">
+                <span className="size-11 rounded-[12px] bg-cream-200 text-ink-400 inline-flex items-center justify-center shrink-0">
                   <Icon className="size-[20px]" strokeWidth={1.9} />
                 </span>
                 <div className="flex-1 min-w-0">
@@ -770,35 +759,23 @@ function TemplatesDownloads() {
                 <span className="text-[12px] text-ink-500 shrink-0 hidden sm:inline">
                   {it.type}
                 </span>
-                <ChevronRight
-                  className="size-4 text-ink-400 shrink-0"
-                  strokeWidth={2}
-                />
-              </button>
+                <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-cream-200 text-ink-500 text-[10.5px] font-semibold shrink-0 whitespace-nowrap">
+                  Coming soon
+                </span>
+              </div>
             </li>
           );
         })}
       </ul>
 
-      {/* Footer stats */}
+      {/* Footer note */}
       <div className="border-t border-ink-100 px-5 sm:px-6 py-3 flex items-center gap-2 text-[12px] text-ink-500 flex-wrap">
-        <span className="size-6 rounded-full bg-rose-100 text-rose-500 inline-flex items-center justify-center shrink-0">
+        <span className="size-6 rounded-full bg-cream-200 text-ink-400 inline-flex items-center justify-center shrink-0">
           <Star className="size-3" fill="currentColor" strokeWidth={0} />
         </span>
         <span>
-          <span className="font-semibold text-ink-700 tabular-nums">
-            {ready}
-          </span>{" "}
-          ready resources
-        </span>
-        <span aria-hidden className="text-ink-300">
-          ·
-        </span>
-        <span>
-          <span className="font-semibold text-ink-700 tabular-nums">
-            {proCount}
-          </span>{" "}
-          Pro resource{proCount === 1 ? "" : "s"} included
+          Downloadable templates are being prepared — they&apos;ll appear here
+          soon.
         </span>
       </div>
     </section>

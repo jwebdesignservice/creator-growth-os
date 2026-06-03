@@ -68,7 +68,6 @@ const PRIMARY_CARDS: {
     cta: "View tickets",
     href: "/support/tickets",
     variant: "outline",
-    badge: "3 open",
   },
   {
     key: "faq",
@@ -76,7 +75,7 @@ const PRIMARY_CARDS: {
     title: "FAQ",
     desc: "Browse answers to the most common questions.",
     cta: "Browse FAQs",
-    href: "/tutorials",
+    href: "/support/faq",
     variant: "outline",
   },
   {
@@ -90,13 +89,13 @@ const PRIMARY_CARDS: {
   },
 ];
 
-// Static topic links — no fake "N min read" labels; they were misleading
-// because none of the URLs go to a specific article.
+// Topic links now deep-link into the real FAQ page (by section anchor)
+// instead of dumping the user on the generic tutorials library.
 const GUIDES: { key: string; icon: LucideIcon; title: string; cat: string; href: string }[] = [
-  { key: "g1", icon: FileText,   title: "How to upload videos to Posting Plans", cat: "Posting Plans",     href: "/tutorials" },
-  { key: "g2", icon: Wrench,     title: "Fixing common upload issues",           cat: "Technical Issues",  href: "/tutorials" },
-  { key: "g3", icon: CreditCard, title: "Managing your subscription",            cat: "Billing",           href: "/tutorials" },
-  { key: "g4", icon: Lock,       title: "How to access your Pro features",       cat: "Account & Login",   href: "/tutorials" },
+  { key: "g1", icon: FileText,   title: "How to upload videos to Posting Plans", cat: "Posting Plans",     href: "/support/faq#posting" },
+  { key: "g2", icon: Wrench,     title: "Fixing common upload issues",           cat: "Technical Issues",  href: "/support/faq#technical" },
+  { key: "g3", icon: CreditCard, title: "Managing your subscription",            cat: "Billing",           href: "/support/faq#billing" },
+  { key: "g4", icon: Lock,       title: "How to access your Pro features",       cat: "Account & Login",   href: "/support/faq#account" },
 ];
 
 type TicketStatus = "Open" | "Waiting" | "In progress" | "Resolved" | "Closed";
@@ -156,12 +155,22 @@ export default async function SupportHubPage() {
   // Fetch the user's most-recent support tickets — replaces the previous
   // RECENT_TICKETS hardcoded list. Cap at 5 for the hub preview.
   const supabase = await createClient();
-  const { data: ticketRows } = await supabase
-    .from("support_tickets")
-    .select("public_id, subject, status, updated_at, created_at")
-    .eq("user_id", ctx.user.id)
-    .order("updated_at", { ascending: false })
-    .limit(5);
+  const [{ data: ticketRows }, { count: openCount }] = await Promise.all([
+    supabase
+      .from("support_tickets")
+      .select("public_id, subject, status, updated_at, created_at")
+      .eq("user_id", ctx.user.id)
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    // Live count of still-open tickets for the "My Tickets" card badge —
+    // replaces the previously hardcoded "3 open".
+    supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", ctx.user.id)
+      .in("status", ["open", "waiting", "in_progress"]),
+  ]);
+  const openTicketCount = openCount ?? 0;
 
   const recentTickets: TicketRow[] = (ticketRows ?? []).map((t) => ({
     id: t.public_id,
@@ -194,7 +203,20 @@ export default async function SupportHubPage() {
             {/* Primary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {PRIMARY_CARDS.map((c) => (
-                <PrimaryCard key={c.key} card={c} />
+                <PrimaryCard
+                  key={c.key}
+                  card={
+                    c.key === "tickets"
+                      ? {
+                          ...c,
+                          badge:
+                            openTicketCount > 0
+                              ? `${openTicketCount} open`
+                              : undefined,
+                        }
+                      : c
+                  }
+                />
               ))}
             </div>
 
@@ -207,10 +229,10 @@ export default async function SupportHubPage() {
                     Guides &amp; Answers
                   </h2>
                   <Link
-                    href="/tutorials"
+                    href="/support/faq"
                     className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-700 hover:text-rose-600 transition-colors"
                   >
-                    View all guides
+                    View all FAQs
                     <ArrowRight className="size-3.5" strokeWidth={2} />
                   </Link>
                 </div>
@@ -281,7 +303,7 @@ export default async function SupportHubPage() {
                     {recentTickets.map((t) => (
                       <li key={t.id}>
                         <Link
-                          href="/support/tickets"
+                          href={`/support/tickets/${t.id}`}
                           className="group flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 rounded-[10px] px-2 py-3 hover:bg-cream-100 transition-colors"
                         >
                           <span className="sm:w-[80px] text-[12.5px] font-medium text-ink-700 tabular-nums shrink-0">

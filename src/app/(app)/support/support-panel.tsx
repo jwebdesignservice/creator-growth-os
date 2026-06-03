@@ -1276,13 +1276,13 @@ function HelpArticlesCard({ articles }: { articles: DbHelpArticle[] }) {
   // Fallback to the static placeholder titles so the rail looks right
   // even when the DB has no articles yet.
   const fallback: { key: string; title: string; href: string }[] = [
-    { key: "fb-1", title: "How to upload videos to Posting Plans", href: "/tutorials" },
-    { key: "fb-2", title: "Fixing common upload errors",           href: "/tutorials" },
-    { key: "fb-3", title: "Managing your subscription",            href: "/tutorials" },
-    { key: "fb-4", title: "Account login & access help",           href: "/tutorials" },
+    { key: "fb-1", title: "How to upload videos to Posting Plans", href: "/support/faq#posting" },
+    { key: "fb-2", title: "Fixing common upload errors",           href: "/support/faq#technical" },
+    { key: "fb-3", title: "Managing your subscription",            href: "/support/faq#billing" },
+    { key: "fb-4", title: "Account login & access help",           href: "/support/faq#account" },
   ];
   const list = articles.length > 0
-    ? articles.map((a) => ({ key: a.id, title: a.title, href: "/tutorials" }))
+    ? articles.map((a) => ({ key: a.id, title: a.title, href: "/support/faq" }))
     : fallback;
 
   return (
@@ -1307,10 +1307,10 @@ function HelpArticlesCard({ articles }: { articles: DbHelpArticle[] }) {
         ))}
       </ul>
       <Link
-        href="/tutorials"
+        href="/support/faq"
         className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-rose-700 hover:text-rose-600 transition-colors"
       >
-        View all articles
+        View all FAQs
         <ExternalLink className="size-3.5" strokeWidth={2} />
       </Link>
     </section>

@@ -7,7 +7,6 @@ import {
   Play,
   Check,
   NotebookPen,
-  MoreHorizontal,
   X,
   Loader2,
   CheckCircle2,
@@ -77,14 +76,22 @@ export function LessonActionRow({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <button
         type="button"
         onClick={() => {
-          if (!completed) toggle();
+          // Take the learner back up to the player to keep watching — it does
+          // NOT mark the lesson complete (that's the dedicated button beside
+          // it). Falls back to scrolling to the top of the page if the player
+          // element isn't found.
+          const player = document.getElementById("lesson-video");
+          if (player) {
+            player.scrollIntoView({ behavior: "smooth", block: "start" });
+          } else {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
         }}
-        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors cursor-pointer disabled:bg-rose-300"
-        disabled={pending}
+        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors cursor-pointer"
       >
         <Play className="size-4" fill="currentColor" />
         Continue Watching
@@ -118,16 +125,9 @@ export function LessonActionRow({
         <NotebookPen className="size-4" strokeWidth={1.8} />
         Create Notes
       </button>
-      <button
-        type="button"
-        className="size-11 rounded-[12px] border border-ink-200 bg-white text-ink-700 hover:bg-cream-100 inline-flex items-center justify-center cursor-pointer"
-        aria-label="More actions"
-      >
-        <MoreHorizontal className="size-4" strokeWidth={2} />
-      </button>
 
       {err && (
-        <div className="sm:col-span-4 text-[12px] text-rose-700">{err}</div>
+        <div className="sm:col-span-3 text-[12px] text-rose-700">{err}</div>
       )}
 
       {noteOpen && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   LayoutGrid,
   ListTree,
@@ -10,7 +10,27 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-type Tab = "overview" | "curriculum" | "resources" | "notes" | "tasks";
+const TAB_KEYS = [
+  "overview",
+  "curriculum",
+  "resources",
+  "notes",
+  "tasks",
+] as const;
+type Tab = (typeof TAB_KEYS)[number];
+
+const SET_TAB_EVENT = "program-detail:set-tab";
+
+/**
+ * Imperatively switch the program detail tabs from elsewhere on the page
+ * (e.g. the server-rendered hero's "View Resources" button). Mirrors the
+ * command-palette's window-event pattern so we don't have to thread tab
+ * state up into the server component.
+ */
+export function openProgramDetailTab(tab: Tab) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(SET_TAB_EVENT, { detail: tab }));
+}
 
 type Props = {
   tasksCount?: number;
@@ -30,6 +50,22 @@ export function DetailTabs({
   tasks,
 }: Props) {
   const [tab, setTab] = useState<Tab>("overview");
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Listen for external tab-switch requests (the hero "View Resources" CTA).
+  // setState lives in an event callback, not the effect body, so this stays
+  // within the React 19 set-state-in-effect rule.
+  useEffect(() => {
+    function onSetTab(e: Event) {
+      const next = (e as CustomEvent).detail as Tab;
+      if ((TAB_KEYS as readonly string[]).includes(next)) {
+        setTab(next);
+        rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    window.addEventListener(SET_TAB_EVENT, onSetTab);
+    return () => window.removeEventListener(SET_TAB_EVENT, onSetTab);
+  }, []);
 
   const tabs: { key: Tab; label: string; icon: typeof LayoutGrid; badge?: number }[] = [
     { key: "overview", label: "Overview", icon: LayoutGrid },
@@ -40,7 +76,7 @@ export function DetailTabs({
   ];
 
   return (
-    <div>
+    <div ref={rootRef}>
       <div className="flex items-center gap-1 border-b border-ink-100 mb-6 flex-wrap">
         {tabs.map((t) => {
           const active = tab === t.key;
