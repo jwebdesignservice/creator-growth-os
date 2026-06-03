@@ -142,9 +142,16 @@ export function MobileFeed() {
                 <div className="ml-auto h-1 w-3 rounded bg-ink-100" />
               </div>
               <div className="h-12 bg-cream-200" />
-              <div className="flex items-center gap-2 p-1.5">
-                <div className="h-1.5 w-5 rounded bg-rose-200" />
-                <div className="h-1.5 w-5 rounded bg-ink-100" />
+              <div className="flex items-center gap-2.5 p-1.5">
+                <div className="flex items-center gap-1">
+                  <div className="size-2 rounded-full bg-rose-300" />
+                  <div className="h-1.5 w-4 rounded bg-ink-200" />
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="size-2 rounded-full bg-ink-200" />
+                  <div className="h-1.5 w-4 rounded bg-ink-100" />
+                </div>
+                <div className="ml-auto size-2.5 rounded-full bg-cream-200" />
               </div>
             </div>
           ))}

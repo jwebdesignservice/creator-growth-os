@@ -214,7 +214,7 @@ export function BrandDeals() {
             <div key={ci} className="rounded-lg bg-cream-100/60 border border-ink-100 p-1.5 flex flex-col gap-1.5">
               <div className="flex items-center justify-between px-0.5">
                 <div className="h-1.5 w-10 rounded bg-ink-200" />
-                <div className="size-3 rounded-full bg-white border border-ink-200" />
+                <div className={cn("size-3 rounded-full", ci === 0 ? "bg-ink-200" : ci === 1 ? "bg-amber-300" : "bg-emerald-300")} />
               </div>
               {Array.from({ length: n }).map((_, i) => (
                 <div key={i} className="rounded-md bg-white border border-ink-100 p-1.5 space-y-1">
@@ -222,7 +222,7 @@ export function BrandDeals() {
                     <div className="size-4 rounded bg-cream-200 shrink-0" />
                     <div className="h-1.5 w-10 rounded bg-ink-200" />
                   </div>
-                  <div className="h-2 w-12 rounded bg-emerald-100" />
+                  <div className={cn("h-2 w-12 rounded", ci === 0 ? "bg-cream-200" : ci === 1 ? "bg-amber-100" : "bg-emerald-100")} />
                 </div>
               ))}
             </div>
@@ -330,6 +330,7 @@ export function MembershipTiers() {
         <div className="flex-1 min-h-0 grid grid-cols-3 gap-2">
           {[0, 1, 2].map((i) => (
             <div key={i} className={cn("rounded-lg border p-2.5 flex flex-col gap-1.5", i === 1 ? "border-rose-300 bg-white ring-1 ring-rose-100" : "border-ink-100 bg-white")}>
+              {i === 1 && <div className="h-2 w-12 rounded-full bg-rose-400 -mt-3.5 mb-0.5 self-center" />}
               <div className={cn("h-1.5 w-10 rounded", i === 1 ? "bg-rose-400" : "bg-ink-200")} />
               <div className="h-3 w-12 rounded bg-ink-300" />
               <div className="space-y-1 mt-0.5">

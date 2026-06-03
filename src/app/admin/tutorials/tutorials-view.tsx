@@ -155,154 +155,156 @@ export function TutorialsView({
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-6">
-      {/* ── Header ───────────────────────────────────────────────────── */}
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-h1 text-ink-900 leading-tight mb-1">
-            Tutorials
-          </h1>
-          <p className="text-ink-500 text-[14px]">
-            Standalone short-form how-to videos. Program lessons live in each
-            program&apos;s Curriculum, not here.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Folders + bulk import need their own schema — out of this phase.
-              Shown disabled so the surface reads complete without faking it. */}
-          <HeaderButton
-            disabled
-            title="Folders are coming in a later phase"
-            icon={<FolderPlus className="size-4" strokeWidth={2} />}
-          >
-            New folder
-          </HeaderButton>
-          <HeaderButton
-            disabled
-            title="Bulk import is coming in a later phase"
-            icon={<Upload className="size-4" strokeWidth={2} />}
-          >
-            Import
-          </HeaderButton>
-          <Link
-            href="/admin/tutorials/new"
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-semibold transition-colors shadow-sm"
-          >
-            <Plus className="size-4" strokeWidth={2.5} />
-            New tutorial
-          </Link>
-        </div>
-      </header>
+    <div className="flex flex-col -mx-6 lg:-mx-8 -my-6 lg:-my-8 h-[calc(100vh_-_69px)]">
+      {/* ── One cohesive full-bleed white container: header, tabs, results, footer ─ */}
+      <section className="bg-white flex flex-col flex-1 min-h-0">
+        {/* Header — title + primary actions, now living inside the container */}
+        <header className="shrink-0 px-6 lg:px-8 py-4 flex items-center justify-between gap-4 flex-wrap border-b border-ink-100">
+          <h1 className="text-page-title text-ink-900">Tutorials</h1>
+          <div className="flex items-center gap-2">
+            {/* Folders + bulk import need their own schema — out of this phase.
+                Shown disabled so the surface reads complete without faking it. */}
+            <HeaderButton
+              disabled
+              title="Folders are coming in a later phase"
+              icon={<FolderPlus className="size-4" strokeWidth={2} />}
+            >
+              New folder
+            </HeaderButton>
+            <HeaderButton
+              disabled
+              title="Bulk import is coming in a later phase"
+              icon={<Upload className="size-4" strokeWidth={2} />}
+            >
+              Import
+            </HeaderButton>
+            <Link
+              href="/admin/tutorials/new"
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm shrink-0"
+            >
+              <Plus className="size-4" strokeWidth={2.5} />
+              New tutorial
+            </Link>
+          </div>
+        </header>
 
-      {/* ── Tabs ─────────────────────────────────────────────────────── */}
-      <div className="border-b border-ink-100 flex items-center gap-1">
-        <TabButton
-          active={tab === "all"}
-          onClick={() => setTab("all")}
-          label="All tutorials"
-        />
-        <TabButton
-          active={tab === "drafts"}
-          onClick={() => setTab("drafts")}
-          label="Drafts"
-          badge={counts.drafts}
-        />
-        <TabButton
-          active={tab === "published"}
-          onClick={() => setTab("published")}
-          label="Published"
-          badge={counts.published}
-        />
-        <TabButton
-          active={tab === "archived"}
-          onClick={() => setTab("archived")}
-          label="Archived"
-          badge={counts.archived}
-        />
-      </div>
-
-      {/* ── Filter bar ───────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <FilterSelect
-          value={sort}
-          onChange={(v) => setSort(v as Sort)}
-          options={[
-            { value: "newest", label: "Sort: Newest" },
-            { value: "oldest", label: "Sort: Oldest" },
-            { value: "alpha", label: "Sort: A → Z" },
-            { value: "views", label: "Sort: Most viewed" },
-          ]}
-        />
-
-        <div className="inline-flex items-center h-11 p-1 rounded-[12px] border border-ink-200 bg-white">
-          <ViewToggle
-            active={view === "grid"}
-            onClick={() => setView("grid")}
-            ariaLabel="Grid view"
-          >
-            <LayoutGrid className="size-3.5" strokeWidth={2} />
-          </ViewToggle>
-          <ViewToggle
-            active={view === "list"}
-            onClick={() => setView("list")}
-            ariaLabel="List view"
-          >
-            <List className="size-3.5" strokeWidth={2} />
-          </ViewToggle>
-        </div>
-
-        <span className="ml-auto text-[12.5px] text-ink-500 tabular-nums">
-          {filtered.length} tutorial{filtered.length === 1 ? "" : "s"}
-        </span>
-      </div>
-
-      {/* ── Bulk action bar ──────────────────────────────────────────── */}
-      {selectedRows.length > 0 && (
-        <BulkActionBar
-          count={selectedRows.length}
-          allSelected={allVisibleSelected}
-          pending={bulkPending}
-          onSelectAll={() =>
-            setSelectedIds(new Set(filtered.map((t) => t.id)))
-          }
-          onClear={clearSelection}
-          onPublish={bulkPublish}
-          onUnpublish={bulkUnpublish}
-          onDelete={bulkDelete}
-        />
-      )}
-
-      {/* ── Grid / List ──────────────────────────────────────────────── */}
-      {filtered.length === 0 ? (
-        <EmptyState
-          tab={tab}
-          hasFilters={Boolean(search)}
-        />
-      ) : view === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((t) => (
-            <TutorialCard
-              key={t.id}
-              t={t}
-              selected={selectedIds.has(t.id)}
-              onToggle={() => toggleSelect(t.id)}
+        {/* Tabs (left) + sort & the grid/list View toggle (right) */}
+        <div className="px-6 lg:px-8 pt-2.5 border-b border-ink-100 shrink-0 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1 -mb-px">
+            <TabButton
+              active={tab === "all"}
+              onClick={() => setTab("all")}
+              label="All tutorials"
             />
-          ))}
+            <TabButton
+              active={tab === "drafts"}
+              onClick={() => setTab("drafts")}
+              label="Drafts"
+              badge={counts.drafts}
+            />
+            <TabButton
+              active={tab === "published"}
+              onClick={() => setTab("published")}
+              label="Published"
+              badge={counts.published}
+            />
+            <TabButton
+              active={tab === "archived"}
+              onClick={() => setTab("archived")}
+              label="Archived"
+              badge={counts.archived}
+            />
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <FilterSelect
+              value={sort}
+              onChange={(v) => setSort(v as Sort)}
+              options={[
+                { value: "newest", label: "Sort: Newest" },
+                { value: "oldest", label: "Sort: Oldest" },
+                { value: "alpha", label: "Sort: A → Z" },
+                { value: "views", label: "Sort: Most viewed" },
+              ]}
+            />
+            <div className="inline-flex items-center h-11 p-1 rounded-[12px] border border-ink-200 bg-white">
+              <ViewToggle
+                active={view === "grid"}
+                onClick={() => setView("grid")}
+                ariaLabel="Grid view"
+              >
+                <LayoutGrid className="size-3.5" strokeWidth={2} />
+              </ViewToggle>
+              <ViewToggle
+                active={view === "list"}
+                onClick={() => setView("list")}
+                ariaLabel="List view"
+              >
+                <List className="size-3.5" strokeWidth={2} />
+              </ViewToggle>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <ul className="divide-y divide-ink-100">
-            {filtered.map((t) => (
-              <TutorialListRow
-                key={t.id}
-                t={t}
-                selected={selectedIds.has(t.id)}
-                onToggle={() => toggleSelect(t.id)}
-              />
-            ))}
-          </ul>
+
+        {/* Bulk action bar — appears when tutorials are selected */}
+        {selectedRows.length > 0 && (
+          <BulkActionBar
+            count={selectedRows.length}
+            allSelected={allVisibleSelected}
+            pending={bulkPending}
+            onSelectAll={() =>
+              setSelectedIds(new Set(filtered.map((t) => t.id)))
+            }
+            onClear={clearSelection}
+            onPublish={bulkPublish}
+            onUnpublish={bulkUnpublish}
+            onDelete={bulkDelete}
+          />
+        )}
+
+        {/* Results: grid OR list — fills the height; scrolls if needed */}
+        <div
+          className={cn(
+            "flex-1 min-h-0 overflow-auto",
+            view === "grid" && "px-6 lg:px-8 py-4 bg-cream-50",
+          )}
+        >
+          {filtered.length === 0 ? (
+            <EmptyState tab={tab} hasFilters={Boolean(search)} />
+          ) : view === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filtered.map((t) => (
+                <TutorialCard
+                  key={t.id}
+                  t={t}
+                  selected={selectedIds.has(t.id)}
+                  onToggle={() => toggleSelect(t.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <ul className="divide-y divide-ink-100">
+              {filtered.map((t) => (
+                <TutorialListRow
+                  key={t.id}
+                  t={t}
+                  selected={selectedIds.has(t.id)}
+                  onToggle={() => toggleSelect(t.id)}
+                />
+              ))}
+            </ul>
+          )}
         </div>
-      )}
+
+        {/* Footer — context hint + count, matching the Programs footer band */}
+        <div className="border-t border-ink-100 px-6 lg:px-8 py-2 flex items-center justify-between gap-4 shrink-0 text-[12px] text-ink-500">
+          <span className="truncate">
+            Program lessons live in each program&apos;s Curriculum, not here.
+          </span>
+          <span className="tabular-nums shrink-0">
+            {filtered.length} tutorial{filtered.length === 1 ? "" : "s"}
+          </span>
+        </div>
+      </section>
     </div>
   );
 }
@@ -328,7 +330,7 @@ function HeaderButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="inline-flex items-center gap-2 h-11 px-4 rounded-[14px] border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+      className="inline-flex items-center gap-2 h-10 px-3.5 rounded-[12px] border border-ink-200 bg-white text-[13px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
     >
       {icon}
       {children}
@@ -466,7 +468,7 @@ function BulkActionBar({
   onDelete: () => void;
 }) {
   return (
-    <div className="sticky top-3 z-20 card border-rose-200 bg-white/95 backdrop-blur px-4 py-3 flex items-center gap-3 flex-wrap shadow-card">
+    <div className="shrink-0 border-b border-rose-200 bg-rose-50/60 px-6 lg:px-8 py-2.5 flex items-center gap-3 flex-wrap">
       <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-ink-900">
         <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-rose-100 text-rose-700 text-[12px] tabular-nums">
           {count}
@@ -979,7 +981,7 @@ function TutorialListRow({
   return (
     <li
       className={cn(
-        "group flex items-center gap-4 px-5 py-4 transition-colors",
+        "group flex items-center gap-4 px-6 lg:px-8 py-4 transition-colors",
         selected ? "bg-rose-50/60" : "hover:bg-cream-50/60",
       )}
     >

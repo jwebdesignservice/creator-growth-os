@@ -5675,6 +5675,1081 @@ function PageSectionsV4() {
   );
 }
 
+/* Program / course helpers. */
+function LessonRow({ state = "todo", pad = true }: { state?: string; pad?: boolean }) {
+  return (
+    <div className={cn("flex items-center gap-2 pr-2 py-1.5 rounded-md", pad ? "pl-6" : "pl-2", state === "active" ? "bg-rose-50/70" : "hover:bg-cream-100")}>
+      <div className={cn("size-4 rounded-full inline-flex items-center justify-center shrink-0", state === "done" ? "bg-emerald-300" : state === "active" ? "bg-rose-400 ring-2 ring-rose-100" : "bg-cream-200 border border-ink-200")}>
+        {state === "done"
+          ? <span className="block w-[2.5px] h-[5px] border-b-[1.5px] border-r-[1.5px] border-white rotate-45 -mt-px" />
+          : <span className={cn("block size-0 border-y-[2.5px] border-y-transparent border-l-[3.5px] ml-px", state === "active" ? "border-l-white" : "border-l-ink-400")} />}
+      </div>
+      <Bar w="56%" className={state === "todo" ? "bg-ink-200" : "bg-ink-300"} />
+      <Bar w="20px" className="ml-auto h-1 shrink-0" />
+    </div>
+  );
+}
+function ModuleHead({ idx = 1, open = false, done = false }: { idx?: number; open?: boolean; done?: boolean }) {
+  return (
+    <div className={cn("flex items-center gap-2 px-2.5 py-2", open && "border-b border-ink-100 bg-cream-50/60")}>
+      <div className="flex flex-col gap-0.5 shrink-0"><div className="size-0.5 rounded-full bg-ink-300" /><div className="size-0.5 rounded-full bg-ink-300" /></div>
+      <div className={cn("size-5 rounded-md inline-flex items-center justify-center text-[8px] font-bold shrink-0", done ? "bg-emerald-100 text-emerald-600" : open ? "bg-rose-100 text-rose-600" : "bg-cream-200 text-ink-500")}>{idx}</div>
+      <Bar w="40%" className="bg-ink-300" />
+      <div className="ml-auto h-3 px-1.5 rounded-full bg-cream-200 inline-flex items-center"><Bar w="22px" className="bg-ink-300 h-1" /></div>
+      {open
+        ? <span className="block size-0 border-x-[3px] border-x-transparent border-t-[4px] border-t-ink-400" />
+        : <span className="block size-0 border-y-[3px] border-y-transparent border-l-[4px] border-l-ink-400" />}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 53 — Program / course   (platform: creators build & sell programs)
+   V1 curriculum builder · V2 lesson player · V3 program overview
+   ════════════════════════════════════════════════════════════════════════ */
+
+function ProgramCurriculumV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2.5 border-b border-ink-100 flex items-start justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5"><div className="h-2.5 w-28 rounded bg-ink-300" /><div className="h-3 px-1.5 rounded-full bg-amber-100 inline-flex items-center"><Bar w="20px" className="bg-amber-400 h-1" /></div></div>
+            <div className="flex items-center gap-2"><Bar w="40px" /><div className="size-1 rounded-full bg-ink-200" /><Bar w="34px" /><div className="size-1 rounded-full bg-ink-200" /><Bar w="44px" /></div>
+          </div>
+          <div className="flex gap-1.5"><div className="h-6 w-14 rounded-md bg-white border border-ink-200" /><div className="h-6 w-16 rounded-md bg-rose-400" /></div>
+        </div>
+        <div className="flex-1 overflow-hidden p-3 space-y-2">
+          <div className="rounded-xl bg-white border border-ink-100 overflow-hidden">
+            <ModuleHead idx={1} open />
+            <div className="p-1.5 space-y-0.5"><LessonRow state="done" /><LessonRow state="done" /><LessonRow state="active" /></div>
+          </div>
+          <div className="rounded-xl bg-white border border-ink-100"><ModuleHead idx={2} /></div>
+          <div className="rounded-xl border border-dashed border-ink-200 py-2 flex items-center justify-center gap-1.5"><span className="relative block size-2.5"><span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 rounded bg-ink-400" /><span className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 rounded bg-ink-400" /></span><Bar w="50px" className="bg-ink-200" /></div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function ProgramPlayerV2() {
+  return (
+    <Frame>
+      <div className="w-[150px] shrink-0 border-r border-ink-100 bg-cream-50 flex flex-col">
+        <div className="px-2.5 py-2 border-b border-ink-100 space-y-1.5">
+          <Bar w="64%" className="bg-ink-300" />
+          <div className="flex items-center gap-1.5"><div className="flex-1 h-1 rounded-full bg-cream-200 overflow-hidden"><div className="h-full w-2/5 bg-rose-400" /></div><Bar w="16px" className="h-1 shrink-0" /></div>
+        </div>
+        <div className="flex-1 overflow-hidden p-1.5 space-y-1.5">
+          <div className="space-y-0.5"><Bar w="40px" className="bg-ink-200 ml-1 mb-0.5" /><LessonRow state="done" /><LessonRow state="active" /></div>
+          <div className="space-y-0.5"><Bar w="34px" className="bg-ink-200 ml-1 mb-0.5" /><LessonRow state="todo" /><LessonRow state="todo" /></div>
+        </div>
+      </div>
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="relative h-[92px] bg-ink-500/90 m-2.5 rounded-lg overflow-hidden flex items-center justify-center">
+          <div className="size-9 rounded-full bg-white/20 inline-flex items-center justify-center"><span className="block size-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-white ml-1" /></div>
+          <div className="absolute inset-x-2 bottom-2 flex items-center gap-1.5"><span className="block size-0 border-y-[3px] border-y-transparent border-l-[4px] border-l-white/80" /><div className="flex-1 h-0.5 rounded-full bg-white/30 overflow-hidden"><div className="h-full w-1/3 bg-white/80" /></div><Bar w="20px" className="bg-white/40 h-1" /></div>
+        </div>
+        <div className="px-3 pb-2 flex-1 space-y-1.5 overflow-hidden">
+          <div className="h-2.5 w-40 rounded bg-ink-300" />
+          <div className="flex items-center gap-3 border-b border-ink-100">
+            {["Overview", "Resources", "Q&A"].map((t, i) => <div key={t} className="py-1.5 relative"><Bar w="30px" className={i === 0 ? "bg-ink-300" : "bg-ink-200"} />{i === 0 && <div className="absolute -bottom-px inset-x-0 h-0.5 rounded-full bg-rose-400" />}</div>)}
+          </div>
+          <Bar /><Bar w="92%" /><Bar w="70%" />
+        </div>
+        <div className="border-t border-ink-100 px-3 py-2 flex items-center gap-2"><div className="h-7 w-24 rounded-md bg-white border border-ink-200" /><div className="flex-1" /><div className="h-7 w-20 rounded-md bg-rose-400" /></div>
+      </div>
+    </Frame>
+  );
+}
+
+function ProgramOverviewV3() {
+  return (
+    <Frame>
+      <div className="flex-1 bg-cream-50 flex flex-col overflow-hidden">
+        <div className="h-[60px] bg-gradient-to-br from-rose-200 via-rose-100 to-cream-200 px-3.5 flex flex-col justify-center gap-1.5 shrink-0">
+          <div className="h-3 w-48 rounded bg-white/70" />
+          <div className="flex items-center gap-2"><div className="size-5 rounded-full bg-white/60" /><Bar w="50px" className="bg-white/60" /><span className="ml-1"><Stars filled={4} /></span></div>
+        </div>
+        <div className="flex-1 flex gap-3 p-3.5 min-h-0 overflow-hidden">
+          <div className="flex-1 space-y-2.5">
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-2">
+              <Bar w="60px" className="bg-rose-300 h-2" />
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">{[0, 1, 2, 3].map((i) => <div key={i} className="flex items-center gap-1.5"><span className="size-3 rounded-full bg-emerald-200 shrink-0 inline-flex items-center justify-center"><span className="block w-[2px] h-[4px] border-b-[1.5px] border-r-[1.5px] border-emerald-500 rotate-45 -mt-px" /></span><Bar w={i % 2 ? "58%" : "74%"} /></div>)}</div>
+            </div>
+            <div className="rounded-xl bg-white border border-ink-100 overflow-hidden">
+              <div className="px-2.5 py-1.5 border-b border-ink-100"><Bar w="44px" className="bg-ink-300" /></div>
+              {[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 border-b border-ink-100 last:border-0"><span className="size-4 rounded bg-cream-200 inline-flex items-center justify-center shrink-0"><span className="block size-0 border-x-[2px] border-x-transparent border-t-[3px] border-t-ink-400" /></span><Bar w="50%" /><Bar w="20px" className="ml-auto h-1 shrink-0" /></div>)}
+            </div>
+          </div>
+          <div className="w-[124px] shrink-0">
+            <div className="rounded-xl bg-white border border-ink-100 shadow-sm p-2.5 space-y-2 sticky top-0">
+              <div className="h-12 rounded-lg bg-gradient-to-br from-cream-200 to-cream-100 border border-ink-100" />
+              <div className="flex items-end gap-1"><div className="h-4 w-12 rounded bg-ink-300" /><Bar w="16px" className="mb-0.5" /></div>
+              <div className="h-8 rounded-md bg-rose-400" />
+              <div className="space-y-1 border-t border-ink-100 pt-1.5">{[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-emerald-200 shrink-0" /><Bar w={i % 2 ? "58%" : "72%"} /></div>)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* Scheduler + deals helpers. */
+function Plat({ tone = "rose" }: { tone?: string }) {
+  return <span className={cn("size-3 rounded-[3px] shrink-0", tone === "rose" ? "bg-rose-300" : tone === "sky" ? "bg-sky-300" : tone === "violet" ? "bg-violet-300" : "bg-amber-300")} />;
+}
+function PostMini({ tone = "rose" }: { tone?: string }) {
+  return (
+    <div className="rounded-md bg-white border border-ink-100 p-1 space-y-1">
+      <div className="h-6 rounded bg-gradient-to-br from-cream-200 to-cream-100" />
+      <div className="flex items-center gap-1"><Plat tone={tone} /><Bar w="60%" className="h-1" /></div>
+    </div>
+  );
+}
+function DealCard({ tone = "rose" }: { tone?: string }) {
+  return (
+    <div className="rounded-md bg-white border border-ink-100 p-1.5 space-y-1 shadow-[0_1px_1px_rgba(15,23,42,0.03)]">
+      <div className="flex items-center gap-1.5"><div className={cn("size-4 rounded shrink-0", tone === "rose" ? "bg-rose-200" : tone === "sky" ? "bg-sky-200" : "bg-violet-200")} /><Bar w="60%" className="bg-ink-300" /></div>
+      <div className="flex items-center justify-between"><div className="h-2.5 w-10 rounded bg-ink-300" /><div className="size-3 rounded-full bg-cream-200" /></div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 54 — Content scheduler   (platform: plan & schedule posts)
+   V1 week board · V2 publishing queue · V3 content calendar
+   ════════════════════════════════════════════════════════════════════════ */
+
+function SchedulerWeekV1() {
+  const days: (string | null)[][] = [["rose"], [], ["sky", "violet"], ["amber"], [], ["rose"], []];
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between">
+          <div className="h-2.5 w-24 rounded bg-ink-300" />
+          <div className="flex items-center gap-1.5"><div className="inline-flex p-0.5 rounded-md bg-cream-200 gap-0.5">{["W", "M"].map((t, i) => <div key={t} className={cn("h-4 w-6 rounded", i === 0 ? "bg-white shadow-sm" : "")} />)}</div><div className="h-6 w-16 rounded-md bg-rose-400" /></div>
+        </div>
+        <div className="flex-1 overflow-hidden p-2.5 flex gap-1.5">
+          {days.map((posts, i) => (
+            <div key={i} className="flex-1 min-w-0 space-y-1.5">
+              <Bar w="60%" className="bg-ink-200 mx-auto" />
+              {posts.map((t, j) => <PostMini key={j} tone={t as string} />)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function SchedulerQueueV2() {
+  const rows = [
+    { tone: "rose", st: "ok" }, { tone: "sky", st: "ok" }, { tone: "violet", st: "draft" }, { tone: "amber", st: "ok" }, { tone: "rose", st: "draft" },
+  ];
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between"><div className="h-2.5 w-20 rounded bg-ink-300" /><div className="h-6 w-16 rounded-md bg-rose-400" /></div>
+        <div className="flex-1 overflow-hidden p-2.5 space-y-1.5">
+          {rows.map((r, i) => (
+            <div key={i} className="rounded-lg bg-white border border-ink-100 p-2 flex items-center gap-2.5">
+              <div className="text-center shrink-0 space-y-0.5"><Bar w="20px" className="bg-ink-300" /><Bar w="16px" className="h-1 mx-auto" /></div>
+              <div className="w-px h-7 bg-ink-100 shrink-0" />
+              <div className="size-9 rounded-md bg-gradient-to-br from-cream-200 to-cream-100 shrink-0 relative"><span className="absolute -bottom-0.5 -right-0.5"><Plat tone={r.tone} /></span></div>
+              <div className="flex-1 min-w-0 space-y-1"><Bar w="70%" className="bg-ink-300" /><Bar w="50%" /></div>
+              <div className={cn("h-3.5 px-1.5 rounded-full inline-flex items-center gap-1 shrink-0", r.st === "ok" ? "bg-emerald-100" : "bg-cream-200")}><span className={cn("size-1 rounded-full", r.st === "ok" ? "bg-emerald-400" : "bg-ink-300")} /><Bar w="20px" className={r.st === "ok" ? "bg-emerald-400 h-1" : "bg-ink-300 h-1"} /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function SchedulerCalendarV3() {
+  const posts: Record<number, string[]> = { 4: ["rose"], 9: ["sky", "violet"], 12: ["amber"], 18: ["rose"], 21: ["sky"], 25: ["violet", "rose"] };
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 p-3 flex flex-col overflow-hidden">
+        <CalHead />
+        <div className="grid grid-cols-7 gap-1 mb-1">{[...Array(7).keys()].map((i) => <Bar key={i} w="60%" className="mx-auto" />)}</div>
+        <div className="grid grid-cols-7 gap-1 flex-1">
+          {[...Array(35).keys()].map((i) => (
+            <div key={i} className="rounded bg-white border border-ink-100 p-0.5 flex flex-col gap-0.5 overflow-hidden">
+              <Bar w="8px" className="h-1 self-end" />
+              {(posts[i] || []).map((t, j) => <div key={j} className="flex items-center gap-0.5"><Plat tone={t} /><Bar w="60%" className="h-1" /></div>)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 55 — Brand deals   (platform: sponsorship pipeline & partnerships)
+   V1 pipeline board · V2 deals table · V3 deal detail
+   ════════════════════════════════════════════════════════════════════════ */
+
+function DealsPipelineV1() {
+  const cols = [
+    { dot: "bg-ink-300", deals: ["rose", "sky"] }, { dot: "bg-amber-300", deals: ["violet"] },
+    { dot: "bg-rose-300", deals: ["rose", "violet"] }, { dot: "bg-emerald-300", deals: ["sky"] },
+  ];
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 p-3 flex gap-2 overflow-hidden">
+        {cols.map((c, i) => (
+          <div key={i} className="flex-1 flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5 mb-1.5"><span className={cn("size-2 rounded-full", c.dot)} /><Bar w="32px" className="bg-ink-200" /><span className="ml-auto h-2 w-3 rounded-full bg-cream-200" /></div>
+            <div className="rounded-md bg-cream-100/40 border border-ink-100/60 p-1 space-y-1 flex-1">
+              {c.deals.map((t, j) => <DealCard key={j} tone={t} />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+function DealsTableV2() {
+  const cols = "grid grid-cols-[1.6fr_50px_46px_44px_14px] items-center gap-2 px-2.5";
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 p-3 space-y-2 overflow-hidden">
+        <TableToolbar />
+        <div className="rounded-lg bg-white border border-ink-100 overflow-hidden">
+          <div className={cn(cols, "h-7 bg-cream-100 border-b border-ink-100")}><Bar w="40px" className="bg-ink-200" /><Bar w="30px" className="bg-ink-200" /><Bar w="28px" className="bg-ink-200" /><Bar w="24px" className="bg-ink-200" /><span /></div>
+          {["rose", "sky", "violet", "amber", "rose"].map((t, i) => (
+            <div key={i} className={cn(cols, "h-9 border-b border-ink-100 last:border-0")}>
+              <div className="flex items-center gap-2 min-w-0"><span className={cn("size-5 rounded shrink-0", t === "rose" ? "bg-rose-200" : t === "sky" ? "bg-sky-200" : t === "violet" ? "bg-violet-200" : "bg-amber-200")} /><div className="space-y-1 min-w-0"><Bar w="56px" className="bg-ink-300" /><Bar w="34px" /></div></div>
+              <div className="h-2.5 w-9 rounded bg-ink-300" />
+              <Chip tone={TONES[i % 5]} />
+              <Bar w="28px" className="bg-ink-200" />
+              <div className="flex flex-col gap-0.5 items-center"><span className="size-0.5 rounded-full bg-ink-300" /><span className="size-0.5 rounded-full bg-ink-300" /><span className="size-0.5 rounded-full bg-ink-300" /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function DealDetailV3() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2.5 border-b border-ink-100 flex items-center gap-2.5">
+          <div className="size-9 rounded-lg bg-rose-200 shrink-0" />
+          <div className="flex-1 space-y-1"><div className="h-2.5 w-28 rounded bg-ink-300" /><div className="flex items-end gap-1"><div className="h-3 w-12 rounded bg-ink-300" /><Bar w="16px" className="mb-0.5" /></div></div>
+          <div className="h-4 px-2 rounded-full bg-amber-100 inline-flex items-center gap-1"><span className="size-1 rounded-full bg-amber-400" /><Bar w="28px" className="bg-amber-400 h-1" /></div>
+        </div>
+        <div className="flex-1 flex gap-3 p-3.5 min-h-0 overflow-hidden">
+          <div className="flex-1 space-y-2.5">
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="50px" className="bg-rose-300 h-2" />{[true, true, false].map((d, i) => <div key={i} className="flex items-center gap-2"><span className={cn("size-3.5 rounded-full inline-flex items-center justify-center shrink-0", d ? "bg-emerald-300" : "bg-cream-200 border border-ink-200")}>{d && <span className="block w-[2px] h-[4px] border-b-[1.5px] border-r-[1.5px] border-white rotate-45 -mt-px" />}</span><Bar w={i % 2 ? "60%" : "74%"} className={d ? "bg-ink-200" : "bg-ink-300"} /></div>)}</div>
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5"><Bar w="40px" className="bg-ink-300 h-2 mb-1.5" /><TimelineRow tone="rose" /><TimelineRow tone="emerald" last /></div>
+          </div>
+          <div className="w-[110px] shrink-0 rounded-xl bg-white border border-ink-100 p-2.5 space-y-2">
+            <div className="flex items-center gap-1.5"><div className="size-6 rounded-full bg-cream-200" /><div className="space-y-1"><Bar w="40px" className="bg-ink-300" /><Bar w="28px" className="h-1" /></div></div>
+            <div className="h-7 rounded-md bg-rose-400" />
+            <div className="h-7 rounded-md bg-white border border-ink-200" />
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* Revenue + audience helpers. */
+function StreamRow({ tone = "rose", w = "60%" }: { tone?: string; w?: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5"><span className={cn("size-2 rounded-sm shrink-0", tone === "rose" ? "bg-rose-300" : tone === "sky" ? "bg-sky-300" : tone === "violet" ? "bg-violet-300" : "bg-emerald-300")} /><Bar w="44px" className="bg-ink-200" /><div className="ml-auto h-2 w-10 rounded bg-ink-300" /></div>
+      <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden"><div className={cn("h-full rounded-full", tone === "rose" ? "bg-rose-300" : tone === "sky" ? "bg-sky-300" : tone === "violet" ? "bg-violet-300" : "bg-emerald-300")} style={{ width: w }} /></div>
+    </div>
+  );
+}
+function PayoutRow({ st = "ok" }: { st?: string }) {
+  return (
+    <div className="grid grid-cols-[1fr_44px_50px] gap-2 items-center px-2.5 py-1.5 border-b border-ink-100 last:border-0">
+      <div className="flex items-center gap-2"><div className="size-5 rounded bg-gradient-to-br from-ink-200 to-cream-200 shrink-0" /><div className="space-y-1"><Bar w="44px" className="bg-ink-300" /><Bar w="30px" className="h-1" /></div></div>
+      <div className="h-2.5 w-9 rounded bg-ink-300" />
+      <div className={cn("h-3.5 px-1.5 rounded-full inline-flex items-center gap-1 w-fit ml-auto", st === "ok" ? "bg-emerald-100" : "bg-amber-100")}><span className={cn("size-1 rounded-full", st === "ok" ? "bg-emerald-400" : "bg-amber-400")} /><Bar w="18px" className={st === "ok" ? "bg-emerald-400 h-1" : "bg-amber-400 h-1"} /></div>
+    </div>
+  );
+}
+function StreamCard({ tone = "rose", spark = [8, 12, 10, 14, 16] }: { tone?: string; spark?: number[] }) {
+  return (
+    <div className="rounded-xl bg-white border border-ink-100 p-2.5 flex flex-col gap-1.5">
+      <div className="flex items-center justify-between"><span className={cn("size-6 rounded-lg shrink-0", tone === "rose" ? "bg-rose-100" : tone === "sky" ? "bg-sky-100" : tone === "violet" ? "bg-violet-100" : "bg-emerald-100")} /><div className="h-3 px-1.5 rounded-full bg-emerald-50 inline-flex items-center"><Bar w="14px" className="bg-emerald-400 h-1" /></div></div>
+      <div className="h-3.5 w-12 rounded bg-ink-300" /><Bar w="44px" />
+      <div className="flex items-end gap-0.5 h-5 mt-0.5">{spark.map((b, i) => <div key={i} className={cn("w-1 rounded-t", tone === "rose" ? "bg-rose-200" : tone === "sky" ? "bg-sky-200" : tone === "violet" ? "bg-violet-200" : "bg-emerald-200")} style={{ height: `${b * 1.2}px` }} />)}</div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 56 — Revenue & earnings   (platform: creator monetization)
+   V1 revenue overview · V2 payouts · V3 streams breakdown
+   ════════════════════════════════════════════════════════════════════════ */
+
+function RevenueOverviewV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="grid grid-cols-3 gap-2.5"><StatTile delta /><StatTile delta /><StatTile delta={false} /></div>
+          <div className="grid grid-cols-[1.5fr_1fr] gap-2.5">
+            <ChartCard bars={[10, 16, 13, 20, 17, 23, 19, 26]} h={50} />
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-2"><Bar w="56px" className="bg-ink-300 h-2" /><StreamRow tone="rose" w="72%" /><StreamRow tone="sky" w="48%" /><StreamRow tone="violet" w="30%" /></div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function RevenuePayoutsV2() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between">
+          <div className="space-y-1"><div className="h-2.5 w-20 rounded bg-ink-300" /><Bar w="60px" /></div>
+          <div className="rounded-lg bg-gradient-to-br from-emerald-100 to-cream-100 border border-emerald-200 px-2.5 py-1.5 text-right space-y-1"><Bar w="34px" className="bg-emerald-400 h-1 ml-auto" /><div className="h-3 w-12 rounded bg-ink-300" /></div>
+        </div>
+        <div className="flex-1 overflow-hidden p-3.5">
+          <div className="rounded-xl bg-white border border-ink-100 overflow-hidden">
+            <div className="grid grid-cols-[1fr_44px_50px] gap-2 px-2.5 py-1.5 bg-cream-100 border-b border-ink-100"><Bar w="40px" className="bg-ink-200" /><Bar w="28px" className="bg-ink-200" /><Bar w="28px" className="bg-ink-200 ml-auto" /></div>
+            <PayoutRow st="ok" /><PayoutRow st="ok" /><PayoutRow st="pending" /><PayoutRow st="ok" /><PayoutRow st="ok" />
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function RevenueStreamsV3() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="rounded-xl bg-white border border-ink-100 p-2.5 flex items-center gap-3">
+            <Ring size={48} />
+            <div className="flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5">
+              {["rose", "sky", "violet", "emerald"].map((t, i) => <div key={i} className="flex items-center gap-1.5"><span className={cn("size-2 rounded-sm shrink-0", t === "rose" ? "bg-rose-300" : t === "sky" ? "bg-sky-300" : t === "violet" ? "bg-violet-300" : "bg-emerald-300")} /><Bar w="40px" /><Bar w="18px" className="ml-auto bg-ink-300 h-1" /></div>)}
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2.5"><StreamCard tone="rose" /><StreamCard tone="sky" spark={[14, 10, 12, 9, 13]} /><StreamCard tone="violet" spark={[6, 9, 11, 13, 17]} /><StreamCard tone="emerald" spark={[10, 11, 9, 12, 10]} /></div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 57 — Audience   (platform: subscribers & growth)
+   V1 audience overview · V2 subscriber list · V3 segment detail
+   ════════════════════════════════════════════════════════════════════════ */
+
+function AudienceOverviewV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="grid grid-cols-[1.5fr_1fr] gap-2.5">
+            <ChartCard bars={[12, 14, 15, 18, 17, 21, 20, 24, 23, 27]} h={50} />
+            <div className="grid grid-rows-2 gap-2.5"><StatTile delta /><StatTile delta={false} /></div>
+          </div>
+          <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-2"><div className="flex items-center justify-between"><Bar w="50px" className="bg-ink-300 h-2" /><Bar w="30px" /></div><div className="grid grid-cols-3 gap-3"><StreamRow tone="rose" w="68%" /><StreamRow tone="sky" w="44%" /><StreamRow tone="emerald" w="26%" /></div></div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function AudienceListV2() {
+  const cols = "grid grid-cols-[1.7fr_56px_46px_40px] items-center gap-2 px-2.5";
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center gap-1.5">
+          <SearchBar />
+          {["rose", "sky"].map((t, i) => <div key={i} className="h-5 px-2 rounded-full bg-rose-50 border border-rose-100 inline-flex items-center gap-1"><span className={cn("size-1.5 rounded-full", t === "rose" ? "bg-rose-400" : "bg-sky-400")} /><Bar w="20px" className="bg-rose-400 h-1" /></div>)}
+          <div className="ml-auto h-6 w-12 rounded-md bg-cream-200" />
+        </div>
+        <div className="flex-1 bg-white overflow-hidden">
+          <div className={cn(cols, "h-7 bg-cream-100 border-b border-ink-100")}><Bar w="40px" className="bg-ink-200" /><Bar w="32px" className="bg-ink-200" /><Bar w="28px" className="bg-ink-200" /><Bar w="24px" className="bg-ink-200 ml-auto" /></div>
+          {["rose", "sky", "violet", "emerald", "rose"].map((t, i) => (
+            <div key={i} className={cn(cols, "h-9 border-b border-ink-100 last:border-0")}>
+              <div className="flex items-center gap-2 min-w-0"><div className="size-6 rounded-full bg-cream-200 shrink-0" /><div className="space-y-1 min-w-0"><Bar w="56px" className="bg-ink-300" /><Bar w="36px" /></div></div>
+              <div className={cn("h-3.5 px-1.5 rounded-full inline-flex items-center gap-1 w-fit", t === "rose" ? "bg-rose-100" : t === "sky" ? "bg-sky-100" : t === "violet" ? "bg-violet-100" : "bg-emerald-100")}><span className={cn("size-1 rounded-full", t === "rose" ? "bg-rose-400" : t === "sky" ? "bg-sky-400" : t === "violet" ? "bg-violet-400" : "bg-emerald-400")} /><Bar w="18px" className="bg-ink-300 h-1" /></div>
+              <Bar w="28px" className="bg-ink-200" />
+              <div className="h-2.5 w-7 rounded bg-ink-300 ml-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function AudienceSegmentV3() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2.5 border-b border-ink-100 space-y-1.5">
+          <div className="flex items-center gap-2"><div className="size-7 rounded-lg bg-rose-100 shrink-0" /><div className="space-y-1"><div className="h-2.5 w-28 rounded bg-ink-300" /><Bar w="50px" /></div><div className="ml-auto h-6 w-16 rounded-md bg-rose-400" /></div>
+          <div className="flex items-center gap-1.5"><Bar w="30px" className="bg-ink-200" />{["rose", "sky", "violet"].map((t, i) => <div key={i} className="h-4 px-1.5 rounded-full bg-cream-200 inline-flex items-center gap-1"><span className={cn("size-1.5 rounded-full", t === "rose" ? "bg-rose-300" : t === "sky" ? "bg-sky-300" : "bg-violet-300")} /><Bar w="22px" className="h-1" /></div>)}</div>
+        </div>
+        <div className="flex-1 flex gap-3 p-3.5 min-h-0 overflow-hidden">
+          <div className="w-[120px] shrink-0"><ChartCard bars={[10, 14, 12, 17, 15, 20]} h={40} /></div>
+          <div className="flex-1 rounded-xl bg-white border border-ink-100 overflow-hidden">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="flex items-center gap-2 px-2.5 py-2 border-b border-ink-100 last:border-0"><div className="size-5 rounded-full bg-cream-200 shrink-0" /><div className="flex-1 space-y-1"><Bar w="50%" className="bg-ink-300" /><Bar w="34%" /></div><Bar w="20px" className="bg-ink-200 h-1" /></div>)}
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* Email + affiliate helpers. */
+function LinkField() {
+  return (
+    <div className="h-7 rounded-md bg-cream-50 border border-ink-100 flex items-center gap-2 px-2">
+      <span className="size-3 rounded bg-ink-200 shrink-0" /><Bar w="56%" className="bg-ink-200" />
+      <span className="ml-auto h-5 px-2 rounded bg-rose-400 inline-flex items-center shrink-0"><Bar w="18px" className="bg-white/70 h-1" /></span>
+    </div>
+  );
+}
+function MailRow({ open = "60%", hot = false }: { open?: string; hot?: boolean }) {
+  return (
+    <div className={cn("grid grid-cols-[1.7fr_44px_40px_40px] items-center gap-2 px-2.5 py-2 border-b border-ink-100 last:border-0", hot && "bg-cream-50")}>
+      <div className="flex items-center gap-2 min-w-0"><span className={cn("size-2 rounded-full shrink-0", hot ? "bg-rose-400" : "bg-emerald-300")} /><div className="space-y-1 min-w-0"><Bar w="64%" className="bg-ink-300" /><Bar w="40%" /></div></div>
+      <Bar w="30px" className="bg-ink-200" />
+      <div className="space-y-0.5"><div className="h-1.5 rounded-full bg-cream-200 overflow-hidden"><div className="h-full bg-emerald-300 rounded-full" style={{ width: open }} /></div></div>
+      <div className="h-2 w-7 rounded bg-ink-300 ml-auto" />
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 58 — Email & broadcasts   (platform: email the audience)
+   V1 broadcast composer · V2 campaigns list · V3 broadcast report
+   ════════════════════════════════════════════════════════════════════════ */
+
+function EmailComposerV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between"><div className="h-2.5 w-24 rounded bg-ink-300" /><div className="h-3 px-1.5 rounded-full bg-cream-200 inline-flex items-center"><Bar w="22px" className="bg-ink-300 h-1" /></div></div>
+        <div className="flex-1 overflow-hidden p-3 space-y-2">
+          <div className="flex items-center gap-1.5"><Bar w="14px" className="bg-ink-200 shrink-0" /><div className="h-5 px-2 rounded-full bg-rose-50 border border-rose-100 inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-rose-400" /><Bar w="34px" className="bg-rose-400 h-1" /></div><div className="h-5 px-2 rounded-full bg-cream-200 inline-flex items-center"><Bar w="26px" className="bg-ink-300 h-1" /></div><Bar w="40px" className="ml-auto" /></div>
+          <Field labelW="36px" h="h-7" />
+          <div className="rounded-lg bg-white border border-ink-100 overflow-hidden flex-1">
+            <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-ink-100 bg-cream-50/60">{[0, 1, 2, 3].map((i) => <span key={i} className="size-3.5 rounded bg-cream-200" />)}<span className="w-px h-3.5 bg-ink-100 mx-0.5" /><span className="size-3.5 rounded bg-cream-200" /></div>
+            <div className="p-2.5 space-y-1.5"><Bar /><Bar w="92%" /><div className="h-10 rounded-md bg-gradient-to-br from-cream-200 to-cream-100 my-1" /><Bar w="80%" /><div className="h-6 w-24 rounded-md bg-rose-400 mt-1" /></div>
+          </div>
+        </div>
+        <div className="border-t border-ink-100 px-3 py-2 flex items-center gap-2"><div className="h-7 w-20 rounded-md bg-white border border-ink-200" /><div className="flex-1" /><div className="h-7 w-16 rounded-md bg-white border border-ink-200" /><div className="h-7 w-16 rounded-md bg-rose-400" /></div>
+      </div>
+    </Frame>
+  );
+}
+
+function EmailCampaignsV2() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between"><div className="h-2.5 w-24 rounded bg-ink-300" /><div className="h-6 w-20 rounded-md bg-rose-400" /></div>
+        <div className="flex-1 overflow-hidden p-3">
+          <div className="rounded-xl bg-white border border-ink-100 overflow-hidden">
+            <div className="grid grid-cols-[1.7fr_44px_40px_40px] gap-2 px-2.5 py-1.5 bg-cream-100 border-b border-ink-100"><Bar w="44px" className="bg-ink-200" /><Bar w="28px" className="bg-ink-200" /><Bar w="26px" className="bg-ink-200" /><Bar w="22px" className="bg-ink-200 ml-auto" /></div>
+            <MailRow open="74%" /><MailRow open="58%" hot /><MailRow open="46%" /><MailRow open="32%" /><MailRow open="20%" />
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function EmailReportV3() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 space-y-1"><div className="h-2.5 w-36 rounded bg-ink-300" /><Bar w="60px" /></div>
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="grid grid-cols-3 gap-2.5"><StatTile delta /><StatTile delta /><StatTile delta={false} /></div>
+          <div className="grid grid-cols-[1.5fr_1fr] gap-2.5">
+            <ChartCard bars={[20, 14, 10, 8, 6, 5, 4]} h={48} />
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="44px" className="bg-ink-300 h-2" />{[0, 1, 2].map((i) => <div key={i} className="space-y-0.5"><div className="flex items-center justify-between"><Bar w="50%" /><Bar w="16px" className="bg-ink-300 h-1" /></div><div className="h-1.5 rounded-full bg-cream-200 overflow-hidden"><div className="h-full bg-rose-300 rounded-full" style={{ width: i === 0 ? "70%" : i === 1 ? "44%" : "22%" }} /></div></div>)}</div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 59 — Affiliate & referral   (platform: referrals & commissions)
+   V1 referral dashboard · V2 affiliates table · V3 referral share
+   ════════════════════════════════════════════════════════════════════════ */
+
+function ReferralDashV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="rounded-xl bg-gradient-to-r from-rose-100 to-cream-100 border border-rose-100 p-2.5 space-y-1.5"><Bar w="44px" className="bg-rose-300 h-2" /><LinkField /></div>
+          <div className="grid grid-cols-3 gap-2.5"><StatTile delta /><StatTile delta /><StatTile delta={false} /></div>
+          <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-0.5"><Bar w="50px" className="bg-ink-300 h-2 mb-1" /><LeaderRow rank={1} w="88%" hot /><LeaderRow rank={2} w="64%" /><LeaderRow rank={3} w="46%" /></div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function AffiliatesTableV2() {
+  const cols = "grid grid-cols-[1.7fr_44px_44px_50px_44px] items-center gap-2 px-2.5";
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 p-3 space-y-2 overflow-hidden">
+        <TableToolbar />
+        <div className="rounded-lg bg-white border border-ink-100 overflow-hidden">
+          <div className={cn(cols, "h-7 bg-cream-100 border-b border-ink-100")}><Bar w="44px" className="bg-ink-200" /><Bar w="24px" className="bg-ink-200" /><Bar w="28px" className="bg-ink-200" /><Bar w="32px" className="bg-ink-200" /><Bar w="22px" className="bg-ink-200" /></div>
+          {["emerald", "amber", "emerald", "rose", "amber"].map((t, i) => (
+            <div key={i} className={cn(cols, "h-9 border-b border-ink-100 last:border-0")}>
+              <div className="flex items-center gap-2 min-w-0"><div className="size-6 rounded-full bg-cream-200 shrink-0" /><div className="space-y-1 min-w-0"><Bar w="56px" className="bg-ink-300" /><Bar w="34px" /></div></div>
+              <Bar w="26px" className="bg-ink-200" /><Bar w="22px" className="bg-ink-200" />
+              <div className="h-2.5 w-10 rounded bg-ink-300" />
+              <Chip tone={t as "emerald" | "amber" | "rose" | "ink"} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function ReferralShareV3() {
+  return (
+    <Frame>
+      <div className="flex-1 bg-cream-50 flex items-center justify-center px-4">
+        <div className="w-[74%] rounded-xl bg-white border border-ink-100 shadow-sm p-3 space-y-2.5">
+          <div className="flex flex-col items-center gap-1.5"><div className="size-9 rounded-2xl bg-rose-100 inline-flex items-center justify-center"><div className="size-4 rounded bg-rose-300" /></div><div className="h-2.5 w-32 rounded bg-ink-300" /><Bar w="140px" /></div>
+          <div className="flex items-center px-0.5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center" style={{ flex: i < 3 ? 1 : "0 0 auto" }}>
+                <div className="flex flex-col items-center gap-0.5"><span className={cn("size-4 rounded-full shrink-0", i < 2 ? "bg-rose-400" : "bg-cream-200 border border-ink-200")} /><Bar w="16px" className="h-1" /></div>
+                {i < 3 && <div className={cn("flex-1 h-0.5 rounded-full mx-1 -mt-3", i < 1 ? "bg-rose-400" : "bg-cream-200")} />}
+              </div>
+            ))}
+          </div>
+          <LinkField />
+          <div className="flex items-center justify-center gap-2 pt-0.5">{["rose", "sky", "violet", "amber"].map((t, i) => <span key={i} className={cn("size-6 rounded-full", t === "rose" ? "bg-rose-100" : t === "sky" ? "bg-sky-100" : t === "violet" ? "bg-violet-100" : "bg-amber-100")} />)}</div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* Live / events helpers. */
+function DateBlock({ hot = false }: { hot?: boolean }) {
+  return (
+    <div className={cn("w-9 shrink-0 rounded-md border text-center overflow-hidden", hot ? "border-rose-200" : "border-ink-100")}>
+      <div className={cn("py-0.5", hot ? "bg-rose-100" : "bg-cream-100")}><Bar w="60%" className={cn("mx-auto h-1", hot ? "bg-rose-400" : "bg-ink-300")} /></div>
+      <div className="py-1"><div className={cn("h-3 w-4 rounded mx-auto", hot ? "bg-rose-400" : "bg-ink-300")} /></div>
+    </div>
+  );
+}
+function CtrlBtn({ tone = "ink" }: { tone?: string }) {
+  return <span className={cn("size-6 rounded-full inline-flex items-center justify-center", tone === "leave" ? "bg-rose-400" : "bg-white/20")}><span className="size-2.5 rounded-[3px] bg-white/70" /></span>;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 60 — Live & events   (platform: lives, workshops, sessions)
+   V1 events list · V2 live room · V3 event detail
+   ════════════════════════════════════════════════════════════════════════ */
+
+function EventsListV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between"><div className="h-2.5 w-24 rounded bg-ink-300" /><div className="h-6 w-20 rounded-md bg-rose-400" /></div>
+        <div className="flex-1 overflow-hidden p-3 space-y-1.5">
+          {[true, false, false, false].map((hot, i) => (
+            <div key={i} className={cn("rounded-xl border p-2 flex items-center gap-2.5", hot ? "border-rose-200 bg-rose-50/40" : "border-ink-100 bg-white")}>
+              <DateBlock hot={hot} />
+              <div className="flex-1 min-w-0 space-y-1"><div className="flex items-center gap-1.5"><Bar w="50%" className="bg-ink-300" />{hot && <span className="h-3 px-1.5 rounded-full bg-rose-100 inline-flex items-center gap-1"><span className="size-1 rounded-full bg-rose-500" /><Bar w="16px" className="bg-rose-500 h-1" /></span>}</div><div className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-cream-200" /><Bar w="40px" /></div></div>
+              <div className="flex -space-x-1 shrink-0">{[0, 1, 2].map((a) => <span key={a} className="size-5 rounded-full bg-cream-200 ring-1 ring-white" />)}</div>
+              <div className={cn("h-7 w-14 rounded-md shrink-0", hot ? "bg-rose-400" : "bg-white border border-ink-200")} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function LiveRoomV2() {
+  return (
+    <Frame>
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col p-2.5 gap-2">
+        <div className="relative flex-1 rounded-lg bg-ink-500/90 overflow-hidden flex items-center justify-center">
+          <div className="absolute top-2 left-2 h-4 px-1.5 rounded-full bg-rose-500 inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-white" /><Bar w="18px" className="bg-white/80 h-1" /></div>
+          <div className="absolute top-2 right-2 h-4 px-1.5 rounded-full bg-black/30 inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-white/70" /><Bar w="16px" className="bg-white/60 h-1" /></div>
+          <div className="size-12 rounded-full bg-white/15" />
+          <div className="absolute left-2 bottom-2 flex gap-1.5">{[0, 1, 2].map((a) => <span key={a} className="size-8 rounded-md bg-white/15 border border-white/20" />)}</div>
+        </div>
+        <div className="rounded-full bg-white border border-ink-100 shadow-sm py-1.5 flex items-center justify-center gap-2.5">
+          {["ink", "ink", "ink", "ink"].map((_, i) => <span key={i} className="size-6 rounded-full bg-cream-200 inline-flex items-center justify-center"><span className="size-2.5 rounded-[3px] bg-ink-300" /></span>)}
+          <span className="size-6 rounded-full bg-rose-400 inline-flex items-center justify-center"><span className="size-2.5 rounded-[3px] bg-white/80" /></span>
+        </div>
+      </div>
+      <div className="w-[126px] shrink-0 border-l border-ink-100 bg-cream-50 flex flex-col">
+        <div className="px-2.5 py-2 border-b border-ink-100 flex items-center gap-1.5"><Bar w="30px" className="bg-ink-300" /><span className="ml-auto h-2 w-3 rounded-full bg-cream-200" /></div>
+        <div className="flex-1 overflow-hidden p-2 space-y-1.5">
+          {[0, 1, 2].map((i) => <div key={i} className="flex gap-1.5"><span className="size-4 rounded-full bg-cream-200 shrink-0" /><div className="flex-1 space-y-0.5"><Bar w="40px" className="bg-ink-300 h-1" /><Bar w="90%" /></div></div>)}
+        </div>
+        <div className="border-t border-ink-100 px-2 py-1.5 flex items-center gap-1.5"><div className="flex-1 h-6 rounded-full bg-white border border-ink-100" /><span className="size-6 rounded-full bg-rose-400 shrink-0" /></div>
+      </div>
+    </Frame>
+  );
+}
+
+function EventDetailV3() {
+  return (
+    <Frame>
+      <div className="flex-1 bg-cream-50 flex flex-col overflow-hidden">
+        <div className="h-[60px] bg-gradient-to-br from-rose-200 via-rose-100 to-cream-200 px-3.5 flex flex-col justify-center gap-1.5 shrink-0">
+          <div className="h-3 w-44 rounded bg-white/70" />
+          <div className="flex items-center gap-2"><span className="size-5 rounded-full bg-white/60" /><Bar w="46px" className="bg-white/60" /><span className="size-1 rounded-full bg-white/50" /><Bar w="40px" className="bg-white/50" /></div>
+        </div>
+        <div className="flex-1 flex gap-3 p-3.5 min-h-0 overflow-hidden">
+          <div className="flex-1 space-y-2.5">
+            <div className="space-y-1.5"><Bar /><Bar w="92%" /><Bar w="70%" /></div>
+            <div className="rounded-xl bg-white border border-ink-100 overflow-hidden"><div className="px-2.5 py-1.5 border-b border-ink-100"><Bar w="40px" className="bg-ink-300" /></div>{[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 border-b border-ink-100 last:border-0"><Bar w="24px" className="bg-ink-200 shrink-0" /><span className="w-px h-4 bg-ink-100 shrink-0" /><Bar w="50%" /></div>)}</div>
+          </div>
+          <div className="w-[120px] shrink-0">
+            <div className="rounded-xl bg-white border border-ink-100 shadow-sm p-2.5 space-y-2 sticky top-0">
+              <DateBlock hot />
+              <div className="space-y-1"><Bar w="60%" className="bg-ink-300" /><Bar w="44%" /></div>
+              <div className="h-8 rounded-md bg-rose-400" />
+              <div className="flex items-center gap-1.5"><div className="flex -space-x-1">{[0, 1, 2].map((a) => <span key={a} className="size-4 rounded-full bg-cream-200 ring-1 ring-white" />)}</div><Bar w="40px" className="h-1" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* Moderation + shop helpers. */
+function StatusPill({ tone = "emerald" }: { tone?: string }) {
+  return (
+    <span className={cn("h-3.5 px-1.5 rounded-full inline-flex items-center gap-1 w-fit", tone === "emerald" ? "bg-emerald-100" : tone === "amber" ? "bg-amber-100" : "bg-red-100")}>
+      <span className={cn("size-1 rounded-full", tone === "emerald" ? "bg-emerald-400" : tone === "amber" ? "bg-amber-400" : "bg-red-400")} />
+      <Bar w="18px" className={cn("h-1", tone === "emerald" ? "bg-emerald-400" : tone === "amber" ? "bg-amber-400" : "bg-red-400")} />
+    </span>
+  );
+}
+function ProductCard() {
+  return (
+    <div className="rounded-lg bg-white border border-ink-100 overflow-hidden">
+      <div className="h-12 bg-gradient-to-br from-cream-200 to-cream-100 relative"><span className="absolute top-1 right-1"><StatusPill tone="emerald" /></span></div>
+      <div className="p-1.5 space-y-1"><Bar w="74%" className="bg-ink-300" /><div className="flex items-center justify-between"><div className="h-2.5 w-8 rounded bg-ink-300" /><Bar w="24%" /></div></div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 61 — Community moderation   (platform: keep the community healthy)
+   V1 reports queue · V2 members admin · V3 auto-mod rules
+   ════════════════════════════════════════════════════════════════════════ */
+
+function ModerationQueueV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 pt-2.5 pb-0">
+          <div className="flex items-center justify-between mb-1.5"><div className="h-2.5 w-24 rounded bg-ink-300" /><div className="h-3 px-1.5 rounded-full bg-rose-100 inline-flex items-center"><Bar w="16px" className="bg-rose-400 h-1" /></div></div>
+          <div className="flex items-center gap-3 border-b border-ink-100">{["Pending", "Resolved"].map((t, i) => <div key={t} className="py-1.5 relative"><Bar w="34px" className={i === 0 ? "bg-ink-300" : "bg-ink-200"} />{i === 0 && <div className="absolute -bottom-px inset-x-0 h-0.5 rounded-full bg-rose-400" />}</div>)}</div>
+        </div>
+        <div className="flex-1 overflow-hidden p-3 space-y-2">
+          {[{ r: "amber" }, { r: "red" }].map((it, i) => (
+            <div key={i} className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5">
+              <div className="flex items-center gap-2"><div className="size-6 rounded-full bg-cream-200 shrink-0" /><div className="space-y-1"><Bar w="50px" className="bg-ink-300" /><Bar w="32px" className="h-1" /></div><span className={cn("ml-auto h-3.5 px-1.5 rounded-full inline-flex items-center gap-1", it.r === "red" ? "bg-red-100" : "bg-amber-100")}><span className={cn("size-1 rounded-full", it.r === "red" ? "bg-red-400" : "bg-amber-400")} /><Bar w="26px" className={cn("h-1", it.r === "red" ? "bg-red-400" : "bg-amber-400")} /></span></div>
+              <div className="rounded-md bg-cream-50 border border-ink-100 p-1.5 space-y-1"><Bar w="92%" /><Bar w="64%" /></div>
+              <div className="flex items-center gap-2"><Bar w="50px" className="h-1" /><div className="flex-1" /><div className="h-6 w-14 rounded-md bg-white border border-ink-200" /><div className="h-6 w-16 rounded-md bg-rose-400" /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function ModerationMembersV2() {
+  const cols = "grid grid-cols-[1.7fr_46px_50px_40px_14px] items-center gap-2 px-2.5";
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 p-3 space-y-2 overflow-hidden">
+        <TableToolbar />
+        <div className="rounded-lg bg-white border border-ink-100 overflow-hidden">
+          <div className={cn(cols, "h-7 bg-cream-100 border-b border-ink-100")}><Bar w="44px" className="bg-ink-200" /><Bar w="26px" className="bg-ink-200" /><Bar w="30px" className="bg-ink-200" /><Bar w="24px" className="bg-ink-200" /><span /></div>
+          {[{ s: "emerald", role: "rose" }, { s: "emerald", role: "ink" }, { s: "amber", role: "ink" }, { s: "red", role: "ink" }, { s: "emerald", role: "ink" }].map((r, i) => (
+            <div key={i} className={cn(cols, "h-9 border-b border-ink-100 last:border-0")}>
+              <div className="flex items-center gap-2 min-w-0"><div className="size-6 rounded-full bg-cream-200 shrink-0" /><div className="space-y-1 min-w-0"><Bar w="56px" className="bg-ink-300" /><Bar w="36px" /></div></div>
+              <div className={cn("h-3 px-1.5 rounded-full inline-flex items-center w-fit", r.role === "rose" ? "bg-rose-100" : "bg-cream-200")}><Bar w="20px" className={r.role === "rose" ? "bg-rose-400 h-1" : "bg-ink-300 h-1"} /></div>
+              <StatusPill tone={r.s} />
+              <Bar w="28px" className="bg-ink-200" />
+              <div className="flex flex-col gap-0.5 items-center"><span className="size-0.5 rounded-full bg-ink-300" /><span className="size-0.5 rounded-full bg-ink-300" /><span className="size-0.5 rounded-full bg-ink-300" /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function ModerationRulesV3() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100"><div className="h-2.5 w-28 rounded bg-ink-300" /></div>
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="rounded-xl bg-white border border-ink-100 p-2.5 flex items-center gap-2.5"><div className="size-8 rounded-lg bg-rose-100 shrink-0" /><div className="flex-1 space-y-1"><Bar w="44%" className="bg-ink-300" /><Bar w="72%" /></div><Switch on /></div>
+          <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5">
+            <Bar w="40px" className="bg-rose-300 h-2" />
+            {[true, true, false].map((on, i) => (
+              <div key={i} className="flex items-center gap-1.5 py-1 border-b border-ink-100 last:border-0">
+                <div className="h-4 px-1.5 rounded bg-cream-100 border border-ink-100 inline-flex items-center"><Bar w="28px" className="h-1" /></div>
+                <span className="size-0 border-y-[2.5px] border-y-transparent border-l-[3.5px] border-l-ink-400" />
+                <div className="h-4 px-1.5 rounded bg-rose-50 border border-rose-100 inline-flex items-center"><Bar w="24px" className="bg-rose-300 h-1" /></div>
+                <Switch on={on} />
+              </div>
+            ))}
+            <div className="h-6 rounded-md border border-dashed border-ink-200 flex items-center justify-center gap-1.5 mt-0.5"><span className="relative block size-2.5"><span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 rounded bg-ink-400" /><span className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 rounded bg-ink-400" /></span><Bar w="44px" className="bg-ink-200" /></div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PATTERN 62 — Digital products   (platform: sell digital products)
+   V1 products · V2 product editor · V3 orders & sales
+   ════════════════════════════════════════════════════════════════════════ */
+
+function ShopProductsV1() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center gap-2"><div className="h-2.5 w-20 rounded bg-ink-300" /><div className="ml-auto h-6 w-12 rounded-md bg-cream-200" /><div className="h-6 w-20 rounded-md bg-rose-400" /></div>
+        <div className="flex-1 overflow-hidden p-3.5"><div className="grid grid-cols-3 gap-2.5"><ProductCard /><ProductCard /><ProductCard /><ProductCard /><ProductCard /><ProductCard /></div></div>
+      </div>
+    </Frame>
+  );
+}
+
+function ShopEditorV2() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between"><div className="h-2.5 w-24 rounded bg-ink-300" /><div className="flex gap-1.5"><div className="h-6 w-14 rounded-md bg-white border border-ink-200" /><div className="h-6 w-16 rounded-md bg-rose-400" /></div></div>
+        <div className="flex-1 flex gap-3 p-3.5 min-h-0 overflow-hidden">
+          <div className="flex-1 space-y-2">
+            <Field labelW="36px" h="h-7" />
+            <Field labelW="52px" h="h-10" />
+            <div className="grid grid-cols-2 gap-2.5"><Field labelW="30px" h="h-6" /><Field labelW="44px" h="h-6" /></div>
+            <div className="h-12 rounded-lg border border-dashed border-ink-200 bg-white/50 flex items-center justify-center gap-1.5"><span className="size-6 rounded-lg bg-cream-200 inline-flex items-center justify-center"><span className="size-2.5 rounded bg-rose-200" /></span><Bar w="60px" className="bg-ink-200" /></div>
+          </div>
+          <div className="w-[118px] shrink-0 space-y-2.5">
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="40px" className="bg-ink-300 h-2" /><div className="flex items-center justify-between"><Bar w="50%" /><StatusPill tone="emerald" /></div><div className="flex items-center justify-between"><Bar w="44%" /><Switch on /></div></div>
+            <div className="rounded-xl bg-white border border-ink-100 p-2 space-y-1.5"><Bar w="40px" className="bg-ink-200" /><div className="h-12 rounded-md bg-gradient-to-br from-cream-200 to-cream-100" /></div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function ShopOrdersV3() {
+  const cols = "grid grid-cols-[40px_1.4fr_44px_44px] items-center gap-2 px-2.5";
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden px-3.5 pb-3 space-y-2.5">
+          <div className="grid grid-cols-3 gap-2.5"><StatTile delta /><StatTile delta /><StatTile delta={false} /></div>
+          <div className="rounded-xl bg-white border border-ink-100 overflow-hidden">
+            <div className={cn(cols, "py-1.5 bg-cream-100 border-b border-ink-100")}><Bar w="22px" className="bg-ink-200" /><Bar w="40px" className="bg-ink-200" /><Bar w="26px" className="bg-ink-200" /><Bar w="24px" className="bg-ink-200 ml-auto" /></div>
+            {["emerald", "emerald", "amber", "emerald"].map((t, i) => (
+              <div key={i} className={cn(cols, "h-8 border-b border-ink-100 last:border-0")}>
+                <Bar w="24px" className="bg-ink-200" />
+                <div className="flex items-center gap-2 min-w-0"><div className="size-5 rounded-full bg-cream-200 shrink-0" /><Bar w="56%" className="bg-ink-300" /></div>
+                <div className="h-2.5 w-8 rounded bg-ink-300" />
+                <span className="ml-auto"><StatusPill tone={t} /></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/* ── Platform pattern V4s — round each platform surface out to four ── */
+
+function ProgramStudentsV4() {
+  const cols = "grid grid-cols-[1.6fr_1fr_46px_44px] items-center gap-2 px-2.5";
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center gap-2"><div className="h-2.5 w-24 rounded bg-ink-300" /><div className="h-3 px-1.5 rounded-full bg-cream-200 inline-flex items-center"><Bar w="16px" className="bg-ink-300 h-1" /></div><div className="ml-auto h-6 w-16 rounded-md bg-rose-400" /></div>
+        <div className="flex-1 overflow-hidden p-3">
+          <div className="rounded-lg bg-white border border-ink-100 overflow-hidden">
+            <div className={cn(cols, "h-7 bg-cream-100 border-b border-ink-100")}><Bar w="44px" className="bg-ink-200" /><Bar w="40px" className="bg-ink-200" /><Bar w="28px" className="bg-ink-200" /><span /></div>
+            {[{ p: "92%", s: "emerald" }, { p: "68%", s: "emerald" }, { p: "40%", s: "amber" }, { p: "100%", s: "emerald" }, { p: "16%", s: "amber" }].map((r, i) => (
+              <div key={i} className={cn(cols, "h-9 border-b border-ink-100 last:border-0")}>
+                <div className="flex items-center gap-2 min-w-0"><div className="size-6 rounded-full bg-cream-200 shrink-0" /><div className="space-y-1 min-w-0"><Bar w="56px" className="bg-ink-300" /><Bar w="36px" /></div></div>
+                <div className="flex items-center gap-1.5"><div className="flex-1 h-1.5 rounded-full bg-cream-200 overflow-hidden"><div className="h-full bg-rose-300 rounded-full" style={{ width: r.p }} /></div><Bar w="16px" className="h-1 shrink-0" /></div>
+                <Bar w="28px" className="bg-ink-200" />
+                <span className="ml-auto"><StatusPill tone={r.s} /></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function SchedulerComposeV4() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex gap-3 p-3.5">
+        <div className="flex-1 flex flex-col gap-2">
+          <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-2 flex-1">
+            <div className="flex items-center gap-2"><div className="size-6 rounded-full bg-cream-200" /><Bar w="50px" className="bg-ink-200" /></div>
+            <Bar /><Bar w="86%" /><Bar w="64%" />
+            <div className="h-12 rounded-md bg-gradient-to-br from-cream-200 to-cream-100 border border-ink-100" />
+          </div>
+          <div className="flex items-center gap-1.5">{[true, true, false, false].map((on, i) => <div key={i} className={cn("h-6 px-2 rounded-full inline-flex items-center gap-1 border", on ? "border-rose-300 bg-rose-50" : "border-ink-100 bg-white")}><Plat tone={["rose", "sky", "violet", "amber"][i]} /><Bar w="14px" className={on ? "bg-rose-400 h-1" : "bg-ink-200 h-1"} /></div>)}</div>
+        </div>
+        <div className="w-[126px] shrink-0 rounded-xl bg-white border border-ink-100 p-2.5 space-y-2">
+          <Bar w="44px" className="bg-ink-300 h-2" />
+          <MiniCal active={16} />
+          <div className="grid grid-cols-2 gap-1.5"><div className="h-6 rounded-md bg-cream-50 border border-ink-100 flex items-center px-1.5"><Bar w="60%" /></div><div className="h-6 rounded-md bg-cream-50 border border-ink-100 flex items-center px-1.5"><Bar w="60%" /></div></div>
+          <div className="h-7 rounded-md bg-rose-400" />
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function DealsOverviewV4() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="grid grid-cols-3 gap-2.5"><StatTile delta /><StatTile delta /><StatTile delta={false} /></div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-2"><Bar w="44px" className="bg-ink-300 h-2" /><FunnelBar w="92%" /><FunnelBar w="64%" tone="lt" /><FunnelBar w="38%" tone="lt" /></div>
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="50px" className="bg-ink-300 h-2" />{[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-2 py-1 border-b border-ink-100 last:border-0"><span className={cn("size-4 rounded shrink-0", ["bg-rose-200", "bg-sky-200", "bg-violet-200"][i])} /><div className="flex-1 space-y-1"><Bar w="60%" className="bg-ink-300" /><Bar w="36%" /></div><div className="h-2 w-8 rounded bg-ink-300" /></div>)}</div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function RevenueGoalV4() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden p-3.5 flex gap-2.5">
+          <div className="w-[128px] shrink-0 rounded-xl bg-white border border-ink-100 p-3 flex flex-col items-center justify-center gap-1.5"><Ring size={52} /><Bar w="60px" className="bg-ink-300" /><Bar w="44px" /><div className="h-3 px-2 rounded-full bg-emerald-100 inline-flex items-center mt-0.5"><Bar w="30px" className="bg-emerald-400 h-1" /></div></div>
+          <div className="flex-1 space-y-2.5">
+            <ChartCard bars={[10, 14, 12, 18, 16, 22, 20, 26]} h={48} />
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="50px" className="bg-ink-300 h-2" /><div className="grid grid-cols-2 gap-3"><div className="space-y-1"><Bar w="40px" /><div className="h-2.5 w-12 rounded bg-ink-300" /></div><div className="space-y-1"><Bar w="40px" /><div className="h-2.5 w-12 rounded bg-ink-300" /></div></div></div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function ShopProductPageV4() {
+  return (
+    <Frame>
+      <div className="flex-1 bg-cream-50 flex flex-col overflow-hidden">
+        <MktNav />
+        <div className="flex-1 flex gap-3 p-3.5 min-h-0 overflow-hidden">
+          <div className="flex-1 rounded-xl bg-gradient-to-br from-cream-200 via-rose-100 to-cream-100 border border-ink-100" />
+          <div className="w-[158px] shrink-0 space-y-2">
+            <div className="h-2.5 w-32 rounded bg-ink-300" />
+            <div className="flex items-center gap-1.5"><Stars filled={5} /><Bar w="28px" /></div>
+            <div className="flex items-end gap-1"><div className="h-5 w-14 rounded bg-ink-300" /><Bar w="16px" className="mb-0.5" /></div>
+            <div className="h-8 rounded-md bg-rose-400" />
+            <div className="space-y-1 border-t border-ink-100 pt-2">{[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-emerald-200 shrink-0" /><Bar w={i % 2 ? "58%" : "74%"} /></div>)}</div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function AudienceProfileV4() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2.5 border-b border-ink-100 flex items-center gap-2.5">
+          <div className="size-10 rounded-full bg-cream-200 shrink-0" />
+          <div className="flex-1 space-y-1"><div className="h-2.5 w-28 rounded bg-ink-300" /><div className="flex items-center gap-1.5"><div className="h-3.5 px-1.5 rounded-full bg-rose-100 inline-flex items-center"><Bar w="20px" className="bg-rose-400 h-1" /></div><div className="h-3.5 px-1.5 rounded-full bg-sky-100 inline-flex items-center"><Bar w="18px" className="bg-sky-400 h-1" /></div></div></div>
+          <div className="h-6 w-12 rounded-md bg-white border border-ink-200" /><div className="h-6 w-14 rounded-md bg-rose-400" />
+        </div>
+        <div className="flex-1 flex gap-3 p-3.5 min-h-0 overflow-hidden">
+          <div className="flex-1 space-y-2.5">
+            <div className="grid grid-cols-3 gap-2.5"><StatTile delta /><StatTile delta={false} /><StatTile delta={false} /></div>
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5"><Bar w="40px" className="bg-ink-300 h-2 mb-1.5" /><TimelineRow tone="rose" /><TimelineRow tone="emerald" /><TimelineRow tone="ink" last /></div>
+          </div>
+          <div className="w-[110px] shrink-0 space-y-2.5">
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="40px" className="bg-ink-300 h-2" />{[0, 1, 2].map((i) => <div key={i} className="flex justify-between"><Bar w="44px" /><Bar w="24px" className="bg-ink-200" /></div>)}</div>
+            <div className="rounded-xl bg-cream-100 border border-ink-100 p-2 space-y-1"><Bar w="36px" className="bg-ink-200" /><Bar /><Bar w="70%" /></div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function ModerationDashV4() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <PageHead breadcrumb actions />
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="grid grid-cols-3 gap-2.5"><StatTile delta={false} /><StatTile delta /><StatTile delta={false} /></div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="50px" className="bg-ink-300 h-2" />{[{ t: "emerald" }, { t: "red" }, { t: "amber" }].map((r, i) => <div key={i} className="flex items-center gap-2 py-1 border-b border-ink-100 last:border-0"><span className={cn("size-2 rounded-full shrink-0", r.t === "emerald" ? "bg-emerald-400" : r.t === "red" ? "bg-red-400" : "bg-amber-400")} /><div className="flex-1 space-y-1"><Bar w="74%" /></div><Bar w="16px" className="h-1" /></div>)}</div>
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-0.5"><Bar w="44px" className="bg-ink-300 h-2 mb-1" /><LeaderRow rank={1} w="84%" hot /><LeaderRow rank={2} w="56%" /><LeaderRow rank={3} w="40%" /></div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function EmailAutomationV4() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between"><div className="h-2.5 w-24 rounded bg-ink-300" /><Switch on /></div>
+        <div className="flex-1 overflow-hidden p-3 flex flex-col items-center">
+          <div className="w-[64%] flex flex-col items-center">
+            <div className="w-full rounded-xl bg-rose-50 border border-rose-200 p-2 flex items-center gap-2"><span className="size-6 rounded-lg bg-rose-200 shrink-0" /><div className="flex-1 space-y-1"><Bar w="40%" className="bg-rose-400" /><Bar w="64%" /></div></div>
+            <div className="h-3 w-px bg-ink-200" />
+            <div className="w-full rounded-xl bg-white border border-ink-100 p-2 flex items-center gap-2"><span className="size-6 rounded-lg bg-cream-200 shrink-0" /><div className="flex-1 space-y-1"><Bar w="44%" className="bg-ink-300" /><Bar w="70%" /></div></div>
+            <div className="h-3 w-px bg-ink-200" />
+            <div className="h-4 px-2 rounded-full bg-cream-200 inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-ink-300" /><Bar w="34px" className="h-1" /></div>
+            <div className="h-3 w-px bg-ink-200" />
+            <div className="w-full rounded-xl bg-white border border-ink-100 p-2 flex items-center gap-2"><span className="size-6 rounded-lg bg-cream-200 shrink-0" /><div className="flex-1 space-y-1"><Bar w="40%" className="bg-ink-300" /><Bar w="60%" /></div></div>
+            <div className="h-3 w-px bg-ink-200" />
+            <div className="size-6 rounded-full border border-dashed border-ink-200 inline-flex items-center justify-center"><span className="relative block size-2.5"><span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 rounded bg-ink-400" /><span className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 rounded bg-ink-400" /></span></div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function AffiliatePayoutsV4() {
+  const cols = "grid grid-cols-[1.6fr_50px_44px_44px] items-center gap-2 px-2.5";
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center justify-between">
+          <div className="space-y-1"><div className="h-2.5 w-24 rounded bg-ink-300" /><Bar w="50px" /></div>
+          <div className="rounded-lg bg-gradient-to-br from-rose-100 to-cream-100 border border-rose-100 px-2.5 py-1.5 flex items-center gap-2"><div className="text-right space-y-1"><Bar w="30px" className="bg-rose-300 h-1 ml-auto" /><div className="h-3 w-12 rounded bg-ink-300" /></div><div className="h-6 w-14 rounded-md bg-rose-400" /></div>
+        </div>
+        <div className="flex-1 overflow-hidden p-3">
+          <div className="rounded-lg bg-white border border-ink-100 overflow-hidden">
+            <div className={cn(cols, "h-7 bg-cream-100 border-b border-ink-100")}><Bar w="44px" className="bg-ink-200" /><Bar w="30px" className="bg-ink-200" /><Bar w="24px" className="bg-ink-200" /><span /></div>
+            {[{ st: "ok" }, { st: "ok" }, { st: "pending" }, { st: "ok" }].map((r, i) => (
+              <div key={i} className={cn(cols, "h-9 border-b border-ink-100 last:border-0")}>
+                <div className="flex items-center gap-2 min-w-0"><div className="size-6 rounded-full bg-cream-200 shrink-0" /><div className="space-y-1 min-w-0"><Bar w="54px" className="bg-ink-300" /><Bar w="34px" /></div></div>
+                <div className="h-2.5 w-9 rounded bg-ink-300" />
+                <div className="h-3 px-1.5 rounded-full bg-cream-200 inline-flex items-center w-fit"><Bar w="18px" className="bg-ink-300 h-1" /></div>
+                {r.st === "ok" ? <div className="h-6 w-12 rounded-md bg-rose-400 ml-auto" /> : <span className="ml-auto"><StatusPill tone="amber" /></span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+function EventRecapV4() {
+  return (
+    <Frame>
+      <NavRail />
+      <div className="flex-1 min-w-0 bg-cream-50 flex flex-col">
+        <div className="px-3.5 py-2 border-b border-ink-100 flex items-center gap-2"><div className="space-y-1"><div className="h-2.5 w-32 rounded bg-ink-300" /><Bar w="50px" /></div><div className="ml-auto h-6 w-16 rounded-md bg-white border border-ink-200" /></div>
+        <div className="flex-1 overflow-hidden p-3.5 space-y-2.5">
+          <div className="grid grid-cols-3 gap-2.5"><StatTile delta={false} /><StatTile delta /><StatTile delta={false} /></div>
+          <div className="grid grid-cols-[1.5fr_1fr] gap-2.5">
+            <ChartCard bars={[8, 16, 22, 24, 23, 20, 14, 9]} h={48} />
+            <div className="rounded-xl bg-white border border-ink-100 p-2.5 space-y-1.5"><Bar w="50px" className="bg-ink-300 h-2" />{[0, 1, 2].map((i) => <div key={i} className="flex gap-1.5"><span className="size-4 rounded-full bg-cream-200 shrink-0" /><div className="flex-1 space-y-0.5"><Bar w="40px" className="bg-ink-300 h-1" /><Bar w="86%" /></div></div>)}</div>
+          </div>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════════════════
    Gallery category export
    ════════════════════════════════════════════════════════════════════════ */
@@ -6310,6 +7385,126 @@ export const PAGE_EXPLORATION_CATEGORIES: PdxCategory[] = [
       { label: "V2 · Two-column + aside", code: "PageTwoColV2", node: <TaggedFrame tag="V2"><PageTwoColV2 /></TaggedFrame> },
       { label: "V3 · Centered narrow", code: "PageCenteredV3", node: <TaggedFrame tag="V3"><PageCenteredV3 /></TaggedFrame> },
       { label: "V4 · Sections", code: "PageSectionsV4", node: <TaggedFrame tag="V4"><PageSectionsV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-program",
+    label: "Pages · Program & course",
+    icon: LayoutPanelLeft,
+    blurb: "Program explorations — curriculum builder, lesson player, program overview.",
+    items: [
+      { label: "V1 · Curriculum builder", code: "ProgramCurriculumV1", node: <TaggedFrame tag="V1"><ProgramCurriculumV1 /></TaggedFrame> },
+      { label: "V2 · Lesson player", code: "ProgramPlayerV2", node: <TaggedFrame tag="V2"><ProgramPlayerV2 /></TaggedFrame> },
+      { label: "V3 · Program overview", code: "ProgramOverviewV3", node: <TaggedFrame tag="V3"><ProgramOverviewV3 /></TaggedFrame> },
+      { label: "V4 · Students roster", code: "ProgramStudentsV4", node: <TaggedFrame tag="V4"><ProgramStudentsV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-scheduler",
+    label: "Pages · Content scheduler",
+    icon: LayoutPanelLeft,
+    blurb: "Scheduler explorations — week board, publishing queue, content calendar.",
+    items: [
+      { label: "V1 · Week board", code: "SchedulerWeekV1", node: <TaggedFrame tag="V1"><SchedulerWeekV1 /></TaggedFrame> },
+      { label: "V2 · Publishing queue", code: "SchedulerQueueV2", node: <TaggedFrame tag="V2"><SchedulerQueueV2 /></TaggedFrame> },
+      { label: "V3 · Content calendar", code: "SchedulerCalendarV3", node: <TaggedFrame tag="V3"><SchedulerCalendarV3 /></TaggedFrame> },
+      { label: "V4 · Schedule composer", code: "SchedulerComposeV4", node: <TaggedFrame tag="V4"><SchedulerComposeV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-deals",
+    label: "Pages · Brand deals",
+    icon: LayoutPanelLeft,
+    blurb: "Brand-deal explorations — pipeline board, deals table, deal detail.",
+    items: [
+      { label: "V1 · Pipeline board", code: "DealsPipelineV1", node: <TaggedFrame tag="V1"><DealsPipelineV1 /></TaggedFrame> },
+      { label: "V2 · Deals table", code: "DealsTableV2", node: <TaggedFrame tag="V2"><DealsTableV2 /></TaggedFrame> },
+      { label: "V3 · Deal detail", code: "DealDetailV3", node: <TaggedFrame tag="V3"><DealDetailV3 /></TaggedFrame> },
+      { label: "V4 · Deals overview", code: "DealsOverviewV4", node: <TaggedFrame tag="V4"><DealsOverviewV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-revenue",
+    label: "Pages · Revenue & earnings",
+    icon: LayoutPanelLeft,
+    blurb: "Revenue explorations — earnings overview, payouts, streams breakdown.",
+    items: [
+      { label: "V1 · Revenue overview", code: "RevenueOverviewV1", node: <TaggedFrame tag="V1"><RevenueOverviewV1 /></TaggedFrame> },
+      { label: "V2 · Payouts", code: "RevenuePayoutsV2", node: <TaggedFrame tag="V2"><RevenuePayoutsV2 /></TaggedFrame> },
+      { label: "V3 · Streams breakdown", code: "RevenueStreamsV3", node: <TaggedFrame tag="V3"><RevenueStreamsV3 /></TaggedFrame> },
+      { label: "V4 · Goal & forecast", code: "RevenueGoalV4", node: <TaggedFrame tag="V4"><RevenueGoalV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-audience",
+    label: "Pages · Audience",
+    icon: LayoutPanelLeft,
+    blurb: "Audience explorations — growth overview, subscriber list, segment detail.",
+    items: [
+      { label: "V1 · Audience overview", code: "AudienceOverviewV1", node: <TaggedFrame tag="V1"><AudienceOverviewV1 /></TaggedFrame> },
+      { label: "V2 · Subscriber list", code: "AudienceListV2", node: <TaggedFrame tag="V2"><AudienceListV2 /></TaggedFrame> },
+      { label: "V3 · Segment detail", code: "AudienceSegmentV3", node: <TaggedFrame tag="V3"><AudienceSegmentV3 /></TaggedFrame> },
+      { label: "V4 · Subscriber profile", code: "AudienceProfileV4", node: <TaggedFrame tag="V4"><AudienceProfileV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-email",
+    label: "Pages · Email & broadcasts",
+    icon: LayoutPanelLeft,
+    blurb: "Email explorations — broadcast composer, campaigns list, broadcast report.",
+    items: [
+      { label: "V1 · Broadcast composer", code: "EmailComposerV1", node: <TaggedFrame tag="V1"><EmailComposerV1 /></TaggedFrame> },
+      { label: "V2 · Campaigns list", code: "EmailCampaignsV2", node: <TaggedFrame tag="V2"><EmailCampaignsV2 /></TaggedFrame> },
+      { label: "V3 · Broadcast report", code: "EmailReportV3", node: <TaggedFrame tag="V3"><EmailReportV3 /></TaggedFrame> },
+      { label: "V4 · Automation flow", code: "EmailAutomationV4", node: <TaggedFrame tag="V4"><EmailAutomationV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-affiliate",
+    label: "Pages · Affiliate & referral",
+    icon: LayoutPanelLeft,
+    blurb: "Referral explorations — referral dashboard, affiliates table, referral share.",
+    items: [
+      { label: "V1 · Referral dashboard", code: "ReferralDashV1", node: <TaggedFrame tag="V1"><ReferralDashV1 /></TaggedFrame> },
+      { label: "V2 · Affiliates table", code: "AffiliatesTableV2", node: <TaggedFrame tag="V2"><AffiliatesTableV2 /></TaggedFrame> },
+      { label: "V3 · Referral share", code: "ReferralShareV3", node: <TaggedFrame tag="V3"><ReferralShareV3 /></TaggedFrame> },
+      { label: "V4 · Commission payouts", code: "AffiliatePayoutsV4", node: <TaggedFrame tag="V4"><AffiliatePayoutsV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-events",
+    label: "Pages · Live & events",
+    icon: LayoutPanelLeft,
+    blurb: "Live & event explorations — events list, live room, event detail.",
+    items: [
+      { label: "V1 · Events list", code: "EventsListV1", node: <TaggedFrame tag="V1"><EventsListV1 /></TaggedFrame> },
+      { label: "V2 · Live room", code: "LiveRoomV2", node: <TaggedFrame tag="V2"><LiveRoomV2 /></TaggedFrame> },
+      { label: "V3 · Event detail", code: "EventDetailV3", node: <TaggedFrame tag="V3"><EventDetailV3 /></TaggedFrame> },
+      { label: "V4 · Event recap", code: "EventRecapV4", node: <TaggedFrame tag="V4"><EventRecapV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-moderation",
+    label: "Pages · Community moderation",
+    icon: LayoutPanelLeft,
+    blurb: "Moderation explorations — reports queue, members admin, auto-mod rules.",
+    items: [
+      { label: "V1 · Reports queue", code: "ModerationQueueV1", node: <TaggedFrame tag="V1"><ModerationQueueV1 /></TaggedFrame> },
+      { label: "V2 · Members admin", code: "ModerationMembersV2", node: <TaggedFrame tag="V2"><ModerationMembersV2 /></TaggedFrame> },
+      { label: "V3 · Auto-mod rules", code: "ModerationRulesV3", node: <TaggedFrame tag="V3"><ModerationRulesV3 /></TaggedFrame> },
+      { label: "V4 · Moderation dashboard", code: "ModerationDashV4", node: <TaggedFrame tag="V4"><ModerationDashV4 /></TaggedFrame> },
+    ],
+  },
+  {
+    id: "pdx-shop",
+    label: "Pages · Digital products",
+    icon: LayoutPanelLeft,
+    blurb: "Product explorations — products grid, product editor, orders & sales.",
+    items: [
+      { label: "V1 · Products", code: "ShopProductsV1", node: <TaggedFrame tag="V1"><ShopProductsV1 /></TaggedFrame> },
+      { label: "V2 · Product editor", code: "ShopEditorV2", node: <TaggedFrame tag="V2"><ShopEditorV2 /></TaggedFrame> },
+      { label: "V3 · Orders & sales", code: "ShopOrdersV3", node: <TaggedFrame tag="V3"><ShopOrdersV3 /></TaggedFrame> },
+      { label: "V4 · Product page", code: "ShopProductPageV4", node: <TaggedFrame tag="V4"><ShopProductPageV4 /></TaggedFrame> },
     ],
   },
 ];

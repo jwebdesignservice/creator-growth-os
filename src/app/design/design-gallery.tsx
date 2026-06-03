@@ -1375,6 +1375,8 @@ const CATEGORY_ORDER: string[] = [
   "page-designs",
   // Page designs · explorations (full-page wireframe studies, V1–V4)
   "pdx-app-shell", "pdx-dashboard", "pdx-bento", "pdx-report",
+  // platform surfaces — programs, content, monetization, audience
+  "pdx-program", "pdx-scheduler", "pdx-deals", "pdx-revenue", "pdx-shop", "pdx-audience", "pdx-moderation", "pdx-email", "pdx-affiliate", "pdx-events",
   "pdx-data-table", "pdx-list-detail", "pdx-tabs", "pdx-document", "pdx-scaffold",
   "pdx-profile", "pdx-creator", "pdx-members", "pdx-account", "pdx-settings", "pdx-prefs",
   "pdx-kanban", "pdx-gantt", "pdx-calendar", "pdx-booking", "pdx-tracker",

@@ -408,7 +408,10 @@ export function HelpCenterV2() {
             <div key={i} className="rounded-lg bg-white border border-ink-100 p-2 space-y-1.5">
               <div className="size-6 rounded-md bg-rose-100" />
               <div className="h-1.5 w-3/4 rounded bg-ink-200" />
-              <div className="h-1.5 w-1/2 rounded bg-ink-100" />
+              <div className="flex items-center justify-between pt-0.5">
+                <div className="h-1.5 w-8 rounded bg-ink-100" />
+                <div className="size-2 rounded-full bg-cream-100" />
+              </div>
             </div>
           ))}
         </div>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   GripVertical,
   ArrowUp,
@@ -36,6 +37,8 @@ type Props = {
   total: number;
   page: number;
   pageSize: number;
+  /** Filter controls rendered into the panel toolbar (left side). */
+  children?: ReactNode;
 };
 
 /**
@@ -47,9 +50,16 @@ type Props = {
  * owned by the parent page; this component only handles the interactive
  * polish + client-side row sort within the current page.
  */
-export function UsersTable({ rows, total, page, pageSize }: Props) {
-  void total;
-  void pageSize; // accepted for future use; UI consumers read URL directly.
+export function UsersTable({ rows, total, page, pageSize, children }: Props) {
+  const searchParams = useSearchParams();
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    if (p > 0) params.set("page", String(p));
+    else params.delete("page");
+    const qs = params.toString();
+    return `/admin/users${qs ? `?${qs}` : ""}`;
+  };
 
   const [order, setOrder] = useState<UserColumnId[]>(DEFAULT_COLUMN_ORDER);
   const [visible, setVisible] =
@@ -62,6 +72,10 @@ export function UsersTable({ rows, total, page, pageSize }: Props) {
   // Load persisted prefs on mount (avoids hydration mismatch — server renders
   // defaults, then this hydrates with the admin's saved layout).
   useEffect(() => {
+    // One-time hydration from localStorage (an external store) on mount; the
+    // synchronous-setState rule is a false positive for this pattern (a lazy
+    // useState initializer would reintroduce the SSR hydration mismatch).
+    /* eslint-disable react-hooks/set-state-in-effect */
     try {
       const o = JSON.parse(localStorage.getItem(STORAGE_KEYS.ORDER) ?? "null");
       const v = JSON.parse(localStorage.getItem(STORAGE_KEYS.VISIBILITY) ?? "null");
@@ -76,6 +90,7 @@ export function UsersTable({ rows, total, page, pageSize }: Props) {
     } catch {
       // localStorage unavailable or corrupted — fall back to defaults silently.
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   // Persist.
@@ -200,10 +215,12 @@ export function UsersTable({ rows, total, page, pageSize }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Action row — sits ABOVE the table card so the Edit popover isn't
-          clipped by the card's overflow. */}
-      <div className="flex items-center justify-end gap-2">
+    <section className="bg-white border-t border-ink-100 flex flex-col flex-1 min-h-0">
+      {/* Toolbar — filters (from the page) on the left, table actions on the
+          right, matching the "Data table · V2 dense" toolbar. */}
+      <div className="flex items-center gap-3 px-6 lg:px-8 py-2.5 border-b border-ink-100 flex-wrap shrink-0">
+        {children}
+        <div className="ml-auto flex items-center gap-2">
         <button
           type="button"
           onClick={exportCsv}
@@ -239,18 +256,18 @@ export function UsersTable({ rows, total, page, pageSize }: Props) {
               }}
             />
           )}
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <section className="card overflow-hidden">
+      {/* Dense table — grows to fill the panel height; scrolls if rows overflow */}
+      <div className="flex-1 min-h-0 overflow-auto">
         {rows.length === 0 ? (
           <div className="p-10 text-center text-[13px] text-ink-500">
             No users match these filters.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
+            <table className="w-full text-left text-[12px]">
               <thead>
                 <tr className="text-[10.5px] tracking-[0.12em] uppercase text-ink-500 bg-cream-100/60 border-b border-ink-100">
                   {orderedIds.map((id) => {
@@ -273,7 +290,7 @@ export function UsersTable({ rows, total, page, pageSize }: Props) {
                         onDrop={draggable ? () => onDrop(id) : undefined}
                         onDragEnd={onDragEnd}
                         className={cn(
-                          "font-semibold py-3 px-3 first:pl-5 last:pr-5 select-none transition-colors",
+                          "font-semibold py-1.5 px-3 first:pl-6 lg:first:pl-8 last:pr-6 lg:last:pr-8 select-none transition-colors",
                           draggable && "cursor-grab active:cursor-grabbing",
                           isOver && "bg-rose-50",
                           draggingId === id && "opacity-50",
@@ -317,13 +334,13 @@ export function UsersTable({ rows, total, page, pageSize }: Props) {
                 {sortedRows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-t border-ink-100 hover:bg-cream-50/60 transition-colors"
+                    className="border-t border-ink-100 even:bg-cream-100/70 hover:bg-rose-50/60 transition-colors"
                   >
                     {orderedIds.map((id) => (
                       <td
                         key={id}
                         className={cn(
-                          "py-3 px-3 first:pl-5 last:pr-5 align-middle",
+                          "py-1.5 px-3 first:pl-6 lg:first:pl-8 last:pr-6 lg:last:pr-8 align-middle whitespace-nowrap",
                           (id === "joined" ||
                             id === "streak" ||
                             id === "last_accessed") &&
@@ -337,10 +354,37 @@ export function UsersTable({ rows, total, page, pageSize }: Props) {
                 ))}
               </tbody>
             </table>
-          </div>
         )}
-      </section>
-    </div>
+      </div>
+
+      {/* Footer — total count + pagination, matching the design's footer band. */}
+      <div className="border-t border-ink-100 px-6 lg:px-8 py-2 flex items-center justify-between text-[12px] text-ink-500 shrink-0">
+        <span>
+          <span className="font-medium text-ink-700 tabular-nums">{total}</span>{" "}
+          {total === 1 ? "member" : "members"} · Page{" "}
+          <span className="tabular-nums">{page + 1}</span> of{" "}
+          <span className="tabular-nums">{totalPages}</span>
+        </span>
+        <div className="flex items-center gap-1.5">
+          {page > 0 && (
+            <Link
+              href={pageHref(page - 1)}
+              className="px-2.5 h-7 rounded-[7px] border border-ink-200 text-ink-700 hover:bg-cream-100 inline-flex items-center"
+            >
+              Previous
+            </Link>
+          )}
+          {page < totalPages - 1 && (
+            <Link
+              href={pageHref(page + 1)}
+              className="px-2.5 h-7 rounded-[7px] border border-ink-200 text-ink-700 hover:bg-cream-100 inline-flex items-center"
+            >
+              Next
+            </Link>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -358,8 +402,8 @@ function Cell({ columnId, row }: { columnId: UserColumnId; row: AdminUserRow }) 
         .join("")
         .toUpperCase();
       return (
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="size-8 rounded-full bg-cream-200 text-ink-700 inline-flex items-center justify-center text-[11px] font-semibold shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="size-5 rounded-full bg-cream-200 text-ink-700 inline-flex items-center justify-center text-[9px] font-semibold shrink-0">
             {initials || "?"}
           </span>
           <span className="font-medium text-ink-900 truncate">{name}</span>
@@ -380,7 +424,12 @@ function Cell({ columnId, row }: { columnId: UserColumnId; row: AdminUserRow }) 
       );
     case "status": {
       const meta = statusMeta(row);
-      return <span className={cn("chip", meta.cls)}>{meta.label}</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 text-ink-700">
+          <span className={cn("size-1.5 rounded-full shrink-0", meta.dot)} />
+          {meta.label}
+        </span>
+      );
     }
     case "category":
       return (
@@ -412,14 +461,14 @@ function Cell({ columnId, row }: { columnId: UserColumnId; row: AdminUserRow }) 
           <a
             href={`mailto:${row.email}`}
             aria-label="Email user"
-            className="size-8 rounded-[9px] border border-ink-200 bg-white hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-rose-600 transition-colors"
+            className="size-6 rounded-[7px] border border-ink-200 bg-white hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-rose-600 transition-colors"
           >
             <Mail className="size-3.5" strokeWidth={2} />
           </a>
           <Link
             href={`/admin/users/${row.id}`}
             aria-label="Manage user"
-            className="size-8 rounded-[9px] border border-ink-200 bg-white hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-rose-600 transition-colors"
+            className="size-6 rounded-[7px] border border-ink-200 bg-white hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-rose-600 transition-colors"
           >
             <MessageSquare className="size-3.5" strokeWidth={2} />
           </Link>
@@ -600,17 +649,13 @@ function planChip(plan: string) {
   return "bg-cream-100 text-ink-700";
 }
 
-function statusMeta(row: AdminUserRow): { label: string; cls: string } {
-  if (!row.onboarded)
-    return {
-      label: "Onboarding",
-      cls: "bg-amber-50 text-amber-700 border border-amber-200",
-    };
+function statusMeta(row: AdminUserRow): { label: string; dot: string } {
+  if (!row.onboarded) return { label: "Onboarding", dot: "bg-amber-400" };
   if (row.last_active_date) {
     const days = daysSince(row.last_active_date);
-    if (days != null && days <= 7) return { label: "Active", cls: "chip-success" };
+    if (days != null && days <= 7) return { label: "Active", dot: "bg-emerald-400" };
   }
-  return { label: "Joined", cls: "bg-cream-100 text-ink-700" };
+  return { label: "Joined", dot: "bg-ink-300" };
 }
 
 function daysSince(iso: string): number | null {

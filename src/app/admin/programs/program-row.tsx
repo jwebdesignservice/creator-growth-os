@@ -123,12 +123,12 @@ export function ProgramRow({
   return (
     <tr
       className={cn(
-        "border-t border-ink-100 hover:bg-cream-50/60 transition-colors",
+        "border-t border-ink-100 even:bg-cream-100/60 hover:bg-rose-50/60 transition-colors",
         pending && "opacity-60",
       )}
     >
       {/* Thumbnail — opens the admin Program Setup Guide */}
-      <td className="py-4 pl-5 pr-3">
+      <td className="py-4 pl-6 lg:pl-8 pr-3">
         <Link
           href={`/admin/programs/${program.id}`}
           aria-label={`Open ${program.title}`}
@@ -212,7 +212,7 @@ export function ProgramRow({
       </td>
 
       {/* Actions */}
-      <td className="py-4 pr-5 text-right">
+      <td className="py-4 pr-6 lg:pr-8 text-right">
         <div ref={menuRef} className="relative inline-block">
           <button
             type="button"

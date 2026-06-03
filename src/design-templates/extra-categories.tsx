@@ -80,6 +80,10 @@ import { WeeklyScorecard, GradeStrip } from "./scorecard";
 import { PAGE_DESIGNS_CREATOR } from "./page-designs-creator";
 import { PAGE_DESIGNS_GROWTH } from "./page-designs-growth";
 import { PAGE_DESIGNS_MOBILE } from "./page-designs-mobile";
+import { PAGE_DESIGNS_PLATFORM } from "./page-designs-platform";
+import { PAGE_DESIGNS_LEARNING } from "./page-designs-learning";
+import { PAGE_DESIGNS_MARKETING } from "./page-designs-marketing";
+import { PAGE_DESIGNS_COMMUNITY } from "./page-designs-community";
 
 type ExtraCategory = {
   id: string;
@@ -94,6 +98,10 @@ export const EXTRA_CATEGORIES: ExtraCategory[] = [
   ...PAGE_DESIGNS_CREATOR,
   ...PAGE_DESIGNS_GROWTH,
   ...PAGE_DESIGNS_MOBILE,
+  ...PAGE_DESIGNS_PLATFORM,
+  ...PAGE_DESIGNS_LEARNING,
+  ...PAGE_DESIGNS_MARKETING,
+  ...PAGE_DESIGNS_COMMUNITY,
   {
     id: "integrations",
     label: "Integrations",

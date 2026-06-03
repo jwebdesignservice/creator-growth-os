@@ -3,14 +3,11 @@ import {
   Plus,
   Sparkles,
   Briefcase,
-  CheckCircle2,
-  Users,
   ChevronLeft,
   ChevronRight,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
-  type LucideIcon,
 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
@@ -152,35 +149,11 @@ export default async function AdminProgramsPage({
     }
   }
 
-  // ── Stats (always reflect totals, never the filtered subset) ─────────
-  const monthAgo = new Date();
-  monthAgo.setDate(monthAgo.getDate() - 30);
-  const monthAgoIso = monthAgo.toISOString();
-
-  const [
-    { count: totalPrograms },
-    { count: publishedPrograms },
-    { count: newProgramsThisMonth },
-    { data: progressRows },
-  ] = await Promise.all([
-    supabase.from("programs").select("id", { count: "exact", head: true }),
-    supabase
-      .from("programs")
-      .select("id", { count: "exact", head: true })
-      .eq("published", true),
-    supabase
-      .from("programs")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", monthAgoIso),
-    supabase
-      .from("program_progress")
-      .select("user_id, program_id, started_at"),
-  ]);
-
-  // Per-program member counts + global distinct + this-month delta
+  // ── Per-program member counts (shown on each program card / row) ─────
+  const { data: progressRows } = await supabase
+    .from("program_progress")
+    .select("program_id");
   const membersByProgram = new Map<string, number>();
-  const distinctUsers = new Set<string>();
-  let newMembersThisMonth = 0;
   for (const row of progressRows ?? []) {
     if (row.program_id) {
       membersByProgram.set(
@@ -188,10 +161,7 @@ export default async function AdminProgramsPage({
         (membersByProgram.get(row.program_id) ?? 0) + 1,
       );
     }
-    if (row.user_id) distinctUsers.add(row.user_id);
-    if (row.started_at && row.started_at >= monthAgoIso) newMembersThisMonth++;
   }
-  const totalMembers = distinctUsers.size;
 
   const rows: ProgramRowData[] = (programs ?? []).map(
     (p): ProgramRowData => ({
@@ -209,11 +179,6 @@ export default async function AdminProgramsPage({
     }),
   );
 
-  const pubPct =
-    totalPrograms && totalPrograms > 0
-      ? Math.round(((publishedPrograms ?? 0) / totalPrograms) * 1000) / 10
-      : 0;
-
   // Pagination math
   const totalCount = filteredCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
@@ -228,80 +193,52 @@ export default async function AdminProgramsPage({
     buildHref({ search, sort, status, plan, view, per: String(perPage), page: String(pageNum) }, overrides);
 
   return (
-    <div className="space-y-6 max-w-[1280px] mx-auto">
-      {/* ── Header ───────────────────────────────────────────────────── */}
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-h1 text-ink-900 leading-tight mb-1">
-            Programs
-          </h1>
-          <p className="text-ink-500 text-[14px]">
-            Create and manage structured creator programs.
-          </p>
-        </div>
+    <div className="flex flex-col -mx-6 lg:-mx-8 -my-6 lg:-my-8 h-[calc(100vh_-_69px)]">
+      {/* ── Header — compact & full-bleed, with the primary action ────── */}
+      <header className="shrink-0 px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+        <h1 className="text-page-title text-ink-900">Programs</h1>
         <Link
           href="/create-new"
-          className="inline-flex items-center gap-2 h-12 px-5 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-semibold transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm shrink-0"
         >
           <Plus className="size-4" strokeWidth={2.5} />
           New program
         </Link>
       </header>
 
-      {/* ── Toolbar ──────────────────────────────────────────────────── */}
-      <ProgramsToolbar />
-
-      {/* ── Stats (clickable as filter shortcuts) ────────────────────── */}
-      <div className="card p-2">
-        <div className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x sm:divide-ink-100">
-          <StatCard
-            href="?"
-            icon={Briefcase}
-            label="Total Programs"
-            value={totalPrograms ?? 0}
-            delta={`+${newProgramsThisMonth ?? 0} this month`}
-            tone="accent"
-          />
-          <StatCard
-            href="?status=published"
-            icon={CheckCircle2}
-            label="Published"
-            value={publishedPrograms ?? 0}
-            delta={`${pubPct}% of total`}
-            tone="muted"
-          />
-          <StatCard
-            icon={Users}
-            label="Total Members"
-            value={totalMembers}
-            delta={`+${newMembersThisMonth} this month`}
-            tone="accent"
-          />
+      {/* ── One cohesive full-bleed band: toolbar + results + footer ──── */}
+      <section className="bg-white border-t border-ink-100 flex flex-col flex-1 min-h-0">
+        {/* Toolbar — filters, search, sort, status, and the grid/table View toggle */}
+        <div className="px-6 lg:px-8 py-2.5 border-b border-ink-100 shrink-0">
+          <ProgramsToolbar />
         </div>
-      </div>
 
-      {/* ── Results: table OR grid ───────────────────────────────────── */}
-      {viewMode === "grid" ? (
-        rows.length === 0 ? (
-          <EmptyState hasFilters={hasActiveFilters} />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rows.map((p) => (
-              <ProgramGridCard
-                key={p.id}
-                program={p}
-                ownerName={ownerName}
-              />
-            ))}
-          </div>
-        )
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
+        {/* ── Results: table OR grid — fills the height; scrolls if needed ── */}
+        <div
+          className={cn(
+            "flex-1 min-h-0 overflow-auto",
+            viewMode === "grid" && "px-6 lg:px-8 py-4 bg-cream-50",
+          )}
+        >
+          {viewMode === "grid" ? (
+            rows.length === 0 ? (
+              <EmptyState hasFilters={hasActiveFilters} />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {rows.map((p) => (
+                  <ProgramGridCard
+                    key={p.id}
+                    program={p}
+                    ownerName={ownerName}
+                  />
+                ))}
+              </div>
+            )
+          ) : (
             <table className="w-full text-left">
               <thead>
-                <tr className="text-[10.5px] uppercase tracking-wider font-bold text-ink-400 bg-cream-50/40">
-                  <th className="py-3 pl-5 pr-3">Thumbnail</th>
+                <tr className="text-[10.5px] tracking-[0.12em] uppercase text-ink-500 bg-cream-100/60 border-b border-ink-100">
+                  <th className="py-3 pl-6 lg:pl-8 pr-3">Thumbnail</th>
                   <SortHeader
                     label="Program name"
                     sortKey="name"
@@ -328,17 +265,14 @@ export default async function AdminProgramsPage({
                   <th className="py-3 pr-3">Members</th>
                   <th className="py-3 pr-3">Status</th>
                   <th className="py-3 pr-3">Access</th>
-                  <th className="py-3 pr-5 text-right">Actions</th>
+                  <th className="py-3 pr-6 lg:pr-8 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-0">
-                      <EmptyState
-                        hasFilters={hasActiveFilters}
-                        inline
-                      />
+                      <EmptyState hasFilters={hasActiveFilters} inline />
                     </td>
                   </tr>
                 ) : (
@@ -352,90 +286,41 @@ export default async function AdminProgramsPage({
                 )}
               </tbody>
             </table>
+          )}
+        </div>
+
+        {/* ── Footer: tip + pagination — pinned at the bottom ─────────── */}
+        <div className="border-t border-ink-100 px-6 lg:px-8 py-2 flex items-center justify-between gap-4 flex-wrap shrink-0">
+          <div className="inline-flex items-center gap-2 text-[12px] text-ink-500">
+            <span className="size-6 rounded-full bg-rose-100 text-rose-500 inline-flex items-center justify-center shrink-0">
+              <Sparkles
+                className="size-3"
+                strokeWidth={2}
+                fill="currentColor"
+              />
+            </span>
+            <span>
+              <span className="font-semibold text-ink-700">Tip:</span>{" "}
+              Published programs with thumbnails convert better.
+            </span>
           </div>
-        </div>
-      )}
 
-      {/* ── Footer: tip + pagination ─────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="inline-flex items-center gap-2 text-[12.5px] text-ink-500">
-          <span className="size-7 rounded-full bg-rose-100 text-rose-500 inline-flex items-center justify-center shrink-0">
-            <Sparkles
-              className="size-3.5"
-              strokeWidth={2}
-              fill="currentColor"
-            />
-          </span>
-          <span>
-            <span className="font-semibold text-ink-700">Tip:</span>{" "}
-            Published programs with thumbnails convert better.
-          </span>
+          <PaginationControls
+            pageNum={pageNum}
+            totalPages={totalPages}
+            rangeFrom={rangeFrom}
+            rangeTo={rangeTo}
+            totalCount={totalCount}
+            perPage={perPage}
+            params={{ search, sort, status, plan, view, per }}
+          />
         </div>
-
-        <PaginationControls
-          pageNum={pageNum}
-          totalPages={totalPages}
-          rangeFrom={rangeFrom}
-          rangeTo={rangeTo}
-          totalCount={totalCount}
-          perPage={perPage}
-          params={{ search, sort, status, plan, view, per }}
-        />
-      </div>
+      </section>
     </div>
   );
 }
 
 /* ───────────────────────────────────────────────────────────────────── */
-
-function StatCard({
-  href,
-  icon: Icon,
-  label,
-  value,
-  delta,
-  tone,
-}: {
-  href?: string;
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  delta: string;
-  tone: "accent" | "muted";
-}) {
-  const body = (
-    <div className="flex items-center gap-4 p-4 sm:p-5">
-      <span className="size-12 rounded-[14px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-        <Icon className="size-[22px]" strokeWidth={1.9} />
-      </span>
-      <div className="min-w-0">
-        <div className="text-[12.5px] text-ink-500 leading-tight">{label}</div>
-        <div className="text-[28px] font-bold text-ink-900 leading-tight tabular-nums">
-          {value.toLocaleString()}
-        </div>
-        <div
-          className={cn(
-            "text-[11.5px] mt-0.5",
-            tone === "accent"
-              ? "text-rose-600 font-semibold"
-              : "text-ink-500",
-          )}
-        >
-          {delta}
-        </div>
-      </div>
-    </div>
-  );
-  if (!href) return body;
-  return (
-    <Link
-      href={href}
-      className="block hover:bg-cream-50/60 rounded-[10px] transition-colors"
-    >
-      {body}
-    </Link>
-  );
-}
 
 function SortHeader({
   label,
