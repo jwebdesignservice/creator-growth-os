@@ -80,7 +80,7 @@ export default async function ProgramsPage({
           locked: gateActive && p.slug !== ONBOARDING_PROGRAM_SLUG,
         };
       })
-    : FALLBACK;
+    : [];
 
   // When the gate is active, surface Start Here as the featured program so the
   // hero CTA points into onboarding (and is never itself locked).
@@ -108,25 +108,31 @@ export default async function ProgramsPage({
           </p>
         </header>
 
-        {/* Featured */}
-        {featured && (
-          <FeaturedProgram
-            slug={featured.slug}
-            title={featured.title}
-            description={featured.description}
-            category_label={featured.category_label ?? "Growth Creator"}
-            total_lessons={featured.total_lessons ?? 24}
-            total_tasks={featured.total_tasks ?? 18}
-            estimated_days={featured.estimated_days ?? 30}
-            progress={featured.progress ?? 0}
-          />
+        {programs.length === 0 ? (
+          <ProgramsEmptyState />
+        ) : (
+          <>
+            {/* Featured */}
+            {featured && (
+              <FeaturedProgram
+                slug={featured.slug}
+                title={featured.title}
+                description={featured.description}
+                category_label={featured.category_label ?? "Growth Creator"}
+                total_lessons={featured.total_lessons ?? 24}
+                total_tasks={featured.total_tasks ?? 18}
+                estimated_days={featured.estimated_days ?? 30}
+                progress={featured.progress ?? 0}
+              />
+            )}
+
+            {/* Grid + filters */}
+            <ProgramsGrid programs={programs} />
+
+            {/* Bottom CTA */}
+            <UpgradeAccent />
+          </>
         )}
-
-        {/* Grid + filters */}
-        <ProgramsGrid programs={programs} />
-
-        {/* Bottom CTA */}
-        <UpgradeAccent />
       </div>
     </PageShell>
   );
@@ -169,52 +175,35 @@ function UpgradeAccent() {
   );
 }
 
-const FALLBACK: ProgramRow[] = [
-  {
-    slug: "influencer-blueprint",
-    title: "The Influencer Blueprint",
-    description: "Build your personal brand, find your niche, and create a consistent content system.",
-    status: "in_progress",
-    progress: 68,
-    category_label: "Starter Creator",
-    total_lessons: 24,
-    total_tasks: 18,
-    estimated_days: 30,
-    cover_hue: "rose",
-  },
-  {
-    slug: "content-that-connects",
-    title: "Content That Connects",
-    description: "Create content that attracts and converts your ideal audience.",
-    status: "in_progress",
-    progress: 42,
-    category_label: "Growth Creator",
-    total_lessons: 20,
-    total_tasks: 15,
-    estimated_days: 30,
-    cover_hue: "cream",
-  },
-  {
-    slug: "monetize-your-influence",
-    title: "Monetize Your Influence",
-    description: "Turn your audience into income with multiple revenue streams.",
-    status: "not_started",
-    progress: 0,
-    category_label: "Monetization Creator",
-    total_lessons: 22,
-    total_tasks: 16,
-    estimated_days: 30,
-    cover_hue: "warm",
-  },
-  {
-    slug: "scale-and-automate",
-    title: "Scale & Automate",
-    description: "Systemize your content, team and workflows to scale your impact.",
-    status: "pro_only",
-    category_label: "Monetization Creator",
-    total_lessons: 20,
-    total_tasks: 14,
-    estimated_days: 30,
-    cover_hue: "rose",
-  },
-];
+/* Real empty state — shown when no programs are published yet, instead of
+   fabricated demo programs that linked to slugs the DB doesn't have. */
+function ProgramsEmptyState() {
+  return (
+    <section className="card p-10 sm:p-14 text-center">
+      <div className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-4 mx-auto">
+        <Sparkles className="size-6" strokeWidth={1.8} aria-hidden />
+      </div>
+      <h2 className="text-h4 sm:text-[22px] text-ink-900 mb-2">
+        No programs available yet
+      </h2>
+      <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-6 leading-relaxed">
+        New growth programs are on the way. In the meantime, explore the
+        tutorial library or plan out this week&apos;s content.
+      </p>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+        <Link
+          href="/tutorials"
+          className="inline-flex items-center justify-center h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors shadow-sm"
+        >
+          Browse tutorials
+        </Link>
+        <Link
+          href="/posting"
+          className="inline-flex items-center justify-center h-11 px-5 rounded-[12px] bg-white border border-ink-200 hover:bg-cream-100 text-ink-900 text-[14px] font-medium transition-colors"
+        >
+          Plan your posts
+        </Link>
+      </div>
+    </section>
+  );
+}

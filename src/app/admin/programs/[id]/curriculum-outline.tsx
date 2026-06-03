@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { toast } from "@/components/ui/toast";
 import {
   setModulePublished,
   duplicateModule,
@@ -273,7 +274,7 @@ function ModuleActionsMenu({
     startTransition(async () => {
       const res = await setModulePublished(programId, moduleNumber, !published);
       if (!res.ok) {
-        window.alert(res.error);
+        toast(res.error, "error");
         return;
       }
       router.refresh();
@@ -285,7 +286,7 @@ function ModuleActionsMenu({
     startTransition(async () => {
       const res = await duplicateModule(programId, moduleNumber);
       if (!res.ok) {
-        window.alert(res.error);
+        toast(res.error, "error");
         return;
       }
       router.refresh();
@@ -377,7 +378,7 @@ function ModuleActionsMenu({
           startTransition(async () => {
             const res = await deleteModule(programId, moduleNumber);
             if (!res.ok) {
-              window.alert(res.error);
+              toast(res.error, "error");
               return;
             }
             setConfirmDelete(false);

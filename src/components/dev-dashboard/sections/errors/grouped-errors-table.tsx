@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { DevSectionCard } from "../../dev-section-card";
 import {
   GROUPED_ERRORS,
@@ -105,14 +104,15 @@ export function GroupedErrorsTable({ rows, total, totalPages, filters }: Props) 
                   <Td className="text-[var(--dev-text-secondary)] tabular-nums whitespace-nowrap">{row.lastSeen}</Td>
                   <Td className="text-[var(--dev-text-secondary)] whitespace-nowrap">{row.owner}</Td>
                   <Td>
-                    {/* Detail page intentionally not built in this pass — link kept
-                        for forward-compat so a future /dev/errors/[id] picks it up. */}
-                    <Link
-                      href={{ pathname: `/dev/errors/${row.id.toLowerCase()}` }}
-                      className="text-[12.5px] font-medium text-[var(--dev-accent-text)] hover:text-[var(--dev-accent)] transition-colors whitespace-nowrap"
+                    {/* Detail page not built yet. Rendered as a non-interactive
+                        label rather than a link that would 404. Swap back to a
+                        <Link href={`/dev/errors/${row.id}`}> once that route exists. */}
+                    <span
+                      title="Detail view coming soon"
+                      className="text-[12.5px] font-medium text-[var(--dev-text-muted)] whitespace-nowrap cursor-default"
                     >
                       View details
-                    </Link>
+                    </span>
                   </Td>
                 </tr>
               ))

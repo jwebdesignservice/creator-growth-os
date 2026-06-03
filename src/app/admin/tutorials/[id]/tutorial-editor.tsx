@@ -43,6 +43,7 @@ import {
   duplicateTutorial,
 } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
+import { toast } from "@/components/ui/toast";
 import { ThumbnailTab } from "./thumbnail-tab";
 import { ControlsTab } from "./controls-tab";
 import type { LessonControls } from "./controls-types";
@@ -595,7 +596,7 @@ function EditorMoreMenu({
     startTransition(async () => {
       const res = await duplicateTutorial(lessonId);
       if (res.ok && res.id) router.push(`/admin/tutorials/${res.id}`);
-      else if (!res.ok) window.alert(res.error);
+      else if (!res.ok) toast(res.error, "error");
     });
   }
 
@@ -622,7 +623,7 @@ function EditorMoreMenu({
     startTransition(async () => {
       const res = await deleteLesson(lessonId);
       if (res.ok) router.push("/admin/tutorials");
-      else window.alert(res.error);
+      else toast(res.error, "error");
     });
   }
 
