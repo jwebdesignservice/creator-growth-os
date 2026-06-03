@@ -4,8 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Play,
-  Check,
+  ArrowLeft,
   NotebookPen,
   X,
   Loader2,
@@ -37,6 +36,10 @@ type Props = {
   lessonTitle: string;
   /** Program slug — used for the "view all notes" link, when in a program. */
   programSlug?: string | null;
+  /** Next lesson's slug — drives the "Complete & continue" primary action. */
+  nextSlug?: string | null;
+  /** Previous lesson's slug — drives the "Go back" action. */
+  prevSlug?: string | null;
 };
 
 const MAX_LEN = 5000;
@@ -55,68 +58,17 @@ export function LessonActionRow({
   initialCompleted,
   lessonTitle,
   programSlug,
+  nextSlug,
+  prevSlug,
 }: Props) {
+  const router = useRouter();
   const [completed, setCompleted] = useState(initialCompleted);
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
 
-  function toggle() {
-    setErr(null);
-    const next = !completed;
-    // Optimistic
-    setCompleted(next);
-    startTransition(async () => {
-      const res = await markLessonComplete(lessonSlug, next);
-      if (!res.ok) {
-        setCompleted(!next);
-        setErr(res.error);
-      }
-    });
-  }
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <button
-        type="button"
-        onClick={() => {
-          // Take the learner back up to the player to keep watching — it does
-          // NOT mark the lesson complete (that's the dedicated button beside
-          // it). Falls back to scrolling to the top of the page if the player
-          // element isn't found.
-          const player = document.getElementById("lesson-video");
-          if (player) {
-            player.scrollIntoView({ behavior: "smooth", block: "start" });
-          } else {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }
-        }}
-        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors cursor-pointer"
-      >
-        <Play className="size-4" fill="currentColor" />
-        Continue Watching
-      </button>
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={pending}
-        className={cn(
-          "inline-flex items-center justify-center gap-2 h-11 rounded-[12px] border text-[14px] font-medium transition-colors cursor-pointer",
-          completed
-            ? "bg-rose-100 border-rose-200 text-rose-700"
-            : "bg-white border-ink-200 text-ink-900 hover:bg-cream-100",
-        )}
-      >
-        <span
-          className={cn(
-            "size-4 rounded-full inline-flex items-center justify-center",
-            completed ? "bg-rose-500 text-white" : "border border-ink-300",
-          )}
-        >
-          {completed && <Check className="size-3" strokeWidth={3} />}
-        </span>
-        {completed ? "Completed" : pending ? "Saving…" : "Mark Complete"}
-      </button>
       <button
         type="button"
         onClick={() => setNoteOpen(true)}
@@ -124,6 +76,55 @@ export function LessonActionRow({
       >
         <NotebookPen className="size-4" strokeWidth={1.8} />
         Create Notes
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          // "Go back" — return to the previous lesson (falls back to the
+          // program overview when this is the first lesson).
+          const dest =
+            prevSlug && programSlug
+              ? `/programs/${programSlug}/${prevSlug}`
+              : programSlug
+                ? `/programs/${programSlug}`
+                : "/programs";
+          router.push(dest);
+        }}
+        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] border border-ink-200 bg-white text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors cursor-pointer"
+      >
+        <ArrowLeft className="size-4" strokeWidth={2} />
+        Go back
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          // "Complete & continue" — mark this lesson complete (if it isn't
+          // already) and advance to the next lesson. Falls back to the program
+          // overview when this is the last lesson.
+          setErr(null);
+          startTransition(async () => {
+            if (!completed) {
+              const res = await markLessonComplete(lessonSlug, true);
+              if (!res.ok) {
+                setErr(res.error);
+                return;
+              }
+              setCompleted(true);
+            }
+            const dest =
+              nextSlug && programSlug
+                ? `/programs/${programSlug}/${nextSlug}`
+                : programSlug
+                  ? `/programs/${programSlug}`
+                  : "/programs";
+            router.push(dest);
+          });
+        }}
+        disabled={pending}
+        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors cursor-pointer disabled:opacity-60"
+      >
+        <CheckCircle2 className="size-4" strokeWidth={2} />
+        Complete &amp; continue
       </button>
 
       {err && (

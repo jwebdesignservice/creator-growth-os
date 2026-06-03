@@ -6,13 +6,13 @@
 
 import { cn } from "@/lib/cn";
 
-export function BestTimeHeatmap() {
+export function BestTimeHeatmap({ className }: { className?: string }) {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const buckets = ["6a", "9a", "12p", "3p", "6p", "9p"];
   const level = (d: number, h: number) => (d * 2 + h * 3 + (h % 4)) % 5;
   const tone = ["bg-cream-200", "bg-rose-200", "bg-rose-300", "bg-rose-400", "bg-rose-600"];
   return (
-    <div className="card p-5 w-[420px] max-w-full">
+    <div className={cn("card p-5 w-[420px] max-w-full", className)}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-h5 text-ink-900">Best time to post</h3>
         <span className="chip chip-rose">Peak: Sat 6p</span>
@@ -42,7 +42,7 @@ export function BestTimeHeatmap() {
   );
 }
 
-export function FormatPerformance() {
+export function FormatPerformance({ className }: { className?: string }) {
   const fmts = [
     { name: "Reels", pct: 88, tone: "bg-violet-500" },
     { name: "Carousels", pct: 64, tone: "bg-sky-500" },
@@ -50,7 +50,7 @@ export function FormatPerformance() {
     { name: "Posts", pct: 28, tone: "bg-rose-400" },
   ];
   return (
-    <div className="card p-5 w-[340px] max-w-full">
+    <div className={cn("card p-5 w-[340px] max-w-full", className)}>
       <h3 className="text-h5 text-ink-900 mb-1">Format performance</h3>
       <p className="text-[11.5px] text-ink-400 mb-4">Avg engagement rate by format</p>
       <div className="space-y-2.5">

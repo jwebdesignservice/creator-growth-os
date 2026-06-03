@@ -36,7 +36,7 @@ export function AudienceFunnel() {
   );
 }
 
-export function RetentionCohort() {
+export function RetentionCohort({ className }: { className?: string }) {
   const rows = [
     { label: "May 1", cells: [100, 68, 52, 44, 38] },
     { label: "May 8", cells: [100, 71, 55, 47] },
@@ -47,7 +47,7 @@ export function RetentionCohort() {
   const tone = (v: number) =>
     v >= 80 ? "bg-rose-600 text-white" : v >= 55 ? "bg-rose-400 text-white" : v >= 40 ? "bg-rose-300 text-rose-700" : "bg-rose-100 text-rose-700";
   return (
-    <div className="card p-5 w-[420px] max-w-full">
+    <div className={cn("card p-5 w-[420px] max-w-full", className)}>
       <h3 className="text-h5 text-ink-900 mb-4">Audience retention</h3>
       <div className="flex gap-1 mb-1 pl-12 text-[10px] text-ink-400">
         {["W0", "W1", "W2", "W3", "W4"].map((w) => (

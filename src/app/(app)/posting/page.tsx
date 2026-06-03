@@ -2,13 +2,15 @@ import { redirect } from "next/navigation";
 import { CalendarPlus } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
-import { PostingKpiTiles } from "@/components/posting/kpi-tiles";
 import { ActivePlanCard } from "@/components/posting/active-plan-card";
 import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
 import { PostingTabs } from "@/components/posting/tabs";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
-import { getActivePlan, getPlannedItems, getWeeklyStats } from "@/lib/posting/queries";
+import { BestTimeHeatmap, FormatPerformance } from "@/design-templates/posting-insights";
+import { ContributionHeatmap } from "@/design-templates/heatmap";
+import { RetentionCohort } from "@/design-templates/funnels";
+import { getActivePlan, getPlannedItems } from "@/lib/posting/queries";
 
 export const metadata = { title: "Posting Plans · Creator Growth OS" };
 
@@ -31,38 +33,18 @@ export default async function PostingPage({
   // Calendar needs the full week; the table previews fewer. Only fetch items
   // when there's a real plan — no plan means no posts (and no fake demos).
   const itemLimit = activeTab === "calendar" ? 100 : 8;
-  const [items, weekly] = activePlan
-    ? await Promise.all([
-        getPlannedItems(activePlan.id, itemLimit),
-        getWeeklyStats(activePlan.id),
-      ])
-    : [[], { total: 0, by_type: [] }];
+  const items = activePlan
+    ? await getPlannedItems(activePlan.id, itemLimit)
+    : [];
 
   return (
     <PageShell>
       <div className="space-y-7 max-w-[1600px] mx-auto">
-        {/* Header */}
-        <header className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-h1 text-ink-900 mb-1">Posting Plans</h1>
-            <p className="text-ink-500 text-[14px]">
-              Plan smarter. Post consistently. Grow faster.
-            </p>
-          </div>
+        {/* Tabs + primary action — pill switcher left, primary action right */}
+        <div className="flex items-center justify-between gap-4 flex-wrap gap-y-2">
+          <PostingTabs active={activeTab} />
           <PostingActions activePlanId={activePlan?.id ?? null} />
-        </header>
-
-        {/* Tabs */}
-        <PostingTabs active={activeTab} />
-
-        {/* KPI tiles — "This Week's Posts" is real; the rest need data sources
-            we haven't built, so they render honest empty states. */}
-        <PostingKpiTiles
-          thisWeekPlanned={weekly.total}
-          consistencyDaysPerWeek={null}
-          bestTime={null}
-          engagementGoal={null}
-        />
+        </div>
 
         {!activePlan ? (
           <EmptyPlanState />
@@ -76,6 +58,27 @@ export default async function PostingPage({
             </section>
 
             <PlannedPostsTable items={items} />
+
+            {/* Content insights — design-system visualisations (Best time,
+                Format performance, Posting activity, Audience retention).
+                Sample data for now; these wire to real metrics as the
+                analytics pipeline lands, hence the honest "preview" note. */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h2 className="text-[16px] font-semibold text-ink-900">
+                  Content insights
+                </h2>
+                <span className="text-[12.5px] text-ink-400">
+                  Preview — fills in as you post
+                </span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                <BestTimeHeatmap className="w-full max-w-none" />
+                <FormatPerformance className="w-full max-w-none" />
+                <ContributionHeatmap className="w-full max-w-none" />
+                <RetentionCohort className="w-full max-w-none" />
+              </div>
+            </section>
           </>
         ) : (
           <ContentCalendar

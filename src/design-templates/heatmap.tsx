@@ -6,14 +6,14 @@
 
 import { cn } from "@/lib/cn";
 
-export function ContributionHeatmap() {
+export function ContributionHeatmap({ className }: { className?: string }) {
   const weeks = 16;
   // Deterministic pseudo-pattern (no Math.random — keeps SSR/CSR identical).
   const level = (d: number, w: number) => (d * 3 + w * 7 + (w % 5)) % 5;
   const tone = ["bg-cream-200", "bg-rose-200", "bg-rose-300", "bg-rose-400", "bg-rose-600"];
   const dayLabels = ["M", "", "W", "", "F", "", ""];
   return (
-    <div className="card p-5 w-[460px] max-w-full">
+    <div className={cn("card p-5 w-[460px] max-w-full", className)}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[14px] font-bold text-ink-900">Posting activity</h3>
         <span className="text-[12px] text-ink-500">Last 16 weeks</span>

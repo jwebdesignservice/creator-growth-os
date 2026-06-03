@@ -11,8 +11,15 @@ import {
   X,
   NotebookPen,
   Paperclip,
+  LayoutGrid,
+  Dumbbell,
+  LayoutTemplate,
+  ListChecks,
+  ClipboardList,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import type { TutorialRow } from "@/lib/programs/tutorial-queries";
 
 // Render-side chunk size. Filters/sort apply to the full list; only this many
@@ -27,13 +34,13 @@ type Filter =
   | "checklist"
   | "assignment";
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "All Tutorials" },
-  { key: "video", label: "Video Lessons" },
-  { key: "drill", label: "Creator Drills" },
-  { key: "template", label: "Templates" },
-  { key: "checklist", label: "Checklists" },
-  { key: "assignment", label: "Assignments" },
+const FILTERS: { key: Filter; label: string; icon: LucideIcon }[] = [
+  { key: "all", label: "All Tutorials", icon: LayoutGrid },
+  { key: "video", label: "Video Lessons", icon: Play },
+  { key: "drill", label: "Creator Drills", icon: Dumbbell },
+  { key: "template", label: "Templates", icon: LayoutTemplate },
+  { key: "checklist", label: "Checklists", icon: ListChecks },
+  { key: "assignment", label: "Assignments", icon: ClipboardList },
 ];
 
 type SortKey = "newest" | "shortest" | "by_program";
@@ -149,25 +156,20 @@ export function TutorialLibrary({
     <section className="space-y-5">
       {/* Filter pills + category selector */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          {FILTERS.map((f) => {
-            const active = filter === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 h-10 px-4 rounded-[12px] text-[13px] font-medium border transition-colors cursor-pointer",
-                  active
-                    ? "bg-rose-600 border-rose-600 text-white shadow-sm"
-                    : "bg-white border-ink-100 text-ink-700 hover:bg-cream-100",
-                )}
-              >
-                {f.label}
-              </button>
-            );
-          })}
+        {/* Global segmented tab control — shared with /programs (and elsewhere)
+            so every tab bar reads identically. Scrolls horizontally on narrow
+            screens rather than wrapping. */}
+        <div className="max-w-full overflow-x-auto">
+          <SegmentedTabs
+            ariaLabel="Filter tutorials by type"
+            onSelect={(k) => setFilter(k as Filter)}
+            items={FILTERS.map((f) => ({
+              key: f.key,
+              label: f.label,
+              icon: f.icon,
+              active: filter === f.key,
+            }))}
+          />
         </div>
 
         {/* Search + category — grouped on the right of the toolbar */}

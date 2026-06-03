@@ -3,8 +3,6 @@ import Link from "next/link";
 import {
   Play,
   Lock,
-  ChevronLeft,
-  ChevronRight,
   BookOpen,
   BarChart3,
   Clock,
@@ -34,6 +32,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurriculumForProgram } from "@/lib/programs/queries";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
 import { getOutcomeForModule } from "@/lib/programs/outcomes";
+import { RichTextBlock } from "./rich-text-block";
 import {
   normalizeLearningPoints,
   type LearningPoint,
@@ -313,16 +312,15 @@ export default async function ProgramLessonPage({
                 </div>
               </div>
 
-              {/* Platform actions — Continue Watching / Mark Complete / Create Notes */}
+              {/* Platform actions — Create Notes / Go back / Complete & continue */}
               <LessonActionRow
                 lessonSlug={lessonSlug}
                 initialCompleted={completed}
                 lessonTitle={title}
                 programSlug={slug}
+                prevSlug={prev?.slug ?? null}
+                nextSlug={next?.slug ?? null}
               />
-
-              {/* Prev / Next — within this program */}
-              <PrevNextNav programSlug={slug} prev={prev} next={next} />
 
               {/* Description + authored learning points / action steps */}
               <LessonOverview
@@ -363,66 +361,6 @@ export default async function ProgramLessonPage({
         )}
       </div>
     </PageShell>
-  );
-}
-
-/* ─── Prev / Next program navigation ──────────────────────────────────── */
-
-function PrevNextNav({
-  programSlug,
-  prev,
-  next,
-}: {
-  programSlug: string;
-  prev: { slug: string; title: string } | null;
-  next: { slug: string; title: string } | null;
-}) {
-  if (!prev && !next) return null;
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {prev ? (
-        <Link
-          href={`/programs/${programSlug}/${prev.slug}`}
-          className="group flex items-center gap-3 card p-3.5 hover:border-rose-200 transition-colors"
-        >
-          <ChevronLeft
-            className="size-5 text-ink-400 group-hover:text-rose-600 transition-colors shrink-0"
-            strokeWidth={2}
-          />
-          <span className="min-w-0">
-            <span className="block text-[11px] uppercase tracking-wider font-semibold text-ink-400">
-              Previous
-            </span>
-            <span className="block text-[13px] font-semibold text-ink-900 truncate">
-              {prev.title}
-            </span>
-          </span>
-        </Link>
-      ) : (
-        <span aria-hidden />
-      )}
-      {next ? (
-        <Link
-          href={`/programs/${programSlug}/${next.slug}`}
-          className="group flex items-center justify-end gap-3 card p-3.5 hover:border-rose-200 transition-colors text-right"
-        >
-          <span className="min-w-0">
-            <span className="block text-[11px] uppercase tracking-wider font-semibold text-ink-400">
-              Next
-            </span>
-            <span className="block text-[13px] font-semibold text-ink-900 truncate">
-              {next.title}
-            </span>
-          </span>
-          <ChevronRight
-            className="size-5 text-ink-400 group-hover:text-rose-600 transition-colors shrink-0"
-            strokeWidth={2}
-          />
-        </Link>
-      ) : (
-        <span aria-hidden />
-      )}
-    </div>
   );
 }
 
@@ -469,8 +407,10 @@ function LessonOverview({
   const hasAnyStep = learningPoints.some((lp) => lp.actionStep);
 
   return (
-    <section className="card p-5 sm:p-6">
-      {/* Header — book icon + title/subtitle + Action step pill */}
+    <section>
+      {/* Header — book icon + title/subtitle + Action step pill.
+          Rendered flush (no card wrapper) — the learning points below keep
+          their own boxes. */}
       <div className="flex items-start gap-3 mb-5">
         <span className="size-11 rounded-[13px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
           <BookOpen className="size-[20px]" strokeWidth={1.9} />
@@ -491,6 +431,10 @@ function LessonOverview({
           </span>
         )}
       </div>
+
+      {/* PREVIEW — dummy rich-text block so we can see how a normal rich-text
+          lesson body renders here. Placeholder text; not wired to data yet. */}
+      <RichTextBlock />
 
       {hasLearning ? (
         <>

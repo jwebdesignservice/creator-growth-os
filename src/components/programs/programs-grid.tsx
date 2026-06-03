@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, X, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { Search, X, ChevronDown, LayoutGrid, PlayCircle, CheckCircle2 } from "lucide-react";
 import { ProgramCard, type ProgramRow } from "./program-card";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 
 type StatusTab = "all" | "started" | "finished";
 type Category = "all" | "starter" | "growth" | "monetization" | "scale" | "pro";
@@ -83,62 +83,58 @@ export function ProgramsGrid({ programs }: Props) {
 
   return (
     <div>
-      {/* ── Tabs: All / Started / Finished — drive the status filter ── */}
-      <div className="border-b border-ink-100 flex items-center gap-1 overflow-x-auto">
-        <StatusTabButton
-          active={statusTab === "all"}
-          onClick={() => setStatusTab("all")}
-          label="All programs"
-        />
-        <StatusTabButton
-          active={statusTab === "started"}
-          onClick={() => setStatusTab("started")}
-          label="Started programs"
-        />
-        <StatusTabButton
-          active={statusTab === "finished"}
-          onClick={() => setStatusTab("finished")}
-          label="Finished programs"
-        />
-      </div>
+      {/* ── One toolbar row: status tabs on the left, category + sort
+          (incl. Recommended) + search grouped on the right. ── */}
+      <div className="pb-3 border-b border-ink-100 flex items-center justify-between gap-3 flex-wrap">
+        <div className="max-w-full overflow-x-auto">
+          <SegmentedTabs
+            ariaLabel="Filter programs by status"
+            onSelect={(k) => setStatusTab(k as StatusTab)}
+            items={[
+              { key: "all", label: "All programs", icon: LayoutGrid, active: statusTab === "all" },
+              { key: "started", label: "Started programs", icon: PlayCircle, active: statusTab === "started" },
+              { key: "finished", label: "Finished programs", icon: CheckCircle2, active: statusTab === "finished" },
+            ]}
+          />
+        </div>
 
-      {/* ── Toolbar: category filter + sort (incl. Recommended) + search ── */}
-      <div className="py-3 border-b border-ink-100 flex items-center gap-2.5 flex-wrap">
-        <FilterSelect
-          value={category}
-          onChange={(v) => setCategory(v as Category)}
-          options={CATEGORY_OPTIONS}
-          ariaLabel="Filter programs by category"
-        />
-        <FilterSelect
-          value={sort}
-          onChange={(v) => setSort(v as Sort)}
-          options={SORT_OPTIONS}
-          ariaLabel="Sort programs"
-        />
-        <div className="relative w-full sm:w-[240px] lg:w-[260px] sm:ml-auto">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-            strokeWidth={2}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <FilterSelect
+            value={category}
+            onChange={(v) => setCategory(v as Category)}
+            options={CATEGORY_OPTIONS}
+            ariaLabel="Filter programs by category"
           />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search programs…"
-            aria-label="Search programs"
-            className="w-full h-10 pl-9 pr-9 rounded-[12px] bg-white border border-ink-100 text-[13px] text-ink-900 placeholder:text-ink-400 hover:border-ink-200 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
+          <FilterSelect
+            value={sort}
+            onChange={(v) => setSort(v as Sort)}
+            options={SORT_OPTIONS}
+            ariaLabel="Sort programs"
           />
-          {trimmed && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 transition-colors"
-            >
-              <X className="size-4" strokeWidth={2} />
-            </button>
-          )}
+          <div className="relative w-full sm:w-[240px] lg:w-[260px]">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+              strokeWidth={2}
+            />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search programs…"
+              aria-label="Search programs"
+              className="w-full h-10 pl-9 pr-9 rounded-[12px] bg-white border border-ink-100 text-[13px] text-ink-900 placeholder:text-ink-400 hover:border-ink-200 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
+            />
+            {trimmed && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 transition-colors"
+              >
+                <X className="size-4" strokeWidth={2} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -159,32 +155,6 @@ export function ProgramsGrid({ programs }: Props) {
         )}
       </div>
     </div>
-  );
-}
-
-/** Status tab — underline-style, matching the app's tab treatment. */
-function StatusTabButton({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-11 px-4 inline-flex items-center text-[13.5px] font-semibold border-b-2 -mb-px whitespace-nowrap transition-colors",
-        active
-          ? "text-rose-600 border-rose-500"
-          : "text-ink-500 hover:text-ink-900 border-transparent",
-      )}
-    >
-      {label}
-    </button>
   );
 }
 

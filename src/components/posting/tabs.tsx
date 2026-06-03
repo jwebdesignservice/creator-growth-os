@@ -1,36 +1,20 @@
-import Link from "next/link";
-import { cn } from "@/lib/cn";
+import { ClipboardList, CalendarDays } from "lucide-react";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 
 type TabKey = "my_plans" | "calendar";
 
-const TABS: { key: TabKey; label: string; href: string }[] = [
-  { key: "my_plans", label: "My Plans", href: "/posting" },
-  { key: "calendar", label: "Content Calendar", href: "/posting?view=calendar" },
-];
-
+/**
+ * Posting view switcher — uses the global {@link SegmentedTabs} element.
+ * Navigation stays URL-driven via the items' `href`.
+ */
 export function PostingTabs({ active }: { active: TabKey }) {
   return (
-    <div className="border-b border-ink-100">
-      <ul className="flex items-center gap-1 flex-wrap">
-        {TABS.map((t) => {
-          const isActive = active === t.key;
-          return (
-            <li key={t.key}>
-              <Link
-                href={t.href}
-                className={cn(
-                  "h-11 px-4 inline-flex items-center text-[13.5px] font-medium border-b-2 -mb-px transition-colors",
-                  isActive
-                    ? "text-rose-700 border-rose-500"
-                    : "text-ink-500 hover:text-ink-900 border-transparent",
-                )}
-              >
-                {t.label}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <SegmentedTabs
+      ariaLabel="Posting views"
+      items={[
+        { key: "my_plans", label: "My Plans", icon: ClipboardList, href: "/posting", active: active === "my_plans" },
+        { key: "calendar", label: "Content Calendar", icon: CalendarDays, href: "/posting?view=calendar", active: active === "calendar" },
+      ]}
+    />
   );
 }

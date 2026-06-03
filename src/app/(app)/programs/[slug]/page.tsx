@@ -35,7 +35,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/app-shell/avatar";
 import { CurriculumAccordion } from "@/components/programs/curriculum-accordion";
 import { DetailTabs } from "@/components/programs/detail-tabs";
-import { ViewResourcesButton } from "@/components/programs/view-resources-button";
 import {
   getCurriculumForProgram,
   getProgramProgress,
@@ -194,6 +193,17 @@ export default async function ProgramDetailPage({
     ? await getProgramUserTasks(programUuid, ctx.user.id)
     : [];
 
+  // Real enrolled-learner count for this program — one program_progress row
+  // per enrolled user (same source as the admin "members" count). No
+  // fabricated number; reflects actual enrollment.
+  const { count: enrolledCountRaw } = programUuid
+    ? await supabase
+        .from("program_progress")
+        .select("*", { count: "exact", head: true })
+        .eq("program_id", programUuid)
+    : { count: 0 };
+  const enrolledCount = enrolledCountRaw ?? 0;
+
   // ── Learner-authored notes for this program (Resources → My Notes) ───
   const programNotes: ProgramNote[] = programUuid
     ? await getProgramNotes(programUuid)
@@ -243,6 +253,7 @@ export default async function ProgramDetailPage({
           estimatedDays={program.estimated_days ?? 42}
           progress={effectivePercent}
           continueHref={continueHref}
+          enrolledCount={enrolledCount}
         />
 
         {/* Tabs + content */}
@@ -292,6 +303,7 @@ function ProgramHero({
   estimatedDays,
   progress,
   continueHref,
+  enrolledCount,
 }: {
   title: string;
   description: string;
@@ -300,6 +312,7 @@ function ProgramHero({
   estimatedDays: number;
   progress: number;
   continueHref: string;
+  enrolledCount: number;
 }) {
   return (
     <section className="rounded-[24px] bg-cream-200 overflow-hidden relative">
@@ -372,7 +385,21 @@ function ProgramHero({
               <Play className="size-4" fill="currentColor" />
               Continue Program
             </Link>
-            <ViewResourcesButton />
+
+            {/* Social proof — real enrolled-learner count (decorative avatars) */}
+            <div className="inline-flex items-center gap-2.5 pl-1">
+              <div className="flex -space-x-2.5" aria-hidden>
+                <span className="size-8 rounded-full bg-gradient-to-br from-rose-300 to-rose-500 ring-2 ring-cream-200" />
+                <span className="size-8 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 ring-2 ring-cream-200" />
+                <span className="size-8 rounded-full bg-gradient-to-br from-emerald-300 to-emerald-500 ring-2 ring-cream-200" />
+              </div>
+              <span className="text-[14px] text-ink-700 leading-tight">
+                <span className="font-bold text-ink-900 tabular-nums">
+                  {enrolledCount.toLocaleString()}
+                </span>{" "}
+                learner{enrolledCount === 1 ? "" : "s"} enrolled
+              </span>
+            </div>
           </div>
         </div>
 
