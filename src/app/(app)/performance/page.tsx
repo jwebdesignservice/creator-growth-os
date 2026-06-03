@@ -51,16 +51,7 @@ export default async function PerformancePage() {
   const firstName = ctx.name.split(" ")[0];
 
   return (
-    <PageShell
-      rail={
-        <PerformanceRail
-          plan={ctx.plan}
-          streak={streak}
-          snapshot={snapshot}
-          insights={insights}
-        />
-      }
-    >
+    <PageShell>
       <div className="space-y-7 container-app">
         {/* Header */}
         <header className="flex items-start justify-between gap-4 flex-wrap">
@@ -90,6 +81,15 @@ export default async function PerformancePage() {
 
         {/* Trend */}
         <TrendChart entries={recent} />
+
+        {/* Weekly snapshot, logging streak & insights — moved inline from the
+            former right rail so the page uses the full width. */}
+        <PerformanceRail
+          plan={ctx.plan}
+          streak={streak}
+          snapshot={snapshot}
+          insights={insights}
+        />
       </div>
     </PageShell>
   );
