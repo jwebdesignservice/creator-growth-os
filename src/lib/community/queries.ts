@@ -114,3 +114,241 @@ export async function listMemberSpotlight(limit = 3) {
     .limit(limit);
   return data ?? [];
 }
+
+export type CommunityReply = {
+  id: string;
+  post_id: string;
+  parent_reply_id: string | null;
+  author_name: string;
+  author_avatar: string | null;
+  body: string;
+  created_at: string;
+  reactions: PostReaction[];
+};
+
+/**
+ * Fetch replies for a set of posts (oldest → newest), keyed by post_id, so the
+ * Feed can show the actual conversation inline. Read-only; reuses the existing
+ * `community_replies` table.
+ */
+export async function listRepliesForPosts(
+  postIds: string[],
+  userId: string,
+): Promise<Map<string, CommunityReply[]>> {
+  const map = new Map<string, CommunityReply[]>();
+  if (postIds.length === 0) return map;
+
+  const supabase = await createClient();
+
+  // Prefer selecting parent_reply_id (migration 0049). If that column doesn't
+  // exist yet, fall back without it so existing replies still render.
+  type ReplyRow = {
+    id: string;
+    post_id: string;
+    user_id: string;
+    body: string;
+    created_at: string;
+    parent_reply_id?: string | null;
+  };
+  const primary = await supabase
+    .from("community_replies")
+    .select("id, post_id, user_id, body, created_at, parent_reply_id")
+    .in("post_id", postIds)
+    .order("created_at", { ascending: true });
+  let replies = primary.data as ReplyRow[] | null;
+  if (primary.error?.code === "42703") {
+    const fallback = await supabase
+      .from("community_replies")
+      .select("id, post_id, user_id, body, created_at")
+      .in("post_id", postIds)
+      .order("created_at", { ascending: true });
+    replies = fallback.data as ReplyRow[] | null;
+  }
+  if (!replies?.length) return map;
+
+  const userIds = Array.from(new Set(replies.map((r) => r.user_id)));
+  const replyIds = replies.map((r) => r.id);
+
+  const [{ data: profiles }, reactionsByReply] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name, full_name, avatar_url")
+      .in("id", userIds),
+    getReplyReactions(replyIds, userId),
+  ]);
+  const profileMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
+
+  for (const r of replies) {
+    const profile = profileMap.get(r.user_id);
+    const reply: CommunityReply = {
+      id: r.id,
+      post_id: r.post_id,
+      parent_reply_id:
+        (r as { parent_reply_id?: string | null }).parent_reply_id ?? null,
+      author_name: profile?.display_name ?? profile?.full_name ?? "Creator",
+      author_avatar: profile?.avatar_url ?? null,
+      body: r.body,
+      created_at: r.created_at,
+      reactions: reactionsByReply.get(r.id) ?? [],
+    };
+    const arr = map.get(r.post_id);
+    if (arr) arr.push(reply);
+    else map.set(r.post_id, [reply]);
+  }
+  return map;
+}
+
+export type PostVotes = { likes: number; dislikes: number; myVote: 0 | 1 | -1 };
+
+/**
+ * Like / dislike tallies per post, plus the current user's own vote. Reads
+ * `community_post_votes` (migration 0047). DEFENSIVE: if that table doesn't
+ * exist yet (migration not applied), returns an empty map so the feed still
+ * renders with zero counts rather than erroring.
+ */
+export async function getPostVotes(
+  postIds: string[],
+  userId: string,
+): Promise<Map<string, PostVotes>> {
+  const map = new Map<string, PostVotes>();
+  if (postIds.length === 0) return map;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("community_post_votes")
+    .select("post_id, user_id, value")
+    .in("post_id", postIds);
+  if (error || !data) return map; // table may not exist yet — fail soft
+
+  for (const row of data) {
+    const v = map.get(row.post_id) ?? { likes: 0, dislikes: 0, myVote: 0 as const };
+    if (row.value === 1) v.likes += 1;
+    else if (row.value === -1) v.dislikes += 1;
+    if (row.user_id === userId) v.myVote = row.value === 1 ? 1 : -1;
+    map.set(row.post_id, v);
+  }
+  return map;
+}
+
+export type PostReaction = { emoji: string; count: number; reacted: boolean };
+
+/**
+ * Emoji reaction tallies per post, plus whether the current user reacted with
+ * each emoji. Reads `community_post_reactions` (migration 0048). DEFENSIVE: if
+ * that table doesn't exist yet, returns an empty map so the feed still renders.
+ */
+export async function getPostReactions(
+  postIds: string[],
+  userId: string,
+): Promise<Map<string, PostReaction[]>> {
+  const map = new Map<string, PostReaction[]>();
+  if (postIds.length === 0) return map;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("community_post_reactions")
+    .select("post_id, user_id, emoji")
+    .in("post_id", postIds);
+  if (error || !data) return map; // table may not exist yet — fail soft
+
+  // post_id -> emoji -> tally
+  const byPost = new Map<
+    string,
+    Map<string, { count: number; reacted: boolean }>
+  >();
+  for (const row of data) {
+    let emojiMap = byPost.get(row.post_id);
+    if (!emojiMap) {
+      emojiMap = new Map();
+      byPost.set(row.post_id, emojiMap);
+    }
+    const entry = emojiMap.get(row.emoji) ?? { count: 0, reacted: false };
+    entry.count += 1;
+    if (row.user_id === userId) entry.reacted = true;
+    emojiMap.set(row.emoji, entry);
+  }
+
+  for (const [postId, emojiMap] of byPost) {
+    const arr: PostReaction[] = [];
+    for (const [emoji, tally] of emojiMap) {
+      arr.push({ emoji, count: tally.count, reacted: tally.reacted });
+    }
+    map.set(postId, arr);
+  }
+  return map;
+}
+
+/**
+ * Emoji reaction tallies per reply (migration 0049). Same shape + defensive
+ * behaviour as getPostReactions — returns an empty map if the table is absent.
+ */
+export async function getReplyReactions(
+  replyIds: string[],
+  userId: string,
+): Promise<Map<string, PostReaction[]>> {
+  const map = new Map<string, PostReaction[]>();
+  if (replyIds.length === 0) return map;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("community_reply_reactions")
+    .select("reply_id, user_id, emoji")
+    .in("reply_id", replyIds);
+  if (error || !data) return map; // table may not exist yet — fail soft
+
+  const byReply = new Map<
+    string,
+    Map<string, { count: number; reacted: boolean }>
+  >();
+  for (const row of data) {
+    let emojiMap = byReply.get(row.reply_id);
+    if (!emojiMap) {
+      emojiMap = new Map();
+      byReply.set(row.reply_id, emojiMap);
+    }
+    const entry = emojiMap.get(row.emoji) ?? { count: 0, reacted: false };
+    entry.count += 1;
+    if (row.user_id === userId) entry.reacted = true;
+    emojiMap.set(row.emoji, entry);
+  }
+
+  for (const [replyId, emojiMap] of byReply) {
+    const arr: PostReaction[] = [];
+    for (const [emoji, tally] of emojiMap) {
+      arr.push({ emoji, count: tally.count, reacted: tally.reacted });
+    }
+    map.set(replyId, arr);
+  }
+  return map;
+}
+
+export type PostAttachment = {
+  url: string;
+  type: "image" | "video";
+  name: string;
+};
+
+/**
+ * Media attachments per post (migration 0050). DEFENSIVE: if the `attachments`
+ * column doesn't exist yet, returns an empty map so the feed still renders.
+ */
+export async function getPostAttachments(
+  postIds: string[],
+): Promise<Map<string, PostAttachment[]>> {
+  const map = new Map<string, PostAttachment[]>();
+  if (postIds.length === 0) return map;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("community_posts")
+    .select("id, attachments")
+    .in("id", postIds);
+  if (error || !data) return map; // column may not exist yet — fail soft
+
+  for (const row of data) {
+    const raw = (row as { attachments?: unknown }).attachments;
+    const list = Array.isArray(raw) ? (raw as PostAttachment[]) : [];
+    if (list.length) map.set(row.id, list);
+  }
+  return map;
+}
