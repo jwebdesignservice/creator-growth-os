@@ -13,6 +13,7 @@ import {
   GraduationCap,
   PlayCircle,
   CalendarDays,
+  CalendarClock,
   BarChart3,
   Plus,
   type LucideIcon,
@@ -50,6 +51,7 @@ const CONTENT_NAV: NavItem[] = [
   { label: "Tutorials", href: "/admin/tutorials", icon: PlayCircle },
   { label: "Tasks", href: "/admin/missions", icon: CheckSquare },
   { label: "Posting Plans", href: "/admin/posting", icon: CalendarDays },
+  { label: "Events", href: "/admin/events", icon: CalendarClock },
 ];
 
 /** Routes that show their own inner sub-nav — sidebar collapses to icons. */

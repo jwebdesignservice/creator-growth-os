@@ -184,6 +184,42 @@ export async function getAnnouncements() {
   return data ?? [];
 }
 
+export type AdminEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  host_name: string | null;
+  starts_at: string;
+  duration_min: number;
+  joined_count: number;
+  url: string | null;
+  kind: string | null;
+};
+
+/**
+ * All community events (upcoming + past) for the admin manager. Defensive about
+ * the `kind` column (migration 0051): if it isn't there yet, falls back to a
+ * select without it so the list still renders.
+ */
+export async function getAdminEvents(): Promise<AdminEvent[]> {
+  const supabase = createServiceClient();
+  const cols =
+    "id, title, description, host_name, starts_at, duration_min, joined_count, url";
+  const primary = await supabase
+    .from("community_events")
+    .select(`${cols}, kind`)
+    .order("starts_at", { ascending: true });
+  let rows = primary.data as unknown as AdminEvent[] | null;
+  if (primary.error?.code === "42703") {
+    const fb = await supabase
+      .from("community_events")
+      .select(cols)
+      .order("starts_at", { ascending: true });
+    rows = fb.data as unknown as AdminEvent[] | null;
+  }
+  return (rows ?? []).map((e) => ({ ...e, kind: e.kind ?? null }));
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    Admin metrics — daily series for the top-of-dashboard chart.
 
