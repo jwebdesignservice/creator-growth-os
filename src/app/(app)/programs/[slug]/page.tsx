@@ -43,6 +43,7 @@ import { Avatar } from "@/components/app-shell/avatar";
 import { CurriculumAccordion } from "@/components/programs/curriculum-accordion";
 import {
   WorkspaceShell,
+  WorkspaceHeader,
   type WorkspaceTab,
 } from "@/components/app-shell/workspace-shell";
 import {
@@ -291,29 +292,33 @@ export default async function ProgramDetailPage({
         tabs={programTabs}
         activeKey={active}
       >
-        <div className="space-y-5 lg:pt-[var(--space-page-y)]">
-          {/* Back button + breadcrumb / page path — one inline row */}
-          <div className="flex items-center gap-3 min-w-0">
-            <Link
-              href="/programs"
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-ink-200 bg-white text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 hover:text-ink-900 transition-colors shrink-0"
-            >
-              <ChevronLeft className="size-3.5" strokeWidth={2} />
-              Back
-            </Link>
-            <span aria-hidden className="w-px h-4 bg-ink-200 shrink-0" />
-            <nav className="flex items-center gap-2 text-[13px] min-w-0">
+        {/* Back + breadcrumb — leveled header band (lines up with rail title) */}
+        <WorkspaceHeader
+          left={
+            <div className="flex items-center gap-3 min-w-0">
               <Link
                 href="/programs"
-                className="text-rose-600 hover:text-rose-700 font-medium shrink-0"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-ink-200 bg-white text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 hover:text-ink-900 transition-colors shrink-0"
               >
-                Programs
+                <ChevronLeft className="size-3.5" strokeWidth={2} />
+                Back
               </Link>
-              <span className="text-ink-400 shrink-0">/</span>
-              <span className="text-ink-700 truncate">{program.title}</span>
-            </nav>
-          </div>
+              <span aria-hidden className="w-px h-4 bg-ink-200 shrink-0" />
+              <nav className="flex items-center gap-2 text-[13px] min-w-0">
+                <Link
+                  href="/programs"
+                  className="text-rose-600 hover:text-rose-700 font-medium shrink-0"
+                >
+                  Programs
+                </Link>
+                <span className="text-ink-400 shrink-0">/</span>
+                <span className="text-ink-700 truncate">{program.title}</span>
+              </nav>
+            </div>
+          }
+        />
 
+        <div className="space-y-5 lg:pt-[var(--space-page-y)]">
           {active === "overview" && (
             <>
               <ProgramHero
