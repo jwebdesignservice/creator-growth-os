@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   X,
@@ -18,6 +18,7 @@ import { EventCard } from "./event-card";
 import { EVENT_KINDS } from "@/lib/community/event-kinds";
 import type { CommunityEvent } from "@/lib/community/queries";
 import { cn } from "@/lib/cn";
+import { WorkspaceHeader } from "@/components/app-shell/workspace-shell";
 
 const KIND_ICON: Record<string, LucideIcon> = {
   live: Radio,
@@ -50,13 +51,7 @@ const RANGES = [
  * style card grid. Filtering happens in-memory on the already-fetched upcoming
  * events (mirrors how the Tutorial Library filters its list).
  */
-export function EventsExplorer({
-  events,
-  tabs,
-}: {
-  events: CommunityEvent[];
-  tabs?: ReactNode;
-}) {
+export function EventsExplorer({ events }: { events: CommunityEvent[] }) {
   const [type, setType] = useState("all");
   const [range, setRange] = useState("upcoming");
   const [rangeOpen, setRangeOpen] = useState(false);
@@ -111,12 +106,30 @@ export function EventsExplorer({
   const TypeIcon = currentType.icon;
 
   return (
-    <section className="space-y-5">
-      {/* Tabs (left) + filters (right) — one shared row */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        {tabs}
-        <div className="flex items-center gap-2.5 flex-wrap">
-        {/* Event-type dropdown (replaces the old row of tabs) */}
+    <section className="space-y-4">
+      {/* Header row: heading + count/sort (left) + filters (right).
+          WorkspaceHeader keeps the line leveled with the left-panel title. */}
+      <WorkspaceHeader
+        left={
+          <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+          <h2 className="text-h4 sm:text-[22px] text-ink-900">{heading}</h2>
+          <span className="text-[12.5px] text-ink-500 whitespace-nowrap">
+            {visible.length} {visible.length === 1 ? "event" : "events"} ·{" "}
+            <button
+              type="button"
+              onClick={() =>
+                setSort((s) => (s === "soonest" ? "latest" : "soonest"))
+              }
+              className="text-ink-700 hover:text-rose-600 underline-offset-4 hover:underline cursor-pointer"
+            >
+              Sort: {sort === "soonest" ? "Soonest" : "Latest"}
+            </button>
+          </span>
+          </div>
+        }
+      >
+        <div className="flex items-center justify-end gap-2.5 flex-wrap">
+        {/* Event-type dropdown */}
         <div className="relative">
           <button
             type="button"
@@ -228,22 +241,7 @@ export function EventsExplorer({
           )}
         </div>
         </div>
-      </div>
-
-      {/* Header + sort */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-h4 sm:text-[22px] text-ink-900">{heading}</h2>
-        <div className="text-[12.5px] text-ink-500">
-          {visible.length} {visible.length === 1 ? "event" : "events"} ·{" "}
-          <button
-            type="button"
-            onClick={() => setSort((s) => (s === "soonest" ? "latest" : "soonest"))}
-            className="text-ink-700 hover:text-rose-600 underline-offset-4 hover:underline cursor-pointer"
-          >
-            Sort: {sort === "soonest" ? "Soonest" : "Latest"}
-          </button>
-        </div>
-      </div>
+      </WorkspaceHeader>
 
       {/* Grid */}
       {visible.length === 0 ? (

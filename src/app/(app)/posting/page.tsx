@@ -1,18 +1,46 @@
 import { redirect } from "next/navigation";
-import { CalendarPlus } from "lucide-react";
+import {
+  CalendarPlus,
+  CalendarDays,
+  CalendarRange,
+  ClipboardList,
+  BarChart3,
+} from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { ActivePlanCard } from "@/components/posting/active-plan-card";
 import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
-import { PostingTabs } from "@/components/posting/tabs";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
 import { BestTimeHeatmap, FormatPerformance } from "@/design-templates/posting-insights";
 import { ContributionHeatmap } from "@/design-templates/heatmap";
 import { RetentionCohort } from "@/design-templates/funnels";
 import { getActivePlan, getPlannedItems } from "@/lib/posting/queries";
+import {
+  WorkspaceShell,
+  WorkspaceHeader,
+  type WorkspaceTab,
+} from "@/components/app-shell/workspace-shell";
 
 export const metadata = { title: "Posting Plans · Creator Growth OS" };
+
+type PostingTab = "my_plans" | "calendar" | "insights";
+
+const POSTING_TABS: WorkspaceTab[] = [
+  { key: "my_plans", label: "My Plans", icon: ClipboardList, href: "/posting" },
+  {
+    key: "calendar",
+    label: "Calendar",
+    icon: CalendarRange,
+    href: "/posting?view=calendar",
+  },
+  {
+    key: "insights",
+    label: "Insights",
+    icon: BarChart3,
+    href: "/posting?view=insights",
+  },
+];
 
 type SearchParams = Promise<{ view?: string }>;
 
@@ -25,69 +53,64 @@ export default async function PostingPage({
   if (!ctx) redirect("/sign-in");
 
   const { view } = await searchParams;
-  const activeTab: "my_plans" | "calendar" =
-    view === "calendar" ? "calendar" : "my_plans";
+  const active: PostingTab =
+    view === "calendar" ? "calendar" : view === "insights" ? "insights" : "my_plans";
 
   const activePlan = await getActivePlan();
 
-  // Calendar needs the full week; the table previews fewer. Only fetch items
-  // when there's a real plan — no plan means no posts (and no fake demos).
-  const itemLimit = activeTab === "calendar" ? 100 : 8;
-  const items = activePlan
-    ? await getPlannedItems(activePlan.id, itemLimit)
-    : [];
+  // Calendar needs the full week; the table previews fewer. Insights uses
+  // sample visualisations, so it needs no items.
+  const itemLimit = active === "calendar" ? 100 : active === "my_plans" ? 8 : 0;
+  const items =
+    activePlan && itemLimit > 0
+      ? await getPlannedItems(activePlan.id, itemLimit)
+      : [];
 
   return (
     <PageShell>
-      <div className="space-y-7 max-w-[1600px] mx-auto">
-        {/* Tabs + primary action — pill switcher left, primary action right */}
-        <div className="flex items-center justify-between gap-4 flex-wrap gap-y-2">
-          <PostingTabs active={activeTab} />
-          <PostingActions activePlanId={activePlan?.id ?? null} />
-        </div>
-
+      <WorkspaceShell
+        title="Posting Plans"
+        icon={CalendarDays}
+        tabs={POSTING_TABS}
+        activeKey={active}
+      >
         {!activePlan ? (
           <EmptyPlanState />
-        ) : activeTab === "my_plans" ? (
-          <>
-            <section className="space-y-3">
-              <h2 className="text-[16px] font-semibold text-ink-900">
-                Current Plan
-              </h2>
-              <ActivePlanCard plan={activePlan} />
-            </section>
-
+        ) : active === "my_plans" ? (
+          <div className="space-y-4">
+            <WorkspaceHeader title="My Plans">
+              <PostingActions activePlanId={activePlan.id} />
+            </WorkspaceHeader>
+            <ActivePlanCard plan={activePlan} />
             <PlannedPostsTable items={items} />
-
-            {/* Content insights — design-system visualisations (Best time,
-                Format performance, Posting activity, Audience retention).
-                Sample data for now; these wire to real metrics as the
-                analytics pipeline lands, hence the honest "preview" note. */}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <h2 className="text-[16px] font-semibold text-ink-900">
-                  Content insights
-                </h2>
-                <span className="text-[12.5px] text-ink-400">
-                  Preview — fills in as you post
-                </span>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-                <BestTimeHeatmap className="w-full max-w-none" />
-                <FormatPerformance className="w-full max-w-none" />
-                <ContributionHeatmap className="w-full max-w-none" />
-                <RetentionCohort className="w-full max-w-none" />
-              </div>
-            </section>
-          </>
+          </div>
+        ) : active === "calendar" ? (
+          <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col lg:gap-4">
+            <WorkspaceHeader title="Calendar">
+              <PostingActions activePlanId={activePlan.id} />
+            </WorkspaceHeader>
+            <ContentCalendar
+              items={items}
+              weekStart={activePlan.week_start}
+              planId={activePlan.id}
+            />
+          </div>
         ) : (
-          <ContentCalendar
-            items={items}
-            weekStart={activePlan.week_start}
-            planId={activePlan.id}
-          />
+          <div className="space-y-4">
+            <WorkspaceHeader title="Content insights">
+              <span className="text-[12.5px] text-ink-400">
+                Preview — fills in as you post
+              </span>
+            </WorkspaceHeader>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+              <BestTimeHeatmap className="w-full max-w-none" />
+              <FormatPerformance className="w-full max-w-none" />
+              <ContributionHeatmap className="w-full max-w-none" />
+              <RetentionCohort className="w-full max-w-none" />
+            </div>
+          </div>
         )}
-      </div>
+      </WorkspaceShell>
     </PageShell>
   );
 }
@@ -96,7 +119,7 @@ export default async function PostingPage({
    (PostingActions) is the same one used in the header, so it actually works. */
 function EmptyPlanState() {
   return (
-    <section className="card p-10 sm:p-14 text-center">
+    <section className="card p-10 sm:p-14 text-center lg:mt-[var(--space-page-y)]">
       <div className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-4 mx-auto">
         <CalendarPlus className="size-6" strokeWidth={1.8} aria-hidden />
       </div>

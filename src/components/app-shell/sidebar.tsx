@@ -13,8 +13,6 @@ import {
   Users,
   Settings,
   Sparkles,
-  ShieldCheck,
-  Terminal,
   Wallet,
   Gift,
   ArrowRight,
@@ -46,26 +44,23 @@ const SECONDARY: NavItem[] = [
 ];
 
 const WIDTH_EXPANDED = 240;
-const WIDTH_COLLAPSED = 76;
+const WIDTH_COLLAPSED = 64;
 /** Time (ms) the sidebar stays expanded after first page load before auto-collapsing. */
 const AUTO_COLLAPSE_MS = 2500;
+/** Shared motion curve — a soft ease so the width glide feels smooth, not abrupt. */
+const EASE = "ease-in-out";
 
 export function Sidebar({
   plan = "free",
-  isAdmin = false,
-  isDev = false,
   taskCount = 0,
 }: {
   plan?: "free" | "basic" | "pro";
-  isAdmin?: boolean;
-  isDev?: boolean;
   taskCount?: number;
 }) {
   const pathname = usePathname();
 
   // Stamp the live open-task count onto the Tasks nav row so the
-  // expanded label gets a badge. Kept inside render so the value
-  // updates with prop changes.
+  // expanded label gets a badge.
   const primary = PRIMARY.map((item) =>
     item.href === "/missions" && taskCount > 0
       ? { ...item, badge: taskCount }
@@ -81,7 +76,6 @@ export function Sidebar({
   const [hoverExpanded, setHoverExpanded] = useState(false);
 
   // Auto-collapse after the user has had a chance to scan the labels once.
-  // useRef so the timer can be cancelled if the layout unmounts mid-window.
   const autoCollapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     autoCollapseTimer.current = setTimeout(() => {
@@ -99,70 +93,61 @@ export function Sidebar({
   return (
     <>
       {/* ── Layout spacer ────────────────────────────────────────────────
-          Reserves the page's horizontal real estate for the sidebar. When
-          the sidebar is hovered open from collapsed, this spacer stays at
-          WIDTH_COLLAPSED — so the actual sidebar overlays content rather
-          than pushing it around the cursor.                                */}
+          Reserves the page's horizontal real estate. When the sidebar is
+          hovered open from collapsed, this stays at WIDTH_COLLAPSED so the
+          sidebar overlays content rather than pushing it around.            */}
       <div
         aria-hidden
-        className="hidden lg:block shrink-0 transition-[width] duration-200 ease-out"
+        className={cn(
+          "hidden lg:block shrink-0 transition-[width] duration-300",
+          EASE,
+        )}
         style={{ width: collapsed ? WIDTH_COLLAPSED : WIDTH_EXPANDED }}
       />
 
       {/* ── Actual sidebar ──────────────────────────────────────────────
-          Always fixed-positioned so the hover-overlay state doesn't shift
-          anything. Width animates between 64 (icon rail) and 200 (full).  */}
+          Fixed-positioned so the hover-overlay state doesn't shift anything.
+          Only the WIDTH animates — icons keep a fixed left position and the
+          labels fade, so nothing jumps as it opens/closes.                 */}
       <aside
         onMouseEnter={() => {
-          // Hover only re-expands when in the collapsed state. While the
-          // sidebar is still in its initial "expanded on mount" period,
-          // hovering is a no-op (it's already at full width).
           if (collapsed) setHoverExpanded(true);
         }}
         onMouseLeave={() => setHoverExpanded(false)}
         className={cn(
-          // z-40 so the sidebar sits ABOVE the topbar (z-30). Without
-          // this, the sticky topbar paints over the sidebar's right
-          // edge — labels get clipped by the search bar, and during
-          // the hover-overlay state the expanded panel disappears
-          // behind the topbar entirely.
+          // z-40 so the sidebar sits ABOVE the topbar (z-30).
           "hidden lg:flex flex-col fixed top-0 left-0 h-screen z-40",
           "border-r border-ink-100 bg-cream-100 overflow-hidden",
-          "transition-[width,box-shadow] duration-200 ease-out",
-          // Only shadow when in the floating-overlay mode — makes it
-          // visually pop above content; otherwise it sits inline.
+          "transition-[width,box-shadow] duration-300",
+          EASE,
           isFloatingOverlay && "shadow-xl",
         )}
         style={{ width: railWidth }}
       >
-        {/* Logo — full row with wordmark when expanded; centered icon
-            when collapsed so it visually balances the column of square
-            nav buttons below. */}
+        {/* Logo — brand mark stays fixed (aligned with the nav icon column);
+            the wordmark fades in/out with the rail. */}
         <Link
           href="/dashboard"
-          className={cn(
-            "flex items-center hover:opacity-90 transition-opacity shrink-0 py-5",
-            expanded ? "gap-3 px-5" : "justify-center px-0",
-          )}
+          className="flex items-center h-16 shrink-0 pl-[18px] pr-4 hover:opacity-90 transition-opacity"
         >
           <span className="shrink-0">
             <BrandMark size={30} />
           </span>
-          {expanded && (
-            <span className="text-[16px] font-semibold tracking-tight text-ink-900 whitespace-nowrap">
-              profluencer
-            </span>
-          )}
+          <span
+            className={cn(
+              "ml-2.5 text-[16px] font-semibold tracking-tight text-ink-900 whitespace-nowrap transition-opacity duration-200",
+              expanded ? "opacity-100" : "opacity-0",
+            )}
+          >
+            profluencer
+          </span>
         </Link>
 
-        {/* Nav — explicit overflow-x-hidden prevents a horizontal
-            scrollbar appearing inside the rail. `scrollbar-hide` keeps
-            the nav scrollable on short viewports without painting a
-            visible scrollbar over the rail. */}
+        {/* Nav */}
         <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <ul className="space-y-1">
             {primary.map((item) => (
-              <NavLink
+              <NavRow
                 key={item.href}
                 item={item}
                 active={isActive(pathname, item.href)}
@@ -175,7 +160,7 @@ export function Sidebar({
 
           <ul className="space-y-1">
             {SECONDARY.map((item) => (
-              <NavLink
+              <NavRow
                 key={item.href}
                 item={item}
                 active={isActive(pathname, item.href)}
@@ -183,67 +168,28 @@ export function Sidebar({
               />
             ))}
           </ul>
-
-          {(isAdmin || isDev) && (
-            <div className="my-3 h-px bg-ink-100 mx-2.5" />
-          )}
-
-          {isAdmin && (
-            <div className={cn(!expanded && "flex justify-center")}>
-              <Link
-                href="/admin"
-                title={!expanded ? "Admin Console" : undefined}
-                className={cn(
-                  "flex items-center rounded-[10px] bg-ink-900 text-cream-100 hover:bg-ink-700 text-[13.5px] font-medium transition-colors",
-                  expanded
-                    ? "gap-3 px-3 h-10 w-full"
-                    : "size-10 justify-center",
-                )}
-              >
-                <ShieldCheck
-                  className="size-[18px] text-rose-300 shrink-0"
-                  strokeWidth={1.8}
-                />
-                {expanded && (
-                  <span className="flex-1 whitespace-nowrap">Admin Console</span>
-                )}
-              </Link>
-            </div>
-          )}
-
-          {isDev && (
-            <div className={cn("mt-2", !expanded && "flex justify-center")}>
-              <Link
-                href="/dev"
-                title={!expanded ? "Dev Console" : undefined}
-                className={cn(
-                  "flex items-center rounded-[10px] bg-[#0A0F1F] text-cream-100 hover:bg-[#111729] text-[13.5px] font-medium transition-colors ring-1 ring-[rgba(59,130,246,0.32)]",
-                  expanded
-                    ? "gap-3 px-3 h-10 w-full"
-                    : "size-10 justify-center",
-                )}
-              >
-                <Terminal
-                  className="size-[18px] text-[#7AA9FF] shrink-0"
-                  strokeWidth={1.8}
-                />
-                {expanded && (
-                  <span className="flex-1 whitespace-nowrap">Dev Console</span>
-                )}
-              </Link>
-            </div>
-          )}
         </nav>
 
-        {/* Bottom CTAs — single card with two icon+label rows when
-            expanded; two icon-only buttons stacked when collapsed so
-            the actions are still reachable from the icon rail. */}
-        <div className="p-3 shrink-0">
-          {expanded ? (
-            <BottomCtaCard plan={plan} />
-          ) : (
-            <BottomCtaIcons plan={plan} />
+        {/* Bottom CTAs — two tidy rows that share the nav's rhythm: the icon
+            stays put and the label fades, so they collapse cleanly to a solid
+            (Upgrade) and a soft (Invite) square. */}
+        <div className="px-3 py-3 shrink-0 space-y-1.5">
+          {plan !== "pro" && (
+            <CtaRow
+              href="/billing?upgrade=pro"
+              icon={Sparkles}
+              label="Upgrade to Pro"
+              expanded={expanded}
+              variant="primary"
+            />
           )}
+          <CtaRow
+            href="/settings/invites"
+            icon={Gift}
+            label="Invite friends"
+            expanded={expanded}
+            variant="soft"
+          />
         </div>
       </aside>
     </>
@@ -255,7 +201,10 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-function NavLink({
+/* ─── Nav row ──────────────────────────────────────────────────────────
+   Single fixed layout for both states: a left-aligned icon that never moves
+   + a label/badge that fades. Collapsing only shrinks the rail width.     */
+function NavRow({
   item,
   active,
   expanded,
@@ -265,135 +214,102 @@ function NavLink({
   expanded: boolean;
 }) {
   const Icon = item.icon;
+  const hasBadge = typeof item.badge === "number" && item.badge > 0;
   return (
-    <li className={cn(!expanded && "flex justify-center")}>
+    <li>
       <Link
         href={item.href}
         title={!expanded ? item.label : undefined}
+        aria-current={active ? "page" : undefined}
         className={cn(
-          "group flex items-center rounded-[10px] text-[13.5px] font-medium transition-colors",
+          "flex items-center h-10 w-full rounded-[10px] px-3 text-[13.5px] font-medium transition-colors",
           active
             ? "bg-rose-100 text-rose-700"
             : "text-ink-700 hover:bg-cream-200 hover:text-ink-900",
-          // Both states are 40px tall (h-10 / size-10) so toggling the
-          // sidebar doesn't shift rows vertically. Collapsed is a 40x40
-          // square; expanded is a 40-tall row with left-aligned icon
-          // + label. A small x-shift across states is unavoidable.
-          expanded
-            ? "gap-3 px-3 h-10 w-full"
-            : "size-10 justify-center",
         )}
       >
-        <Icon
-          className={cn(
-            "size-[18px] shrink-0",
-            active ? "text-rose-600" : "text-ink-500",
-          )}
-          strokeWidth={1.8}
-        />
-        {expanded && (
-          <>
-            <span className="flex-1 whitespace-nowrap">{item.label}</span>
-            {typeof item.badge === "number" && (
-              <span
-                className={cn(
-                  "inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold",
-                  active
-                    ? "bg-rose-600 text-white"
-                    : "bg-rose-100 text-rose-700",
-                )}
-              >
-                {item.badge}
-              </span>
+        <span className="relative shrink-0 inline-flex items-center justify-center">
+          <Icon
+            className={cn(
+              "size-[18px]",
+              active ? "text-rose-600" : "text-ink-500",
             )}
-          </>
+            strokeWidth={1.8}
+          />
+          {/* Collapsed: a small dot stands in for the count. */}
+          {hasBadge && !expanded && (
+            <span className="absolute -top-1 -right-1.5 size-2 rounded-full bg-rose-500 ring-2 ring-cream-100" />
+          )}
+        </span>
+
+        <span
+          className={cn(
+            "ml-3 flex-1 text-left whitespace-nowrap transition-opacity duration-200",
+            expanded ? "opacity-100" : "opacity-0",
+          )}
+        >
+          {item.label}
+        </span>
+
+        {hasBadge && (
+          <span
+            className={cn(
+              "ml-auto inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold transition-opacity duration-200",
+              expanded ? "opacity-100" : "opacity-0",
+              active ? "bg-rose-600 text-white" : "bg-rose-100 text-rose-700",
+            )}
+          >
+            {item.badge}
+          </span>
         )}
       </Link>
     </li>
   );
 }
 
-/* ─── Bottom CTAs — icon-only mode (collapsed rail) ────────────────────
-   40x40 rose squares with centered icons — same shape as Admin/Dev
-   above so the rail reads as a clean column of square buttons.        */
-
-function BottomCtaIcons({ plan }: { plan: "free" | "basic" | "pro" }) {
-  const showUpgrade = plan !== "pro";
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {showUpgrade && (
-        <Link
-          href="/billing?upgrade=pro"
-          title="Upgrade to Pro"
-          aria-label="Upgrade to Pro"
-          className="flex items-center justify-center size-10 rounded-[10px] bg-rose-100 hover:bg-rose-200 transition-colors"
-        >
-          <Sparkles className="size-[18px] text-rose-600" strokeWidth={2} />
-        </Link>
-      )}
-      <Link
-        href="/settings/invites"
-        title="Invite friends"
-        aria-label="Invite friends"
-        className="flex items-center justify-center size-10 rounded-[10px] bg-rose-100 hover:bg-rose-200 transition-colors"
-      >
-        <Gift className="size-[18px] text-rose-600" strokeWidth={2} />
-      </Link>
-    </div>
-  );
-}
-
-/* ─── Bottom CTA card — expanded mode ──────────────────────────────────
-   One card, two icon+label rows. The upgrade row hides for Pro users so
-   the card collapses to just the invite row. Each row is a full-bleed
-   tap target with a subtle hover background.                              */
-
-function BottomCtaCard({ plan }: { plan: "free" | "basic" | "pro" }) {
-  const showUpgrade = plan !== "pro";
-  return (
-    <div className="rounded-[16px] border border-rose-100 bg-rose-50/60 p-1.5 overflow-hidden">
-      {showUpgrade && (
-        <>
-          <CtaRow
-            href="/billing?upgrade=pro"
-            icon={Sparkles}
-            label="Upgrade to Pro"
-          />
-          <div className="my-1 h-px bg-rose-100/80 mx-2" />
-        </>
-      )}
-      <CtaRow
-        href="/settings/invites"
-        icon={Gift}
-        label="Invite friends"
-      />
-    </div>
-  );
-}
-
+/* ─── Bottom CTA row ───────────────────────────────────────────────────
+   Same rhythm as the nav rows. `primary` is the solid Upgrade button;
+   `soft` is the tinted Invite button.                                     */
 function CtaRow({
   href,
   icon: Icon,
   label,
+  expanded,
+  variant,
 }: {
   href: string;
   icon: LucideIcon;
   label: string;
+  expanded: boolean;
+  variant: "primary" | "soft";
 }) {
+  const primary = variant === "primary";
   return (
     <Link
       href={href}
-      className="group flex items-center gap-2.5 px-3 h-10 rounded-[12px] hover:bg-white transition-colors"
+      title={!expanded ? label : undefined}
+      className={cn(
+        "flex items-center h-10 w-full rounded-[10px] px-3 transition-colors",
+        primary
+          ? "bg-rose-600 text-white hover:bg-rose-700"
+          : "bg-rose-50 text-rose-700 hover:bg-rose-100",
+      )}
     >
-      <Icon
-        className="size-[18px] text-rose-600 shrink-0"
-        strokeWidth={2}
-      />
-      <span className="flex-1 text-[13px] font-semibold text-rose-700 truncate">
+      <Icon className="size-[18px] shrink-0" strokeWidth={2} />
+      <span
+        className={cn(
+          "ml-3 flex-1 text-left text-[13.5px] font-semibold whitespace-nowrap transition-opacity duration-200",
+          expanded ? "opacity-100" : "opacity-0",
+        )}
+      >
         {label}
       </span>
       <ArrowRight
-        className="size-3.5 text-rose-300 group-hover:text-rose-600 transition-colors shrink-0"
+        className={cn(
+          "size-3.5 shrink-0 transition-opacity duration-200",
+          primary ? "text-white/70" : "text-rose-400",
+          expanded ? "opacity-100" : "opacity-0",
+        )}
         strokeWidth={2}
       />
     </Link>

@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { MessageList } from "./message-list";
 import { PinnedBanner } from "./pinned-banner";
 import { Composer } from "./composer";
-import { MessageSquare, ArrowLeft } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { fetchRecentMessages } from "@/lib/community/chat/actions";
 import type {
   ChatChannel,
@@ -26,6 +25,8 @@ type Props = {
   currentUserName: string;
   currentUserAvatar: string | null;
   isAdmin: boolean;
+  /** When true, render flat (no card chrome) for embedding in a parent card. */
+  flat?: boolean;
 };
 
 type Toast = { id: number; kind: "error" | "success"; message: string };
@@ -39,6 +40,7 @@ export function ChatRoom({
   currentUserName,
   currentUserAvatar,
   isAdmin,
+  flat = false,
 }: Props) {
   const canPostInChannel = !channel.posts_admin_only || isAdmin;
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
@@ -262,18 +264,15 @@ export function ChatRoom({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-white rounded-[20px] border border-ink-100 overflow-hidden">
+    <div
+      className={
+        flat
+          ? "flex flex-col h-full min-h-0 overflow-hidden"
+          : "flex flex-col h-full min-h-0 bg-white rounded-[20px] border border-ink-100 overflow-hidden"
+      }
+    >
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-2.5 px-3 sm:px-5 py-3 border-b border-ink-100 bg-white">
-        <Link
-          href="/community"
-          aria-label="Back to Community"
-          className="inline-flex items-center gap-1.5 h-9 pl-2 pr-3 -ml-1 rounded-[10px] text-ink-600 hover:bg-cream-100 hover:text-ink-900 transition-colors text-[13px] font-medium"
-        >
-          <ArrowLeft className="size-4" strokeWidth={2.2} />
-          <span className="hidden sm:inline">Community</span>
-        </Link>
-        <span className="h-5 w-px bg-ink-100" aria-hidden />
+      <div className="shrink-0 flex items-center gap-2.5 px-3 sm:px-5 h-[63px] border-b border-ink-100 bg-white">
         <span className="text-[15px]" aria-hidden>
           {channel.icon ?? "💬"}
         </span>

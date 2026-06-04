@@ -8,6 +8,8 @@ import {
   CreditCard,
   LogOut,
   LifeBuoy,
+  ShieldCheck,
+  Terminal,
 } from "lucide-react";
 import { Avatar } from "./avatar";
 import { signOut } from "@/app/(auth)/actions";
@@ -19,9 +21,11 @@ type Props = {
     avatar_url?: string | null;
     plan?: string;
   };
+  isAdmin?: boolean;
+  isDev?: boolean;
 };
 
-export function ProfileMenu({ user }: Props) {
+export function ProfileMenu({ user, isAdmin = false, isDev = false }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -112,6 +116,42 @@ export function ProfileMenu({ user }: Props) {
             label="Help & Support"
             onClick={() => setOpen(false)}
           />
+
+          {/* Admin / Dev — moved here from the sidebar; only shown to those
+              with access. */}
+          {(isAdmin || isDev) && (
+            <>
+              <div className="my-1 h-px bg-ink-100" />
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2 text-[13.5px] font-medium text-ink-800 hover:bg-cream-100 transition-colors"
+                >
+                  <ShieldCheck
+                    className="size-4 text-rose-500"
+                    strokeWidth={1.8}
+                  />
+                  Admin Console
+                </Link>
+              )}
+              {isDev && (
+                <Link
+                  href="/dev"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2 text-[13.5px] font-medium text-ink-800 hover:bg-cream-100 transition-colors"
+                >
+                  <Terminal
+                    className="size-4 text-[#3B82F6]"
+                    strokeWidth={1.8}
+                  />
+                  Dev Console
+                </Link>
+              )}
+            </>
+          )}
 
           <div className="my-1 h-px bg-ink-100" />
 

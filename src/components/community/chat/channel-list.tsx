@@ -165,15 +165,18 @@ export function ChannelList({ channels, currentSlug, isAdmin, inTab }: Props) {
           // it. Don't add lg:sticky/self-start/h-[calc] here — they
           // interfere with how flex computes the sibling chat-room's
           // height, which silently kills MessageList's overflow-y-auto.
-          "shrink-0 w-[240px] bg-white rounded-[20px] border border-ink-100 overflow-hidden",
-          // Both desktop and mobile drawer use flex column for header/nav/footer stack
-          "lg:flex flex-col",
+          "shrink-0 w-[240px] overflow-hidden lg:flex flex-col",
+          // Floating mobile drawer keeps full card chrome. Inline in a tab it's
+          // flat with a right divider so the chat reads as a single box;
+          // standalone it keeps its own card.
           mobileOpen
-            ? "fixed left-3 top-3 bottom-3 z-50 flex w-[260px] shadow-xl"
-            : "hidden",
+            ? "fixed left-3 top-3 bottom-3 z-50 flex w-[260px] bg-white rounded-[20px] border border-ink-100 shadow-xl"
+            : inTab
+              ? "hidden lg:border-r lg:border-ink-100"
+              : "hidden bg-white rounded-[20px] border border-ink-100",
         )}
       >
-        <header className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-ink-100">
+        <header className="shrink-0 flex items-center justify-between gap-2 px-4 h-[63px] border-b border-ink-100">
           <h2 className="text-h5 text-ink-900">Channels</h2>
           {/* Mobile close */}
           <button

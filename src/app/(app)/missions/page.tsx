@@ -1,16 +1,41 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Sparkles, CalendarDays, GraduationCap, CalendarRange } from "lucide-react";
+import { CheckSquare, LayoutGrid, ListChecks, Activity } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
-import { MissionsBoard } from "@/components/missions/missions-board";
-import { ActivityBar } from "@/components/missions/activity-bar";
+import {
+  WorkspaceShell,
+  type WorkspaceTab,
+} from "@/components/app-shell/workspace-shell";
+import { MissionsOverview } from "@/components/missions/missions-overview";
+import { TasksList } from "@/components/missions/tasks-list";
+import {
+  MissionActivity,
+  type ActivityDay,
+} from "@/components/missions/mission-activity";
 import type { Mission } from "@/components/missions/mission-card";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { toggleMissionComplete } from "./actions";
 import { getUserTasks } from "@/lib/tasks/queries";
 
-export const metadata = { title: "Today's Missions · Creator Growth OS" };
+export const metadata = { title: "Tasks · Creator Growth OS" };
+
+type MissionsTab = "overview" | "tasks" | "activity";
+
+const VALID_TABS: MissionsTab[] = ["overview", "tasks", "activity"];
+
+const MISSIONS_TABS: WorkspaceTab[] = [
+  { key: "overview", label: "Overview", icon: LayoutGrid, href: "/missions" },
+  { key: "tasks", label: "Tasks", icon: ListChecks, href: "/missions?tab=tasks" },
+  {
+    key: "activity",
+    label: "Mission Activity",
+    icon: Activity,
+    href: "/missions?tab=activity",
+  },
+];
+
+const ACTIVITY_DAYS = 14;
+const WEEKDAY = ["S", "M", "T", "W", "T", "F", "S"];
 
 type SearchParams = Promise<{ tab?: string }>;
 
@@ -22,57 +47,78 @@ export default async function MissionsPage({
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
 
-  const { tab: tabParam } = await searchParams;
-  const initialTab: "today" | "week" | "all" | "completed" =
-    tabParam === "this-week" || tabParam === "week"
-      ? "week"
-      : tabParam === "all"
-        ? "all"
-        : tabParam === "completed"
-          ? "completed"
-          : "today";
+  const { tab } = await searchParams;
+  const active: MissionsTab = VALID_TABS.includes(tab as MissionsTab)
+    ? (tab as MissionsTab)
+    : "overview";
 
   const supabase = await createClient();
 
   const today = new Date();
+  const dayStartToday = new Date(today);
+  dayStartToday.setHours(0, 0, 0, 0);
+  // Window for the activity chart (oldest → today).
+  const rangeStart = new Date(dayStartToday);
+  rangeStart.setDate(rangeStart.getDate() - (ACTIVITY_DAYS - 1));
+  const rangeStartIso = rangeStart.toISOString();
 
-  // Past 7 days for streak / activity rail (Mon → today)
-  const weekStart = new Date(today);
-  weekStart.setDate(weekStart.getDate() - 6);
-  weekStart.setHours(0, 0, 0, 0);
-  const weekStartIso = weekStart.toISOString();
-
-  const [userTasks, { data: completedThisWeek }] = await Promise.all([
-    // The unified task store — every task assigned to this user, with real
-    // fields and NO due-date filter (tasks without a due date still show).
+  const [userTasks, { data: completedRecent }] = await Promise.all([
     getUserTasks(ctx.user.id),
     supabase
       .from("missions")
       .select("completed_at")
       .eq("user_id", ctx.user.id)
       .eq("status", "completed")
-      .gte("completed_at", weekStartIso)
+      .gte("completed_at", rangeStartIso)
       .order("completed_at", { ascending: true }),
   ]);
 
-  // Build the 7-day rail data from completedThisWeek
-  const dayBuckets: number[] = [0, 0, 0, 0, 0, 0, 0];
-  for (const row of completedThisWeek ?? []) {
+  // ── Build the daily activity buckets ──────────────────────────────────
+  const buckets = new Array(ACTIVITY_DAYS).fill(0) as number[];
+  for (const row of completedRecent ?? []) {
     if (!row.completed_at) continue;
-    const day = new Date(row.completed_at);
-    const dayStart = new Date(day);
-    dayStart.setHours(0, 0, 0, 0);
+    const d = new Date(row.completed_at);
+    d.setHours(0, 0, 0, 0);
     const idx = Math.floor(
-      (dayStart.getTime() - weekStart.getTime()) / 86400000,
+      (d.getTime() - rangeStart.getTime()) / 86_400_000,
     );
-    if (idx >= 0 && idx < 7) dayBuckets[idx] += 1;
+    if (idx >= 0 && idx < ACTIVITY_DAYS) buckets[idx] += 1;
   }
-  const activityCounts = dayBuckets;
 
-  // Map unified UserTasks → the Mission card shape, using REAL per-task
-  // metadata (difficulty / minutes / points) from the task template. Skipped
-  // tasks are hidden. `type` stays a generic bucket (the type filter is
-  // cosmetic) until task_type is surfaced through the query.
+  const series: ActivityDay[] = buckets.map((count, i) => {
+    const d = new Date(rangeStart);
+    d.setDate(d.getDate() + i);
+    return {
+      weekday: WEEKDAY[d.getDay()],
+      fullLabel: d.toLocaleDateString(undefined, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      }),
+      count,
+      isToday: i === ACTIVITY_DAYS - 1,
+    };
+  });
+
+  const last7 = series.slice(ACTIVITY_DAYS - 7);
+  const weekTotal = last7.reduce((sum, d) => sum + d.count, 0);
+  const streakLast7 = last7.map((d) => ({
+    weekday: d.weekday,
+    done: d.count > 0,
+  }));
+
+  // Current streak — consecutive days with ≥1 completion, ending today. Today
+  // not being done yet is forgiven (count through yesterday) so the streak
+  // doesn't read as 0 mid-day.
+  let streakCurrent = 0;
+  let startIdx = series.length - 1;
+  if (series[startIdx]?.count === 0) startIdx -= 1;
+  for (let i = startIdx; i >= 0; i--) {
+    if (series[i].count > 0) streakCurrent += 1;
+    else break;
+  }
+
+  // ── Map unified UserTasks → Mission card shape ────────────────────────
   const DIFFICULTY: Record<string, Mission["difficulty"]> = {
     easy: "easy",
     medium: "medium",
@@ -97,7 +143,16 @@ export default async function MissionsPage({
           })
         : null,
     }));
-  const hasRealMissions = missions.length > 0;
+
+  const completedCount = missions.filter((m) => m.completed).length;
+  const totalCount = missions.length;
+  const progressPct = totalCount
+    ? Math.round((completedCount / totalCount) * 100)
+    : 0;
+  const points = missions
+    .filter((m) => m.completed)
+    .reduce((sum, m) => sum + m.points, 0);
+  const todayFocus = missions.filter((m) => !m.completed).slice(0, 6);
 
   const firstName = ctx.name.split(" ")[0];
   const formattedDate = today.toLocaleDateString(undefined, {
@@ -105,75 +160,46 @@ export default async function MissionsPage({
     month: "long",
     day: "numeric",
   });
-  const completedCount = missions.filter((m) => m.completed).length;
 
   return (
     <PageShell>
-      <div className="space-y-7">
-        {/* Header */}
-        <header className="flex items-start justify-between gap-6 flex-wrap">
-          <div>
-            <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
-              <Sparkles className="size-4" strokeWidth={2} />
-              Welcome back, {firstName}!
-            </div>
-            <h1 className="text-h1 text-ink-900 mb-1">
-              Today&apos;s Missions
-            </h1>
-            <p className="text-ink-500 text-[14px] flex items-center gap-2">
-              <CalendarDays className="size-3.5 text-ink-400" strokeWidth={2} />
-              {formattedDate} · {missions.length} missions · {completedCount} completed
-            </p>
-          </div>
-        </header>
-
-        {/* Mission Activity — weekly mission completions (moved out of the rail) */}
-        <ActivityBar counts={activityCounts} />
-
-        {hasRealMissions ? (
-          <MissionsBoard
-            missions={missions}
-            onToggle={toggleMissionComplete}
-            defaultTab={initialTab}
+      <WorkspaceShell
+        title="Tasks"
+        icon={CheckSquare}
+        tabs={MISSIONS_TABS}
+        activeKey={active}
+      >
+        {active === "overview" && (
+          <MissionsOverview
+            firstName={firstName}
+            formattedDate={formattedDate}
+            completedCount={completedCount}
+            totalCount={totalCount}
+            points={points}
+            progressPct={progressPct}
+            weekTotal={weekTotal}
+            streakCurrent={streakCurrent}
+            todayFocus={todayFocus}
           />
-        ) : (
-          <MissionsEmptyState />
         )}
-      </div>
-    </PageShell>
-  );
-}
 
-function MissionsEmptyState() {
-  return (
-    <section className="card p-8 sm:p-10 text-center">
-      <div className="inline-flex items-center justify-center size-14 rounded-full bg-rose-100 text-rose-600 mb-4 mx-auto">
-        <Sparkles className="size-6" strokeWidth={1.8} aria-hidden />
-      </div>
-      <h2 className="text-h4 sm:text-[22px] text-ink-900 mb-2">
-        No missions for today
-      </h2>
-      <p className="text-[13.5px] text-ink-500 max-w-md mx-auto mb-6 leading-relaxed">
-        Your coach will assign daily missions tailored to your goals. While
-        you wait, head into a Program lesson or build out this week&apos;s
-        posting plan.
-      </p>
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 max-w-sm mx-auto sm:max-w-none">
-        <Link
-          href="/programs"
-          className="inline-flex items-center justify-center gap-1.5 h-11 sm:h-10 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
-        >
-          <GraduationCap className="size-4" strokeWidth={2} aria-hidden />
-          Continue a program
-        </Link>
-        <Link
-          href="/posting"
-          className="inline-flex items-center justify-center gap-1.5 h-11 sm:h-10 px-4 rounded-[10px] border border-ink-200 bg-white hover:bg-cream-100 text-ink-900 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2"
-        >
-          <CalendarRange className="size-4 text-ink-500" strokeWidth={2} aria-hidden />
-          Plan this week&apos;s posts
-        </Link>
-      </div>
-    </section>
+        {active === "tasks" && (
+          <TasksList missions={missions} onToggle={toggleMissionComplete} />
+        )}
+
+        {active === "activity" && (
+          <MissionActivity
+            series={series}
+            weekTotal={weekTotal}
+            streakCurrent={streakCurrent}
+            streakLast7={streakLast7}
+            points={points}
+            completedCount={completedCount}
+            totalCount={totalCount}
+            progressPct={progressPct}
+          />
+        )}
+      </WorkspaceShell>
+    </PageShell>
   );
 }

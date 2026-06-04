@@ -17,6 +17,7 @@ import {
   ListChecks,
   Target,
   Users,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -125,20 +126,20 @@ const TYPE_META: Record<MissionType, TypeMeta> = {
 };
 
 /* Per-type color system. Each mission type gets its own distinct hue across
-   the type chip, the icon tile (bg + icon color), and the card's left accent
-   stripe — so types are instantly distinguishable at a glance.
+   the icon tile (bg + icon color), the category label text, and the progress
+   bar — so types are instantly distinguishable without shouting.
      posting      → rose       monetization → green
      strategy     → amber      confidence   → teal
      engagement   → violet     performance  → blue                         */
-type TypeColors = { chip: string; tile: string; accent: string };
+type TypeColors = { tile: string; accent: string; text: string };
 
 const TYPE_COLORS: Record<MissionType, TypeColors> = {
-  posting:      { chip: "bg-rose-100 text-rose-700",   tile: "bg-rose-100 text-rose-600",   accent: "bg-rose-400" },
-  strategy:     { chip: "bg-[#F6ECD3] text-[#8A6A1F]", tile: "bg-[#F6ECD3] text-[#A87D24]", accent: "bg-[#E5B94E]" },
-  engagement:   { chip: "bg-[#EFE7F7] text-[#6B49A0]", tile: "bg-[#EFE7F7] text-[#7C5BAE]", accent: "bg-[#A98BD0]" },
-  performance:  { chip: "bg-[#E3EDF8] text-[#355F90]", tile: "bg-[#E3EDF8] text-[#3E6CA8]", accent: "bg-[#7BA6D6]" },
-  monetization: { chip: "bg-[#E2F0E5] text-[#2C7D47]", tile: "bg-[#E2F0E5] text-[#2F8A4E]", accent: "bg-[#5FB87A]" },
-  confidence:   { chip: "bg-[#DCF0EE] text-[#287B73]", tile: "bg-[#DCF0EE] text-[#2E8A82]", accent: "bg-[#6FBDB4]" },
+  posting:      { tile: "bg-rose-100 text-rose-600",   accent: "bg-rose-500",   text: "text-rose-600" },
+  strategy:     { tile: "bg-[#F6ECD3] text-[#A87D24]", accent: "bg-[#E5B94E]", text: "text-[#A87D24]" },
+  engagement:   { tile: "bg-[#EFE7F7] text-[#7C5BAE]", accent: "bg-[#A98BD0]", text: "text-[#7C5BAE]" },
+  performance:  { tile: "bg-[#E3EDF8] text-[#3E6CA8]", accent: "bg-[#7BA6D6]", text: "text-[#3E6CA8]" },
+  monetization: { tile: "bg-[#E2F0E5] text-[#2F8A4E]", accent: "bg-[#5FB87A]", text: "text-[#2F8A4E]" },
+  confidence:   { tile: "bg-[#DCF0EE] text-[#2E8A82]", accent: "bg-[#6FBDB4]", text: "text-[#2E8A82]" },
 };
 
 const DIFFICULTY_LABEL: Record<Difficulty, string> = {
@@ -167,6 +168,10 @@ export function MissionCard({ mission, onToggle }: Props) {
   const progressLabel = mission.progressLabel ?? meta.progressLabel;
   const metaLabel = mission.metaLabel ?? meta.metaLabel;
   const metaValue = mission.metaValue ?? meta.metaValue;
+  const progressPct = Math.min(
+    100,
+    Math.round((progressCurrent / Math.max(1, progressTarget)) * 100),
+  );
 
   const complete = () => {
     startTransition(async () => {
@@ -177,106 +182,116 @@ export function MissionCard({ mission, onToggle }: Props) {
   return (
     <div
       className={cn(
-        "group relative card overflow-hidden flex flex-col p-5 sm:p-6 transition-shadow hover:shadow-card",
-        completed && "bg-cream-100/60",
+        "group card rounded-[20px] border border-ink-100 p-5 sm:p-6 flex flex-col transition-all duration-200 hover:border-ink-200 hover:shadow-card",
+        completed && "bg-cream-50",
       )}
     >
-      {/* Left accent stripe — tinted by mission type */}
-      <span
-        aria-hidden
-        className={cn("absolute inset-y-0 left-0 w-1.5", colors.accent)}
-      />
-
-      {/* Saved indicator (top-right) */}
-      {saved && !completed && (
-        <Bookmark
-          className="absolute top-4 right-4 size-[18px] text-rose-600"
-          fill="currentColor"
-          strokeWidth={1.5}
-          aria-hidden
-        />
-      )}
-
-      {/* Header — icon tile + chips + points */}
-      <div className="flex items-center gap-2.5 flex-wrap pr-7">
+      {/* Header — icon tile · category/meta line · points */}
+      <div className="flex items-start gap-3.5">
         <span
           className={cn(
-            "size-9 rounded-[10px] inline-flex items-center justify-center shrink-0",
+            "size-12 rounded-[14px] inline-flex items-center justify-center shrink-0",
             colors.tile,
           )}
         >
-          <Icon className="size-[18px]" strokeWidth={1.9} />
+          <Icon className="size-[22px]" strokeWidth={1.9} />
         </span>
-        <span className={cn("chip font-semibold", colors.chip)}>
-          {meta.label}
-        </span>
-        <span className="chip bg-cream-100 text-ink-500 inline-flex items-center gap-1">
-          <Clock className="size-3" strokeWidth={2} />
-          {mission.minutes} min
-        </span>
-        <span className="chip bg-cream-100 text-ink-500">
-          {DIFFICULTY_LABEL[mission.difficulty]}
-        </span>
-        <span className="ml-auto text-[12.5px] font-semibold text-rose-600 tabular-nums">
-          +{mission.points} pts
-        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            {/* Category · time · difficulty — one quiet line, no chip clutter */}
+            <div className="flex items-center gap-2 min-w-0 text-[11.5px] leading-none">
+              <span
+                className={cn(
+                  "font-semibold uppercase tracking-[0.07em]",
+                  completed ? "text-ink-400" : colors.text,
+                )}
+              >
+                {meta.label}
+              </span>
+              <span className="size-[3px] rounded-full bg-ink-300 shrink-0" />
+              <span className="inline-flex items-center gap-1 text-ink-500 whitespace-nowrap">
+                <Clock className="size-3 text-ink-400" strokeWidth={2} />
+                {mission.minutes} min
+              </span>
+              <span className="size-[3px] rounded-full bg-ink-300 shrink-0" />
+              <span className="text-ink-500 whitespace-nowrap">
+                {DIFFICULTY_LABEL[mission.difficulty]}
+              </span>
+            </div>
+
+            {/* Points */}
+            <span className="shrink-0 inline-flex items-baseline gap-1 text-[13px] font-bold text-ink-800 tabular-nums leading-none">
+              <Star
+                className="size-3.5 self-center text-amber-400"
+                fill="currentColor"
+                strokeWidth={0}
+              />
+              {mission.points}
+              <span className="text-[11px] font-medium text-ink-400">pts</span>
+            </span>
+          </div>
+
+          <h3
+            className={cn(
+              "mt-2 text-[17px] sm:text-[18px] font-bold tracking-[-0.01em] text-ink-900 leading-snug",
+              completed && "line-through text-ink-400",
+            )}
+          >
+            {mission.title}
+          </h3>
+        </div>
       </div>
 
-      {/* Title + description */}
-      <h3
-        className={cn(
-          "mt-4 text-[19px] sm:text-[20px] font-bold text-ink-900 leading-snug",
-          completed && "line-through text-ink-400",
-        )}
-      >
-        {mission.title}
-      </h3>
+      {/* Description */}
       <p
         className={cn(
-          "mt-1.5 text-[13px] text-ink-500 leading-relaxed line-clamp-2",
+          "mt-3 text-[13px] text-ink-500 leading-relaxed line-clamp-2",
           completed && "text-ink-300",
         )}
       >
         {mission.description}
       </p>
 
-      <div className="my-4 h-px bg-ink-100" />
-
-      {/* Stats row — progress + goal/focus */}
-      <div className="grid grid-cols-2">
-        <div className="flex items-center gap-2.5 pr-4 min-w-0">
-          <span className="size-9 rounded-full border border-ink-100 inline-flex items-center justify-center text-ink-500 shrink-0">
-            <ProgressIcon className="size-4" strokeWidth={1.9} />
+      {/* Progress */}
+      <div className="mt-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-600">
+            <ProgressIcon className="size-3.5 text-ink-400" strokeWidth={2} />
+            {progressLabel}
           </span>
-          <div className="min-w-0">
-            <div className="text-[15px] font-bold text-ink-900 tabular-nums leading-tight">
-              {progressCurrent} / {progressTarget}
-            </div>
-            <div className="text-[12px] text-ink-500 truncate">{progressLabel}</div>
-          </div>
+          <span className="text-[12.5px] font-semibold text-ink-900 tabular-nums">
+            {progressCurrent}
+            <span className="text-ink-400 font-normal"> / {progressTarget}</span>
+          </span>
         </div>
-        <div className="flex items-center gap-2.5 pl-4 border-l border-ink-100 min-w-0">
-          <span className="size-9 rounded-full border border-ink-100 inline-flex items-center justify-center text-ink-500 shrink-0">
-            <MetaIcon className="size-4" strokeWidth={1.9} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-[11px] text-ink-400 leading-tight">{metaLabel}</div>
-            <div className="text-[12.5px] font-semibold text-ink-900 truncate">
-              {metaValue}
-            </div>
-          </div>
+        <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden">
+          <div
+            className={cn("h-full rounded-full transition-all", colors.accent)}
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
       </div>
 
-      {/* Action row */}
-      <div className="mt-5 flex items-center gap-2">
+      {/* Goal / focus — quiet footnote */}
+      <div className="mt-3 flex items-center gap-1.5 text-[11.5px] text-ink-400 min-w-0">
+        <MetaIcon className="size-3.5 shrink-0" strokeWidth={1.9} />
+        <span className="font-medium text-ink-500 shrink-0">{metaLabel}</span>
+        <span className="text-ink-300 shrink-0">·</span>
+        <span className="truncate">{metaValue}</span>
+      </div>
+
+      {/* Actions — pinned to the bottom so cards align in a grid */}
+      <div className="mt-auto pt-5 flex items-center gap-2">
         {completed ? (
           <>
-            <span className="inline-flex items-center gap-1.5 chip chip-success h-11 px-4 flex-1 justify-center">
-              <Check className="size-3.5" strokeWidth={3} />
+            <span className="flex-1 inline-flex items-center justify-center gap-1.5 h-11 rounded-[12px] bg-success-bg text-success text-[13px] font-semibold">
+              <Check className="size-4" strokeWidth={3} />
               Completed
               {mission.completed_at && (
-                <span className="text-success/80">· {mission.completed_at}</span>
+                <span className="font-normal text-success/75">
+                  · {mission.completed_at}
+                </span>
               )}
             </span>
             <button
@@ -294,10 +309,10 @@ export function MissionCard({ mission, onToggle }: Props) {
               type="button"
               onClick={complete}
               disabled={pending}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13.5px] font-semibold transition-colors cursor-pointer"
+              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13.5px] font-semibold shadow-sm shadow-rose-600/10 transition-colors cursor-pointer"
             >
               <CheckCircle2 className="size-4" strokeWidth={2} />
-              {pending ? "Saving…" : "Mark Complete"}
+              {pending ? "Saving…" : "Mark complete"}
             </button>
             <button
               type="button"
@@ -308,7 +323,7 @@ export function MissionCard({ mission, onToggle }: Props) {
                 "size-11 rounded-[12px] border inline-flex items-center justify-center transition-colors cursor-pointer",
                 saved
                   ? "border-rose-200 bg-rose-50 text-rose-600"
-                  : "border-ink-200 hover:bg-cream-100 text-ink-500 hover:text-rose-600",
+                  : "border-ink-200 hover:bg-cream-100 text-ink-400 hover:text-rose-600",
               )}
             >
               <Bookmark
@@ -320,7 +335,7 @@ export function MissionCard({ mission, onToggle }: Props) {
             <button
               type="button"
               aria-label="More options"
-              className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-ink-900 transition-colors cursor-pointer"
+              className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
             >
               <MoreHorizontal className="size-4" strokeWidth={2} />
             </button>

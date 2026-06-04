@@ -63,7 +63,7 @@ export function MessageList({
   return (
     <div
       ref={listRef}
-      className="flex-1 overflow-y-auto overscroll-contain min-h-0 px-2 py-2 space-y-0.5"
+      className="flex-1 overflow-y-auto overscroll-contain min-h-0 px-2 py-3 space-y-4"
     >
       {/* Load older button */}
       <div className="flex justify-center py-2">
