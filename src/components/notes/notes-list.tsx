@@ -280,12 +280,7 @@ function NoteCard({
 
   return (
     <li className="break-inside-avoid">
-      <div
-        className={cn(
-          "group h-full flex flex-col rounded-[16px] border border-ink-100 border-t-[3px] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-soft hover:border-ink-200 motion-reduce:transition-none",
-          accent.top,
-        )}
-      >
+      <div className="group h-full flex flex-col rounded-[16px] border border-ink-100 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-soft hover:border-ink-200 motion-reduce:transition-none">
         {editing ? (
           <div className="p-5">
             <RichNoteEditor
