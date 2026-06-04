@@ -25,6 +25,8 @@ export type WorkspaceTab = {
   icon: LucideIcon;
   /** Full href for the tab (e.g. "/community" or "/performance?tab=accounts"). */
   href: string;
+  /** Optional count pill shown on the right of the tab. */
+  badge?: number;
 };
 
 export function WorkspaceShell({
@@ -34,6 +36,8 @@ export function WorkspaceShell({
   activeKey,
   /** When true the right panel sits flush (no insets) — e.g. embedded chat. */
   flush = false,
+  /** When true the rail title is centered (even space) instead of left-aligned. */
+  centerTitle = false,
   children,
 }: {
   title: string;
@@ -41,6 +45,7 @@ export function WorkspaceShell({
   tabs: WorkspaceTab[];
   activeKey: string;
   flush?: boolean;
+  centerTitle?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -52,7 +57,12 @@ export function WorkspaceShell({
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-0 lg:h-[calc(100dvh_-_var(--topbar-height))] lg:overflow-hidden lg:-mt-[var(--space-page-y)] lg:-mb-[var(--space-page-y)] lg:-ml-[var(--space-page-x)] lg:-mr-[var(--space-page-x)]">
       {/* LEFT PANEL — flush, full-height white panel with a divider line */}
       <aside className="lg:w-[230px] lg:shrink-0 lg:h-full bg-white border-b border-ink-100 lg:border-b-0 lg:border-r lg:border-ink-100 lg:overflow-hidden">
-        <header className="flex items-center gap-2.5 p-[15px] border-b border-ink-100">
+        <header
+          className={cn(
+            "flex items-center gap-2.5 p-[15px] border-b border-ink-100",
+            centerTitle && "justify-center",
+          )}
+        >
           <span className="size-8 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
             <Icon className="size-[17px]" strokeWidth={2} />
           </span>
@@ -119,7 +129,19 @@ export function WorkspaceTabs({
               )}
               strokeWidth={2}
             />
-            {t.label}
+            <span className="flex-1 truncate">{t.label}</span>
+            {typeof t.badge === "number" && t.badge > 0 && (
+              <span
+                className={cn(
+                  "ml-auto inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold",
+                  isActive
+                    ? "bg-rose-600 text-white"
+                    : "bg-rose-100 text-rose-700",
+                )}
+              >
+                {t.badge}
+              </span>
+            )}
           </Link>
         );
       })}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, X, ChevronDown, LayoutGrid, PlayCircle, CheckCircle2 } from "lucide-react";
+import { Search, X, LayoutGrid, PlayCircle, CheckCircle2 } from "lucide-react";
 import { ProgramCard, type ProgramRow } from "./program-card";
-import { SegmentedTabs } from "@/components/ui/segmented-tabs";
+import { FilterDropdown } from "@/components/ui/filter-dropdown";
 
 type StatusTab = "all" | "started" | "finished";
 type Category = "all" | "starter" | "growth" | "monetization" | "scale" | "pro";
@@ -22,6 +22,12 @@ const SORT_OPTIONS: { value: Sort; label: string }[] = [
   { value: "recommended", label: "Recommended" },
   { value: "name", label: "Name (A–Z)" },
   { value: "progress", label: "Progress" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "All programs", icon: LayoutGrid },
+  { value: "started", label: "Started", icon: PlayCircle },
+  { value: "finished", label: "Finished", icon: CheckCircle2 },
 ];
 
 type Props = {
@@ -83,35 +89,46 @@ export function ProgramsGrid({ programs }: Props) {
 
   return (
     <div>
-      {/* ── One toolbar row: status tabs on the left, category + sort
-          (incl. Recommended) + search grouped on the right. ── */}
-      <div className="pb-3 border-b border-ink-100 flex items-center justify-between gap-3 flex-wrap">
-        <div className="max-w-full overflow-x-auto">
-          <SegmentedTabs
-            ariaLabel="Filter programs by status"
-            onSelect={(k) => setStatusTab(k as StatusTab)}
-            items={[
-              { key: "all", label: "All programs", icon: LayoutGrid, active: statusTab === "all" },
-              { key: "started", label: "Started programs", icon: PlayCircle, active: statusTab === "started" },
-              { key: "finished", label: "Finished programs", icon: CheckCircle2, active: statusTab === "finished" },
-            ]}
-          />
+      {/* ── Header — title + count/sort (left) · status & category dropdowns
+          + search (right), divided by a full-width line. ── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap min-h-[63px] border-b border-ink-100 lg:-mt-[var(--space-page-y)] lg:-mx-[var(--space-page-x)] lg:px-[var(--space-page-x)]">
+        <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+          <h2 className="text-h4 sm:text-[22px] text-ink-900">Programs</h2>
+          <span className="text-[12.5px] text-ink-500 whitespace-nowrap">
+            {visible.length} {visible.length === 1 ? "program" : "programs"} ·{" "}
+            <button
+              type="button"
+              onClick={() =>
+                setSort((s) =>
+                  s === "recommended"
+                    ? "name"
+                    : s === "name"
+                      ? "progress"
+                      : "recommended",
+                )
+              }
+              className="text-ink-700 hover:text-rose-600 underline-offset-4 hover:underline cursor-pointer"
+            >
+              Sort: {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+            </button>
+          </span>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <FilterSelect
+        <div className="flex items-center justify-end gap-2.5 flex-wrap">
+          <FilterDropdown
+            ariaLabel="Filter programs by status"
+            value={statusTab}
+            onChange={(v) => setStatusTab(v as StatusTab)}
+            options={STATUS_OPTIONS}
+          />
+          <FilterDropdown
+            ariaLabel="Filter programs by category"
             value={category}
             onChange={(v) => setCategory(v as Category)}
             options={CATEGORY_OPTIONS}
-            ariaLabel="Filter programs by category"
+            width={210}
           />
-          <FilterSelect
-            value={sort}
-            onChange={(v) => setSort(v as Sort)}
-            options={SORT_OPTIONS}
-            ariaLabel="Sort programs"
-          />
-          <div className="relative w-full sm:w-[240px] lg:w-[260px]">
+          <div className="relative w-[170px] sm:w-[240px]">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
               strokeWidth={2}
@@ -158,36 +175,3 @@ export function ProgramsGrid({ programs }: Props) {
   );
 }
 
-/** Tidy native-select dropdown with a chevron — matches the search field. */
-function FilterSelect<T extends string>({
-  value,
-  onChange,
-  options,
-  ariaLabel,
-}: {
-  value: T;
-  onChange: (next: string) => void;
-  options: { value: T; label: string }[];
-  ariaLabel: string;
-}) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label={ariaLabel}
-        className="h-10 pl-3.5 pr-9 rounded-[12px] bg-white border border-ink-100 text-[13px] font-medium text-ink-700 appearance-none cursor-pointer hover:border-ink-200 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-        strokeWidth={2}
-      />
-    </div>
-  );
-}

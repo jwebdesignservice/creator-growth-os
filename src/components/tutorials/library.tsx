@@ -6,7 +6,6 @@ import {
   Play,
   CheckCircle2,
   Lock,
-  ChevronDown,
   Search,
   X,
   NotebookPen,
@@ -18,8 +17,7 @@ import {
   ClipboardList,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { SegmentedTabs } from "@/components/ui/segmented-tabs";
+import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import type { TutorialRow } from "@/lib/programs/tutorial-queries";
 
 // Render-side chunk size. Filters/sort apply to the full list; only this many
@@ -59,7 +57,6 @@ export function TutorialLibrary({
 }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("by_program");
-  const [sortOpen, setSortOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [categoryLabel, setCategoryLabel] = useState<string | "all">(
     defaultCategoryLabel ?? "all",
@@ -154,28 +151,56 @@ export function TutorialLibrary({
 
   return (
     <section className="space-y-5">
-      {/* Filter pills + category selector */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        {/* Global segmented tab control — shared with /programs (and elsewhere)
-            so every tab bar reads identically. Scrolls horizontally on narrow
-            screens rather than wrapping. */}
-        <div className="max-w-full overflow-x-auto">
-          <SegmentedTabs
-            ariaLabel="Filter tutorials by type"
-            onSelect={(k) => setFilter(k as Filter)}
-            items={FILTERS.map((f) => ({
-              key: f.key,
-              label: f.label,
-              icon: f.icon,
-              active: filter === f.key,
-            }))}
-          />
+      {/* Header — title + count/sort (left) · type & category dropdowns +
+          search (right), divided by a full-width line. */}
+      <div className="flex items-center justify-between gap-3 flex-wrap min-h-[63px] border-b border-ink-100 lg:-mt-[var(--space-page-y)] lg:-mx-[var(--space-page-x)] lg:px-[var(--space-page-x)]">
+        <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+          <h2 className="text-h4 sm:text-[22px] text-ink-900">Tutorials</h2>
+          <span className="text-[12.5px] text-ink-500 whitespace-nowrap">
+            {visible.length} {visible.length === 1 ? "tutorial" : "tutorials"} ·{" "}
+            <button
+              type="button"
+              onClick={() =>
+                setSort((s) =>
+                  s === "by_program"
+                    ? "shortest"
+                    : s === "shortest"
+                      ? "newest"
+                      : "by_program",
+                )
+              }
+              className="text-ink-700 hover:text-rose-600 underline-offset-4 hover:underline cursor-pointer"
+            >
+              Sort:{" "}
+              {sort === "by_program"
+                ? "By program"
+                : sort === "shortest"
+                  ? "Shortest"
+                  : "Newest"}
+            </button>
+          </span>
         </div>
 
-        {/* Search + category — grouped on the right of the toolbar */}
-        <div className="flex items-center gap-2.5">
-          {/* Live search — filters the loaded library by title, description,
-              program or category as you type. */}
+        <div className="flex items-center justify-end gap-2.5 flex-wrap">
+          <FilterDropdown
+            ariaLabel="Filter tutorials by type"
+            value={filter}
+            onChange={(v) => setFilter(v as Filter)}
+            options={FILTERS.map((f) => ({
+              value: f.key,
+              label: f.label,
+              icon: f.icon,
+            }))}
+          />
+          <FilterDropdown
+            ariaLabel="Filter tutorials by category"
+            value={categoryLabel}
+            onChange={(v) => setCategoryLabel(v)}
+            options={categoryOptions.map((c) => ({
+              value: c,
+              label: c === "all" ? "All categories" : c,
+            }))}
+          />
           <div className="relative">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 size-[15px] text-ink-400"
@@ -201,59 +226,6 @@ export function TutorialLibrary({
               </button>
             )}
           </div>
-
-          {/* Category dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setSortOpen((v) => !v)}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-white border border-ink-100 text-[13px] font-medium text-ink-700 hover:bg-cream-100 cursor-pointer"
-          >
-            {categoryLabel === "all" ? "All categories" : categoryLabel}
-            <ChevronDown className="size-3.5 text-ink-500" strokeWidth={2} />
-          </button>
-          {sortOpen && (
-            <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-[180px] rounded-[12px] bg-white border border-ink-100 shadow-card py-1">
-              {categoryOptions.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    setCategoryLabel(c);
-                    setSortOpen(false);
-                  }}
-                  className={cn(
-                    "block w-full text-left px-3 py-1.5 text-[13px] hover:bg-cream-100 cursor-pointer",
-                    categoryLabel === c ? "text-rose-700 font-semibold" : "text-ink-700",
-                  )}
-                >
-                  {c === "all" ? "All categories" : c}
-                </button>
-              ))}
-            </div>
-          )}
-          </div>
-        </div>
-      </div>
-
-      {/* Library header + sort */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-h4 sm:text-[22px] text-ink-900">
-          Tutorial Library
-        </h2>
-        <div className="text-[12.5px] text-ink-500">
-          {visible.length} {visible.length === 1 ? "tutorial" : "tutorials"} ·{" "}
-          <button
-            type="button"
-            onClick={() =>
-              setSort((s) =>
-                s === "by_program" ? "shortest" : s === "shortest" ? "newest" : "by_program",
-              )
-            }
-            className="text-ink-700 hover:text-rose-600 underline-offset-4 hover:underline cursor-pointer"
-          >
-            Sort: {sort === "by_program" ? "By program" : sort === "shortest" ? "Shortest" : "Newest"}
-          </button>
         </div>
       </div>
 
