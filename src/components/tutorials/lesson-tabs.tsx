@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import {
-  BookOpen,
   CheckCircle2,
   CalendarDays,
   FileText,
@@ -20,13 +18,12 @@ import {
   Image as ImageIcon,
   Link2,
   ExternalLink,
-  NotebookPen,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
-import { cn } from "@/lib/cn";
 import { LessonNotes } from "@/components/notes/lesson-notes";
 import type { ProgramNote } from "@/lib/programs/queries";
+import type { LessonTabKey } from "./lesson-tab-defs";
 
 /**
  * Tabbed detail panel for the lesson player (Loom-inspired).
@@ -64,14 +61,6 @@ type Props = {
   lessonTitle: string;
 };
 
-type TabKey = "overview" | "path" | "resources" | "notes";
-
-const TABS: { key: TabKey; label: string; icon: LucideIcon; beta?: boolean }[] = [
-  { key: "overview",  label: "Overview",     icon: BookOpen     },
-  { key: "path",      label: "Lesson Path",  icon: CalendarDays, beta: true },
-  { key: "resources", label: "Resources",    icon: Files        },
-  { key: "notes",     label: "Notes",        icon: NotebookPen  },
-];
 
 const TAKEAWAYS = [
   "Why hooks are critical for reach and retention",
@@ -81,81 +70,28 @@ const TAKEAWAYS = [
   "How to test and refine your hooks",
 ];
 
-export function LessonTabs({
+/**
+ * Renders the active lesson section. The tab navigation itself lives in the
+ * page's left rail (WorkspaceShell); this just shows the chosen panel.
+ */
+export function LessonContent({
+  active,
   description,
   chapters,
   resources,
   notes,
   lessonSlug,
   lessonTitle,
-}: Props) {
-  const [tab, setTab] = useState<TabKey>("overview");
-
+}: Props & { active: LessonTabKey }) {
+  if (active === "overview") return <OverviewPanel description={description} />;
+  if (active === "path") return <PathPanel chapters={chapters} />;
+  if (active === "resources") return <ResourcesPanel resources={resources} />;
   return (
-    <section>
-      {/* Tab bar — sits directly on the page (no surrounding card) */}
-      <div
-        role="tablist"
-        className="flex items-center gap-1 border-b border-ink-100 overflow-x-auto"
-      >
-        {TABS.map((t) => {
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "relative inline-flex items-center gap-1.5 px-3 py-3.5 text-[13px] font-medium whitespace-nowrap transition-colors",
-                active ? "text-rose-700" : "text-ink-500 hover:text-ink-900",
-              )}
-            >
-              <t.icon className="size-4" strokeWidth={1.9} aria-hidden />
-              {t.label}
-              {t.beta && (
-                <span className="ml-0.5 inline-flex items-center rounded-full bg-rose-100 text-rose-700 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 leading-none">
-                  Beta
-                </span>
-              )}
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full bg-rose-600"
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active panel */}
-      {tab === "overview" && (
-        <div className="pt-5 sm:pt-6">
-          <OverviewPanel description={description} />
-        </div>
-      )}
-      {tab === "path" && (
-        <div className="pt-5 sm:pt-6">
-          <PathPanel chapters={chapters} />
-        </div>
-      )}
-      {tab === "resources" && (
-        <div className="pt-5 sm:pt-6">
-          <ResourcesPanel resources={resources} />
-        </div>
-      )}
-      {tab === "notes" && (
-        <div className="pt-5 sm:pt-6">
-          <LessonNotes
-            notes={notes}
-            lessonSlug={lessonSlug}
-            lessonTitle={lessonTitle}
-          />
-        </div>
-      )}
-    </section>
+    <LessonNotes
+      notes={notes}
+      lessonSlug={lessonSlug}
+      lessonTitle={lessonTitle}
+    />
   );
 }
 

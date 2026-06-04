@@ -31,7 +31,7 @@ export default async function TutorialsPage({
   if (isGateActive(gate, readPreviewGate(previewGate))) {
     return (
       <PageShell>
-        <div className="space-y-6 sm:space-y-7 max-w-[1600px] mx-auto">
+        <div className="space-y-6 sm:space-y-7">
           <header>
             <div className="text-rose-600 font-medium text-[13px] mb-2 flex items-center gap-1.5">
               <Sparkles className="size-4" strokeWidth={2} />
@@ -67,7 +67,7 @@ export default async function TutorialsPage({
 
   return (
     <PageShell>
-      <div className="space-y-6 sm:space-y-7 max-w-[1600px] mx-auto">
+      <div className="space-y-6 sm:space-y-7">
         {/* Library */}
         {tutorials.length === 0 ? (
           <div className="card p-10 text-center">

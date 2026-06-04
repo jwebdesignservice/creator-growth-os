@@ -27,6 +27,13 @@ import {
   Megaphone,
   Heart,
   DollarSign,
+  GraduationCap,
+  LayoutGrid,
+  ListTree,
+  FolderClosed,
+  NotebookPen,
+  CheckSquare,
+  ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
@@ -34,7 +41,10 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/app-shell/avatar";
 import { CurriculumAccordion } from "@/components/programs/curriculum-accordion";
-import { DetailTabs } from "@/components/programs/detail-tabs";
+import {
+  WorkspaceShell,
+  type WorkspaceTab,
+} from "@/components/app-shell/workspace-shell";
 import {
   getCurriculumForProgram,
   getProgramProgress,
@@ -78,7 +88,16 @@ const LEARNING_ICONS: Record<string, LucideIcon> = {
 };
 
 type Params = Promise<{ slug: string }>;
-type SearchParams = Promise<{ previewGate?: string }>;
+type SearchParams = Promise<{ previewGate?: string; tab?: string }>;
+
+type ProgramTab = "overview" | "curriculum" | "resources" | "notes" | "tasks";
+const PROGRAM_TAB_KEYS: ProgramTab[] = [
+  "overview",
+  "curriculum",
+  "resources",
+  "notes",
+  "tasks",
+];
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
@@ -106,7 +125,7 @@ export default async function ProgramDetailPage({
 
   // Onboarding gate — every program except Start Here is locked until the
   // user finishes onboarding. Enforced here so direct URLs respect the lock.
-  const { previewGate } = await searchParams;
+  const { previewGate, tab } = await searchParams;
   const gate = await getOnboardingGate();
   if (
     slug !== ONBOARDING_PROGRAM_SLUG &&
@@ -232,65 +251,115 @@ export default async function ProgramDetailPage({
     (t) => !t.due_date || t.due_date <= weekHorizonIso,
   );
 
+  const active: ProgramTab = PROGRAM_TAB_KEYS.includes(tab as ProgramTab)
+    ? (tab as ProgramTab)
+    : "overview";
+  const programTabs: WorkspaceTab[] = [
+    { key: "overview", label: "Overview", icon: LayoutGrid, href: `/programs/${slug}` },
+    {
+      key: "curriculum",
+      label: "Curriculum",
+      icon: ListTree,
+      href: `/programs/${slug}?tab=curriculum`,
+    },
+    {
+      key: "resources",
+      label: "Resources",
+      icon: FolderClosed,
+      href: `/programs/${slug}?tab=resources`,
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      icon: NotebookPen,
+      href: `/programs/${slug}?tab=notes`,
+    },
+    {
+      key: "tasks",
+      label: "Tasks",
+      icon: CheckSquare,
+      href: `/programs/${slug}?tab=tasks`,
+      badge: programTasks.length,
+    },
+  ];
+
   return (
     <PageShell>
-      <div className="space-y-6">
-        {/* Breadcrumb */}
-        <nav className="text-[13px]">
-          <Link href="/programs" className="text-rose-600 hover:text-rose-700 font-medium">
-            Programs
-          </Link>
-          <span className="text-ink-400 mx-2">/</span>
-          <span className="text-ink-700">{program.title}</span>
-        </nav>
+      <WorkspaceShell
+        title={program.title}
+        icon={GraduationCap}
+        tabs={programTabs}
+        activeKey={active}
+      >
+        <div className="space-y-5 lg:pt-[var(--space-page-y)]">
+          {/* Back button + breadcrumb / page path — one inline row */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Link
+              href="/programs"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-ink-200 bg-white text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 hover:text-ink-900 transition-colors shrink-0"
+            >
+              <ChevronLeft className="size-3.5" strokeWidth={2} />
+              Back
+            </Link>
+            <span aria-hidden className="w-px h-4 bg-ink-200 shrink-0" />
+            <nav className="flex items-center gap-2 text-[13px] min-w-0">
+              <Link
+                href="/programs"
+                className="text-rose-600 hover:text-rose-700 font-medium shrink-0"
+              >
+                Programs
+              </Link>
+              <span className="text-ink-400 shrink-0">/</span>
+              <span className="text-ink-700 truncate">{program.title}</span>
+            </nav>
+          </div>
 
-        {/* Hero */}
-        <ProgramHero
-          title={program.title}
-          description={program.description ?? ""}
-          totalLessons={effectiveTotal}
-          totalTasks={program.total_tasks ?? 18}
-          estimatedDays={program.estimated_days ?? 42}
-          progress={effectivePercent}
-          continueHref={continueHref}
-          enrolledCount={enrolledCount}
-        />
-
-        {/* Tabs + content */}
-        <DetailTabs
-          tasksCount={6}
-          overview={
-            <div className="space-y-5">
+          {active === "overview" && (
+            <>
+              <ProgramHero
+                title={program.title}
+                description={program.description ?? ""}
+                totalLessons={effectiveTotal}
+                totalTasks={program.total_tasks ?? 18}
+                estimatedDays={program.estimated_days ?? 42}
+                progress={effectivePercent}
+                continueHref={continueHref}
+                enrolledCount={enrolledCount}
+              />
               <WhatYoullLearn
                 outcomes={learnOutcomes}
                 percent={effectivePercent}
                 continueHref={continueHref}
               />
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-5">
+              <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.4fr] gap-5">
                 <div className="space-y-5">
                   <ThisWeeksLinkedTasks tasks={thisWeekTasks} />
                   <TemplatesDownloads />
                 </div>
                 <CurriculumAccordion modules={modules} programSlug={slug} />
               </div>
-            </div>
-          }
-          curriculum={
-            <div className="max-w-[840px]">
+            </>
+          )}
+
+          {active === "curriculum" && (
+            <div className="max-w-[900px]">
               <CurriculumAccordion modules={modules} programSlug={slug} />
             </div>
-          }
-          resources={<TemplatesDownloads />}
-          notes={
+          )}
+
+          {active === "resources" && <TemplatesDownloads />}
+
+          {active === "notes" && (
             <ProgramNotes
               notes={programNotes}
               programSlug={slug}
               newNoteHref={continueHref}
             />
-          }
-          tasks={<AllProgramTasks tasks={programTasks} />}
-        />
-      </div>
+          )}
+
+          {active === "tasks" && <AllProgramTasks tasks={programTasks} />}
+        </div>
+      </WorkspaceShell>
     </PageShell>
   );
 }
