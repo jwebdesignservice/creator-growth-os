@@ -187,12 +187,22 @@ export async function getTutorialDetail(
 
   if (!lesson) return null;
 
-  // Sibling lessons in the same program, ordered by sort_order
-  const { data: siblings } = await supabase
+  // Sibling lessons used for the module rail + prev/next.
+  //   • Program lesson           → the other lessons in the same program.
+  //   • Standalone tutorial (program_id NULL) → the other PUBLISHED standalone
+  //     tutorials, in Tutorial Library order. This is what powers
+  //     "Complete & continue" on /tutorials/[slug]: since standalone tutorials
+  //     have no program path, the next/prev is simply the next/previous video
+  //     in line (library sort order).
+  let siblingsQuery = supabase
     .from("lessons")
-    .select("id, slug, title, duration_seconds, module_number, sort_order")
-    .eq("program_id", lesson.program_id)
-    .order("sort_order", { ascending: true });
+    .select("id, slug, title, duration_seconds, module_number, sort_order");
+  siblingsQuery = lesson.program_id
+    ? siblingsQuery.eq("program_id", lesson.program_id)
+    : siblingsQuery.is("program_id", null).eq("published", true);
+  const { data: siblings } = await siblingsQuery.order("sort_order", {
+    ascending: true,
+  });
 
   let progress = new Map<string, boolean>();
   if (user && siblings && siblings.length > 0) {

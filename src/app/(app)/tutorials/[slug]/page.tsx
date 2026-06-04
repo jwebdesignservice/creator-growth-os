@@ -221,6 +221,12 @@ export default async function TutorialDetailPage({
               lessonSlug={lesson.slug}
               initialCompleted={lesson.completed}
               lessonTitle={lesson.title}
+              // Standalone tutorials advance through the Tutorial Library in
+              // sort order: Complete & continue → next tutorial in line,
+              // Go back → previous one. (prev/next come from getTutorialDetail.)
+              basePath="/tutorials"
+              nextSlug={lesson.next?.slug ?? null}
+              prevSlug={lesson.prev?.slug ?? null}
             />
           )}
 

@@ -193,7 +193,6 @@ export default async function ProgramLessonPage({
 
   const title = detail?.title ?? curr!.title;
   const duration = detail?.duration ?? curr!.duration;
-  const description = detail?.description ?? null;
   const videoUrl = detail?.videoUrl ?? null;
   const coverUrl = detail?.coverUrl ?? null;
   const completed = detail?.completed ?? curr?.status === "completed";
@@ -275,7 +274,7 @@ export default async function ProgramLessonPage({
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
             {/* LEFT — video, meta, actions, description (the watch column) */}
-            <div className="space-y-4 min-w-0">
+            <div className="space-y-6 min-w-0">
               <LessonVideoPlayer
                 title={title}
                 duration={duration}
@@ -325,7 +324,6 @@ export default async function ProgramLessonPage({
               {/* Description + authored learning points / action steps */}
               <LessonOverview
                 title={title}
-                description={description}
                 moduleNumber={moduleNumber}
                 learningPoints={learningPoints}
               />
@@ -388,12 +386,10 @@ const LEARNING_ICONS: Record<LearningIconKey, LucideIcon> = {
 
 function LessonOverview({
   title,
-  description,
   moduleNumber,
   learningPoints,
 }: {
   title: string;
-  description: string | null;
   moduleNumber: number;
   learningPoints: LearningPoint[];
 }) {
@@ -407,22 +403,18 @@ function LessonOverview({
   const hasAnyStep = learningPoints.some((lp) => lp.actionStep);
 
   return (
-    <section>
+    <section className="pt-6 border-t border-ink-100">
       {/* Header — book icon + title/subtitle + Action step pill.
           Rendered flush (no card wrapper) — the learning points below keep
           their own boxes. */}
-      <div className="flex items-start gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-5">
         <span className="size-11 rounded-[13px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
           <BookOpen className="size-[20px]" strokeWidth={1.9} />
         </span>
         <div className="flex-1 min-w-0">
-          <h2 className="text-h3 sm:text-[24px] text-ink-900 leading-tight mb-1">
+          <h2 className="text-h3 sm:text-[24px] text-ink-900 leading-tight">
             Lesson Overview
           </h2>
-          <p className="text-[12.5px] sm:text-[13px] text-ink-500 leading-snug max-w-2xl">
-            {description ??
-              "A focused step in your program path — clear, practical, and built to apply this week. Complete it to unlock the next lesson and keep your progress moving."}
-          </p>
         </div>
         {(hasAnyStep || !hasLearning) && (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold shrink-0 whitespace-nowrap">
@@ -436,7 +428,9 @@ function LessonOverview({
           lesson body renders here. Placeholder text; not wired to data yet. */}
       <RichTextBlock />
 
-      {hasLearning ? (
+      {/* Clear separation between the lesson body and the learning section */}
+      <div className="mt-8 pt-8 border-t border-ink-100">
+        {hasLearning ? (
         <>
           <h3 className="inline-flex items-center gap-1.5 text-[13px] font-bold text-ink-900 mb-2.5">
             <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} fill="currentColor" />
@@ -530,7 +524,8 @@ function LessonOverview({
             </p>
           </div>
         </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }

@@ -40,6 +40,12 @@ type Props = {
   nextSlug?: string | null;
   /** Previous lesson's slug — drives the "Go back" action. */
   prevSlug?: string | null;
+  /**
+   * Route prefix for sibling navigation when NOT inside a program — e.g.
+   * "/tutorials" for the standalone Tutorial Library. Ignored when
+   * `programSlug` is set (programs always navigate within `/programs/...`).
+   */
+  basePath?: string | null;
 };
 
 const MAX_LEN = 5000;
@@ -60,12 +66,25 @@ export function LessonActionRow({
   programSlug,
   nextSlug,
   prevSlug,
+  basePath,
 }: Props) {
   const router = useRouter();
   const [completed, setCompleted] = useState(initialCompleted);
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
+
+  // Resolve where a prev/next sibling lives for the current context:
+  //   • Inside a program → /programs/[program]/[slug] (overview when no slug).
+  //   • Standalone tutorial (basePath set, e.g. "/tutorials") → basePath/[slug]
+  //     (the library root when there's no further sibling).
+  //   • Neither → the Programs index as a safe fallback.
+  const siblingHref = (slug?: string | null) => {
+    if (programSlug)
+      return slug ? `/programs/${programSlug}/${slug}` : `/programs/${programSlug}`;
+    if (basePath) return slug ? `${basePath}/${slug}` : basePath;
+    return "/programs";
+  };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -80,15 +99,10 @@ export function LessonActionRow({
       <button
         type="button"
         onClick={() => {
-          // "Go back" — return to the previous lesson (falls back to the
-          // program overview when this is the first lesson).
-          const dest =
-            prevSlug && programSlug
-              ? `/programs/${programSlug}/${prevSlug}`
-              : programSlug
-                ? `/programs/${programSlug}`
-                : "/programs";
-          router.push(dest);
+          // "Go back" — the previous sibling (previous curriculum lesson in a
+          // program, or the previous tutorial in library order). Falls back to
+          // the section root when this is the first one.
+          router.push(siblingHref(prevSlug));
         }}
         className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] border border-ink-200 bg-white text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors cursor-pointer"
       >
@@ -111,13 +125,10 @@ export function LessonActionRow({
               }
               setCompleted(true);
             }
-            const dest =
-              nextSlug && programSlug
-                ? `/programs/${programSlug}/${nextSlug}`
-                : programSlug
-                  ? `/programs/${programSlug}`
-                  : "/programs";
-            router.push(dest);
+            // Advance to the next sibling — the next curriculum lesson inside a
+            // program, or the next tutorial in library order on /tutorials.
+            // Falls back to the section root when this is the last one.
+            router.push(siblingHref(nextSlug));
           });
         }}
         disabled={pending}

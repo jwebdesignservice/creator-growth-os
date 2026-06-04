@@ -36,9 +36,11 @@ type Props = {
    * row that doesn't exist in the database.
    */
   isDemo?: boolean;
+  /** Optional "Add Post" action rendered centered in the space below the rows. */
+  addPostSlot?: ReactNode;
 };
 
-export function PlannedPostsTable({ items, isDemo = false }: Props) {
+export function PlannedPostsTable({ items, isDemo = false, addPostSlot }: Props) {
   const count = items.length;
   // Which post is open in the detail/edit popup (null = closed).
   const [editItem, setEditItem] = useState<PostingItem | null>(null);
@@ -169,13 +171,16 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
               Upcoming Post{count === 1 ? "" : "s"}
             </span>
           </div>
-          <Link
-            href="/posting?view=calendar"
-            className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold shadow-sm transition-colors"
-          >
-            View All Posts
-            <ArrowRight className="size-4" strokeWidth={2} />
-          </Link>
+          <div className="flex items-center gap-2.5">
+            {addPostSlot}
+            <Link
+              href="/posting?view=calendar"
+              className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[12px] border border-rose-200 text-rose-600 hover:bg-rose-50 text-[13px] font-semibold transition-colors"
+            >
+              View All Posts
+              <ArrowRight className="size-4" strokeWidth={2} />
+            </Link>
+          </div>
         </footer>
       )}
     </section>

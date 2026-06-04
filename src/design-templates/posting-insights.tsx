@@ -4,6 +4,7 @@
    posting optimisation.
    ───────────────────────────────────────────────────────────────────── */
 
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export function BestTimeHeatmap({ className }: { className?: string }) {
@@ -38,6 +39,10 @@ export function BestTimeHeatmap({ className }: { className?: string }) {
           </div>
         </div>
       </div>
+      <div className="mt-3 pt-3 border-t border-ink-100 text-[12px] text-ink-500 leading-snug">
+        Darker = more engagement. Your strongest window is{" "}
+        <span className="font-semibold text-ink-700">Sat 6&nbsp;PM</span>.
+      </div>
     </div>
   );
 }
@@ -53,15 +58,25 @@ export function FormatPerformance({ className }: { className?: string }) {
     <div className={cn("card p-5 w-[340px] max-w-full", className)}>
       <h3 className="text-h5 text-ink-900 mb-1">Format performance</h3>
       <p className="text-[11.5px] text-ink-400 mb-4">Avg engagement rate by format</p>
-      <div className="space-y-2.5">
+      <div className="space-y-3.5">
         {fmts.map((f) => (
           <div key={f.name} className="flex items-center gap-3">
-            <span className="text-[12px] text-ink-700 w-20">{f.name}</span>
+            <span className="text-[12px] text-ink-700 w-20 shrink-0">{f.name}</span>
             <div className="flex-1 h-2.5 rounded-full bg-cream-200 overflow-hidden">
               <div className={"h-full rounded-full " + f.tone} style={{ width: `${f.pct}%` }} />
             </div>
+            <span className="text-[12px] font-semibold text-ink-900 tabular-nums w-9 text-right shrink-0">
+              {f.pct}%
+            </span>
           </div>
         ))}
+      </div>
+      <div className="mt-4 pt-3 border-t border-ink-100 flex items-start gap-2 text-[12px] text-ink-500 leading-snug">
+        <Sparkles className="size-3.5 text-rose-500 shrink-0 mt-0.5" strokeWidth={2} />
+        <span>
+          <span className="font-semibold text-ink-700">Reels</span> outperform Posts ~3× —
+          prioritise them in your plan.
+        </span>
       </div>
     </div>
   );

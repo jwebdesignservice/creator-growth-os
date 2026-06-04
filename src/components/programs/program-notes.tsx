@@ -16,7 +16,7 @@ export function ProgramNotes({
   newNoteHref?: string;
 }) {
   return (
-    <section className="card overflow-hidden flex flex-col">
+    <section className="flex flex-col lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mt-[var(--space-page-y)]">
       {/* Header — matches Templates & Downloads chrome */}
       <div className="p-5 sm:p-6 flex items-start gap-3">
         <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">

@@ -117,19 +117,21 @@ function deriveCategoryLabel(arr: string[] | null | undefined) {
 
 function UpgradeAccent() {
   return (
-    <div className="rounded-[16px] bg-rose-50/80 border border-rose-100 p-5 flex flex-col">
-      <Sparkles className="size-5 text-rose-500 mb-3" strokeWidth={2} />
+    <div className="max-w-xl mx-auto w-full rounded-[20px] bg-rose-50/80 border border-rose-100 p-6 sm:p-7 flex flex-col items-center text-center">
+      <span className="size-11 rounded-full bg-rose-100 text-rose-500 inline-flex items-center justify-center mb-3">
+        <Sparkles className="size-5" strokeWidth={2} />
+      </span>
       <h3 className="text-h4 text-ink-900 leading-tight mb-2">
         Unlock the Pro track
       </h3>
-      <p className="text-[13px] text-ink-700 leading-snug mb-4 flex-1">
+      <p className="text-[13px] text-ink-700 leading-snug mb-5 max-w-md">
         Pro unlocks <span className="font-semibold">Scale &amp; Automate</span>,
         the Monetization Path, content review and bonus modules in every
         program.
       </p>
       <Link
         href="/billing?upgrade=pro"
-        className="inline-flex items-center justify-center h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors"
+        className="inline-flex items-center justify-center h-11 px-6 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium shadow-sm transition-colors"
       >
         Upgrade to Pro
       </Link>

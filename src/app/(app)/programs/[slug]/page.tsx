@@ -244,14 +244,6 @@ export default async function ProgramDetailPage({
         }))
       : PROGRAM_OUTCOMES.map((o) => ({ icon: o.icon, title: o.title, desc: o.desc }));
 
-  // This-week subset for the Overview card: due within the next 7 days (or no due date).
-  const weekHorizon = new Date();
-  weekHorizon.setDate(weekHorizon.getDate() + 7);
-  const weekHorizonIso = weekHorizon.toISOString().slice(0, 10);
-  const thisWeekTasks = programTasks.filter(
-    (t) => !t.due_date || t.due_date <= weekHorizonIso,
-  );
-
   const active: ProgramTab = PROGRAM_TAB_KEYS.includes(tab as ProgramTab)
     ? (tab as ProgramTab)
     : "overview";
@@ -336,13 +328,7 @@ export default async function ProgramDetailPage({
                 percent={effectivePercent}
                 continueHref={continueHref}
               />
-              <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.4fr] gap-5">
-                <div className="space-y-5">
-                  <ThisWeeksLinkedTasks tasks={thisWeekTasks} />
-                  <TemplatesDownloads />
-                </div>
-                <CurriculumAccordion modules={modules} programSlug={slug} />
-              </div>
+              <CurriculumAccordion modules={modules} programSlug={slug} />
             </>
           )}
 
@@ -655,125 +641,6 @@ function WhatYoullLearn({
   );
 }
 
-function ThisWeeksLinkedTasks({ tasks }: { tasks: ProgramUserTask[] }) {
-  const completed = tasks.filter((t) => t.status === "completed").length;
-  const total = tasks.length;
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const nextIdx = tasks.findIndex((t) => t.status !== "completed");
-  const nextTask = nextIdx >= 0 ? tasks[nextIdx] : null;
-  const remaining = total - completed;
-
-  return (
-    <section className="card p-5 sm:p-6">
-      {/* Header — icon tile + title/subtitle + View all */}
-      <div className="flex items-start gap-3 mb-5">
-        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-          <Link2 className="size-[18px]" strokeWidth={1.9} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-[16px] font-bold text-ink-900 leading-tight">
-            This Week&apos;s Linked Tasks
-          </h3>
-          <p className="text-[12.5px] text-ink-500 mt-0.5">
-            Tasks connected to your current program
-          </p>
-        </div>
-        <Link
-          href="/missions"
-          className="inline-flex items-center gap-1 text-[13px] font-semibold text-rose-600 hover:text-rose-700 transition-colors shrink-0"
-        >
-          View all
-          <ArrowRight className="size-3.5" strokeWidth={2} />
-        </Link>
-      </div>
-
-      {total === 0 ? (
-        <ProgramTasksEmptyState compact />
-      ) : (
-        <>
-          {/* Task list */}
-          <ul className="space-y-3 mb-4">
-            {tasks.map((t, i) => {
-              const isDone = t.status === "completed";
-              const isNext = i === nextIdx;
-              return (
-                <li
-                  key={t.id}
-                  className={`flex items-center gap-3 ${i < tasks.length - 1 ? "pb-3 border-b border-ink-100" : ""}`}
-                >
-                  <span
-                    className={`size-6 rounded-full inline-flex items-center justify-center shrink-0 transition-colors ${
-                      isDone
-                        ? "bg-rose-500 text-white"
-                        : "border-2 border-rose-300 bg-white"
-                    }`}
-                    aria-hidden
-                  >
-                    {isDone && <Check className="size-3.5" strokeWidth={3} />}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className={`text-[14px] leading-snug ${
-                        isDone
-                          ? "text-ink-400 line-through"
-                          : "text-ink-900 font-semibold"
-                      }`}
-                    >
-                      {t.title}
-                    </div>
-                    {isNext && (
-                      <div className="text-[11.5px] text-ink-500 mt-0.5">
-                        Next recommended task
-                      </div>
-                    )}
-                  </div>
-                  <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-cream-100 text-ink-500 text-[11px] font-medium shrink-0 tabular-nums">
-                    {t.due_date ? formatDueLabel(t.due_date) : `~${t.estimated_minutes} min`}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Next-up callout */}
-          {nextTask && (
-            <div className="rounded-[12px] bg-rose-50 border border-rose-100 px-3.5 py-2.5 flex items-center gap-3 mb-4">
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rose-700 shrink-0">
-                <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
-                Next up
-              </span>
-              <span aria-hidden className="w-px h-4 bg-rose-200 shrink-0" />
-              <span className="flex-1 text-[12.5px] text-ink-700 leading-snug truncate">
-                Complete {nextTask.title.toLowerCase()} to unlock your next lesson.
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600 shrink-0">
-                <span aria-hidden className="size-1.5 rounded-full bg-rose-500" />
-                {remaining} task{remaining === 1 ? "" : "s"} ready now
-              </span>
-            </div>
-          )}
-
-          {/* Progress */}
-          <div>
-            <div className="flex items-center justify-between text-[12px] text-ink-500 mb-1.5">
-              <span>
-                {completed} of {total} tasks completed
-              </span>
-              <span className="font-semibold text-ink-900 tabular-nums">{pct}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-cream-200 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-rose-500 transition-[width] duration-500"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
-
 function TemplatesDownloads() {
   const items: {
     title: string;
@@ -809,7 +676,7 @@ function TemplatesDownloads() {
     },
   ];
   return (
-    <section className="card overflow-hidden">
+    <section className="lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mt-[var(--space-page-y)]">
       {/* Header — matches This Week's Linked Tasks chrome */}
       <div className="p-5 sm:p-6 flex items-start gap-3">
         <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
@@ -823,13 +690,6 @@ function TemplatesDownloads() {
             Ready-to-use resources to speed up execution
           </p>
         </div>
-        <Link
-          href="/tutorials"
-          className="inline-flex items-center gap-1 text-[13px] font-semibold text-rose-600 hover:text-rose-700 transition-colors shrink-0"
-        >
-          View all
-          <ArrowRight className="size-3.5" strokeWidth={2} />
-        </Link>
       </div>
 
       {/* Rows */}
@@ -840,7 +700,7 @@ function TemplatesDownloads() {
             <li key={it.title} className="border-t border-ink-100">
               {/* Non-interactive until real downloadable files exist — shown as
                   "Coming soon" rather than a dead button that does nothing. */}
-              <div className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 text-left">
+              <div className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-4 text-left">
                 <span className="size-11 rounded-[12px] bg-cream-200 text-ink-400 inline-flex items-center justify-center shrink-0">
                   <Icon className="size-[20px]" strokeWidth={1.9} />
                 </span>

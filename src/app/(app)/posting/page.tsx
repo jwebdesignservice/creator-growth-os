@@ -12,9 +12,7 @@ import { ActivePlanCard } from "@/components/posting/active-plan-card";
 import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
-import { BestTimeHeatmap, FormatPerformance } from "@/design-templates/posting-insights";
-import { ContributionHeatmap } from "@/design-templates/heatmap";
-import { RetentionCohort } from "@/design-templates/funnels";
+import { InsightsDashboard } from "@/components/posting/insights-dashboard";
 import { getActivePlan, getPlannedItems } from "@/lib/posting/queries";
 import {
   WorkspaceShell,
@@ -83,7 +81,10 @@ export default async function PostingPage({
             </WorkspaceHeader>
             <div className="space-y-4 lg:space-y-0 lg:flex lg:flex-col lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
               <ActivePlanCard plan={activePlan} />
-              <PlannedPostsTable items={items} />
+              <PlannedPostsTable
+                items={items}
+                addPostSlot={<PostingActions activePlanId={activePlan.id} />}
+              />
             </div>
           </div>
         ) : active === "calendar" ? (
@@ -100,12 +101,7 @@ export default async function PostingPage({
                 Preview — fills in as you post
               </span>
             </WorkspaceHeader>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-              <BestTimeHeatmap className="w-full max-w-none" />
-              <FormatPerformance className="w-full max-w-none" />
-              <ContributionHeatmap className="w-full max-w-none" />
-              <RetentionCohort className="w-full max-w-none" />
-            </div>
+            <InsightsDashboard />
           </div>
         )}
       </WorkspaceShell>
