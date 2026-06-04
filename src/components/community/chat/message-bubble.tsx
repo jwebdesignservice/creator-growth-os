@@ -48,7 +48,7 @@ function renderBody(body: string) {
     p.isMention ? (
       <span
         key={i}
-        className="inline-flex items-center px-1 rounded-[4px] bg-rose-100 text-rose-700 font-medium"
+        className="inline-flex items-center px-1 rounded-[4px] bg-rose-200/70 text-rose-800 font-medium"
       >
         {p.text}
       </span>
@@ -125,58 +125,51 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 px-2 py-1.5 rounded-[12px] hover:bg-cream-100/60 transition-colors",
+        "group flex items-end gap-2.5 px-1",
+        isOwn && "flex-row-reverse",
         pending && "opacity-50",
       )}
     >
-      {/* Avatar */}
-      <div className="shrink-0 mt-0.5">
-        <Avatar
-          name={message.author_name}
-          src={message.author_avatar ?? undefined}
-          size={36}
-        />
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        {/* Header row */}
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-[13.5px] font-semibold text-ink-900 leading-none">
-            {message.author_name}
-          </span>
-          {message.author_is_admin && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 leading-none">
-              Admin
-            </span>
-          )}
-          {message.pinned && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600">
-              <Pin className="size-2.5" strokeWidth={2.5} />
-              Pinned
-            </span>
-          )}
-          <span className="text-[11px] text-ink-400 ml-auto">{time}</span>
+      {/* Avatar — incoming messages only */}
+      {!isOwn && (
+        <div className="shrink-0">
+          <Avatar
+            name={message.author_name}
+            src={message.author_avatar ?? undefined}
+            size={34}
+          />
         </div>
+      )}
 
-        {/* Reply quote (if this message is a reply) */}
-        {message.reply_to_preview && (
-          <div className="mt-1 flex items-start gap-1.5 pl-2 border-l-2 border-rose-200 text-[12px] text-ink-500">
-            <CornerUpLeft className="size-3 text-rose-400 mt-0.5 shrink-0" strokeWidth={2} />
-            <div className="min-w-0">
-              <span className="font-semibold text-ink-700">
-                {message.reply_to_preview.author_name}
+      {/* Bubble column */}
+      <div
+        className={cn(
+          "flex flex-col min-w-0 max-w-[80%] sm:max-w-[72%]",
+          isOwn ? "items-end" : "items-start",
+        )}
+      >
+        {/* Name + badges — incoming only */}
+        {!isOwn && (
+          <div className="flex items-center gap-1.5 mb-1 px-1">
+            <span className="text-[12.5px] font-semibold text-ink-900 leading-none">
+              {message.author_name}
+            </span>
+            {message.author_is_admin && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9.5px] font-semibold bg-rose-100 text-rose-700 leading-none">
+                Admin
               </span>
-              <span className="ml-1.5 truncate inline-block max-w-full align-bottom">
-                {message.reply_to_preview.body}
+            )}
+            {message.pinned && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600">
+                <Pin className="size-2.5" strokeWidth={2.5} />
+                Pinned
               </span>
-            </div>
+            )}
           </div>
         )}
 
-        {/* Body — either edit textarea or rendered text */}
         {editing ? (
-          <div className="mt-1 flex flex-col gap-1.5">
+          <div className="w-full flex flex-col gap-1.5">
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value.slice(0, 2000))}
@@ -206,93 +199,128 @@ export function MessageBubble({
               </button>
               <button
                 type="button"
-                onClick={() => { setEditing(false); setEditValue(message.body); }}
+                onClick={() => {
+                  setEditing(false);
+                  setEditValue(message.body);
+                }}
                 className="inline-flex items-center gap-1 h-7 px-2.5 rounded-[8px] border border-ink-200 text-ink-600 hover:bg-cream-100 text-[12px] font-medium"
               >
                 <X className="size-3" strokeWidth={2.5} />
                 Cancel
               </button>
-              <span className="text-[11px] text-ink-400">Enter to save · Esc to cancel</span>
             </div>
           </div>
         ) : (
           <>
-            {message.body && (
-              <p className="mt-0.5 text-[13.5px] text-ink-800 leading-relaxed break-words">
-                {renderBody(message.body)}
-                {message.edited_at && (
-                  <span className="ml-1.5 text-[10.5px] text-ink-400">(edited)</span>
-                )}
-              </p>
-            )}
-
-            {/* Image attachment */}
-            {message.image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <a
-                href={message.image_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mt-1.5 max-w-[360px] rounded-[12px] overflow-hidden border border-ink-100"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={message.image_url}
-                  alt=""
-                  className="block w-full h-auto max-h-[400px] object-cover"
-                />
-              </a>
-            )}
-
-            {/* Link preview card */}
-            {message.link_preview && (
-              <a
-                href={message.link_preview.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mt-1.5 max-w-[440px] rounded-[12px] border border-ink-100 hover:border-ink-200 bg-cream-50 overflow-hidden transition-colors"
-              >
-                {message.link_preview.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={message.link_preview.image}
-                    alt=""
-                    className="block w-full h-32 object-cover"
-                  />
-                )}
-                <div className="p-2.5">
-                  {message.link_preview.site_name && (
-                    <div className="text-[10.5px] uppercase tracking-wider font-semibold text-ink-400">
-                      {message.link_preview.site_name}
-                    </div>
-                  )}
-                  {message.link_preview.title && (
-                    <div className="text-[12.5px] font-semibold text-ink-900 line-clamp-2 mt-0.5">
-                      {message.link_preview.title}
-                    </div>
-                  )}
-                  {message.link_preview.description && (
-                    <div className="text-[11.5px] text-ink-500 line-clamp-2 mt-0.5">
-                      {message.link_preview.description}
-                    </div>
-                  )}
+            {/* The bubble */}
+            <div
+              className={cn(
+                "rounded-[16px] px-3.5 py-2 break-words max-w-full",
+                isOwn
+                  ? "bg-rose-100 text-ink-900 rounded-br-[5px]"
+                  : "bg-white border border-ink-100 text-ink-800 rounded-bl-[5px]",
+              )}
+            >
+              {/* Reply quote */}
+              {message.reply_to_preview && (
+                <div className="mb-1 flex items-start gap-1.5 pl-2 border-l-2 border-rose-300 text-[12px] text-ink-500">
+                  <CornerUpLeft className="size-3 text-rose-400 mt-0.5 shrink-0" strokeWidth={2} />
+                  <div className="min-w-0">
+                    <span className="font-semibold text-ink-700">
+                      {message.reply_to_preview.author_name}
+                    </span>
+                    <span className="ml-1.5 truncate inline-block max-w-full align-bottom">
+                      {message.reply_to_preview.body}
+                    </span>
+                  </div>
                 </div>
-              </a>
-            )}
+              )}
 
-            {/* Reactions row */}
-            <MessageReactions
-              messageId={message.id}
-              currentUserId={currentUserId}
-              reactions={reactions}
-              onError={onError}
-            />
+              {/* Body text */}
+              {message.body && (
+                <p className="text-[13.5px] leading-relaxed">
+                  {renderBody(message.body)}
+                  {message.edited_at && (
+                    <span className="ml-1.5 text-[10.5px] text-ink-400">(edited)</span>
+                  )}
+                </p>
+              )}
+
+              {/* Image attachment */}
+              {message.image_url && (
+                <a
+                  href={message.image_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block mt-1.5 max-w-[320px] rounded-[12px] overflow-hidden border border-ink-100"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={message.image_url}
+                    alt=""
+                    className="block w-full h-auto max-h-[360px] object-cover"
+                  />
+                </a>
+              )}
+
+              {/* Link preview card */}
+              {message.link_preview && (
+                <a
+                  href={message.link_preview.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block mt-1.5 max-w-[400px] rounded-[12px] border border-ink-100 hover:border-ink-200 bg-cream-50 overflow-hidden transition-colors"
+                >
+                  {message.link_preview.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={message.link_preview.image}
+                      alt=""
+                      className="block w-full h-32 object-cover"
+                    />
+                  )}
+                  <div className="p-2.5">
+                    {message.link_preview.site_name && (
+                      <div className="text-[10.5px] uppercase tracking-wider font-semibold text-ink-400">
+                        {message.link_preview.site_name}
+                      </div>
+                    )}
+                    {message.link_preview.title && (
+                      <div className="text-[12.5px] font-semibold text-ink-900 line-clamp-2 mt-0.5">
+                        {message.link_preview.title}
+                      </div>
+                    )}
+                    {message.link_preview.description && (
+                      <div className="text-[11.5px] text-ink-500 line-clamp-2 mt-0.5">
+                        {message.link_preview.description}
+                      </div>
+                    )}
+                  </div>
+                </a>
+              )}
+            </div>
+
+            {/* Time + reactions, under the bubble on the message's side */}
+            <div
+              className={cn(
+                "flex items-center gap-2 mt-1 px-1",
+                isOwn && "flex-row-reverse",
+              )}
+            >
+              <span className="text-[10.5px] text-ink-400">{time}</span>
+              <MessageReactions
+                messageId={message.id}
+                currentUserId={currentUserId}
+                reactions={reactions}
+                onError={onError}
+              />
+            </div>
           </>
         )}
       </div>
 
       {/* Hover action bar: react, reply, more menu */}
-      <div className="shrink-0 self-start flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="shrink-0 self-center flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <AddReactionButton
           messageId={message.id}
           reactions={reactions}
@@ -308,16 +336,7 @@ export function MessageBubble({
         >
           <Reply className="size-4" strokeWidth={2} />
         </button>
-      </div>
-
-      {/* Action menu (visible on hover or when open) */}
-      {(canDelete || canPin || canEdit) && (
-        <div
-          className={cn(
-            "shrink-0 self-start opacity-0 group-hover:opacity-100 transition-opacity",
-            menuOpen && "opacity-100",
-          )}
-        >
+        {(canDelete || canPin || canEdit) && (
           <div className="relative">
             <button
               type="button"
@@ -339,7 +358,10 @@ export function MessageBubble({
                   {canEdit && message.body && (
                     <button
                       type="button"
-                      onClick={() => { setMenuOpen(false); setEditing(true); }}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setEditing(true);
+                      }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-ink-700 hover:bg-cream-100 transition-colors"
                     >
                       <Pencil className="size-3.5 text-ink-400" strokeWidth={2} />
@@ -379,8 +401,8 @@ export function MessageBubble({
               </>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

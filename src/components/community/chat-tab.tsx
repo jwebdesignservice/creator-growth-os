@@ -65,10 +65,7 @@ export async function ChatTab({
   }
 
   return (
-    <div
-      className="flex gap-4 overflow-hidden"
-      style={{ height: "calc(100dvh - 15rem)", minHeight: "480px" }}
-    >
+    <div className="flex overflow-hidden h-[calc(100dvh_-_15rem)] lg:h-full min-h-[480px] bg-white border border-ink-100 lg:border-0">
       <ChannelList
         channels={channels}
         currentSlug={channel.slug}
@@ -86,6 +83,7 @@ export async function ChatTab({
           currentUserName={userName}
           currentUserAvatar={userAvatar}
           isAdmin={isAdmin}
+          flat
         />
       </div>
     </div>

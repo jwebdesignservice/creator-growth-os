@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Headset, CalendarDays } from "lucide-react";
+import { Search, Headset, CalendarDays, ShieldCheck } from "lucide-react";
 import { ProfileMenu } from "./profile-menu";
 import { NotifDropdown } from "./notifications-dropdown";
 import { MobileDrawer } from "./mobile-drawer";
@@ -136,8 +136,22 @@ export function Topbar({
           </Link>
         </div>
 
+        {/* Admin quick-access — sits directly left of the profile dropdown,
+            shown only to admins. The dark fill marks it apart from the
+            regular white icon actions. */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            aria-label="Admin Console"
+            title="Admin Console"
+            className="relative inline-flex items-center justify-center size-10 rounded-full bg-rose-600 text-white hover:bg-rose-700 transition-colors"
+          >
+            <ShieldCheck className="size-[18px] text-white" strokeWidth={1.8} />
+          </Link>
+        )}
+
         {/* Profile chip with dropdown */}
-        <ProfileMenu user={user} />
+        <ProfileMenu user={user} isAdmin={isAdmin} isDev={isDev} />
       </div>
 
       {/* Global command palette — singleton, opened from desktop search,

@@ -160,7 +160,7 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
 
   return (
     <>
-    <section className={cn("card overflow-hidden h-[80vh] flex flex-col", pending && "opacity-70")}>
+    <section className={cn("card overflow-hidden flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1", pending && "opacity-70")}>
       <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100 shrink-0">
         <div>
           <h3 className="text-h4 text-ink-900 leading-none">Content Calendar</h3>

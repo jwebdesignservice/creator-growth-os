@@ -18,7 +18,7 @@ import {
   BarChart3,
   Pin,
   ShieldCheck,
-  ListFilter,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type {
@@ -41,7 +41,7 @@ import { POST_REACTIONS } from "@/lib/community/reactions";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-type PostWithReplies = CommunityPost & {
+export type PostWithReplies = CommunityPost & {
   replies: CommunityReply[];
   votes: PostVotes;
   reactions: PostReaction[];
@@ -61,9 +61,9 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString();
 }
 
-type SortKey = "recent" | "popular" | "liked" | "commented";
+export type SortKey = "recent" | "popular" | "liked" | "commented";
 
-const SORTS: { value: SortKey; label: string }[] = [
+export const SORTS: { value: SortKey; label: string }[] = [
   { value: "recent", label: "Most recent" },
   { value: "popular", label: "Most popular" },
   { value: "liked", label: "Most liked" },
@@ -81,14 +81,14 @@ function popularity(p: PostWithReplies) {
 export function DiscussionList({
   posts,
   isAdmin = false,
+  sort = "recent",
 }: {
   posts: PostWithReplies[];
   /** When true, show admin-only controls (pin / unpin). */
   isAdmin?: boolean;
+  /** Sort order — driven by the filter in the tabs row (see FeedView). */
+  sort?: SortKey;
 }) {
-  const [sort, setSort] = useState<SortKey>("recent");
-  const [sortOpen, setSortOpen] = useState(false);
-
   const sorted = useMemo(() => {
     const arr = [...posts];
     arr.sort((a, b) => {
@@ -124,57 +124,12 @@ export function DiscussionList({
     );
   }
 
-  const currentLabel =
-    SORTS.find((s) => s.value === sort)?.label ?? "Most recent";
-
   return (
-    <div className="space-y-3">
-      {/* Sort filters */}
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[12.5px] text-ink-500">
-          {posts.length} {posts.length === 1 ? "discussion" : "discussions"}
-        </span>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setSortOpen((o) => !o)}
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-[10px] bg-white border border-ink-100 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 cursor-pointer"
-          >
-            <ListFilter className="size-3.5 text-ink-500" strokeWidth={2} />
-            {currentLabel}
-            <ChevronDown className="size-3.5 text-ink-500" strokeWidth={2} />
-          </button>
-          {sortOpen && (
-            <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-[190px] rounded-[12px] bg-white border border-ink-100 shadow-card py-1">
-              {SORTS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => {
-                    setSort(s.value);
-                    setSortOpen(false);
-                  }}
-                  className={cn(
-                    "block w-full text-left px-3 py-1.5 text-[13px] hover:bg-cream-100 cursor-pointer",
-                    sort === s.value
-                      ? "text-rose-700 font-semibold"
-                      : "text-ink-700",
-                  )}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <ul className="space-y-3">
-        {sorted.map((p) => (
-          <DiscussionRow key={p.id} post={p} isAdmin={isAdmin} />
-        ))}
-      </ul>
-    </div>
+    <ul className="space-y-3">
+      {sorted.map((p) => (
+        <DiscussionRow key={p.id} post={p} isAdmin={isAdmin} />
+      ))}
+    </ul>
   );
 }
 
@@ -352,6 +307,8 @@ function DiscussionRow({
           <MessageCircle className="size-[18px]" strokeWidth={2} />
           {replyCount}
         </button>
+        {/* viewed-by — placeholder profiles (max 8), right of the comment icon */}
+        <ViewedBy postId={post.id} />
         {commenters.length > 0 && (
           <CommenterFacepile commenters={commenters} />
         )}
@@ -362,16 +319,22 @@ function DiscussionRow({
               New comment {timeAgo(post.last_reply_at)}
             </span>
           )}
-          {open && (
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="inline-flex items-center gap-1 text-[12.5px] font-medium text-ink-500 hover:text-rose-600 transition-colors"
-            >
-              Collapse
-              <ChevronDown className="size-4 rotate-180" strokeWidth={2} />
-            </button>
-          )}
+          {/* Always-visible, obvious expand / collapse control */}
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-ink-200 text-[12.5px] font-semibold text-ink-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
+          >
+            {open ? "Collapse" : "Expand"}
+            <ChevronDown
+              className={cn(
+                "size-4 transition-transform",
+                open && "rotate-180",
+              )}
+              strokeWidth={2}
+            />
+          </button>
         </div>
       </div>
       {actionError && (
@@ -890,6 +853,50 @@ function ReactionBar({
 }
 
 /* ── Misc ────────────────────────────────────────────────────────────── */
+
+/**
+ * PLACEHOLDER — shows who's viewed the thread as a row of stacked profile
+ * photos (max 8, then "+N"). Until real view-tracking exists, the count + faces
+ * are derived deterministically from the post id (stable, no flicker) and the
+ * images come from a placeholder avatar service. Swap `viewer*` out for real
+ * data once view-tracking lands.
+ */
+const MAX_VIEWERS = 8;
+
+function viewerStats(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return { count: 6 + (h % 60), seed: h }; // placeholder: ~6–65 viewers
+}
+
+function ViewedBy({ postId }: { postId: string }) {
+  const { count, seed } = viewerStats(postId);
+  const shown = Math.min(count, MAX_VIEWERS);
+  const extra = count - shown;
+  return (
+    <div className="ml-2 flex items-center gap-2">
+      <span className="inline-flex items-center gap-1 text-[11.5px] text-ink-400">
+        <Eye className="size-3.5" strokeWidth={2} />
+        Viewed by
+      </span>
+      <span className="flex -space-x-2">
+        {Array.from({ length: shown }).map((_, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={i}
+            src={`https://i.pravatar.cc/48?img=${((seed + i * 7) % 70) + 1}`}
+            alt=""
+            loading="lazy"
+            className="size-6 rounded-full object-cover ring-2 ring-white bg-cream-200"
+          />
+        ))}
+      </span>
+      {extra > 0 && (
+        <span className="text-[11.5px] text-ink-400">+{extra}</span>
+      )}
+    </div>
+  );
+}
 
 function CommenterFacepile({
   commenters,

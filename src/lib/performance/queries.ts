@@ -198,6 +198,69 @@ export async function getRecentEntries(
     .map(([, group]) => aggregateWeek(group));
 }
 
+/** Map a single manual row → PerformanceEntry (coercing numeric strings). */
+function mapManualRow(r: RawEntry): PerformanceEntry {
+  const n = (v: unknown): number | null => (v == null ? null : Number(v));
+  return {
+    id: r.id,
+    week_start: r.week_start,
+    followers: n(r.followers),
+    reach: n(r.reach),
+    views: n(r.views),
+    posts_published: n(r.posts_published),
+    engagement_rate: n(r.engagement_rate),
+    profile_visits: n(r.profile_visits),
+    clicks: n(r.clicks),
+    revenue: n(r.revenue),
+    best_post: r.best_post,
+    lesson_learned: r.lesson_learned,
+  };
+}
+
+/**
+ * Manually-logged entries (platform='manual') for the current user, newest
+ * first. Unlike getRecentEntries these are NOT gated on a connected platform —
+ * the manual log is the user's own data and always shows.
+ */
+export async function getManualEntries(weeks = 12): Promise<PerformanceEntry[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("performance_entries")
+    .select(ENTRY_COLS)
+    .eq("user_id", user.id)
+    .eq("platform", "manual")
+    .order("week_start", { ascending: false })
+    .limit(weeks);
+  return ((data ?? []) as RawEntry[]).map(mapManualRow);
+}
+
+/**
+ * The dataset behind the Performance → Overview panel: synced platform data
+ * merged with the user's manual log, one row per date. A manual entry overrides
+ * the synced aggregate for the same date (an explicit hand-entered number is
+ * treated as the source of truth), so logging immediately moves the chart.
+ */
+export async function getPerformanceOverviewEntries(
+  weeks = 12,
+): Promise<PerformanceEntry[]> {
+  const [synced, manual] = await Promise.all([
+    getRecentEntries(weeks),
+    getManualEntries(weeks),
+  ]);
+  const byWeek = new Map<string, PerformanceEntry>();
+  for (const e of synced) byWeek.set(e.week_start, e);
+  for (const e of manual) byWeek.set(e.week_start, e); // manual wins on conflict
+  return Array.from(byWeek.values())
+    .sort((a, b) =>
+      a.week_start < b.week_start ? 1 : a.week_start > b.week_start ? -1 : 0,
+    )
+    .slice(0, weeks);
+}
+
 /**
  * KPI tiles for the header — current week vs prior week deltas plus
  * an 8-week series for the sparkline.

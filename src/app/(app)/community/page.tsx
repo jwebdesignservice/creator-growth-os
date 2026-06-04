@@ -1,5 +1,11 @@
 import { redirect } from "next/navigation";
-import { Users, type LucideIcon } from "lucide-react";
+import {
+  Users,
+  MessageSquare,
+  Hash,
+  CalendarDays,
+  type LucideIcon,
+} from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
@@ -18,18 +24,33 @@ import {
   type PostAttachment,
   type PostPoll,
 } from "@/lib/community/queries";
-import { DiscussionList } from "@/components/community/discussion-list";
+import { FeedView } from "@/components/community/feed-view";
 import { InlineComposer } from "@/components/community/inline-composer";
-import {
-  CommunityTabs,
-  type CommunityTab,
-} from "@/components/community/community-tabs";
 import { ChatTab } from "@/components/community/chat-tab";
 import { EventsExplorer } from "@/components/community/events-explorer";
+import {
+  WorkspaceShell,
+  WorkspaceHeader,
+  type WorkspaceTab,
+} from "@/components/app-shell/workspace-shell";
 
 export const metadata = { title: "Community · Creator Growth OS" };
 
+type CommunityTab = "feed" | "chat" | "events" | "members";
+
 const VALID_TABS: CommunityTab[] = ["feed", "chat", "events", "members"];
+
+const COMMUNITY_TABS: WorkspaceTab[] = [
+  { key: "feed", label: "Feed", icon: MessageSquare, href: "/community" },
+  { key: "chat", label: "Chat", icon: Hash, href: "/community?tab=chat" },
+  {
+    key: "events",
+    label: "Events",
+    icon: CalendarDays,
+    href: "/community?tab=events",
+  },
+  { key: "members", label: "Members", icon: Users, href: "/community?tab=members" },
+];
 
 const NO_VOTES: PostVotes = { likes: 0, dislikes: 0, myVote: 0 };
 
@@ -102,35 +123,27 @@ export default async function CommunityPage({
 
   return (
     <PageShell>
-      {/* Pull the heading up on desktop so the space above it matches the
-          16px gap below it (the shell's --space-page-y is 20–32px). */}
-      <div className="space-y-4 lg:[margin-top:calc(1rem_-_var(--space-page-y))]">
-        {/* Page title */}
-        <header className="flex items-center gap-2.5">
-          <span className="size-9 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-            <Users className="size-[18px]" strokeWidth={2} />
-          </span>
-          <h1 className="text-h3 text-ink-900 leading-none">
-            Creator Community
-          </h1>
-        </header>
-
-        {/* Tabs — on the Events tab they share a row with the filters
-            (rendered inside EventsExplorer); standalone on the other tabs. */}
-        {active !== "events" && <CommunityTabs active={active} />}
-
-        {/* Feed — composer card, then the threads as their own cards below */}
+      <WorkspaceShell
+        title="Creator Community"
+        icon={Users}
+        tabs={COMMUNITY_TABS}
+        activeKey={active}
+        flush={active === "chat"}
+      >
         {active === "feed" && (
-          <div className="space-y-4">
-            <div className="card overflow-hidden">
-              <InlineComposer
-                spaces={spaceOptions}
-                userId={ctx.user.id}
-                flat
-              />
-            </div>
-            <DiscussionList posts={feedPosts} isAdmin={isAdmin} />
-          </div>
+          <FeedView
+            composer={
+              <div className="card overflow-hidden">
+                <InlineComposer
+                  spaces={spaceOptions}
+                  userId={ctx.user.id}
+                  flat
+                />
+              </div>
+            }
+            posts={feedPosts}
+            isAdmin={isAdmin}
+          />
         )}
 
         {/* Chat — full real-time chat (its own two-pane surface) */}
@@ -143,18 +156,17 @@ export default async function CommunityPage({
           />
         )}
 
-        {active === "events" && (
-          <EventsExplorer
-            events={events}
-            tabs={<CommunityTabs active={active} />}
-          />
-        )}
+        {active === "events" && <EventsExplorer events={events} />}
+
         {active === "members" && (
-          <div className="card overflow-hidden">
-            <MembersSection members={members} />
+          <div className="space-y-4">
+            <WorkspaceHeader title="Members" />
+            <div className="card overflow-hidden">
+              <MembersSection members={members} />
+            </div>
           </div>
         )}
-      </div>
+      </WorkspaceShell>
     </PageShell>
   );
 }

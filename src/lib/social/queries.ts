@@ -25,9 +25,25 @@ export type SocialConnection = {
 };
 
 /**
- * Build the per-platform list shown on the Performance page.
- * Always returns all 6 providers — never connected ones show up as
- * "not_connected" (or "setup_pending" if env credentials are missing).
+ * Platforms temporarily hidden from the Connect Social Accounts UI. They stay
+ * in the provider registry (OAuth routes + any existing connections keep
+ * working) but don't render as options on the Performance → Accounts tab.
+ */
+const HIDDEN_PLATFORMS = new Set<ProviderKey>([
+  "youtube",
+  "linkedin",
+  "snapchat",
+]);
+
+const VISIBLE_PROVIDERS = Object.values(PROVIDERS).filter(
+  (p) => !HIDDEN_PLATFORMS.has(p.key),
+);
+
+/**
+ * Build the per-platform list shown on the Performance page. Returns the
+ * currently-visible providers (see HIDDEN_PLATFORMS); never-connected ones
+ * show up as "not_connected" (or "setup_pending" if env credentials are
+ * missing).
  */
 export async function getSocialConnections(): Promise<SocialConnection[]> {
   const supabase = await createClient();
@@ -36,7 +52,7 @@ export async function getSocialConnections(): Promise<SocialConnection[]> {
   } = await supabase.auth.getUser();
   if (!user) {
     // Render the card even when unauthenticated (just gives a safe empty state)
-    return Object.values(PROVIDERS).map((p) => ({
+    return VISIBLE_PROVIDERS.map((p) => ({
       platform: p.key,
       label: p.label,
       connectionStatus: "not_connected" as const,
@@ -63,7 +79,7 @@ export async function getSocialConnections(): Promise<SocialConnection[]> {
   const byPlatform = new Map<string, NonNullable<typeof rows>[number]>();
   for (const r of rows ?? []) byPlatform.set(r.platform, r);
 
-  return Object.values(PROVIDERS).map((p) => {
+  return VISIBLE_PROVIDERS.map((p) => {
     const row = byPlatform.get(p.key);
     const configured = isConfigured(p);
     const connected = Boolean(row?.access_token);
