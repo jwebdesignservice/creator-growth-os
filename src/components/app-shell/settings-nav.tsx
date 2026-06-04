@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CircleUser,
@@ -8,86 +7,58 @@ import {
   Link2,
   Bell,
   CreditCard,
-  type LucideIcon,
+  Settings,
 } from "lucide-react";
-import { cn } from "@/lib/cn";
-
-type NavItem = {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-  /** Matches "exact" so child routes don't activate the index entry. */
-  exact?: boolean;
-};
+import {
+  WorkspaceTabs,
+  type WorkspaceTab,
+} from "@/components/app-shell/workspace-shell";
 
 /**
- * Inner sub-nav for the user's Settings surface. Mirrors the
- * ProgramNav structure (compact rail + inner panel idiom) so the
- * two feel like the same pattern. Eight items follow the canonical
- * account-settings outline; pages that aren't built out yet render
- * the "Under development" placeholder.
+ * Inner sub-nav for the user's Settings surface. Built on the shared
+ * WorkspaceShell rail idiom (icon + title header + vertically-stacked
+ * {@link WorkspaceTabs}) so it reads as the exact same "workspace" pattern as
+ * Performance, Community, Tutorials, etc. — white panel flush against the (app)
+ * sidebar, with the same rose-active tab treatment.
  *
- * Hidden on mobile (the bottom-nav handles cross-section navigation
- * there); on `lg+` it sits flush against the (app) sidebar.
+ * Hidden on mobile (the bottom-nav handles cross-section navigation there);
+ * on `lg+` it sits flush against the (app) sidebar.
  */
-const ITEMS: NavItem[] = [
-  { label: "Edit profile",       href: "/settings",                    icon: CircleUser, exact: true },
-  { label: "Invites",            href: "/settings/invites",            icon: Mail        },
-  { label: "Connected accounts", href: "/settings/connected-accounts", icon: Link2       },
-  { label: "Notifications",      href: "/settings/notifications",      icon: Bell        },
-  { label: "Payment methods",    href: "/settings/payment-methods",    icon: CreditCard  },
+const TABS: WorkspaceTab[] = [
+  { key: "/settings",                    label: "Edit profile",       icon: CircleUser, href: "/settings" },
+  { key: "/settings/invites",            label: "Invites",            icon: Mail,       href: "/settings/invites" },
+  { key: "/settings/connected-accounts", label: "Connected accounts", icon: Link2,      href: "/settings/connected-accounts" },
+  { key: "/settings/notifications",      label: "Notifications",      icon: Bell,       href: "/settings/notifications" },
+  { key: "/settings/payment-methods",    label: "Payment methods",    icon: CreditCard, href: "/settings/payment-methods" },
 ];
 
 export function SettingsNav() {
   const pathname = usePathname();
+  // "Edit profile" lives at the index (/settings) so it must match exactly;
+  // every other tab activates on its path prefix.
+  const activeKey =
+    pathname === "/settings"
+      ? "/settings"
+      : TABS.find((t) => t.key !== "/settings" && pathname.startsWith(t.key))
+          ?.key ?? "/settings";
 
   return (
-    <aside className="hidden lg:flex flex-col w-[280px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
-      {/* Heading — matches the "Account settings" block in the canonical
-          settings sidebar; bold and prominent so users orient instantly. */}
-      <div className="px-6 pt-7 pb-5">
-        <h2 className="text-[20px] font-bold text-ink-900 leading-tight">
+    <aside className="hidden lg:flex lg:flex-col w-[230px] shrink-0 h-screen sticky top-0 bg-white border-r border-ink-100 overflow-hidden">
+      <header className="flex items-center gap-2.5 p-[15px] border-b border-ink-100">
+        <span className="size-8 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <Settings className="size-[17px]" strokeWidth={2} />
+        </span>
+        <h1 className="text-[15px] font-semibold text-ink-900 leading-tight">
           Account settings
-        </h2>
+        </h1>
+      </header>
+      <div className="px-[15px] pt-[15px] pb-3 lg:pb-0">
+        <WorkspaceTabs
+          tabs={TABS}
+          activeKey={activeKey}
+          ariaLabel="Account settings"
+        />
       </div>
-
-      {/* Nav items — single group; spacing + radius match ProgramNav so
-          the rose-active state reads identical across surfaces. */}
-      <nav className="flex-1 px-3 pb-4 overflow-y-auto">
-        <ul className="space-y-1">
-          {ITEMS.map((item) => {
-            const active = isActive(pathname, item.href, item.exact);
-            const Icon = item.icon;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13.5px] font-medium transition-colors",
-                    active
-                      ? "bg-rose-100 text-rose-700"
-                      : "text-ink-700 hover:bg-cream-200/70 hover:text-ink-900",
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "size-[18px] shrink-0",
-                      active ? "text-rose-600" : "text-ink-500",
-                    )}
-                    strokeWidth={2}
-                  />
-                  <span className="flex-1">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
     </aside>
   );
-}
-
-function isActive(pathname: string, href: string, exact?: boolean) {
-  if (exact) return pathname === href;
-  return pathname.startsWith(href);
 }
