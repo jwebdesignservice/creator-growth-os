@@ -263,7 +263,7 @@ function formatBytes(bytes: number | null): string | null {
 
 function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
   return (
-    <section className="card overflow-hidden flex flex-col">
+    <section className="bg-white overflow-hidden flex flex-col min-h-[70vh] lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       {/* Header — matches the program "Templates & Downloads" card chrome */}
       <div className="p-5 sm:p-6 flex items-start gap-3">
         <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
