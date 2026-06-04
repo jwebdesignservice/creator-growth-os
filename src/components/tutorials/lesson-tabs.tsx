@@ -171,7 +171,7 @@ const CHAPTER_TYPE_LABEL: Record<string, string> = {
 function PathPanel({ chapters }: { chapters: Chapter[] }) {
   if (chapters.length === 0) {
     return (
-      <div className="max-w-2xl text-center py-8 px-4 rounded-[12px] bg-cream-50 border border-dashed border-ink-200">
+      <div className="w-full text-center py-8 px-4 rounded-[12px] bg-cream-50 border border-dashed border-ink-200">
         <CalendarDays
           className="size-6 text-ink-400 mx-auto mb-2"
           strokeWidth={1.8}
