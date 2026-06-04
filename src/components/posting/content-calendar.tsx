@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { WorkspaceHeader } from "@/components/app-shell/workspace-shell";
 import type { PostingItem } from "@/lib/posting/queries";
 import { PlatformGlyph } from "./platform-glyphs";
 import { NewItemForm } from "./posting-actions";
@@ -17,6 +18,8 @@ type Props = {
   items: PostingItem[];
   weekStart?: string | null;
   planId?: string | null;
+  /** Rendered right-aligned in the calendar's top bar (e.g. the Add Post action). */
+  addPostSlot?: ReactNode;
 };
 
 // The calendar shows a sliding window of days (not a fixed Mon–Sun week): the
@@ -33,7 +36,7 @@ const STEP_DAYS = 2;
  * Dragging a post over the ‹ / › controls slides the window so a post can be
  * moved to any date; items without a date go to an "Unscheduled" row.
  */
-export function ContentCalendar({ items, weekStart, planId }: Props) {
+export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -160,8 +163,82 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
 
   return (
     <>
+    <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col lg:gap-4">
+    <WorkspaceHeader title="Calendar">
+      <div className="flex items-center gap-3 flex-wrap justify-end">
+        <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setDayOffset((o) => o - STEP_DAYS)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              startSlide(-1);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node))
+                stopSlide();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              stopSlide();
+            }}
+            aria-label="Show earlier days"
+            title="Earlier days — drag a post here to move it earlier"
+            className={cn(
+              "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
+              draggingId && "text-rose-500",
+              flipHover === "prev" && "bg-rose-100 text-rose-700",
+            )}
+          >
+            <ChevronLeft className="size-4" strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDayOffset(centerOffset)}
+            disabled={dayOffset === centerOffset}
+            className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={() => setDayOffset((o) => o + STEP_DAYS)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              startSlide(1);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node))
+                stopSlide();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              stopSlide();
+            }}
+            aria-label="Show later days"
+            title="Later days — drag a post here to move it later"
+            className={cn(
+              "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
+              draggingId && "text-rose-500",
+              flipHover === "next" && "bg-rose-100 text-rose-700",
+            )}
+          >
+            <ChevronRight className="size-4" strokeWidth={2} />
+          </button>
+        </div>
+        <Link
+          href="/posting"
+          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700 whitespace-nowrap"
+        >
+          Back to My Plans
+        </Link>
+        {addPostSlot}
+      </div>
+    </WorkspaceHeader>
     <section className={cn("card overflow-hidden flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1", pending && "opacity-70")}>
-      <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100 shrink-0">
+      <header className="flex items-center px-5 py-4 border-b border-ink-100 shrink-0">
         <div>
           <h3 className="text-h4 text-ink-900 leading-none">Content Calendar</h3>
           <p className="text-[12px] text-ink-500 mt-1">
@@ -171,76 +248,6 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
               ? "hold over ‹ › to slide to other days"
               : "drag a post to another day to reschedule"}
           </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setDayOffset((o) => o - STEP_DAYS)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                startSlide(-1);
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node))
-                  stopSlide();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                stopSlide();
-              }}
-              aria-label="Show earlier days"
-              title="Earlier days — drag a post here to move it earlier"
-              className={cn(
-                "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
-                draggingId && "text-rose-500",
-                flipHover === "prev" && "bg-rose-100 text-rose-700",
-              )}
-            >
-              <ChevronLeft className="size-4" strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setDayOffset(centerOffset)}
-              disabled={dayOffset === centerOffset}
-              className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => setDayOffset((o) => o + STEP_DAYS)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                startSlide(1);
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node))
-                  stopSlide();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                stopSlide();
-              }}
-              aria-label="Show later days"
-              title="Later days — drag a post here to move it later"
-              className={cn(
-                "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
-                draggingId && "text-rose-500",
-                flipHover === "next" && "bg-rose-100 text-rose-700",
-              )}
-            >
-              <ChevronRight className="size-4" strokeWidth={2} />
-            </button>
-          </div>
-          <Link
-            href="/posting"
-            className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700 whitespace-nowrap"
-          >
-            Back to My Plans
-          </Link>
         </div>
       </header>
 
@@ -356,6 +363,7 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
       )}
 
     </section>
+    </div>
 
       {addDate && planId && (
         <NewItemForm
