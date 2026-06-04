@@ -163,7 +163,7 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
 
   return (
     <>
-    <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col lg:gap-4">
+    <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col">
     <WorkspaceHeader title="Calendar">
       <div className="flex items-center gap-3 flex-wrap justify-end">
         <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white overflow-hidden">
@@ -237,20 +237,12 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
         {addPostSlot}
       </div>
     </WorkspaceHeader>
-    <section className={cn("card overflow-hidden flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1", pending && "opacity-70")}>
-      <header className="flex items-center px-5 py-4 border-b border-ink-100 shrink-0">
-        <div>
-          <h3 className="text-h4 text-ink-900 leading-none">Content Calendar</h3>
-          <p className="text-[12px] text-ink-500 mt-1">
-            {formatRange(days[0], days[days.length - 1])}{" "}
-            <span className="text-ink-300">·</span>{" "}
-            {draggingId
-              ? "hold over ‹ › to slide to other days"
-              : "drag a post to another day to reschedule"}
-          </p>
-        </div>
-      </header>
-
+    <div
+      className={cn(
+        "flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]",
+        pending && "opacity-70",
+      )}
+    >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-1 flex-1 min-h-0 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-ink-100">
         {days.map((d) => {
           const key = isoDateOf(d);
@@ -362,7 +354,7 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
         </section>
       )}
 
-    </section>
+    </div>
     </div>
 
       {addDate && planId && (
@@ -569,20 +561,6 @@ function startOfDay(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d;
-}
-
-// Compact label for the visible window, e.g. "May 18 – 22" or "May 30 – Jun 3".
-function formatRange(start: Date, end: Date) {
-  const sameMonth = start.getMonth() === end.getMonth();
-  const startStr = start.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  const endStr = end.toLocaleDateString(
-    "en-US",
-    sameMonth ? { day: "numeric" } : { month: "short", day: "numeric" },
-  );
-  return `${startStr} – ${endStr}`;
 }
 
 function isoDateOf(d: Date) {
