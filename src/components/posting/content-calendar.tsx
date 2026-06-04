@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { WorkspaceHeader } from "@/components/app-shell/workspace-shell";
 import type { PostingItem } from "@/lib/posting/queries";
@@ -38,9 +45,18 @@ const STEP_DAYS = 2;
  */
 export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overKey, setOverKey] = useState<string | null>(null);
+  // Optimistically move a dropped card to its new day right away; the real data
+  // from router.refresh() reconciles it (and reverts it on failure).
+  const [optimisticItems, applyOptimisticMove] = useOptimistic(
+    items,
+    (state: PostingItem[], move: { id: string; scheduled_for: string }) =>
+      state.map((i) =>
+        i.id === move.id ? { ...i, scheduled_for: move.scheduled_for } : i,
+      ),
+  );
   // Open with today centered in the visible strip (rather than anchored at the
   // plan's first day), so users land on "now" with the surrounding days in view.
   const [dayOffset, setDayOffset] = useState(() => {
@@ -107,10 +123,20 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
   // Offset that places today in the CENTER column (what "Today" jumps to).
   const centerOffset = todayOffset - Math.floor(VISIBLE_DAYS / 2);
 
-  // Bucket items by ISO date string
+  // A card is "saving" while its optimistic day differs from the persisted day
+  // (its reschedule hasn't round-tripped yet) — derived, so no effect is needed.
+  const persistedDates = new Map<string, string | null>();
+  for (const i of items) persistedDates.set(i.id, i.scheduled_for);
+  const savingIds = new Set<string>();
+  for (const oi of optimisticItems) {
+    if (persistedDates.get(oi.id) !== oi.scheduled_for) savingIds.add(oi.id);
+  }
+
+  // Bucket items by ISO date string (optimistic list so a just-moved card shows
+  // in its new day immediately, before the server round-trip finishes).
   const byDay = new Map<string, PostingItem[]>();
   const unscheduled: PostingItem[] = [];
-  for (const item of items) {
+  for (const item of optimisticItems) {
     if (!item.scheduled_for) {
       unscheduled.push(item);
       continue;
@@ -155,7 +181,10 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
       next.setHours(9, 0, 0, 0);
     }
 
+    // Move it optimistically (the card jumps to the new day and shows a spinner
+    // until the server round-trip + refresh reconcile it), then persist.
     startTransition(async () => {
+      applyOptimisticMove({ id, scheduled_for: next.toISOString() });
       await rescheduleItem(id, next.toISOString());
       router.refresh();
     });
@@ -237,12 +266,7 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
         {addPostSlot}
       </div>
     </WorkspaceHeader>
-    <div
-      className={cn(
-        "flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]",
-        pending && "opacity-70",
-      )}
-    >
+    <div className="flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-1 flex-1 min-h-0 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-ink-100">
         {days.map((d) => {
           const key = isoDateOf(d);
@@ -311,6 +335,7 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
                       <DraggableCard
                         item={item}
                         dragging={draggingId === item.id}
+                        loading={savingIds.has(item.id)}
                         onDragStart={() => setDraggingId(item.id)}
                         onDragEnd={endDrag}
                       />
@@ -345,6 +370,7 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
                 <DraggableCard
                   item={item}
                   dragging={draggingId === item.id}
+                  loading={savingIds.has(item.id)}
                   onDragStart={() => setDraggingId(item.id)}
                   onDragEnd={endDrag}
                 />
@@ -371,11 +397,14 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
 function DraggableCard({
   item,
   dragging,
+  loading,
   onDragStart,
   onDragEnd,
 }: {
   item: PostingItem;
   dragging: boolean;
+  /** Reschedule in flight — show a spinner over just this card + lock it. */
+  loading: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
@@ -383,8 +412,9 @@ function DraggableCard({
   return (
     <>
       <div
-        draggable
+        draggable={!loading}
         onDragStart={(e) => {
+          if (loading) return;
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", item.id);
           onDragStart();
@@ -392,11 +422,27 @@ function DraggableCard({
         onDragEnd={onDragEnd}
         onDoubleClick={() => setDetailOpen(true)}
         className={cn(
-          "cursor-grab active:cursor-grabbing transition-opacity",
+          "relative cursor-grab active:cursor-grabbing transition-opacity",
           dragging && "opacity-40",
+          loading && "cursor-default",
         )}
+        aria-busy={loading || undefined}
       >
         <CalendarItem item={item} onEdit={() => setDetailOpen(true)} />
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[14px] bg-white/55 backdrop-blur-[1px]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-ink-100">
+              <Loader2
+                className="size-3.5 text-rose-600 animate-spin"
+                strokeWidth={2.4}
+                aria-hidden
+              />
+              <span className="text-[11px] font-semibold text-ink-600">
+                Moving…
+              </span>
+            </span>
+          </div>
+        )}
       </div>
       {detailOpen && (
         <PostDetailModal item={item} onClose={() => setDetailOpen(false)} />
