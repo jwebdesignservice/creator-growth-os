@@ -77,24 +77,22 @@ export default async function PostingPage({
         {!activePlan ? (
           <EmptyPlanState />
         ) : active === "my_plans" ? (
-          <div className="space-y-4">
+          <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col">
             <WorkspaceHeader title="My Plans">
               <PostingActions activePlanId={activePlan.id} />
             </WorkspaceHeader>
-            <ActivePlanCard plan={activePlan} />
-            <PlannedPostsTable items={items} />
+            <div className="space-y-4 lg:space-y-0 lg:flex lg:flex-col lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
+              <ActivePlanCard plan={activePlan} />
+              <PlannedPostsTable items={items} />
+            </div>
           </div>
         ) : active === "calendar" ? (
-          <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col lg:gap-4">
-            <WorkspaceHeader title="Calendar">
-              <PostingActions activePlanId={activePlan.id} />
-            </WorkspaceHeader>
-            <ContentCalendar
-              items={items}
-              weekStart={activePlan.week_start}
-              planId={activePlan.id}
-            />
-          </div>
+          <ContentCalendar
+            items={items}
+            weekStart={activePlan.week_start}
+            planId={activePlan.id}
+            addPostSlot={<PostingActions activePlanId={activePlan.id} />}
+          />
         ) : (
           <div className="space-y-4">
             <WorkspaceHeader title="Content insights">

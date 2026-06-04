@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { WorkspaceHeader } from "@/components/app-shell/workspace-shell";
 import type { PostingItem } from "@/lib/posting/queries";
 import { PlatformGlyph } from "./platform-glyphs";
 import { NewItemForm } from "./posting-actions";
@@ -17,6 +25,8 @@ type Props = {
   items: PostingItem[];
   weekStart?: string | null;
   planId?: string | null;
+  /** Rendered right-aligned in the calendar's top bar (e.g. the Add Post action). */
+  addPostSlot?: ReactNode;
 };
 
 // The calendar shows a sliding window of days (not a fixed Mon–Sun week): the
@@ -33,11 +43,20 @@ const STEP_DAYS = 2;
  * Dragging a post over the ‹ / › controls slides the window so a post can be
  * moved to any date; items without a date go to an "Unscheduled" row.
  */
-export function ContentCalendar({ items, weekStart, planId }: Props) {
+export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overKey, setOverKey] = useState<string | null>(null);
+  // Optimistically move a dropped card to its new day right away; the real data
+  // from router.refresh() reconciles it (and reverts it on failure).
+  const [optimisticItems, applyOptimisticMove] = useOptimistic(
+    items,
+    (state: PostingItem[], move: { id: string; scheduled_for: string }) =>
+      state.map((i) =>
+        i.id === move.id ? { ...i, scheduled_for: move.scheduled_for } : i,
+      ),
+  );
   // Open with today centered in the visible strip (rather than anchored at the
   // plan's first day), so users land on "now" with the surrounding days in view.
   const [dayOffset, setDayOffset] = useState(() => {
@@ -104,10 +123,20 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
   // Offset that places today in the CENTER column (what "Today" jumps to).
   const centerOffset = todayOffset - Math.floor(VISIBLE_DAYS / 2);
 
-  // Bucket items by ISO date string
+  // A card is "saving" while its optimistic day differs from the persisted day
+  // (its reschedule hasn't round-tripped yet) — derived, so no effect is needed.
+  const persistedDates = new Map<string, string | null>();
+  for (const i of items) persistedDates.set(i.id, i.scheduled_for);
+  const savingIds = new Set<string>();
+  for (const oi of optimisticItems) {
+    if (persistedDates.get(oi.id) !== oi.scheduled_for) savingIds.add(oi.id);
+  }
+
+  // Bucket items by ISO date string (optimistic list so a just-moved card shows
+  // in its new day immediately, before the server round-trip finishes).
   const byDay = new Map<string, PostingItem[]>();
   const unscheduled: PostingItem[] = [];
-  for (const item of items) {
+  for (const item of optimisticItems) {
     if (!item.scheduled_for) {
       unscheduled.push(item);
       continue;
@@ -152,7 +181,10 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
       next.setHours(9, 0, 0, 0);
     }
 
+    // Move it optimistically (the card jumps to the new day and shows a spinner
+    // until the server round-trip + refresh reconcile it), then persist.
     startTransition(async () => {
+      applyOptimisticMove({ id, scheduled_for: next.toISOString() });
       await rescheduleItem(id, next.toISOString());
       router.refresh();
     });
@@ -160,90 +192,81 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
 
   return (
     <>
-    <section className={cn("card overflow-hidden flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1", pending && "opacity-70")}>
-      <header className="flex items-center justify-between px-5 py-4 border-b border-ink-100 shrink-0">
-        <div>
-          <h3 className="text-h4 text-ink-900 leading-none">Content Calendar</h3>
-          <p className="text-[12px] text-ink-500 mt-1">
-            {formatRange(days[0], days[days.length - 1])}{" "}
-            <span className="text-ink-300">·</span>{" "}
-            {draggingId
-              ? "hold over ‹ › to slide to other days"
-              : "drag a post to another day to reschedule"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setDayOffset((o) => o - STEP_DAYS)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                startSlide(-1);
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node))
-                  stopSlide();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
+    <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col">
+    <WorkspaceHeader title="Calendar">
+      <div className="flex items-center gap-3 flex-wrap justify-end">
+        <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setDayOffset((o) => o - STEP_DAYS)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              startSlide(-1);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node))
                 stopSlide();
-              }}
-              aria-label="Show earlier days"
-              title="Earlier days — drag a post here to move it earlier"
-              className={cn(
-                "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
-                draggingId && "text-rose-500",
-                flipHover === "prev" && "bg-rose-100 text-rose-700",
-              )}
-            >
-              <ChevronLeft className="size-4" strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setDayOffset(centerOffset)}
-              disabled={dayOffset === centerOffset}
-              className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => setDayOffset((o) => o + STEP_DAYS)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                startSlide(1);
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node))
-                  stopSlide();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                stopSlide();
-              }}
-              aria-label="Show later days"
-              title="Later days — drag a post here to move it later"
-              className={cn(
-                "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
-                draggingId && "text-rose-500",
-                flipHover === "next" && "bg-rose-100 text-rose-700",
-              )}
-            >
-              <ChevronRight className="size-4" strokeWidth={2} />
-            </button>
-          </div>
-          <Link
-            href="/posting"
-            className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700 whitespace-nowrap"
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              stopSlide();
+            }}
+            aria-label="Show earlier days"
+            title="Earlier days — drag a post here to move it earlier"
+            className={cn(
+              "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
+              draggingId && "text-rose-500",
+              flipHover === "prev" && "bg-rose-100 text-rose-700",
+            )}
           >
-            Back to My Plans
-          </Link>
+            <ChevronLeft className="size-4" strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDayOffset(centerOffset)}
+            disabled={dayOffset === centerOffset}
+            className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={() => setDayOffset((o) => o + STEP_DAYS)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              startSlide(1);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node))
+                stopSlide();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              stopSlide();
+            }}
+            aria-label="Show later days"
+            title="Later days — drag a post here to move it later"
+            className={cn(
+              "size-9 inline-flex items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors",
+              draggingId && "text-rose-500",
+              flipHover === "next" && "bg-rose-100 text-rose-700",
+            )}
+          >
+            <ChevronRight className="size-4" strokeWidth={2} />
+          </button>
         </div>
-      </header>
-
+        <Link
+          href="/posting"
+          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700 whitespace-nowrap"
+        >
+          Back to My Plans
+        </Link>
+        {addPostSlot}
+      </div>
+    </WorkspaceHeader>
+    <div className="flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-1 flex-1 min-h-0 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-ink-100">
         {days.map((d) => {
           const key = isoDateOf(d);
@@ -312,6 +335,7 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
                       <DraggableCard
                         item={item}
                         dragging={draggingId === item.id}
+                        loading={savingIds.has(item.id)}
                         onDragStart={() => setDraggingId(item.id)}
                         onDragEnd={endDrag}
                       />
@@ -346,6 +370,7 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
                 <DraggableCard
                   item={item}
                   dragging={draggingId === item.id}
+                  loading={savingIds.has(item.id)}
                   onDragStart={() => setDraggingId(item.id)}
                   onDragEnd={endDrag}
                 />
@@ -355,7 +380,8 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
         </section>
       )}
 
-    </section>
+    </div>
+    </div>
 
       {addDate && planId && (
         <NewItemForm
@@ -371,11 +397,14 @@ export function ContentCalendar({ items, weekStart, planId }: Props) {
 function DraggableCard({
   item,
   dragging,
+  loading,
   onDragStart,
   onDragEnd,
 }: {
   item: PostingItem;
   dragging: boolean;
+  /** Reschedule in flight — show a spinner over just this card + lock it. */
+  loading: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
@@ -383,8 +412,9 @@ function DraggableCard({
   return (
     <>
       <div
-        draggable
+        draggable={!loading}
         onDragStart={(e) => {
+          if (loading) return;
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", item.id);
           onDragStart();
@@ -392,11 +422,27 @@ function DraggableCard({
         onDragEnd={onDragEnd}
         onDoubleClick={() => setDetailOpen(true)}
         className={cn(
-          "cursor-grab active:cursor-grabbing transition-opacity",
+          "relative cursor-grab active:cursor-grabbing transition-opacity",
           dragging && "opacity-40",
+          loading && "cursor-default",
         )}
+        aria-busy={loading || undefined}
       >
         <CalendarItem item={item} onEdit={() => setDetailOpen(true)} />
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[14px] bg-white/55 backdrop-blur-[1px]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-ink-100">
+              <Loader2
+                className="size-3.5 text-rose-600 animate-spin"
+                strokeWidth={2.4}
+                aria-hidden
+              />
+              <span className="text-[11px] font-semibold text-ink-600">
+                Moving…
+              </span>
+            </span>
+          </div>
+        )}
       </div>
       {detailOpen && (
         <PostDetailModal item={item} onClose={() => setDetailOpen(false)} />
@@ -561,20 +607,6 @@ function startOfDay(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d;
-}
-
-// Compact label for the visible window, e.g. "May 18 – 22" or "May 30 – Jun 3".
-function formatRange(start: Date, end: Date) {
-  const sameMonth = start.getMonth() === end.getMonth();
-  const startStr = start.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  const endStr = end.toLocaleDateString(
-    "en-US",
-    sameMonth ? { day: "numeric" } : { month: "short", day: "numeric" },
-  );
-  return `${startStr} – ${endStr}`;
 }
 
 function isoDateOf(d: Date) {

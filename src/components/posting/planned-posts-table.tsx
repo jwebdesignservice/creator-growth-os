@@ -45,9 +45,9 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
 
   return (
     <>
-    <section className="card overflow-hidden">
+    <section className="bg-white overflow-hidden lg:flex lg:flex-col lg:min-h-0 lg:flex-1">
       {/* Header */}
-      <header className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-ink-100">
+      <header className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-ink-100 shrink-0">
         <div className="min-w-0">
           <h3 className="text-h4 text-ink-900">Planned Posts</h3>
           <p className="text-[12.5px] text-ink-500 mt-0.5">
@@ -71,7 +71,7 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
       )}
 
       {count === 0 ? (
-        <div className="p-10 text-center">
+        <div className="p-10 text-center lg:flex-1 lg:flex lg:flex-col lg:items-center lg:justify-center">
           <div className="inline-flex items-center justify-center size-12 rounded-full bg-rose-100 text-rose-600 mb-3">
             <Sparkles className="size-5" strokeWidth={1.8} />
           </div>
@@ -83,7 +83,7 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-auto lg:flex-1 lg:min-h-0">
           <table className="w-full text-left">
             <thead>
               <tr className="text-[10.5px] tracking-[0.12em] uppercase text-ink-500 border-b border-ink-100">
@@ -159,7 +159,7 @@ export function PlannedPostsTable({ items, isDemo = false }: Props) {
 
       {/* Footer */}
       {count > 0 && (
-        <footer className="border-t border-ink-100 px-5 sm:px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+        <footer className="border-t border-ink-100 px-5 sm:px-6 py-4 flex items-center justify-between gap-3 flex-wrap shrink-0">
           <div className="inline-flex items-center gap-2.5">
             <span className="size-9 rounded-full bg-cream-100 text-rose-500 inline-flex items-center justify-center shrink-0">
               <BarChart3 className="size-4" strokeWidth={2} />
