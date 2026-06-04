@@ -66,7 +66,7 @@ export function WorkspaceShell({
           <span className="size-8 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
             <Icon className="size-[17px]" strokeWidth={2} />
           </span>
-          <h1 className="text-[15px] font-semibold text-ink-900 leading-tight">
+          <h1 className="text-[15px] font-semibold text-ink-900 leading-tight min-w-0 truncate">
             {title}
           </h1>
         </header>
