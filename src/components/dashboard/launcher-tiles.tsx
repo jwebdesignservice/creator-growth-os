@@ -419,16 +419,21 @@ export function PerformanceCard({
       desc="Track followers & engagement"
       meta={followers > 0 ? `${fmtNum(followers)} followers` : "Connect accounts"}
     >
-      <div className="absolute inset-0 flex flex-col justify-center gap-1.5">
-        <div className="flex items-baseline gap-2 pl-1">
-          <span className="text-[26px] font-bold tracking-[-0.02em] text-ink-900">
-            {followers > 0 ? fmtNum(followers) : "—"}
-          </span>
-          {hasData && (
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-emerald-600">
-              ▲ {Math.abs(deltaPct).toFixed(1)}%
+      <div className="absolute inset-0 flex flex-col justify-center gap-1">
+        <div className="pl-1">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-400">
+            Followers
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[26px] font-bold leading-none tracking-[-0.02em] text-ink-900">
+              {followers > 0 ? fmtNum(followers) : "—"}
             </span>
-          )}
+            {hasData && (
+              <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-emerald-600">
+                ▲ {Math.abs(deltaPct).toFixed(1)}%
+              </span>
+            )}
+          </div>
         </div>
         <svg
           viewBox={`0 0 ${w} ${h}`}
