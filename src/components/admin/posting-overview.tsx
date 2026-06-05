@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarCheck,
+  LayoutGrid,
   ClipboardCheck,
   CalendarDays,
   AlertTriangle,
@@ -21,6 +22,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import {
+  AdminSegmentShell,
+  type AdminSegment,
+} from "@/components/admin/segment-shell";
 import { Avatar } from "@/components/app-shell/avatar";
 import type {
   AdminPlanRow,
@@ -38,13 +43,13 @@ type FilterKey =
   | "this_week"
   | "on_track";
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "needs_review", label: "Needs review" },
-  { key: "missing_content", label: "Missing posts" },
-  { key: "inactive", label: "Inactive" },
-  { key: "this_week", label: "This week" },
-  { key: "on_track", label: "On track" },
+const SEGMENTS: AdminSegment[] = [
+  { key: "all", label: "All", icon: LayoutGrid },
+  { key: "needs_review", label: "Needs review", icon: ClipboardCheck },
+  { key: "missing_content", label: "Missing posts", icon: AlertTriangle },
+  { key: "inactive", label: "Inactive", icon: Clock },
+  { key: "this_week", label: "This week", icon: CalendarDays },
+  { key: "on_track", label: "On track", icon: TrendingUp },
 ];
 
 export function PostingOverview({
@@ -116,7 +121,14 @@ export function PostingOverview({
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <div className="space-y-6 container-app">
+    <AdminSegmentShell
+      icon={CalendarDays}
+      title="Posting"
+      segments={SEGMENTS}
+      activeKey={filter}
+      onSelect={(k) => setFilter(k as FilterKey)}
+    >
+    <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div className="min-w-0">
@@ -202,29 +214,8 @@ export function PostingOverview({
         />
       </section>
 
-      {/* ── Filters + search ───────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          {FILTERS.map((f) => {
-            const active = filter === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                className={cn(
-                  "inline-flex items-center h-9 px-3.5 rounded-full text-[13px] font-medium border transition-colors cursor-pointer",
-                  active
-                    ? "bg-rose-600 border-rose-600 text-white shadow-sm"
-                    : "bg-white border-ink-100 text-ink-700 hover:bg-cream-100",
-                )}
-              >
-                {f.label}
-              </button>
-            );
-          })}
-        </div>
-
+      {/* ── Search (the health segments now live in the left rail) ─────── */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-end gap-3">
         <div className="relative shrink-0">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 size-[15px] text-ink-400"
@@ -454,6 +445,7 @@ export function PostingOverview({
         onClose={() => setSelectedId(null)}
       />
     </div>
+    </AdminSegmentShell>
   );
 }
 

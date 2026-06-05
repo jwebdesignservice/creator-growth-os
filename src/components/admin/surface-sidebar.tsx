@@ -27,19 +27,23 @@ import {
 import { cn } from "@/lib/cn";
 
 /**
- * Generic admin "surface" sidebar — the inner left nav used by sections
- * like Email and Tutorials. Pure presentation: the section label and
- * items come in as props so this component is the single source of truth
- * for the look (brand strip · section label · nav items · admin chip).
+ * Generic admin "surface" sidebar — the inner left nav used by sections like
+ * Email and Tutorials. Built on the shared WorkspaceShell rail idiom (white
+ * panel · rose-box icon + title header with a bottom divider · vertically
+ * stacked, rose-active tabs) so it reads as the exact same "workspace" pattern
+ * as the creator-side Settings / Performance / Tutorials rails.
  *
- * To wire a new surface: create a section layout that calls this with
- * its own `sectionLabel`, `items`, and admin info.
+ * Pure presentation: the section `icon`, `sectionLabel` (title) and `items`
+ * come in as props. (Uses a hand-rolled tab list rather than the shared
+ * `WorkspaceTabs` because admin surfaces need the `active` override — for
+ * `?tab=`-driven editors — and `beta` pills, which `WorkspaceTabs` doesn't
+ * support; the styling is matched 1:1.)
  *
- * IMPORTANT: `icon` is a serializable string key — NOT a component
- * reference. Layouts are server components in Next.js 16, and React 19
- * forbids passing function/class objects (including Lucide icon
- * components) across the server→client boundary. Add new icons to
- * `ICONS` below and reference them by name in the layout's nav items.
+ * IMPORTANT: `icon` is a serializable string key — NOT a component reference.
+ * Layouts are server components in Next.js 16, and React 19 forbids passing
+ * function/class objects (including Lucide icon components) across the
+ * server→client boundary. Add new icons to `ICONS` below and reference them by
+ * name in the layout's nav items.
  */
 export type SurfaceSidebarIconKey =
   | "play-circle"
@@ -97,11 +101,9 @@ export type SurfaceSidebarItem = {
 };
 
 type Props = {
-  /** Brand string shown at the very top. Defaults to "profluencer". */
-  brand?: string;
-  /** Where the brand strip links. Defaults to "/admin". */
-  homeHref?: string;
-  /** Small uppercase label above the items (e.g. "EMAIL", "TUTORIALS"). */
+  /** Section icon shown in the header's rose box (serializable key). */
+  icon: SurfaceSidebarIconKey;
+  /** Section title shown next to the icon (e.g. "Email", "Editing"). */
   sectionLabel: string;
   items: SurfaceSidebarItem[];
   adminName: string;
@@ -109,37 +111,29 @@ type Props = {
 };
 
 export function AdminSurfaceSidebar({
-  brand = "profluencer",
-  homeHref = "/admin",
+  icon,
   sectionLabel,
   items,
   adminName,
   adminEmail,
 }: Props) {
   const pathname = usePathname();
+  const HeaderIcon = ICONS[icon];
 
   return (
-    <aside className="hidden lg:flex flex-col w-[240px] shrink-0 h-screen sticky top-0 border-r border-ink-100 bg-cream-100">
-      {/* Brand */}
-      <Link
-        href={homeHref}
-        className="px-6 py-6 hover:opacity-90 transition-opacity"
-        title="Admin"
-      >
-        <span className="text-h4 text-rose-600 leading-none">
-          {brand}
+    <aside className="hidden lg:flex lg:flex-col w-[230px] shrink-0 h-screen sticky top-0 bg-white border-r border-ink-100 overflow-hidden">
+      {/* Header — rose-box icon + title + divider (WorkspaceShell rail chrome) */}
+      <header className="flex items-center gap-2.5 p-[15px] border-b border-ink-100">
+        <span className="size-8 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+          <HeaderIcon className="size-[17px]" strokeWidth={2} />
         </span>
-      </Link>
-
-      {/* Section label */}
-      <div className="px-6 mt-2 mb-3">
-        <span className="text-[10.5px] uppercase tracking-[0.18em] text-rose-600 font-semibold">
+        <h1 className="text-[15px] font-semibold text-ink-900 leading-tight">
           {sectionLabel}
-        </span>
-      </div>
+        </h1>
+      </header>
 
-      {/* Nav items */}
-      <nav className="flex-1 px-3 overflow-y-auto">
+      {/* Nav items — WorkspaceTabs styling (rose-50 active + ring) */}
+      <nav className="flex-1 px-[15px] pt-[15px] overflow-y-auto">
         <ul className="space-y-1">
           {items.map((item) => {
             const active = item.active ?? isActive(pathname, item.href);
@@ -148,17 +142,18 @@ export function AdminSurfaceSidebar({
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13.5px] font-medium transition-colors",
+                    "flex items-center gap-2.5 h-10 px-3 rounded-[10px] text-[13.5px] font-medium transition-colors",
                     active
-                      ? "bg-rose-100 text-rose-700"
-                      : "text-ink-700 hover:bg-cream-200/70 hover:text-ink-900",
+                      ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                      : "text-ink-600 hover:bg-cream-100 hover:text-ink-900",
                   )}
                 >
                   <Icon
                     className={cn(
-                      "size-[17px] shrink-0",
-                      active ? "text-rose-600" : "text-ink-500",
+                      "size-[18px] shrink-0",
+                      active ? "text-rose-600" : "text-ink-400",
                     )}
                     strokeWidth={2}
                   />
@@ -179,7 +174,7 @@ export function AdminSurfaceSidebar({
       <div className="p-3 border-t border-ink-100">
         <Link
           href="/admin"
-          className="flex items-center gap-3 px-2 py-2 rounded-[12px] hover:bg-cream-200/70 transition-colors"
+          className="flex items-center gap-3 px-2 py-2 rounded-[12px] hover:bg-cream-100 transition-colors"
         >
           <span className="size-9 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[12px] font-bold shrink-0">
             {initials(adminName)}

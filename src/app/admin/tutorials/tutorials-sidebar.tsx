@@ -87,6 +87,7 @@ export function TutorialsSidebar({
 
   return (
     <AdminSurfaceSidebar
+      icon="play-circle"
       sectionLabel="Editing"
       items={items}
       adminName={adminName}

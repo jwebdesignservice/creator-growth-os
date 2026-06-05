@@ -30,6 +30,7 @@ export function EmailNav({
 }) {
   return (
     <AdminSurfaceSidebar
+      icon="mail"
       sectionLabel="Email"
       items={EMAIL_NAV}
       adminName={adminName}
