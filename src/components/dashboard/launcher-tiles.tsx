@@ -335,7 +335,6 @@ export function PerformanceCard({
   deltaPct: number;
 }) {
   const { line, area, endX, endY } = sparkPaths(series);
-  const up = deltaPct >= 0;
   return (
     <LauncherTile
       href="/performance"
@@ -350,13 +349,8 @@ export function PerformanceCard({
             {followers > 0 ? fmtNum(followers) : "—"}
           </span>
           {series.length >= 2 && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-0.5 text-[12px] font-semibold",
-                up ? "text-emerald-600" : "text-rose-600",
-              )}
-            >
-              {up ? "▲" : "▼"} {Math.abs(deltaPct).toFixed(1)}%
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-emerald-600">
+              ▲ {Math.abs(deltaPct).toFixed(1)}%
             </span>
           )}
         </div>
