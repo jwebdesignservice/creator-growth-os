@@ -429,3 +429,23 @@ select.input {
   background-size: 200% 100%;
   animation: brand-shimmer 1.6s ease-in-out infinite;
 }
+
+/* ── Performance sparkline animations (dashboard tile) ──────────────── */
+@keyframes spark-draw { to { stroke-dashoffset: 0; } }
+@keyframes spark-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes spark-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0;    transform: scale(2.4); }
+}
+.spark-line { animation: spark-draw 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.spark-fade { opacity: 0; animation: spark-fade 0.6s ease-out forwards; }
+.spark-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spark-pulse 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spark-line { animation: none; stroke-dashoffset: 0; }
+  .spark-fade { animation: none; opacity: 1; }
+  .spark-pulse { animation: none; opacity: 0; }
+}
