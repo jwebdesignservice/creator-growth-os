@@ -420,10 +420,7 @@ export function PerformanceCard({
       meta={followers > 0 ? `${fmtNum(followers)} followers` : "Connect accounts"}
     >
       <div className="absolute inset-0 flex flex-col justify-center gap-1">
-        <div className="pl-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-400">
-            Followers
-          </div>
+        <div className="flex items-start justify-between gap-2 pl-1">
           <div className="flex items-baseline gap-2">
             <span className="text-[26px] font-bold leading-none tracking-[-0.02em] text-ink-900">
               {followers > 0 ? fmtNum(followers) : "—"}
@@ -434,6 +431,9 @@ export function PerformanceCard({
               </span>
             )}
           </div>
+          <span className="shrink-0 rounded-full border border-ink-200 bg-white px-2.5 py-[3px] text-[10px] font-semibold text-ink-500">
+            Followers
+          </span>
         </div>
         <svg
           viewBox={`0 0 ${w} ${h}`}
