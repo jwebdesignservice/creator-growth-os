@@ -189,9 +189,15 @@ export function ContentCard({
     >
       <div className="absolute inset-0 flex flex-col justify-center gap-2.5">
         {/* Week calendar — a dot marks days that have posts; today is bold. */}
-        <div className="flex items-stretch justify-between">
+        <div className="flex items-stretch">
           {days.map((d, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+            <div
+              key={i}
+              className={cn(
+                "flex flex-1 flex-col items-center gap-1.5 py-0.5",
+                i < days.length - 1 && "border-r border-ink-100",
+              )}
+            >
               <span
                 className={cn(
                   "text-[9.5px] font-bold uppercase",
