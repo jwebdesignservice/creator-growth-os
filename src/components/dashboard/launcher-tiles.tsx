@@ -347,15 +347,21 @@ export function TasksCard({
 }
 
 /* ──────────────────────────── Performance ──────────────────────────── */
-function buildChart(series: number[], w = 230, h = 70, pad = 8) {
+function buildChart(series: number[], w = 230, h = 96) {
   const vals = series.length >= 2 ? series : [1, 1];
   const min = Math.min(...vals);
   const max = Math.max(...vals);
   const range = max - min || 1;
   const n = vals.length;
+  // Plot area leaves a left gutter for the Y axis labels and a bottom
+  // gutter for the X axis labels.
+  const plotL = 26;
+  const plotR = w;
+  const plotT = 6;
+  const plotB = h - 18;
   const pts = vals.map((v, i) => ({
-    x: (i / (n - 1)) * w,
-    y: pad + (1 - (v - min) / range) * (h - 2 * pad),
+    x: plotL + (i / (n - 1)) * (plotR - plotL),
+    y: plotT + (1 - (v - min) / range) * (plotB - plotT),
   }));
   // Catmull-Rom → cubic bézier for a smooth curve.
   let line = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
@@ -370,12 +376,26 @@ function buildChart(series: number[], w = 230, h = 70, pad = 8) {
     const c2y = p2.y - (p3.y - p1.y) / 6;
     line += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
   }
-  const area = `${line} L${w} ${h} L0 ${h} Z`;
+  const area = `${line} L${plotR} ${plotB} L${plotL} ${plotB} Z`;
   let len = 0;
   for (let i = 1; i < pts.length; i++) {
     len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
   }
-  return { pts, line, area, len: Math.ceil(len * 1.3), w, h };
+  return {
+    pts,
+    line,
+    area,
+    len: Math.ceil(len * 1.3),
+    w,
+    h,
+    plotL,
+    plotR,
+    plotT,
+    plotB,
+    min,
+    max,
+    n,
+  };
 }
 
 export function PerformanceCard({
@@ -387,7 +407,8 @@ export function PerformanceCard({
   series: number[];
   deltaPct: number;
 }) {
-  const { pts, line, area, len, w, h } = buildChart(series);
+  const { pts, line, area, len, w, h, plotL, plotR, plotT, plotB, min, max, n } =
+    buildChart(series);
   const end = pts[pts.length - 1];
   const hasData = series.length >= 2;
   return (
@@ -411,7 +432,7 @@ export function PerformanceCard({
         </div>
         <svg
           viewBox={`0 0 ${w} ${h}`}
-          className="h-[70px] w-full overflow-visible"
+          className="h-[96px] w-full overflow-visible"
         >
           <defs>
             <linearGradient id="perfFill" x1="0" y1="0" x2="0" y2="1">
@@ -423,18 +444,33 @@ export function PerformanceCard({
               <stop offset="1" stopColor="#B9485C" />
             </linearGradient>
           </defs>
-          {[0.18, 0.5, 0.82].map((f, i) => (
-            <line
-              key={i}
-              x1="0"
-              y1={(h * f).toFixed(1)}
-              x2={w}
-              y2={(h * f).toFixed(1)}
-              stroke="#ECE8E3"
-              strokeWidth="1"
-              strokeDasharray="2 5"
-            />
-          ))}
+          {/* gridlines */}
+          {[0.25, 0.5, 0.75].map((f, i) => {
+            const gy = plotT + (plotB - plotT) * f;
+            return (
+              <line
+                key={i}
+                x1={plotL}
+                y1={gy.toFixed(1)}
+                x2={plotR}
+                y2={gy.toFixed(1)}
+                stroke="#ECE8E3"
+                strokeWidth="1"
+                strokeDasharray="2 5"
+              />
+            );
+          })}
+          {/* axes */}
+          <line x1={plotL} y1={plotT} x2={plotL} y2={plotB} stroke="#DDD7D0" strokeWidth="1" />
+          <line x1={plotL} y1={plotB} x2={plotR} y2={plotB} stroke="#DDD7D0" strokeWidth="1" />
+          {hasData && (
+            <g fill="#9B928A" fontSize="8" fontWeight="600">
+              <text x={plotL - 5} y={plotT + 3} textAnchor="end">{fmtNum(max)}</text>
+              <text x={plotL - 5} y={plotB} textAnchor="end">{fmtNum(min)}</text>
+              <text x={plotL} y={h - 5} textAnchor="start">{n - 1}w</text>
+              <text x={plotR} y={h - 5} textAnchor="end">now</text>
+            </g>
+          )}
           <path d={area} fill="url(#perfFill)" className="spark-fade" />
           <path
             d={line}
@@ -444,7 +480,7 @@ export function PerformanceCard({
             strokeLinecap="round"
             strokeLinejoin="round"
             className="spark-line"
-            style={{ strokeDasharray: len, strokeDashoffset: len }}
+            style={{ ["--spark-len"]: `${len}` } as CSSProperties}
           />
           {pts.slice(0, -1).map((p, i) => (
             <circle
@@ -471,9 +507,6 @@ export function PerformanceCard({
             style={{ animationDelay: `${0.75 + (pts.length - 1) * 0.07}s` }}
           />
         </svg>
-        <span className="pl-1 text-[10.5px] font-medium text-ink-400">
-          {hasData ? `Followers · last ${series.length} weeks` : "Followers"}
-        </span>
       </div>
     </LauncherTile>
   );

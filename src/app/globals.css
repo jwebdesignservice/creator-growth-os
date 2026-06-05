@@ -437,7 +437,11 @@ select.input {
   0%, 100% { opacity: 0.35; transform: scale(1); }
   50%      { opacity: 0;    transform: scale(2.4); }
 }
-.spark-line { animation: spark-draw 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.spark-line {
+  stroke-dasharray: var(--spark-len);
+  stroke-dashoffset: var(--spark-len);
+  animation: spark-draw 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
 .spark-fade { opacity: 0; animation: spark-fade 0.6s ease-out forwards; }
 .spark-pulse {
   transform-box: fill-box;
