@@ -347,19 +347,35 @@ export function TasksCard({
 }
 
 /* ──────────────────────────── Performance ──────────────────────────── */
-function sparkPaths(series: number[], w = 230, h = 60, pad = 6) {
-  const pts = series.length >= 2 ? series : [1, 1];
-  const min = Math.min(...pts);
-  const max = Math.max(...pts);
+function buildChart(series: number[], w = 230, h = 70, pad = 8) {
+  const vals = series.length >= 2 ? series : [1, 1];
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
   const range = max - min || 1;
-  const n = pts.length;
-  const X = (i: number) => (i / (n - 1)) * w;
-  const Y = (v: number) => pad + (1 - (v - min) / range) * (h - 2 * pad);
-  const line = pts
-    .map((v, i) => `${i === 0 ? "M" : "L"}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`)
-    .join(" ");
+  const n = vals.length;
+  const pts = vals.map((v, i) => ({
+    x: (i / (n - 1)) * w,
+    y: pad + (1 - (v - min) / range) * (h - 2 * pad),
+  }));
+  // Catmull-Rom → cubic bézier for a smooth curve.
+  let line = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] ?? p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    line += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
   const area = `${line} L${w} ${h} L0 ${h} Z`;
-  return { line, area, endX: X(n - 1), endY: Y(pts[n - 1]) };
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) {
+    len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  }
+  return { pts, line, area, len: Math.ceil(len * 1.3), w, h };
 }
 
 export function PerformanceCard({
@@ -371,7 +387,9 @@ export function PerformanceCard({
   series: number[];
   deltaPct: number;
 }) {
-  const { line, area, endX, endY } = sparkPaths(series);
+  const { pts, line, area, len, w, h } = buildChart(series);
+  const end = pts[pts.length - 1];
+  const hasData = series.length >= 2;
   return (
     <LauncherTile
       href="/performance"
@@ -380,52 +398,81 @@ export function PerformanceCard({
       desc="Track followers & engagement"
       meta={followers > 0 ? `${fmtNum(followers)} followers` : "Connect accounts"}
     >
-      <div className="absolute inset-0 flex flex-col justify-center gap-1">
+      <div className="absolute inset-0 flex flex-col justify-center gap-1.5">
         <div className="flex items-baseline gap-2 pl-1">
           <span className="text-[26px] font-bold tracking-[-0.02em] text-ink-900">
             {followers > 0 ? fmtNum(followers) : "—"}
           </span>
-          {series.length >= 2 && (
+          {hasData && (
             <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-emerald-600">
               ▲ {Math.abs(deltaPct).toFixed(1)}%
             </span>
           )}
         </div>
-        <svg viewBox="0 0 230 60" className="h-[62px] w-full overflow-visible">
+        <svg
+          viewBox={`0 0 ${w} ${h}`}
+          className="h-[70px] w-full overflow-visible"
+        >
           <defs>
             <linearGradient id="perfFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#B9485C" stopOpacity="0.22" />
+              <stop offset="0" stopColor="#B9485C" stopOpacity="0.28" />
               <stop offset="1" stopColor="#B9485C" stopOpacity="0" />
             </linearGradient>
+            <linearGradient id="perfLine" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#C26174" />
+              <stop offset="1" stopColor="#B9485C" />
+            </linearGradient>
           </defs>
-          {[14, 32, 50].map((y) => (
+          {[0.18, 0.5, 0.82].map((f, i) => (
             <line
-              key={y}
+              key={i}
               x1="0"
-              y1={y}
-              x2="230"
-              y2={y}
+              y1={(h * f).toFixed(1)}
+              x2={w}
+              y2={(h * f).toFixed(1)}
               stroke="#ECE8E3"
               strokeWidth="1"
               strokeDasharray="2 5"
             />
           ))}
-          <path d={area} fill="url(#perfFill)" />
+          <path d={area} fill="url(#perfFill)" className="spark-fade" />
           <path
             d={line}
             fill="none"
-            stroke="#B9485C"
+            stroke="url(#perfLine)"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="spark-line"
+            style={{ strokeDasharray: len, strokeDashoffset: len }}
           />
-          <circle cx={endX} cy={endY} r="4" fill="#B9485C" />
-          <circle cx={endX} cy={endY} r="4" fill="none" stroke="#fff" strokeWidth="1.5" />
+          {pts.slice(0, -1).map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r="2.4"
+              fill="#fff"
+              stroke="#B9485C"
+              strokeWidth="1.5"
+              className="spark-fade"
+              style={{ animationDelay: `${0.75 + i * 0.07}s` }}
+            />
+          ))}
+          <circle cx={end.x} cy={end.y} r="6" fill="#B9485C" className="spark-pulse" />
+          <circle
+            cx={end.x}
+            cy={end.y}
+            r="4"
+            fill="#B9485C"
+            stroke="#fff"
+            strokeWidth="1.5"
+            className="spark-fade"
+            style={{ animationDelay: `${0.75 + (pts.length - 1) * 0.07}s` }}
+          />
         </svg>
         <span className="pl-1 text-[10.5px] font-medium text-ink-400">
-          {series.length >= 2
-            ? `Followers · last ${series.length} weeks`
-            : "Followers"}
+          {hasData ? `Followers · last ${series.length} weeks` : "Followers"}
         </span>
       </div>
     </LauncherTile>
