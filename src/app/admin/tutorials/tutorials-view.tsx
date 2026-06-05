@@ -156,9 +156,62 @@ export function TutorialsView({
   }
 
   return (
-    <div className="flex flex-col -mx-6 lg:-mx-8 -my-6 lg:-my-8 h-[calc(100vh_-_69px)]">
-      {/* ── One cohesive full-bleed white container: header, tabs, results, footer ─ */}
-      <section className="bg-white flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col lg:flex-row -mx-6 lg:-mx-8 -my-6 lg:-my-8 h-[calc(100vh_-_69px)]">
+      {/* ── Left rail — filter segments, matching the WorkspaceShell rail ── */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-[230px] lg:shrink-0 bg-white border-r border-ink-100 lg:overflow-hidden">
+        <header className="flex items-center gap-2.5 p-[15px] border-b border-ink-100">
+          <span className="size-8 rounded-[10px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+            <PlayCircle className="size-[17px]" strokeWidth={2} />
+          </span>
+          <h1 className="text-[15px] font-semibold text-ink-900 leading-tight">
+            Tutorials
+          </h1>
+        </header>
+        <nav aria-label="Filter tutorials" className="p-[15px] space-y-1">
+          {[
+            { key: "all" as Tab, label: "All tutorials", icon: LayoutGrid, count: counts.all },
+            { key: "drafts" as Tab, label: "Drafts", icon: Pencil, count: counts.drafts },
+            { key: "published" as Tab, label: "Published", icon: Eye, count: counts.published },
+            { key: "archived" as Tab, label: "Archived", icon: EyeOff, count: counts.archived },
+          ].map((s) => {
+            const isActive = tab === s.key;
+            const SegIcon = s.icon;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setTab(s.key)}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "flex w-full items-center gap-2.5 h-10 px-3 rounded-[10px] text-[13.5px] font-medium text-left transition-colors",
+                  isActive
+                    ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                    : "text-ink-600 hover:bg-cream-100 hover:text-ink-900",
+                )}
+              >
+                <SegIcon
+                  className={cn("size-[18px] shrink-0", isActive ? "text-rose-600" : "text-ink-400")}
+                  strokeWidth={2}
+                />
+                <span className="flex-1">{s.label}</span>
+                {s.count > 0 && (
+                  <span
+                    className={cn(
+                      "text-[11px] font-semibold tabular-nums rounded-full px-1.5 min-w-[20px] text-center leading-5",
+                      isActive ? "bg-rose-100 text-rose-700" : "bg-cream-200 text-ink-500",
+                    )}
+                  >
+                    {s.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* ── Full-bleed white container: header, results, footer ── */}
+      <section className="bg-white flex flex-col flex-1 min-h-0 lg:border-l-0">
         {/* Header — title + primary actions, now living inside the container */}
         <header className="shrink-0 px-6 lg:px-8 py-4 flex items-center justify-between gap-4 flex-wrap border-b border-ink-100">
           <h1 className="text-page-title text-ink-900">Tutorials</h1>
@@ -192,31 +245,9 @@ export function TutorialsView({
         {/* ── Videos container — tabs + sort sit at its top, right above the grid ── */}
         <div className="flex flex-col flex-1 min-h-0 bg-cream-50">
         {/* Tabs (left) + sort & the grid/list View toggle (right) */}
-        <div className="px-6 lg:px-8 pt-2.5 border-b border-ink-100 shrink-0 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1 -mb-px">
-            <TabButton
-              active={tab === "all"}
-              onClick={() => setTab("all")}
-              label="All tutorials"
-            />
-            <TabButton
-              active={tab === "drafts"}
-              onClick={() => setTab("drafts")}
-              label="Drafts"
-              badge={counts.drafts}
-            />
-            <TabButton
-              active={tab === "published"}
-              onClick={() => setTab("published")}
-              label="Published"
-              badge={counts.published}
-            />
-            <TabButton
-              active={tab === "archived"}
-              onClick={() => setTab("archived")}
-              label="Archived"
-              badge={counts.archived}
-            />
+        <div className="px-6 lg:px-8 py-3 border-b border-ink-100 shrink-0 flex items-center justify-between gap-3">
+          <div className="text-[13px] font-semibold text-ink-700 tabular-nums">
+            {filtered.length} {filtered.length === 1 ? "tutorial" : "tutorials"}
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
             <FilterSelect
@@ -338,45 +369,6 @@ function HeaderButton({
     >
       {icon}
       {children}
-    </button>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  label,
-  badge,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  badge?: number;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-11 px-4 inline-flex items-center gap-2 text-[13.5px] font-semibold border-b-2 -mb-px transition-colors",
-        active
-          ? "text-rose-600 border-rose-500"
-          : "text-ink-500 hover:text-ink-900 border-transparent",
-      )}
-    >
-      {label}
-      {badge !== undefined && badge > 0 && (
-        <span
-          className={cn(
-            "inline-flex items-center justify-center min-w-[22px] h-[20px] px-1.5 rounded-full text-[11px] font-semibold tabular-nums",
-            active
-              ? "bg-rose-100 text-rose-700"
-              : "bg-cream-200 text-ink-600",
-          )}
-        >
-          {badge}
-        </span>
-      )}
     </button>
   );
 }
