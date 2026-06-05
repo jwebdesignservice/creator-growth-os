@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   ClipboardCheck,
+  LayoutGrid,
   Sun,
   CalendarDays,
   CalendarRange,
@@ -11,20 +12,23 @@ import {
   Zap,
   Users,
 } from "lucide-react";
-import { cn } from "@/lib/cn";
+import {
+  AdminSegmentShell,
+  type AdminSegment,
+} from "@/components/admin/segment-shell";
 import { CreateMissionForm } from "./create-form";
 import { TemplateRow } from "./template-row";
 import type { AdminMissionRow, MissionSchedulingStats } from "@/lib/tasks/queries";
 
 type Tab = "all" | "daily" | "weekly" | "monthly" | "scheduled" | "assigned";
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "daily", label: "Daily" },
-  { key: "weekly", label: "Weekly" },
-  { key: "monthly", label: "Monthly" },
-  { key: "scheduled", label: "Scheduled" },
-  { key: "assigned", label: "Assigned" },
+const SEGMENTS: AdminSegment[] = [
+  { key: "all", label: "All", icon: LayoutGrid },
+  { key: "daily", label: "Daily", icon: Sun },
+  { key: "weekly", label: "Weekly", icon: CalendarDays },
+  { key: "monthly", label: "Monthly", icon: CalendarRange },
+  { key: "scheduled", label: "Scheduled", icon: Clock },
+  { key: "assigned", label: "Assigned", icon: Users },
 ];
 
 function planOf(r: AdminMissionRow): string | null {
@@ -91,7 +95,14 @@ export function MissionsView({
   }
 
   return (
-    <div className="container-app space-y-6">
+    <AdminSegmentShell
+      icon={ClipboardCheck}
+      title="Missions"
+      segments={SEGMENTS}
+      activeKey={tab}
+      onSelect={(k) => setTab(k as Tab)}
+    >
+    <div className="space-y-6">
       {/* Header */}
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3">
@@ -116,24 +127,8 @@ export function MissionsView({
         </button>
       </header>
 
-      {/* Tabs + filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="inline-flex items-center gap-1 rounded-[12px] border border-ink-100 bg-white p-1">
-          {TABS.map((tb) => (
-            <button
-              key={tb.key}
-              type="button"
-              onClick={() => setTab(tb.key)}
-              className={cn(
-                "h-9 px-3.5 rounded-[9px] text-[13px] font-medium transition-colors",
-                tab === tb.key ? "bg-rose-100 text-rose-700" : "text-ink-600 hover:bg-cream-100",
-              )}
-            >
-              {tb.label}
-            </button>
-          ))}
-        </div>
-        <span className="ml-auto flex items-center gap-2 flex-wrap">
+      {/* Secondary filters — the All/Daily/… segments now live in the left rail */}
+      <div className="flex items-center justify-end gap-2 flex-wrap">
           <FilterSelect
             value={typeFilter}
             onChange={setTypeFilter}
@@ -170,11 +165,10 @@ export function MissionsView({
               { value: "title", label: "Sort: A → Z" },
             ]}
           />
-        </span>
       </div>
 
       {/* Create card + right rail */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_320px] gap-6 items-start">
+      <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
         <div ref={formRef} className="scroll-mt-6">
           <CreateMissionForm editing={editing} onDone={() => setEditing(null)} />
         </div>
@@ -205,6 +199,7 @@ export function MissionsView({
         )}
       </section>
     </div>
+    </AdminSegmentShell>
   );
 }
 
