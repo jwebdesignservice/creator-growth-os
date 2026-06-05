@@ -46,7 +46,7 @@ function LauncherTile({
     <Link
       href={href}
       className={cn(
-        "group relative flex min-h-[200px] overflow-hidden rounded-[18px] border border-ink-100 bg-white p-6 shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition-[transform,box-shadow] duration-[380ms] hover:-translate-y-[3px] hover:shadow-[0_22px_44px_-26px_rgba(26,24,22,0.45)]",
+        "group relative isolate flex min-h-[200px] overflow-hidden rounded-[18px] border border-ink-100 bg-white p-6 shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition duration-[380ms] hover:-translate-y-[3px] hover:shadow-[0_22px_44px_-26px_rgba(26,24,22,0.45)]",
         EASE,
       )}
     >
