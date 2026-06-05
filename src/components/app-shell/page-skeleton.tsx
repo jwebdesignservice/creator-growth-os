@@ -21,7 +21,7 @@ export function PageSkeleton({ variant = "page" }: { variant?: Variant }) {
       <ProgressBar />
 
       <div
-        className="space-y-6 max-w-[1240px] mx-auto px-4 lg:px-6 py-4 lg:py-6 animate-pulse"
+        className="space-y-6 px-[var(--mobile-content-x)] py-[var(--mobile-content-y)] lg:px-[var(--space-page-x)] lg:py-[var(--space-page-y)] animate-pulse"
         aria-hidden
         aria-busy="true"
       >
