@@ -26,7 +26,7 @@ export function LessonNotes({
   const [composeOpen, setComposeOpen] = useState(false);
 
   return (
-    <section className="bg-white overflow-hidden flex flex-col min-h-[70vh] lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
+    <section className="bg-cream-100 overflow-hidden flex flex-col min-h-[70vh] lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       {/* Header — matches the program "My Notes" card chrome */}
       <div className="p-5 sm:p-6 flex items-start gap-3">
         <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">

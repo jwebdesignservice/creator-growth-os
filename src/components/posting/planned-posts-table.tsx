@@ -47,7 +47,7 @@ export function PlannedPostsTable({ items, isDemo = false, addPostSlot }: Props)
 
   return (
     <>
-    <section className="bg-white overflow-hidden lg:flex lg:flex-col lg:min-h-[90vh]">
+    <section className="bg-cream-100 overflow-hidden lg:flex lg:flex-col lg:min-h-[90vh]">
       {/* Header */}
       <header className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-ink-100 shrink-0">
         <div className="min-w-0">

@@ -171,7 +171,7 @@ const CHAPTER_TYPE_LABEL: Record<string, string> = {
 function PathPanel({ chapters }: { chapters: Chapter[] }) {
   if (chapters.length === 0) {
     return (
-      <div className="bg-white min-h-[70vh] flex flex-col items-center justify-center text-center px-4 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
+      <div className="bg-cream-100 min-h-[70vh] flex flex-col items-center justify-center text-center px-4 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
         <CalendarDays
           className="size-6 text-ink-400 mx-auto mb-2"
           strokeWidth={1.8}
@@ -263,7 +263,7 @@ function formatBytes(bytes: number | null): string | null {
 
 function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
   return (
-    <section className="bg-white overflow-hidden flex flex-col min-h-[70vh] lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
+    <section className="bg-cream-100 overflow-hidden flex flex-col min-h-[70vh] lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       {/* Header — matches the program "Templates & Downloads" card chrome */}
       <div className="p-5 sm:p-6 flex items-start gap-3">
         <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">

@@ -41,7 +41,7 @@ export function ActivePlanCard({ plan }: { plan: ActivePlan }) {
   const allPublished = plan.total > 0 && plan.published === plan.total;
 
   return (
-    <section className="bg-white overflow-hidden border-b border-ink-100 lg:shrink-0">
+    <section className="bg-cream-100 overflow-hidden border-b border-ink-100 lg:shrink-0">
       <div className="grid grid-cols-1 lg:grid-cols-[248px_1fr]">
         {/* ── Illustration ───────────────────────────────────────────── */}
         <div className="hidden lg:block relative m-4 rounded-[16px] overflow-hidden bg-gradient-to-br from-rose-100 via-cream-200 to-rose-200/50">
