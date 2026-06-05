@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode, CSSProperties } from "react";
+import type { ReactNode, CSSProperties, ComponentType } from "react";
 import {
   ArrowRight,
   Play,
@@ -11,6 +11,13 @@ import {
   CalendarPlus,
   type LucideIcon,
 } from "lucide-react";
+import {
+  InstagramIcon,
+  TiktokIcon,
+  YoutubeIcon,
+  LinkedinIcon,
+  SnapchatIcon,
+} from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
 
 // Symmetric ease-in-out so the hover *out* is as smooth as the hover in.
@@ -134,18 +141,31 @@ export function TutorialsCard({ total }: { total: number }) {
 }
 
 /* ──────────────────────── Posting Plans / Content ───────────────────── */
-const PLATFORM: Record<string, { bg: string; label: string }> = {
-  instagram: { bg: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]", label: "IG" },
-  tiktok: { bg: "bg-ink-900", label: "TT" },
-  youtube: { bg: "bg-[#FF0000]", label: "YT" },
-  facebook: { bg: "bg-[#1877F2]", label: "FB" },
-  x: { bg: "bg-ink-900", label: "X" },
-  twitter: { bg: "bg-ink-900", label: "X" },
-  linkedin: { bg: "bg-[#0A66C2]", label: "in" },
+type BrandIcon = ComponentType<{ className?: string; size?: number }>;
+// Same brand colours + icons as the Connect-Accounts page.
+const PLATFORM: Record<
+  string,
+  { tile: string; iconColor: string; Icon?: BrandIcon; label: string }
+> = {
+  instagram: {
+    tile: "bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#962FBF]",
+    iconColor: "text-white",
+    Icon: InstagramIcon,
+    label: "IG",
+  },
+  tiktok: { tile: "bg-[#010101]", iconColor: "text-white", Icon: TiktokIcon, label: "TT" },
+  youtube: { tile: "bg-[#FF0000]", iconColor: "text-white", Icon: YoutubeIcon, label: "YT" },
+  linkedin: { tile: "bg-[#0A66C2]", iconColor: "text-white", Icon: LinkedinIcon, label: "in" },
+  snapchat: { tile: "bg-[#FFFC00]", iconColor: "text-ink-900", Icon: SnapchatIcon, label: "SC" },
+  facebook: { tile: "bg-[#1877F2]", iconColor: "text-white", label: "f" },
+  x: { tile: "bg-ink-900", iconColor: "text-white", label: "X" },
+  twitter: { tile: "bg-ink-900", iconColor: "text-white", label: "X" },
 };
 const brandOf = (p: string) =>
   PLATFORM[(p ?? "").toLowerCase()] ?? {
-    bg: "bg-rose-500",
+    tile: "bg-rose-500",
+    iconColor: "text-white",
+    Icon: undefined as BrandIcon | undefined,
     label: (p?.[0] ?? "•").toUpperCase(),
   };
 
@@ -158,7 +178,7 @@ export function ContentCard({
   posts: { platform: string; type: string; when: string }[];
   days: { letter: string; count: number; isToday: boolean }[];
 }) {
-  const rows = posts.slice(0, 3);
+  const rows = posts.slice(0, 2);
   return (
     <LauncherTile
       href="/posting"
@@ -167,62 +187,73 @@ export function ContentCard({
       desc="Plan & schedule your content"
       meta={thisWeek > 0 ? `${thisWeek} scheduled this week` : "Plan your week"}
     >
-      {rows.length > 0 ? (
-        // Preview of the actual content calendar: upcoming scheduled posts.
-        <div className="absolute left-1/2 top-1/2 -ml-[104px] -mt-[59px] w-[208px] space-y-2">
-          {rows.map((p, i) => {
-            const b = brandOf(p.platform);
-            return (
-              <div
-                key={i}
+      <div className="absolute inset-0 flex flex-col justify-center gap-2.5">
+        {/* Week calendar — a dot marks days that have posts; today is bold. */}
+        <div className="flex items-stretch justify-between">
+          {days.map((d, i) => (
+            <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+              <span
                 className={cn(
-                  "flex items-center gap-2.5 rounded-[11px] border border-ink-100 bg-white px-2.5 py-2 shadow-[0_3px_8px_-5px_rgba(26,24,22,0.3)] transition-transform duration-[460ms] group-hover:-translate-y-[3px]",
-                  EASE,
+                  "text-[9.5px] font-bold uppercase",
+                  d.isToday ? "text-rose-600" : "text-ink-400",
                 )}
-                style={{ transitionDelay: `${i * 45}ms` }}
               >
-                <span
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-[9px] text-[10.5px] font-bold text-white",
-                    b.bg,
-                  )}
-                >
-                  {b.label}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12px] font-semibold capitalize text-ink-900">
-                    {p.type}
-                  </div>
-                  <div className="text-[10.5px] text-ink-400">{p.when}</div>
-                </div>
-                <CalendarDays className="size-3.5 shrink-0 text-ink-300" strokeWidth={2} />
-              </div>
-            );
-          })}
+                {d.letter}
+              </span>
+              <span
+                className={cn(
+                  "rounded-full",
+                  d.isToday
+                    ? "size-2 bg-rose-600 ring-2 ring-rose-200"
+                    : d.count > 0
+                      ? "size-1.5 bg-rose-400"
+                      : "size-1.5 bg-ink-200",
+                )}
+              />
+            </div>
+          ))}
         </div>
-      ) : (
-        // Empty state: the week strip + a "plan" prompt.
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <div className="flex items-end justify-center gap-[6px]">
-            {days.map((d, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase text-ink-400">
-                  {d.letter}
-                </span>
+        <div className="h-px bg-ink-100" />
+
+        {/* Upcoming scheduled posts (real platform icons). */}
+        {rows.length > 0 ? (
+          <div className="space-y-1.5">
+            {rows.map((p, i) => {
+              const b = brandOf(p.platform);
+              return (
                 <div
+                  key={i}
                   className={cn(
-                    "h-[52px] w-[16px] rounded-full bg-cream-200",
-                    d.isToday && "ring-2 ring-rose-300 ring-offset-1",
+                    "flex items-center gap-2 rounded-[10px] border border-ink-100 bg-white px-2 py-1.5 shadow-[0_2px_6px_-4px_rgba(26,24,22,0.3)] transition-transform duration-[460ms] group-hover:-translate-y-[2px]",
+                    EASE,
                   )}
-                />
-              </div>
-            ))}
+                  style={{ transitionDelay: `${i * 45}ms` }}
+                >
+                  <span
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-[8px] text-[10px] font-bold",
+                      b.tile,
+                      b.iconColor,
+                    )}
+                  >
+                    {b.Icon ? <b.Icon size={15} /> : b.label}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[11.5px] font-semibold capitalize text-ink-900">
+                      {p.type}
+                    </div>
+                    <div className="text-[10px] text-ink-400">{p.when}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600">
+        ) : (
+          <div className="flex items-center justify-center gap-1.5 py-3 text-[11.5px] font-semibold text-rose-600">
             <CalendarPlus className="size-3.5" strokeWidth={2} /> Plan your week
-          </span>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </LauncherTile>
   );
 }
