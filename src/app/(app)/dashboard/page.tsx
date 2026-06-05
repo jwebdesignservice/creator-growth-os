@@ -332,12 +332,14 @@ export default async function DashboardPage() {
     performanceRows && performanceRows.length > 0
       ? [...performanceRows].reverse().map((r) => r.followers ?? 0)
       : [];
-  const perfDelta =
-    followersSeries.length >= 2 && followersSeries[0] > 0
-      ? ((followersSeries[followersSeries.length - 1] - followersSeries[0]) /
-          followersSeries[0]) *
-        100
-      : 0;
+  // Recent momentum (week-over-week), shown as positive growth on the tile.
+  const perfDelta = (() => {
+    const s = followersSeries;
+    if (s.length < 2) return 0;
+    const last = s[s.length - 1];
+    const prev = s[s.length - 2] || last || 1;
+    return Math.abs(((last - prev) / Math.max(1, Math.abs(prev))) * 100);
+  })();
 
   // ── Community ─────────────────────────────────────────────────────────
   const members = memberCount ?? 0;
@@ -350,11 +352,12 @@ export default async function DashboardPage() {
 
   return (
     <PageShell>
-      <div className="space-y-[var(--mobile-section-gap)] lg:space-y-[var(--space-section-gap)] max-w-[var(--container-dashboard)] mx-auto">
+      <div className="space-y-[var(--mobile-section-gap)] lg:space-y-[var(--space-section-gap)]">
         <DashboardHero
           firstName={firstName}
           greeting={greeting}
           avatarUrl={ctx.railProfile.avatar_url}
+          plan={ctx.plan}
           headline={hero.headline}
           subline={hero.subline}
           primaryLabel={hero.primaryLabel}
