@@ -50,7 +50,7 @@ function Cover({ cover, pos }: { cover: ProgramCover; pos: (typeof POS)[number] 
   return (
     <div
       className={cn(
-        "absolute left-1/2 top-1/2 -ml-[49px] -mt-[64px] h-[128px] w-[98px] overflow-hidden rounded-[13px] border-2 border-white shadow-[0_10px_24px_-12px_rgba(26,24,22,0.5)] [transform-origin:50%_120%] transition-transform duration-[520ms] ease-[cubic-bezier(.33,.68,.36,1)] will-change-transform",
+        "absolute left-1/2 top-1/2 -ml-[49px] -mt-[64px] h-[128px] w-[98px] overflow-hidden rounded-[13px] border-2 border-white shadow-[0_10px_24px_-12px_rgba(26,24,22,0.5)] [transform-origin:50%_120%] transition-transform duration-[520ms] ease-[cubic-bezier(0.45,0,0.55,1)] will-change-transform",
         pos.z,
         pos.base,
         pos.hover,
@@ -103,11 +103,11 @@ export function ProgramsCard({ href, total, inProgress, covers }: Props) {
   return (
     <Link
       href={href}
-      className="group relative flex min-h-[200px] overflow-hidden rounded-[18px] border border-ink-100 bg-white p-6 shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition-[transform,box-shadow] duration-[380ms] ease-[cubic-bezier(.33,.68,.36,1)] hover:-translate-y-[3px] hover:shadow-[0_22px_44px_-26px_rgba(26,24,22,0.45)]"
+      className="group relative flex min-h-[200px] overflow-hidden rounded-[18px] border border-ink-100 bg-white p-6 shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition-[transform,box-shadow] duration-[380ms] ease-[cubic-bezier(0.45,0,0.55,1)] hover:-translate-y-[3px] hover:shadow-[0_22px_44px_-26px_rgba(26,24,22,0.45)]"
     >
       {/* Left — label */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pr-4">
-        <span className="flex size-[42px] items-center justify-center rounded-[13px] bg-rose-50 text-rose-600 transition-transform duration-[380ms] ease-[cubic-bezier(.33,.68,.36,1)] group-hover:-rotate-[4deg] group-hover:scale-105">
+        <span className="flex size-[42px] items-center justify-center rounded-[13px] bg-rose-50 text-rose-600 transition-transform duration-[380ms] ease-[cubic-bezier(0.45,0,0.55,1)] group-hover:-rotate-[4deg] group-hover:scale-105">
           <GraduationCap className="size-[22px]" strokeWidth={2} />
         </span>
         <h3 className="mt-3.5 text-[20px] font-bold tracking-[-0.01em] text-ink-900">
@@ -122,7 +122,7 @@ export function ProgramsCard({ href, total, inProgress, covers }: Props) {
         <span className="mt-auto inline-flex items-center gap-1.5 pt-3.5 text-[13px] font-semibold text-rose-700">
           Open
           <ArrowRight
-            className="size-[15px] transition-transform duration-[380ms] ease-[cubic-bezier(.33,.68,.36,1)] group-hover:translate-x-1"
+            className="size-[15px] transition-transform duration-[380ms] ease-[cubic-bezier(0.45,0,0.55,1)] group-hover:translate-x-1"
             strokeWidth={2}
           />
         </span>

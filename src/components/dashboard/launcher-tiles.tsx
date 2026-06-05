@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-const EASE = "ease-[cubic-bezier(.33,.68,.36,1)]";
+// Symmetric ease-in-out so the hover *out* is as smooth as the hover in
+// (an ease-out curve starts fast, which makes the mouse-out feel abrupt).
+const EASE = "ease-[cubic-bezier(0.45,0,0.55,1)]";
 
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
@@ -109,7 +111,12 @@ export function TutorialsCard({ total }: { total: number }) {
         )}
       >
         <span className="absolute inset-0 flex items-center justify-center">
-          <span className="flex size-11 items-center justify-center rounded-full bg-white/95 shadow-[0_4px_12px_-3px_rgba(0,0,0,0.3)] transition-transform duration-[380ms] group-hover:scale-110">
+          <span
+            className={cn(
+              "flex size-11 items-center justify-center rounded-full bg-white/95 shadow-[0_4px_12px_-3px_rgba(0,0,0,0.3)] transition-transform duration-[420ms] group-hover:scale-110",
+              EASE,
+            )}
+          >
             <Play className="size-[18px] translate-x-[1px] text-rose-600" fill="currentColor" strokeWidth={0} />
           </span>
         </span>
@@ -308,18 +315,8 @@ export function PerformanceCard({
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className={cn(
-              "[stroke-dasharray:600] [stroke-dashoffset:600] transition-[stroke-dashoffset] duration-[900ms] group-hover:[stroke-dashoffset:0]",
-              EASE,
-            )}
           />
-          <circle
-            cx={endX}
-            cy={endY}
-            r="4"
-            fill="#B9485C"
-            className="opacity-0 transition-opacity duration-[300ms] [transition-delay:500ms] group-hover:opacity-100"
-          />
+          <circle cx={endX} cy={endY} r="4" fill="#B9485C" />
         </svg>
       </div>
     </LauncherTile>
