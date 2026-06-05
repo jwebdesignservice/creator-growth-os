@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, X, LayoutGrid, PlayCircle, CheckCircle2 } from "lucide-react";
+import {
+  Search,
+  X,
+  LayoutGrid,
+  PlayCircle,
+  CheckCircle2,
+  ArrowUpDown,
+  type LucideIcon,
+} from "lucide-react";
 import { ProgramCard, type ProgramRow } from "./program-card";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 
@@ -18,10 +26,10 @@ const CATEGORY_OPTIONS: { value: Category; label: string }[] = [
   { value: "pro", label: "Pro only" },
 ];
 
-const SORT_OPTIONS: { value: Sort; label: string }[] = [
-  { value: "recommended", label: "Recommended" },
-  { value: "name", label: "Name (A–Z)" },
-  { value: "progress", label: "Progress" },
+const SORT_OPTIONS: { value: Sort; label: string; icon: LucideIcon }[] = [
+  { value: "recommended", label: "Recommended", icon: ArrowUpDown },
+  { value: "name", label: "Name (A–Z)", icon: ArrowUpDown },
+  { value: "progress", label: "Progress", icon: ArrowUpDown },
 ];
 
 const STATUS_OPTIONS = [
@@ -95,26 +103,18 @@ export function ProgramsGrid({ programs }: Props) {
         <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
           <h2 className="text-h4 sm:text-[22px] text-ink-900">Programs</h2>
           <span className="text-[12.5px] text-ink-500 whitespace-nowrap">
-            {visible.length} {visible.length === 1 ? "program" : "programs"} ·{" "}
-            <button
-              type="button"
-              onClick={() =>
-                setSort((s) =>
-                  s === "recommended"
-                    ? "name"
-                    : s === "name"
-                      ? "progress"
-                      : "recommended",
-                )
-              }
-              className="text-ink-700 hover:text-rose-600 underline-offset-4 hover:underline cursor-pointer"
-            >
-              Sort: {SORT_OPTIONS.find((o) => o.value === sort)?.label}
-            </button>
+            {visible.length} {visible.length === 1 ? "program" : "programs"}
           </span>
         </div>
 
         <div className="flex items-center justify-end gap-2.5 flex-wrap">
+          <FilterDropdown
+            ariaLabel="Sort programs"
+            value={sort}
+            onChange={(v) => setSort(v as Sort)}
+            options={SORT_OPTIONS}
+            width={190}
+          />
           <FilterDropdown
             ariaLabel="Filter programs by status"
             value={statusTab}

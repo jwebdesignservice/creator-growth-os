@@ -53,7 +53,10 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
   const progress = Math.min(100, Math.max(0, program.progress ?? 0));
 
   return (
-    <Link href={href} className="group flex flex-col gap-3">
+    <Link
+      href={href}
+      className="group flex flex-col gap-3 rounded-[18px] border border-ink-100 bg-white p-3 transition-shadow hover:shadow-[0_14px_32px_-20px_rgba(26,24,22,0.45)]"
+    >
       {/* ── Thumbnail ─────────────────────────────────────────────── */}
       <div className="relative aspect-video rounded-xl overflow-hidden">
         <CoverArt
