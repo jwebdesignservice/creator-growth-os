@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ReactNode, CSSProperties } from "react";
 import {
   ArrowRight,
   Play,
@@ -8,12 +8,12 @@ import {
   TrendingUp,
   Users,
   Check,
+  CalendarPlus,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-// Symmetric ease-in-out so the hover *out* is as smooth as the hover in
-// (an ease-out curve starts fast, which makes the mouse-out feel abrupt).
+// Symmetric ease-in-out so the hover *out* is as smooth as the hover in.
 const EASE = "ease-[cubic-bezier(0.45,0,0.55,1)]";
 
 function fmtNum(n: number): string {
@@ -22,11 +22,6 @@ function fmtNum(n: number): string {
   return `${n}`;
 }
 
-/**
- * Shared launcher-tile shell: a consistent left column (icon · title · desc ·
- * count · Open) and a right "preview" column that each section fills with a
- * graphic representing what the page holds. The whole tile is the link.
- */
 function LauncherTile({
   href,
   icon: Icon,
@@ -79,7 +74,7 @@ function LauncherTile({
           />
         </span>
       </div>
-      <div className="relative h-[150px] w-[190px] shrink-0 self-center sm:w-[230px]">
+      <div className="relative h-[150px] w-[190px] shrink-0 self-center sm:w-[236px]">
         {children}
       </div>
     </Link>
@@ -96,17 +91,23 @@ export function TutorialsCard({ total }: { total: number }) {
       desc="Short, focused how-to videos"
       meta={`${total} tutorial${total === 1 ? "" : "s"}`}
     >
-      {/* back peek */}
+      {/* back peeks */}
       <div
         className={cn(
-          "absolute left-1/2 top-1/2 -ml-[70px] -mt-[58px] h-[84px] w-[140px] -rotate-[7deg] rounded-[12px] border-2 border-white bg-gradient-to-br from-[#B5738A] to-[#8A4057] shadow-[0_8px_18px_-10px_rgba(26,24,22,0.5)] transition-transform duration-[520ms] group-hover:-translate-x-3 group-hover:-translate-y-1 group-hover:-rotate-[12deg]",
+          "absolute left-1/2 top-1/2 -ml-[58px] -mt-[60px] h-[80px] w-[132px] -rotate-[10deg] rounded-[12px] border-2 border-white bg-gradient-to-br from-[#A98494] to-[#735060] shadow-[0_6px_14px_-8px_rgba(26,24,22,0.5)] transition-transform duration-[520ms] group-hover:-translate-x-4 group-hover:-translate-y-2 group-hover:-rotate-[16deg]",
           EASE,
         )}
       />
-      {/* front video frame */}
       <div
         className={cn(
-          "absolute left-1/2 top-1/2 -ml-[84px] -mt-[48px] h-[96px] w-[168px] overflow-hidden rounded-[12px] border-2 border-white bg-gradient-to-br from-[#C26174] to-[#8E3447] shadow-[0_12px_24px_-12px_rgba(26,24,22,0.55)] transition-transform duration-[520ms] group-hover:-translate-y-1",
+          "absolute left-1/2 top-1/2 -ml-[70px] -mt-[56px] h-[84px] w-[140px] -rotate-[5deg] rounded-[12px] border-2 border-white bg-gradient-to-br from-[#B5738A] to-[#8A4057] shadow-[0_8px_18px_-10px_rgba(26,24,22,0.5)] transition-transform duration-[520ms] group-hover:-translate-x-2 group-hover:-translate-y-1 group-hover:-rotate-[9deg]",
+          EASE,
+        )}
+      />
+      {/* front video card with a title */}
+      <div
+        className={cn(
+          "absolute left-1/2 top-1/2 -ml-[86px] -mt-[48px] flex h-[98px] w-[172px] flex-col justify-end overflow-hidden rounded-[12px] border-2 border-white bg-gradient-to-br from-[#C26174] to-[#8E3447] shadow-[0_12px_24px_-12px_rgba(26,24,22,0.55)] transition-transform duration-[520ms] group-hover:-translate-y-1",
           EASE,
         )}
       >
@@ -120,11 +121,12 @@ export function TutorialsCard({ total }: { total: number }) {
             <Play className="size-[18px] translate-x-[1px] text-rose-600" fill="currentColor" strokeWidth={0} />
           </span>
         </span>
-        <span className="absolute bottom-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+        <div className="relative z-10 bg-gradient-to-t from-black/45 to-transparent px-3 pb-2.5 pt-6">
+          <span className="block h-[5px] w-[88px] rounded-full bg-white/90" />
+          <span className="mt-[5px] block h-[4px] w-[58px] rounded-full bg-white/45" />
+        </div>
+        <span className="absolute right-2 top-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white">
           4:12
-        </span>
-        <span className="absolute inset-x-2 bottom-[7px] h-[3px] rounded-full bg-white/30">
-          <span className="block h-full w-1/3 rounded-full bg-white" />
         </span>
       </div>
     </LauncherTile>
@@ -132,13 +134,31 @@ export function TutorialsCard({ total }: { total: number }) {
 }
 
 /* ──────────────────────── Posting Plans / Content ───────────────────── */
+const PLATFORM: Record<string, { bg: string; label: string }> = {
+  instagram: { bg: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]", label: "IG" },
+  tiktok: { bg: "bg-ink-900", label: "TT" },
+  youtube: { bg: "bg-[#FF0000]", label: "YT" },
+  facebook: { bg: "bg-[#1877F2]", label: "FB" },
+  x: { bg: "bg-ink-900", label: "X" },
+  twitter: { bg: "bg-ink-900", label: "X" },
+  linkedin: { bg: "bg-[#0A66C2]", label: "in" },
+};
+const brandOf = (p: string) =>
+  PLATFORM[(p ?? "").toLowerCase()] ?? {
+    bg: "bg-rose-500",
+    label: (p?.[0] ?? "•").toUpperCase(),
+  };
+
 export function ContentCard({
   thisWeek,
+  posts,
   days,
 }: {
   thisWeek: number;
+  posts: { platform: string; type: string; when: string }[];
   days: { letter: string; count: number; isToday: boolean }[];
 }) {
+  const rows = posts.slice(0, 3);
   return (
     <LauncherTile
       href="/posting"
@@ -147,29 +167,62 @@ export function ContentCard({
       desc="Plan & schedule your content"
       meta={thisWeek > 0 ? `${thisWeek} scheduled this week` : "Plan your week"}
     >
-      <div className="absolute inset-0 flex items-center justify-center gap-[6px]">
-        {days.map((d, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase text-ink-400">
-              {d.letter}
-            </span>
-            <div
-              className={cn(
-                "flex h-[72px] w-[18px] flex-col justify-end overflow-hidden rounded-full bg-cream-200 p-[3px] transition-transform duration-[460ms] group-hover:-translate-y-[3px]",
-                d.isToday && "ring-2 ring-rose-300 ring-offset-1",
-                EASE,
-              )}
-            >
-              {d.count > 0 && (
+      {rows.length > 0 ? (
+        // Preview of the actual content calendar: upcoming scheduled posts.
+        <div className="absolute left-1/2 top-1/2 -ml-[104px] -mt-[59px] w-[208px] space-y-2">
+          {rows.map((p, i) => {
+            const b = brandOf(p.platform);
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-[11px] border border-ink-100 bg-white px-2.5 py-2 shadow-[0_3px_8px_-5px_rgba(26,24,22,0.3)] transition-transform duration-[460ms] group-hover:-translate-y-[3px]",
+                  EASE,
+                )}
+                style={{ transitionDelay: `${i * 45}ms` }}
+              >
                 <span
-                  className="rounded-full bg-rose-500"
-                  style={{ height: `${Math.min(100, 26 + d.count * 22)}%` }}
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-[9px] text-[10.5px] font-bold text-white",
+                    b.bg,
+                  )}
+                >
+                  {b.label}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12px] font-semibold capitalize text-ink-900">
+                    {p.type}
+                  </div>
+                  <div className="text-[10.5px] text-ink-400">{p.when}</div>
+                </div>
+                <CalendarDays className="size-3.5 shrink-0 text-ink-300" strokeWidth={2} />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // Empty state: the week strip + a "plan" prompt.
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <div className="flex items-end justify-center gap-[6px]">
+            {days.map((d, i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase text-ink-400">
+                  {d.letter}
+                </span>
+                <div
+                  className={cn(
+                    "h-[52px] w-[16px] rounded-full bg-cream-200",
+                    d.isToday && "ring-2 ring-rose-300 ring-offset-1",
+                  )}
                 />
-              )}
-            </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-rose-600">
+            <CalendarPlus className="size-3.5" strokeWidth={2} /> Plan your week
+          </span>
+        </div>
+      )}
     </LauncherTile>
   );
 }
@@ -179,10 +232,12 @@ export function TasksCard({
   dueToday,
   completed,
   total,
+  tasks,
 }: {
   dueToday: number;
   completed: number;
   total: number;
+  tasks: { title: string; done: boolean }[];
 }) {
   const meta =
     dueToday > 0
@@ -190,12 +245,15 @@ export function TasksCard({
       : total > 0
         ? `${completed}/${total} done`
         : "All caught up";
-  // first row reflects a real completed task; row 1 "ticks" on hover.
-  const rows = [
-    { done: true, w: "w-[86px]" },
-    { done: false, hoverTick: true, w: "w-[104px]" },
-    { done: false, w: "w-[72px]" },
-  ];
+  const rows =
+    tasks.length > 0
+      ? tasks.slice(0, 3)
+      : [
+          { title: "Plan this week's content", done: true },
+          { title: "Film your next short", done: false },
+          { title: "Reply to comments", done: false },
+        ];
+  const firstUndone = rows.findIndex((r) => !r.done);
   return (
     <LauncherTile
       href="/missions"
@@ -204,21 +262,22 @@ export function TasksCard({
       desc="Your missions & daily to-dos"
       meta={meta}
     >
-      <div className="absolute left-1/2 top-1/2 -ml-[92px] -mt-[54px] w-[184px] space-y-2.5">
-        {rows.map((r, i) => (
+      <div className="absolute left-1/2 top-1/2 -ml-[104px] -mt-[57px] w-[208px] space-y-2">
+        {rows.map((t, i) => (
           <div
             key={i}
             className={cn(
-              "flex items-center gap-2.5 rounded-[10px] border border-ink-100 bg-white px-3 py-2.5 shadow-[0_2px_6px_-4px_rgba(26,24,22,0.25)] transition-transform duration-[460ms] group-hover:translate-x-[2px]",
+              "flex items-center gap-2.5 rounded-[11px] border border-ink-100 bg-white px-3 py-2.5 shadow-[0_3px_8px_-5px_rgba(26,24,22,0.3)] transition-transform duration-[460ms] group-hover:translate-x-[2px]",
               EASE,
             )}
+            style={{ transitionDelay: `${i * 45}ms` }}
           >
             <span
               className={cn(
-                "flex size-[18px] items-center justify-center rounded-[6px] border-2 transition-colors duration-[360ms]",
-                r.done
+                "flex size-[18px] shrink-0 items-center justify-center rounded-[6px] border-2 transition-colors duration-[360ms]",
+                t.done
                   ? "border-rose-500 bg-rose-500"
-                  : r.hoverTick
+                  : i === firstUndone
                     ? "border-rose-300 group-hover:border-rose-500 group-hover:bg-rose-500"
                     : "border-ink-200",
               )}
@@ -226,9 +285,9 @@ export function TasksCard({
               <Check
                 className={cn(
                   "size-3 text-white transition-opacity duration-[360ms]",
-                  r.done
+                  t.done
                     ? "opacity-100"
-                    : r.hoverTick
+                    : i === firstUndone
                       ? "opacity-0 group-hover:opacity-100"
                       : "opacity-0",
                 )}
@@ -237,11 +296,12 @@ export function TasksCard({
             </span>
             <span
               className={cn(
-                "h-2 rounded-full",
-                r.w,
-                r.done ? "bg-ink-200" : "bg-cream-200",
+                "truncate text-[12px]",
+                t.done ? "text-ink-400 line-through" : "text-ink-700",
               )}
-            />
+            >
+              {t.title}
+            </span>
           </div>
         ))}
       </div>
@@ -250,8 +310,8 @@ export function TasksCard({
 }
 
 /* ──────────────────────────── Performance ──────────────────────────── */
-function sparkPaths(series: number[], w = 230, h = 64, pad = 5) {
-  const pts = series.length >= 2 ? series : [0, 1];
+function sparkPaths(series: number[], w = 230, h = 60, pad = 6) {
+  const pts = series.length >= 2 ? series : [1, 1];
   const min = Math.min(...pts);
   const max = Math.max(...pts);
   const range = max - min || 1;
@@ -284,7 +344,7 @@ export function PerformanceCard({
       desc="Track followers & engagement"
       meta={followers > 0 ? `${fmtNum(followers)} followers` : "Connect accounts"}
     >
-      <div className="absolute inset-0 flex flex-col justify-center">
+      <div className="absolute inset-0 flex flex-col justify-center gap-1">
         <div className="flex items-baseline gap-2 pl-1">
           <span className="text-[26px] font-bold tracking-[-0.02em] text-ink-900">
             {followers > 0 ? fmtNum(followers) : "—"}
@@ -292,7 +352,7 @@ export function PerformanceCard({
           {series.length >= 2 && (
             <span
               className={cn(
-                "text-[12px] font-semibold",
+                "inline-flex items-center gap-0.5 text-[12px] font-semibold",
                 up ? "text-emerald-600" : "text-rose-600",
               )}
             >
@@ -300,13 +360,25 @@ export function PerformanceCard({
             </span>
           )}
         </div>
-        <svg viewBox="0 0 230 64" className="mt-1 h-[64px] w-full overflow-visible">
+        <svg viewBox="0 0 230 60" className="h-[62px] w-full overflow-visible">
           <defs>
             <linearGradient id="perfFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="#B9485C" stopOpacity="0.22" />
               <stop offset="1" stopColor="#B9485C" stopOpacity="0" />
             </linearGradient>
           </defs>
+          {[14, 32, 50].map((y) => (
+            <line
+              key={y}
+              x1="0"
+              y1={y}
+              x2="230"
+              y2={y}
+              stroke="#ECE8E3"
+              strokeWidth="1"
+              strokeDasharray="2 5"
+            />
+          ))}
           <path d={area} fill="url(#perfFill)" />
           <path
             d={line}
@@ -317,7 +389,13 @@ export function PerformanceCard({
             strokeLinejoin="round"
           />
           <circle cx={endX} cy={endY} r="4" fill="#B9485C" />
+          <circle cx={endX} cy={endY} r="4" fill="none" stroke="#fff" strokeWidth="1.5" />
         </svg>
+        <span className="pl-1 text-[10.5px] font-medium text-ink-400">
+          {series.length >= 2
+            ? `Followers · last ${series.length} weeks`
+            : "Followers"}
+        </span>
       </div>
     </LauncherTile>
   );
@@ -347,19 +425,22 @@ export function CommunityCard({
       desc="Connect with other creators"
       meta={members > 0 ? `${fmtNum(members)} members` : "Join the community"}
     >
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
         <div className="flex items-center">
           {slots.map((a, i) => (
             <span
               key={i}
               className={cn(
-                "-ml-3 flex size-[52px] items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-gradient-to-br shadow-[0_6px_14px_-6px_rgba(26,24,22,0.5)] transition-transform duration-[480ms] first:ml-0",
+                "-ml-3 flex size-[52px] items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-gradient-to-br shadow-[0_6px_14px_-6px_rgba(26,24,22,0.5)] transition-transform duration-[480ms] first:ml-0 group-hover:[transform:translateX(var(--sp))]",
                 grads[i % grads.length],
                 EASE,
               )}
-              style={{
-                zIndex: 10 - i,
-              }}
+              style={
+                {
+                  zIndex: 10 - i,
+                  "--sp": `${(i - 1.5) * 6}px`,
+                } as CSSProperties
+              }
             >
               {a ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -375,11 +456,11 @@ export function CommunityCard({
             </span>
           )}
         </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-semibold text-emerald-600 shadow-[0_2px_8px_-3px_rgba(26,24,22,0.3)]">
+          <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+          Creators online now
+        </span>
       </div>
-      <span className="absolute right-4 top-7 flex items-center gap-1.5 rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-emerald-600 shadow-[0_2px_8px_-3px_rgba(26,24,22,0.3)]">
-        <span className="size-1.5 rounded-full bg-emerald-500" />
-        Active now
-      </span>
     </LauncherTile>
   );
 }

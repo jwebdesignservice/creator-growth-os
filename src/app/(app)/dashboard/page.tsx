@@ -270,6 +270,10 @@ export default async function DashboardPage() {
   const tasksTotal = todayMissions?.length ?? 0;
   const tasksCompleted =
     todayMissions?.filter((m) => m.status === "completed").length ?? 0;
+  const taskList = (todayMissions ?? []).slice(0, 3).map((m) => ({
+    title: m.title,
+    done: m.status === "completed",
+  }));
 
   // ── Posting Plans (week schedule) ─────────────────────────────────────
   const startOfDay = (d: Date) =>
@@ -293,6 +297,32 @@ export default async function DashboardPage() {
     };
   });
   const postsThisWeek = postingItems?.length ?? 0;
+
+  // Upcoming scheduled posts — previews the content calendar on the tile.
+  const upcomingPosts = (postingItems ?? [])
+    .filter((p): p is typeof p & { scheduled_for: string } => !!p.scheduled_for)
+    .slice(0, 3)
+    .map((p) => {
+      const when = new Date(p.scheduled_for);
+      const idx = Math.round(
+        (startOfDay(when) - todayStart) / 86_400_000,
+      );
+      const day =
+        idx === 0
+          ? "Today"
+          : idx === 1
+            ? "Tomorrow"
+            : when.toLocaleDateString("en-US", { weekday: "short" });
+      const time = when.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      return {
+        platform: p.platform ?? "other",
+        type: (p.content_type ?? p.topic ?? "Post").toString(),
+        when: `${day} · ${time}`,
+      };
+    });
 
   // ── Performance ───────────────────────────────────────────────────────
   const socials = ctx.railProfile.socials;
@@ -340,11 +370,16 @@ export default async function DashboardPage() {
             covers={launcherCovers}
           />
           <TutorialsCard total={tutorialsTotal} />
-          <ContentCard thisWeek={postsThisWeek} days={contentDays} />
+          <ContentCard
+            thisWeek={postsThisWeek}
+            posts={upcomingPosts}
+            days={contentDays}
+          />
           <TasksCard
             dueToday={tasksTotal}
             completed={tasksCompleted}
             total={tasksTotal}
+            tasks={taskList}
           />
           <PerformanceCard
             followers={followers}
