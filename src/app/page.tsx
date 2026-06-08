@@ -6,19 +6,23 @@
  *      ("Profluencer") against what's actually rendered on the homepage URL.
  *      A bare redirect leaves nothing for their crawler to find and trips a
  *      "homepage doesn't match app name" failure during branding review.
- *   2. Random visitors who hit the bare domain deserve a real surface — a
- *      logo, a one-line pitch, and clear "sign in" / "get started" CTAs —
- *      not a forced bounce to a login form.
+ *      The "Profluencer" wordmark in <SiteHeader> keeps that check passing.
+ *   2. Random visitors who hit the bare domain deserve a real surface — nav,
+ *      a headline, clear CTAs — not a forced bounce to a login form.
  *
  * Signed-in users still skip the marketing surface and land straight on
- * /dashboard. Replace this with a richer marketing page when ready;
- * keeping it minimal here so we don't ship half-finished copy.
+ * /dashboard. Built section by section; this is the hero.
  */
 
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BrandMark } from "@/components/brand-mark";
+import { SiteHeader } from "@/components/marketing/site-header";
+import { Hero } from "@/components/marketing/hero";
+import { TrustedBy } from "@/components/marketing/trusted-by";
+import { FeaturesGrid } from "@/components/marketing/features-grid";
+import { ServicesGrid } from "@/components/marketing/services-grid";
+import { Integrations } from "@/components/marketing/integrations";
+import { ProgramsTutorials } from "@/components/marketing/programs-tutorials";
 
 export const metadata = {
   title: "Profluencer — Creator Growth Platform",
@@ -45,41 +49,14 @@ export default async function HomePage() {
   if (user) redirect("/dashboard");
 
   return (
-    <main className="min-h-screen bg-cream-100 text-ink-900 flex items-center justify-center px-6 py-12">
-      <div className="max-w-xl text-center">
-        <div className="flex justify-center mb-6">
-          <BrandMark size={64} />
-        </div>
-
-        {/* H1 with the explicit app name — what Google's OAuth verifier looks for. */}
-        <h1 className="text-5xl sm:text-6xl font-semibold tracking-tight text-ink-900 mb-3">
-          Profluencer
-        </h1>
-
-        <p className="text-lg text-ink-700 mb-3">
-          Creator growth platform
-        </p>
-
-        <p className="text-ink-500 max-w-md mx-auto leading-relaxed mb-9">
-          Track your weekly performance across Instagram, TikTok, YouTube and
-          more. See what&apos;s working. Grow consistently.
-        </p>
-
-        <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Link
-            href="/sign-up"
-            className="inline-flex items-center h-11 px-6 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium shadow-sm transition-colors"
-          >
-            Get started
-          </Link>
-          <Link
-            href="/sign-in"
-            className="inline-flex items-center h-11 px-6 rounded-[10px] bg-cream-200 hover:bg-cream-300 text-ink-900 text-[14px] font-medium transition-colors"
-          >
-            Sign in
-          </Link>
-        </div>
-      </div>
+    <main className="flex min-h-screen flex-col bg-cream-50 text-ink-900">
+      <SiteHeader />
+      <Hero />
+      <TrustedBy />
+      <FeaturesGrid />
+      <ServicesGrid />
+      <ProgramsTutorials />
+      <Integrations />
     </main>
   );
 }
