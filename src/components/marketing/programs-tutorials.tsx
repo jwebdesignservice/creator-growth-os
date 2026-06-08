@@ -1,14 +1,18 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { GraduationCap, Play, Check, ArrowRight, Film } from "lucide-react";
+import { GraduationCap, Play, Check, ArrowRight, Film, Lock } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 /**
- * Marketing section — the two learning surfaces, Programs and Tutorials, are
- * both VIDEO-first, so each card leads with a real video-player mockup (dark
- * frame, play button, duration, progress bar, "Video" labels). Reads instantly
- * as "watch and learn", in Profluencer's rose/cream/ink language. Sits directly
- * above the Integrations ("Every platform, one workspace") section.
+ * Marketing section — the two learning surfaces, Programs and Tutorials.
+ *
+ * Deliberately *different* visuals so the cards don't read as twins:
+ *   • Tutorials → a video-player mockup (this is on-demand video).
+ *   • Programs  → a guided-path mockup (progress ring + module roadmap with
+ *     done / in-progress / locked states) — this is a structured course.
+ *
+ * In Profluencer's rose/cream/ink language. Sits directly above the
+ * Integrations ("Every platform, one workspace") section.
  */
 export function ProgramsTutorials() {
   return (
@@ -18,15 +22,15 @@ export function ProgramsTutorials() {
           Watch, learn, grow.
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-center text-[15px] leading-relaxed text-ink-500">
-          Guided video programs to follow, and quick how-to tutorials to
-          reference — every lesson is a short, focused video you can watch and
-          apply in minutes.
+          Follow a guided program step by step, or pull up a quick tutorial when
+          you need it — all built on short, focused videos you can apply in
+          minutes.
         </p>
 
         <div className="mt-12 grid grid-cols-1 gap-6 lg:mt-14 lg:grid-cols-2">
           <FeatureCard
-            title="Guided video programs"
-            body="Step-by-step video programs take you from setup to consistent growth — every lesson builds on the last, so you always know what to watch next."
+            title="Follow a guided program"
+            body="A structured path of short video lessons — modules build on each other from setup to growth, so you always know your next step."
             href="/programs"
           >
             <ProgramsMockup />
@@ -80,104 +84,109 @@ function FeatureCard({
   );
 }
 
-/* ── Reusable video-player thumbnail — the unmistakable "this is video" cue ── */
+/* ── Programs mockup — guided path: progress ring + module roadmap ───── */
 
-function VideoThumb({
-  label,
-  duration,
-  progress = 30,
-}: {
-  label: string;
-  duration: string;
-  progress?: number;
-}) {
+const PROGRAM_MODULES = [
+  { n: "1", title: "Platform Basics", meta: "3 lessons", state: "done" as const },
+  { n: "2", title: "Your First Week", meta: "2 of 4 lessons", state: "active" as const },
+  { n: "3", title: "Grow Consistently", meta: "3 lessons", state: "locked" as const },
+];
+
+function ProgramsMockup() {
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-[12px] bg-gradient-to-br from-ink-900 via-[#2a2422] to-[#3a2a2e]">
-      <div className="absolute -left-6 -top-10 size-32 rounded-full bg-white/[0.06] blur-2xl" />
-      <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-rose-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-        <Film className="size-3" strokeWidth={2.4} />
-        {label}
-      </span>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-white/95 text-rose-600 shadow-[0_10px_24px_rgba(0,0,0,0.4)]">
-          <Play className="ml-0.5 size-5" fill="currentColor" strokeWidth={0} />
-        </span>
+    <div className="p-5">
+      {/* Header — program + progress ring */}
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-rose-100 text-rose-600">
+            <GraduationCap className="size-[18px]" strokeWidth={2} />
+          </span>
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-semibold text-ink-900">
+              Start Here: Platform Intro
+            </div>
+            <div className="text-[11px] text-ink-400">
+              3 modules · 8 video lessons
+            </div>
+          </div>
+        </div>
+        <ProgressRing percent={62} />
       </div>
-      <span className="absolute bottom-2.5 right-3 rounded bg-black/70 px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-white">
-        {duration}
-      </span>
-      <div className="absolute inset-x-0 bottom-0 h-1 bg-white/15">
-        <div className="h-full bg-rose-500" style={{ width: `${progress}%` }} />
+
+      {/* Module roadmap — vertical path with a connector line */}
+      <div className="relative space-y-3">
+        <div className="absolute bottom-4 left-[13px] top-4 w-0.5 bg-cream-200" />
+        {PROGRAM_MODULES.map((m) => (
+          <div key={m.n} className="relative flex items-center gap-3">
+            <span
+              className={cn(
+                "relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+                m.state === "done" && "bg-rose-500 text-white",
+                m.state === "active" &&
+                  "bg-rose-100 text-rose-600 ring-2 ring-rose-200",
+                m.state === "locked" && "bg-cream-200 text-ink-400",
+              )}
+            >
+              {m.state === "done" ? (
+                <Check className="size-3.5" strokeWidth={3} />
+              ) : m.state === "locked" ? (
+                <Lock className="size-3" strokeWidth={2.5} />
+              ) : (
+                m.n
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div
+                className={cn(
+                  "truncate text-[12.5px] font-semibold",
+                  m.state === "locked" ? "text-ink-400" : "text-ink-900",
+                )}
+              >
+                Module {m.n}: {m.title}
+              </div>
+              <div className="text-[11px] text-ink-400">{m.meta}</div>
+            </div>
+            {m.state === "active" && (
+              <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                In progress
+              </span>
+            )}
+            {m.state === "done" && (
+              <span className="shrink-0 text-[10px] font-semibold text-emerald-600">
+                Done
+              </span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-/* ── Programs mockup — a video lesson + the program path ─────────────── */
-
-const PROGRAM_LESSONS = [
-  { t: "Welcome to Creator Growth OS", d: "0:19", done: true },
-  { t: "Find Your Way Around", d: "0:21", done: true },
-  { t: "Your Profile & Account Settings", d: "2:30", done: false },
-];
-
-function ProgramsMockup() {
+/* Small donut progress indicator. */
+function ProgressRing({ percent }: { percent: number }) {
+  const r = 15;
+  const c = 2 * Math.PI * r;
+  const off = c - (percent / 100) * c;
   return (
-    <div className="p-4">
-      <VideoThumb label="Lesson 1" duration="0:19" progress={45} />
-
-      <div className="mt-3 flex items-center justify-between gap-3 px-0.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-rose-100 text-rose-600">
-            <GraduationCap className="size-[15px]" strokeWidth={2} />
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-[12.5px] font-semibold text-ink-900">
-              Start Here: Platform Intro
-            </div>
-            <div className="text-[10.5px] text-ink-400">
-              Module 1 · 3 video lessons
-            </div>
-          </div>
-        </div>
-        <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10.5px] font-semibold tabular-nums text-rose-700">
-          62%
-        </span>
-      </div>
-
-      <div className="mx-0.5 mt-2.5 h-1.5 overflow-hidden rounded-full bg-cream-200">
-        <div className="h-full w-[62%] rounded-full bg-rose-500" />
-      </div>
-
-      <div className="mt-2.5 space-y-1.5">
-        {PROGRAM_LESSONS.map((l, i) => (
-          <div key={i} className="flex items-center gap-2 px-0.5 text-[11.5px]">
-            <span
-              className={cn(
-                "flex size-[18px] shrink-0 items-center justify-center rounded-full",
-                l.done
-                  ? "bg-rose-500 text-white"
-                  : "border-2 border-rose-300 text-rose-500",
-              )}
-            >
-              {l.done ? (
-                <Check className="size-2.5" strokeWidth={3} />
-              ) : (
-                <Play className="ml-px size-2" fill="currentColor" strokeWidth={0} />
-              )}
-            </span>
-            <span
-              className={cn(
-                "flex-1 truncate",
-                l.done ? "text-ink-400" : "font-semibold text-ink-900",
-              )}
-            >
-              {l.t}
-            </span>
-            <span className="shrink-0 tabular-nums text-ink-400">{l.d}</span>
-          </div>
-        ))}
-      </div>
+    <div className="relative size-[46px] shrink-0">
+      <svg viewBox="0 0 40 40" className="size-[46px] -rotate-90">
+        <circle cx="20" cy="20" r={r} fill="none" stroke="#EDE3DC" strokeWidth="4" />
+        <circle
+          cx="20"
+          cy="20"
+          r={r}
+          fill="none"
+          stroke="#B9485C"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={off}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums text-ink-900">
+        {percent}%
+      </span>
     </div>
   );
 }
@@ -192,7 +201,25 @@ const NEXT_TUTORIALS = [
 function TutorialsMockup() {
   return (
     <div className="p-4">
-      <VideoThumb label="Tutorial" duration="3:00" progress={33} />
+      {/* Featured video player */}
+      <div className="relative aspect-video w-full overflow-hidden rounded-[12px] bg-gradient-to-br from-ink-900 via-[#2a2422] to-[#3a2a2e]">
+        <div className="absolute -left-6 -top-10 size-32 rounded-full bg-white/[0.06] blur-2xl" />
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-rose-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+          <Film className="size-3" strokeWidth={2.4} />
+          Tutorial
+        </span>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-white/95 text-rose-600 shadow-[0_10px_24px_rgba(0,0,0,0.4)]">
+            <Play className="ml-0.5 size-5" fill="currentColor" strokeWidth={0} />
+          </span>
+        </div>
+        <span className="absolute bottom-2.5 right-3 rounded bg-black/70 px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums text-white">
+          3:00
+        </span>
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-white/15">
+          <div className="h-full w-1/3 bg-rose-500" />
+        </div>
+      </div>
 
       <div className="mt-3 px-0.5">
         <div className="text-[13px] font-semibold text-ink-900">
