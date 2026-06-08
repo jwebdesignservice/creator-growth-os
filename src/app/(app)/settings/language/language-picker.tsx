@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { LOCALES, getStrings } from "./i18n";
+import { LOCALES } from "@/lib/i18n/dictionary";
+import { useT } from "@/lib/i18n/client";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Flags — compact, hand-drawn SVGs (24×24, cropped into a circle). Simplified
@@ -87,9 +88,9 @@ function CircleFlag({ cc, className }: { cc: string; className?: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Picker — a searchable flag popover. Ready locales are selectable; the rest
-// render disabled with an "Under development" badge. UI copy follows the
-// currently-selected language.
+// Picker — searchable flag popover. Ready locales are selectable; the rest are
+// disabled with an "Under development" badge. UI copy follows the active app
+// language (via `useT`).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function LanguagePicker({
@@ -99,12 +100,12 @@ export function LanguagePicker({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const s = getStrings(value);
   const selected = LOCALES.find((l) => l.value === value) ?? LOCALES[0];
 
   const q = query.trim().toLowerCase();
@@ -117,8 +118,6 @@ export function LanguagePicker({
       )
     : LOCALES;
 
-  // Dismiss on outside-click / Escape. setState fires from event handlers (not
-  // the effect body), so the react-hooks/set-state-in-effect rule is satisfied.
   useEffect(() => {
     if (!open) return;
     function onPointer(e: MouseEvent) {
@@ -141,7 +140,6 @@ export function LanguagePicker({
     };
   }, [open]);
 
-  // Focus the search field when the panel opens (no setState → lint-clean).
   useEffect(() => {
     if (open) searchRef.current?.focus();
   }, [open]);
@@ -155,7 +153,7 @@ export function LanguagePicker({
   return (
     <div ref={containerRef} className="relative">
       <label className="mb-1.5 block text-[13px] font-semibold text-ink-900">
-        {s.languageLabel}
+        {t("Language")}
       </label>
 
       <button
@@ -196,7 +194,7 @@ export function LanguagePicker({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={s.searchPlaceholder}
+              placeholder={t("Search countries…")}
               className="h-10 w-full rounded-[10px] border border-ink-100 bg-cream-50 pl-10 pr-3 text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
             />
           </div>
@@ -204,11 +202,10 @@ export function LanguagePicker({
           <ul role="listbox" className="max-h-64 overflow-y-auto p-0.5">
             {filtered.length === 0 ? (
               <li className="px-3 py-6 text-center text-[13px] text-ink-400">
-                {s.noMatches}
+                {t("No matches.")}
               </li>
             ) : (
               filtered.map((l) => {
-                // Not-ready locales: shown, but disabled with a dev badge.
                 if (!l.ready) {
                   return (
                     <li key={l.value}>
@@ -226,7 +223,7 @@ export function LanguagePicker({
                           <span className="text-ink-300"> ({l.code})</span>
                         </span>
                         <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                          {s.underDevelopment}
+                          {t("Under development")}
                         </span>
                       </button>
                     </li>

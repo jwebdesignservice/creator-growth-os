@@ -14,6 +14,7 @@ import {
   WorkspaceTabs,
   type WorkspaceTab,
 } from "@/components/app-shell/workspace-shell";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * Inner sub-nav for the user's Settings surface. Built on the shared
@@ -36,6 +37,7 @@ const TABS: WorkspaceTab[] = [
 
 export function SettingsNav() {
   const pathname = usePathname();
+  const t = useT();
   // "Edit profile" lives at the index (/settings) so it must match exactly;
   // every other tab activates on its path prefix.
   const activeKey =
@@ -51,14 +53,14 @@ export function SettingsNav() {
           <Settings className="size-[17px]" strokeWidth={2} />
         </span>
         <h1 className="text-[15px] font-semibold text-ink-900 leading-tight">
-          Account settings
+          {t("Account settings")}
         </h1>
       </header>
       <div className="px-[15px] pt-[15px] pb-3 lg:pb-0">
         <WorkspaceTabs
-          tabs={TABS}
+          tabs={TABS.map((tab) => ({ ...tab, label: t(tab.label) }))}
           activeKey={activeKey}
-          ariaLabel="Account settings"
+          ariaLabel={t("Account settings")}
         />
       </div>
     </aside>

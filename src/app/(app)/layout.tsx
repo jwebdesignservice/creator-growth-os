@@ -6,6 +6,8 @@ import { BottomNav } from "@/components/app-shell/bottom-nav";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getAdminContext } from "@/lib/admin/is-admin";
 import { getDevContext } from "@/lib/dev-dashboard/dev-access";
+import { getLang } from "@/lib/i18n/server";
+import { LanguageProvider } from "@/lib/i18n/client";
 
 export default async function AppLayout({
   children,
@@ -20,26 +22,29 @@ export default async function AppLayout({
     redirect("/onboarding");
   }
 
-  const [{ isAdmin }, { isDev }] = await Promise.all([
+  const [{ isAdmin }, { isDev }, lang] = await Promise.all([
     getAdminContext(),
     getDevContext(),
+    getLang(),
   ]);
 
   return (
-    <div className="flex min-h-screen bg-cream-100 text-ink-900">
-      <Sidebar plan={ctx.plan} taskCount={ctx.openTaskCount} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar
-          user={ctx.topUser}
-          unreadNotificationCount={ctx.unreadNotificationCount}
-          plan={ctx.plan}
-          isAdmin={isAdmin}
-          isDev={isDev}
-        />
-        <MobileSearch />
-        {children}
+    <LanguageProvider lang={lang}>
+      <div className="flex min-h-screen bg-cream-100 text-ink-900">
+        <Sidebar plan={ctx.plan} taskCount={ctx.openTaskCount} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Topbar
+            user={ctx.topUser}
+            unreadNotificationCount={ctx.unreadNotificationCount}
+            plan={ctx.plan}
+            isAdmin={isAdmin}
+            isDev={isDev}
+          />
+          <MobileSearch />
+          {children}
+        </div>
+        <BottomNav />
       </div>
-      <BottomNav />
-    </div>
+    </LanguageProvider>
   );
 }

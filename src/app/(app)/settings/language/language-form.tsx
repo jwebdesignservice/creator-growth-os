@@ -6,43 +6,46 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { LanguagePicker } from "./language-picker";
-import { getStrings, isReady } from "./i18n";
+import { useLang, useT } from "@/lib/i18n/client";
+import { LANG_COOKIE } from "@/lib/i18n/dictionary";
 
-const LANG_KEY = "cgos:language";
 const REGION_KEY = "cgos:region";
 
 export function LanguageForm() {
-  const [language, setLanguage] = useState("en-US");
+  const currentLang = useLang();
+  const t = useT();
+
+  // Draft language — applied to the whole app (cookie + reload) on save.
+  const [draft, setDraft] = useState(currentLang);
   const [region, setRegion] = useState("auto");
   const [saved, setSaved] = useState(false);
 
-  const s = getStrings(language);
   const regionOptions = [
-    { value: "auto", label: s.region.auto },
-    { value: "eu", label: s.region.eu },
-    { value: "us", label: s.region.us },
-    { value: "iso", label: s.region.iso },
+    { value: "auto", label: t("Automatic — match my device") },
+    { value: "eu", label: t("Europe — 31.12.2025, 24-hour") },
+    { value: "us", label: t("United States — 12/31/2025, 12-hour") },
+    { value: "iso", label: t("ISO — 2025-12-31, 24-hour") },
   ];
 
-  // Hydrate from the device's saved preference. Read in an effect (not lazy
-  // useState init) so the server-rendered controls don't mismatch the client.
-  // Only apply a saved language that's actually shipped (US / UK / NO).
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const savedLang = localStorage.getItem(LANG_KEY);
     const savedRegion = localStorage.getItem(REGION_KEY);
-    if (savedLang && isReady(savedLang)) {
-      setLanguage(savedLang);
-      document.documentElement.lang = savedLang;
-    }
     if (savedRegion) setRegion(savedRegion);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleSave() {
-    localStorage.setItem(LANG_KEY, language);
     localStorage.setItem(REGION_KEY, region);
-    document.documentElement.lang = language;
+
+    // A language change is stored in a cookie (so the server can render in it)
+    // and applied across the whole app with a reload.
+    if (draft !== currentLang) {
+      document.cookie = `${LANG_COOKIE}=${encodeURIComponent(draft)}; path=/; max-age=31536000; samesite=lax`;
+      document.documentElement.lang = draft;
+      window.location.reload();
+      return;
+    }
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -54,23 +57,27 @@ export function LanguageForm() {
           <Languages className="size-[18px]" strokeWidth={1.9} />
         </span>
         <div className="min-w-0">
-          <h2 className="text-h4 text-ink-900 leading-tight">{s.title}</h2>
-          <p className="text-[12.5px] text-ink-500 mt-0.5">{s.subtitle}</p>
+          <h2 className="text-h4 text-ink-900 leading-tight">
+            {t("Language & region")}
+          </h2>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">
+            {t("Choose the language and regional format for your workspace.")}
+          </p>
         </div>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <LanguagePicker value={language} onChange={setLanguage} />
+          <LanguagePicker value={draft} onChange={setDraft} />
           <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-ink-400">
             <Info className="size-3 shrink-0" strokeWidth={2} />
-            {s.languageHint}
+            {t("Saved to this device.")}
           </p>
         </div>
 
         <div>
           <Select
-            label={s.regionLabel}
+            label={t("Region & date format")}
             name="region"
             value={region}
             onChange={(e) => setRegion(e.target.value)}
@@ -78,7 +85,7 @@ export function LanguageForm() {
           />
           <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-ink-400">
             <Globe className="size-3 shrink-0" strokeWidth={2} />
-            {s.regionHint}
+            {t("Controls how dates and numbers appear.")}
           </p>
         </div>
       </div>
@@ -94,10 +101,10 @@ export function LanguageForm() {
         >
           {saved ? (
             <>
-              <Check className="size-3.5" strokeWidth={2.5} /> {s.saved}
+              <Check className="size-3.5" strokeWidth={2.5} /> {t("Saved")}
             </>
           ) : (
-            s.save
+            t("Save changes")
           )}
         </Button>
       </div>
