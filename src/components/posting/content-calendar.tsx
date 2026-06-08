@@ -69,6 +69,10 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
   // Which day a per-column "Add post" was clicked for (YYYY-MM-DD) → opens the
   // create-post modal pre-filled to that day. null = closed.
   const [addDate, setAddDate] = useState<string | null>(null);
+  // Week (sliding day strip) vs Month (Google-style grid) view.
+  const [viewMode, setViewMode] = useState<"week" | "month">("week");
+  // Months away from the current month shown in the month grid (0 = this month).
+  const [monthOffset, setMonthOffset] = useState(0);
   // While a post is dragged over the ‹ / › buttons we auto-slide the window, so
   // a post can be dropped onto ANY date — not just the days currently shown.
   const [flipHover, setFlipHover] = useState<"prev" | "next" | null>(null);
@@ -82,7 +86,8 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
     // First tick fires after the delay (acts as a hover threshold), then
     // repeats so the user can hold to slide across many days.
     flipTimer.current = setInterval(() => {
-      setDayOffset((o) => o + flipDir.current * STEP_DAYS);
+      if (viewMode === "month") setMonthOffset((o) => o + flipDir.current);
+      else setDayOffset((o) => o + flipDir.current * STEP_DAYS);
     }, 700);
   }
   function stopSlide() {
@@ -156,6 +161,31 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
 
   const today = isoDateOf(new Date());
 
+  // ── Month grid (Google-Calendar style) ──────────────────────────────────
+  // First of the displayed month, the Sunday on/before it, and exactly enough
+  // whole weeks (5 or 6 rows) to cover the month — so the grid hugs the month
+  // like the reference design rather than always padding to 6 rows.
+  const now = new Date();
+  const monthBase = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const monthLabel = monthBase.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+  const firstWeekday = monthBase.getDay(); // 0 = Sunday
+  const daysInMonth = new Date(
+    monthBase.getFullYear(),
+    monthBase.getMonth() + 1,
+    0,
+  ).getDate();
+  const monthCellCount = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
+  const monthGridStart = startOfDay(new Date(monthBase));
+  monthGridStart.setDate(monthBase.getDate() - firstWeekday);
+  const monthDays: Date[] = Array.from({ length: monthCellCount }, (_, i) => {
+    const d = new Date(monthGridStart);
+    d.setDate(monthGridStart.getDate() + i);
+    return d;
+  });
+
   function dropOnDay(day: Date, e: React.DragEvent) {
     // draggingId survives re-renders (including an auto week-flip mid-drag);
     // fall back to the dataTransfer payload in case the source card unmounted.
@@ -195,10 +225,33 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
     <div className="space-y-4 lg:space-y-0 lg:h-full lg:flex lg:flex-col">
     <WorkspaceHeader title="Calendar">
       <div className="flex items-center gap-3 flex-wrap justify-end">
+        {/* Week / Month view toggle */}
+        <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white p-0.5">
+          {(["week", "month"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setViewMode(m)}
+              aria-pressed={viewMode === m}
+              className={cn(
+                "h-8 px-3 rounded-[8px] text-[12.5px] font-semibold capitalize transition-colors",
+                viewMode === m
+                  ? "bg-rose-600 text-white shadow-sm"
+                  : "text-ink-600 hover:text-ink-900 hover:bg-cream-100",
+              )}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
         <div className="inline-flex items-center rounded-[10px] border border-ink-200 bg-white overflow-hidden">
           <button
             type="button"
-            onClick={() => setDayOffset((o) => o - STEP_DAYS)}
+            onClick={() =>
+              viewMode === "month"
+                ? setMonthOffset((o) => o - 1)
+                : setDayOffset((o) => o - STEP_DAYS)
+            }
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
@@ -224,15 +277,27 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
           </button>
           <button
             type="button"
-            onClick={() => setDayOffset(centerOffset)}
-            disabled={dayOffset === centerOffset}
+            onClick={() =>
+              viewMode === "month"
+                ? setMonthOffset(0)
+                : setDayOffset(centerOffset)
+            }
+            disabled={
+              viewMode === "month"
+                ? monthOffset === 0
+                : dayOffset === centerOffset
+            }
             className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
           >
             Today
           </button>
           <button
             type="button"
-            onClick={() => setDayOffset((o) => o + STEP_DAYS)}
+            onClick={() =>
+              viewMode === "month"
+                ? setMonthOffset((o) => o + 1)
+                : setDayOffset((o) => o + STEP_DAYS)
+            }
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
@@ -267,6 +332,7 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
       </div>
     </WorkspaceHeader>
     <div className="flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
+      {viewMode === "week" && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-1 flex-1 min-h-0 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-ink-100">
         {days.map((d) => {
           const key = isoDateOf(d);
@@ -358,6 +424,123 @@ export function ContentCalendar({ items, weekStart, planId, addPostSlot }: Props
           );
         })}
       </div>
+      )}
+
+      {viewMode === "month" && (
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 lg:p-6">
+          <div className="mb-3 text-[15px] font-semibold text-ink-900">
+            {monthLabel}
+          </div>
+          <div className="rounded-[14px] border-l border-t border-ink-100 overflow-hidden bg-white">
+            <div className="grid grid-cols-7">
+              {monthDays.map((d, i) => {
+                const key = isoDateOf(d);
+                const dayItems = byDay.get(key) ?? [];
+                const inMonth = d.getMonth() === monthBase.getMonth();
+                const isToday = key === today;
+                const isPast = key < today;
+                const isOver = overKey === key;
+                const isFirst = d.getDate() === 1;
+                const dateLabel = isFirst
+                  ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                  : String(d.getDate());
+                const visible = dayItems.slice(0, 3);
+                const hidden = dayItems.length - visible.length;
+                return (
+                  <div
+                    key={key}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (overKey !== key) setOverKey(key);
+                    }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        setOverKey((k) => (k === key ? null : k));
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      dropOnDay(d, e);
+                    }}
+                    className={cn(
+                      "group relative flex flex-col border-r border-b border-ink-100 min-h-[92px] lg:min-h-[116px] p-1.5 transition-colors",
+                      // Future in-month days stay white; elapsed days get a
+                      // calm cream wash; off-month days are the most muted;
+                      // today is tinted + ringed so it's unmistakable.
+                      "bg-white",
+                      !inMonth && "bg-cream-100/50",
+                      inMonth && isPast && "bg-cream-200/50",
+                      isToday && "bg-rose-100 ring-2 ring-rose-400 ring-inset z-[1]",
+                      isOver && "bg-rose-100/60 ring-2 ring-rose-400 ring-inset",
+                    )}
+                  >
+                    {/* Date — weekday label only on the first week (matches the
+                        reference month grid), today gets a filled circle. */}
+                    <div className="flex flex-col items-center">
+                      {i < 7 && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-400">
+                          {d.toLocaleDateString("en-US", { weekday: "short" })}
+                        </span>
+                      )}
+                      <span
+                        className={cn(
+                          "mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[12px] font-semibold tabular-nums",
+                          isToday
+                            ? "bg-rose-600 text-white shadow-sm shadow-rose-600/30 ring-2 ring-white"
+                            : !inMonth
+                              ? "text-ink-300"
+                              : isPast
+                                ? "text-ink-400"
+                                : "text-ink-900",
+                        )}
+                      >
+                        {dateLabel}
+                      </span>
+                      {isToday && (
+                        <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-rose-600">
+                          Today
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Hover "+" → opens the create-post modal for this day. */}
+                    {planId && (
+                      <button
+                        type="button"
+                        onClick={() => setAddDate(key)}
+                        aria-label={`Add a post on ${dateLabel}`}
+                        className="absolute top-1 right-1 z-10 inline-flex size-6 items-center justify-center rounded-full bg-rose-600 text-white shadow-sm opacity-0 scale-90 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100 focus-visible:opacity-100 focus-visible:scale-100 hover:bg-rose-700 cursor-pointer"
+                      >
+                        <Plus className="size-3.5" strokeWidth={2.6} />
+                      </button>
+                    )}
+
+                    {/* Events */}
+                    <div className="mt-1.5 flex flex-col gap-1">
+                      {visible.map((item) => (
+                        <MonthPill
+                          key={item.id}
+                          item={item}
+                          dragging={draggingId === item.id}
+                          loading={savingIds.has(item.id)}
+                          onDragStart={() => setDraggingId(item.id)}
+                          onDragEnd={endDrag}
+                        />
+                      ))}
+                      {hidden > 0 && (
+                        <span className="px-1 text-[10.5px] font-medium text-ink-400">
+                          +{hidden} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {unscheduled.length > 0 && (
         <section className="border-t border-ink-100 px-5 py-4 shrink-0">
@@ -444,6 +627,78 @@ function DraggableCard({
           </div>
         )}
       </div>
+      {detailOpen && (
+        <PostDetailModal item={item} onClose={() => setDetailOpen(false)} />
+      )}
+    </>
+  );
+}
+
+/**
+ * Compact month-grid event pill — a colored, draggable chip (type-accent
+ * background) that opens the post detail modal on click and reschedules on
+ * drag, sharing the same drag wiring as the week-view cards.
+ */
+function MonthPill({
+  item,
+  dragging,
+  loading,
+  onDragStart,
+  onDragEnd,
+}: {
+  item: PostingItem;
+  dragging: boolean;
+  loading: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const accent = accentOf(item.content_type);
+  const time = item.scheduled_for
+    ? new Date(item.scheduled_for).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
+  const label =
+    item.topic ??
+    (item.content_type
+      ? CONTENT_TYPE_LABEL[item.content_type] ?? prettyType(item.content_type)
+      : "Untitled post");
+  return (
+    <>
+      <button
+        type="button"
+        draggable={!loading}
+        onDragStart={(e) => {
+          if (loading) return;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", item.id);
+          onDragStart();
+        }}
+        onDragEnd={onDragEnd}
+        onClick={() => setDetailOpen(true)}
+        title={label}
+        style={{ backgroundColor: accent.color }}
+        className={cn(
+          "flex w-full items-center gap-1.5 rounded-md px-1.5 py-[3px] text-left text-[11px] font-semibold text-white cursor-grab active:cursor-grabbing transition-opacity",
+          dragging && "opacity-40",
+          loading && "opacity-60 cursor-default",
+        )}
+        aria-busy={loading || undefined}
+      >
+        {time && (
+          <span className="shrink-0 tabular-nums opacity-80">{time}</span>
+        )}
+        <span className="truncate">{label}</span>
+        {loading && (
+          <Loader2
+            className="ml-auto size-3 shrink-0 animate-spin"
+            strokeWidth={2.4}
+            aria-hidden
+          />
+        )}
+      </button>
       {detailOpen && (
         <PostDetailModal item={item} onClose={() => setDetailOpen(false)} />
       )}
