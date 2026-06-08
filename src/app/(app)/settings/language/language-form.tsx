@@ -5,21 +5,7 @@ import { Check, Globe, Info, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
-
-// Interface languages we offer in the picker. The app ships English today;
-// the saved choice is applied to <html lang> and remembered per device.
-const LANGUAGE_OPTIONS = [
-  { value: "en", label: "English" },
-  { value: "nb", label: "Norsk (Bokmål)" },
-  { value: "nn", label: "Norsk (Nynorsk)" },
-  { value: "sv", label: "Svenska" },
-  { value: "da", label: "Dansk" },
-  { value: "de", label: "Deutsch" },
-  { value: "nl", label: "Nederlands" },
-  { value: "fr", label: "Français" },
-  { value: "es", label: "Español" },
-  { value: "pt", label: "Português" },
-];
+import { LanguagePicker } from "./language-picker";
 
 const REGION_OPTIONS = [
   { value: "auto", label: "Automatic — match my device" },
@@ -32,12 +18,12 @@ const LANG_KEY = "cgos:language";
 const REGION_KEY = "cgos:region";
 
 export function LanguageForm() {
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState("en-US");
   const [region, setRegion] = useState("auto");
   const [saved, setSaved] = useState(false);
 
   // Hydrate from the device's saved preference. Read in an effect (not lazy
-  // useState init) so the server-rendered <select> doesn't mismatch the client.
+  // useState init) so the server-rendered controls don't mismatch the client.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const savedLang = localStorage.getItem(LANG_KEY);
@@ -74,13 +60,7 @@ export function LanguageForm() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Select
-            label="Interface language"
-            name="language"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            options={LANGUAGE_OPTIONS}
-          />
+          <LanguagePicker value={language} onChange={setLanguage} />
           <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-ink-400">
             <Info className="size-3 shrink-0" strokeWidth={2} />
             Saved to this device.
