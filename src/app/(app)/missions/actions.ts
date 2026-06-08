@@ -3,6 +3,37 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyTaskCompleted } from "@/lib/notifications/service";
+import { getAdminContext } from "@/lib/admin/is-admin";
+
+/**
+ * Permanently delete a mission. Admin-only — regular users can complete
+ * tasks but not remove them. Scoped to the caller's own rows.
+ */
+export async function deleteMission(
+  missionId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { isAdmin } = await getAdminContext();
+  if (!isAdmin) return { ok: false, error: "Not authorized." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { error } = await supabase
+    .from("missions")
+    .delete()
+    .eq("id", missionId)
+    .eq("user_id", user.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/missions");
+  revalidatePath("/dashboard");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
 
 /**
  * Toggle mission completion. Returns an empty object so the client can
