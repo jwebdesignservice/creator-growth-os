@@ -13,14 +13,11 @@ import {
 /**
  * Marketing section — the two learning surfaces, Programs and Tutorials.
  *
- * Deliberately *different* visuals so the cards don't read as twins:
- *   • Tutorials → a video-player mockup (on-demand video).
- *   • Programs  → an in-progress course mockup: overall progress, a module
- *     list with the active module highlighted + a "Continue" action, plus
- *     done / locked states. Reads as a structured, valuable course.
- *
- * In Profluencer's rose/cream/ink language. Sits directly above the
- * Integrations ("Every platform, one workspace") section.
+ * Deliberately *different* visuals (Programs = an in-progress course; Tutorials
+ * = a video player) but the same SIZE: both mockups share a fixed height and
+ * fill it, and both "Learn More" buttons sit on the same baseline, so the two
+ * cards read as a matched pair. Sits directly above the Integrations ("Every
+ * platform, one workspace") section.
  */
 export function ProgramsTutorials() {
   return (
@@ -35,7 +32,7 @@ export function ProgramsTutorials() {
           minutes.
         </p>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 lg:mt-14 lg:grid-cols-2">
+        <div className="mt-12 grid grid-cols-1 items-stretch gap-6 lg:mt-14 lg:grid-cols-2">
           <FeatureCard
             title="Follow a guided program"
             body="A structured path of short video lessons — modules build on each other from setup to growth, so you always know your next step."
@@ -57,7 +54,7 @@ export function ProgramsTutorials() {
   );
 }
 
-/* ── Card shell — mockup on top, copy + CTA below ──────────────────── */
+/* ── Card shell — fixed-height mockup on top, copy, then a bottom-aligned CTA ── */
 
 function FeatureCard({
   title,
@@ -72,7 +69,7 @@ function FeatureCard({
 }) {
   return (
     <div className="flex flex-col rounded-[24px] bg-cream-100 p-5 ring-1 ring-ink-100 sm:p-6">
-      <div className="overflow-hidden rounded-[18px] bg-white ring-1 ring-ink-100 shadow-[0_1px_3px_rgba(26,24,22,0.04),0_12px_28px_rgba(26,24,22,0.06)]">
+      <div className="overflow-hidden rounded-[18px] bg-white ring-1 ring-ink-100 shadow-[0_1px_3px_rgba(26,24,22,0.04),0_12px_28px_rgba(26,24,22,0.06)] lg:h-[384px]">
         {children}
       </div>
       <h3 className="mt-7 px-1 text-[22px] font-bold tracking-tight text-ink-900">
@@ -81,6 +78,8 @@ function FeatureCard({
       <p className="mt-2.5 max-w-md px-1 text-[14.5px] leading-relaxed text-ink-500">
         {body}
       </p>
+      {/* spacer keeps the CTA on a shared baseline across both cards */}
+      <div className="flex-1" />
       <Link
         href={href}
         className="mt-6 ml-1 inline-flex w-fit items-center gap-2 rounded-[12px] border border-ink-200 bg-white px-4 py-2.5 text-[13.5px] font-semibold text-ink-900 transition-colors hover:border-ink-300 hover:bg-cream-50"
@@ -92,11 +91,11 @@ function FeatureCard({
   );
 }
 
-/* ── Programs mockup — an in-progress course ────────────────────────── */
+/* ── Programs mockup — an in-progress course (fills the card height) ──── */
 
 function ProgramsMockup() {
   return (
-    <div className="p-5">
+    <div className="flex h-full flex-col p-5">
       {/* Header + overall progress */}
       <div className="flex items-center gap-2.5">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-rose-100 text-rose-600">
@@ -121,8 +120,8 @@ function ProgramsMockup() {
         5 of 8 lessons complete
       </div>
 
-      {/* Modules */}
-      <div className="mt-4 space-y-2">
+      {/* Modules — flex-1 so they fill + center within the card height */}
+      <div className="flex flex-1 flex-col justify-center gap-2 py-4">
         {/* Completed */}
         <div className="flex items-center gap-2.5 rounded-[12px] border border-ink-100 bg-white px-3 py-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white">
@@ -177,7 +176,7 @@ function ProgramsMockup() {
       </div>
 
       {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-ink-100 pt-3">
+      <div className="flex items-center justify-between border-t border-ink-100 pt-3">
         <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-400">
           <Clock className="size-3" strokeWidth={2} /> ~18 min left
         </span>
@@ -189,7 +188,7 @@ function ProgramsMockup() {
   );
 }
 
-/* ── Tutorials mockup — a featured video tutorial + up-next ──────────── */
+/* ── Tutorials mockup — a video player that fills the card height ────── */
 
 const NEXT_TUTORIALS = [
   { t: "Set up your content calendar", d: "1:30", f: "Guide" },
@@ -198,9 +197,9 @@ const NEXT_TUTORIALS = [
 
 function TutorialsMockup() {
   return (
-    <div className="p-4">
-      {/* Featured video player */}
-      <div className="relative aspect-video w-full overflow-hidden rounded-[12px] bg-gradient-to-br from-ink-900 via-[#2a2422] to-[#3a2a2e]">
+    <div className="flex h-full flex-col p-4">
+      {/* Featured video player — grows to fill the available height */}
+      <div className="relative min-h-[180px] w-full flex-1 overflow-hidden rounded-[12px] bg-gradient-to-br from-ink-900 via-[#2a2422] to-[#3a2a2e]">
         <div className="absolute -left-6 -top-10 size-32 rounded-full bg-white/[0.06] blur-2xl" />
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-rose-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
           <Film className="size-3" strokeWidth={2.4} />
