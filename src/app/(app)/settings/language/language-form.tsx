@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { LanguagePicker } from "./language-picker";
-
-const REGION_OPTIONS = [
-  { value: "auto", label: "Automatic — match my device" },
-  { value: "eu", label: "Europe — 31.12.2025, 24-hour" },
-  { value: "us", label: "United States — 12/31/2025, 12-hour" },
-  { value: "iso", label: "ISO — 2025-12-31, 24-hour" },
-];
+import { getStrings, isReady } from "./i18n";
 
 const LANG_KEY = "cgos:language";
 const REGION_KEY = "cgos:region";
@@ -22,13 +16,22 @@ export function LanguageForm() {
   const [region, setRegion] = useState("auto");
   const [saved, setSaved] = useState(false);
 
+  const s = getStrings(language);
+  const regionOptions = [
+    { value: "auto", label: s.region.auto },
+    { value: "eu", label: s.region.eu },
+    { value: "us", label: s.region.us },
+    { value: "iso", label: s.region.iso },
+  ];
+
   // Hydrate from the device's saved preference. Read in an effect (not lazy
   // useState init) so the server-rendered controls don't mismatch the client.
+  // Only apply a saved language that's actually shipped (US / UK / NO).
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const savedLang = localStorage.getItem(LANG_KEY);
     const savedRegion = localStorage.getItem(REGION_KEY);
-    if (savedLang) {
+    if (savedLang && isReady(savedLang)) {
       setLanguage(savedLang);
       document.documentElement.lang = savedLang;
     }
@@ -51,10 +54,8 @@ export function LanguageForm() {
           <Languages className="size-[18px]" strokeWidth={1.9} />
         </span>
         <div className="min-w-0">
-          <h2 className="text-h4 text-ink-900 leading-tight">Language & region</h2>
-          <p className="text-[12.5px] text-ink-500 mt-0.5">
-            Choose the language and regional format for your workspace.
-          </p>
+          <h2 className="text-h4 text-ink-900 leading-tight">{s.title}</h2>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">{s.subtitle}</p>
         </div>
       </header>
 
@@ -63,21 +64,21 @@ export function LanguageForm() {
           <LanguagePicker value={language} onChange={setLanguage} />
           <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-ink-400">
             <Info className="size-3 shrink-0" strokeWidth={2} />
-            Saved to this device.
+            {s.languageHint}
           </p>
         </div>
 
         <div>
           <Select
-            label="Region & date format"
+            label={s.regionLabel}
             name="region"
             value={region}
             onChange={(e) => setRegion(e.target.value)}
-            options={REGION_OPTIONS}
+            options={regionOptions}
           />
           <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-ink-400">
             <Globe className="size-3 shrink-0" strokeWidth={2} />
-            Controls how dates and numbers appear.
+            {s.regionHint}
           </p>
         </div>
       </div>
@@ -93,10 +94,10 @@ export function LanguageForm() {
         >
           {saved ? (
             <>
-              <Check className="size-3.5" strokeWidth={2.5} /> Saved
+              <Check className="size-3.5" strokeWidth={2.5} /> {s.saved}
             </>
           ) : (
-            "Save changes"
+            s.save
           )}
         </Button>
       </div>

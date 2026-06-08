@@ -3,21 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Locales — country-based, the way creators pick a language. `cc` keys the flag.
-// ─────────────────────────────────────────────────────────────────────────────
-
-type Locale = { value: string; country: string; cc: string; code: string };
-
-const LOCALES: Locale[] = [
-  { value: "en-US", country: "United States",  cc: "us", code: "US" },
-  { value: "en-GB", country: "United Kingdom", cc: "gb", code: "UK" },
-  { value: "de-DE", country: "Germany",        cc: "de", code: "DE" },
-  { value: "nb-NO", country: "Norway",         cc: "no", code: "NO" },
-  { value: "sv-SE", country: "Sweden",         cc: "se", code: "SE" },
-  { value: "da-DK", country: "Denmark",        cc: "dk", code: "DK" },
-];
+import { LOCALES, getStrings } from "./i18n";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Flags — compact, hand-drawn SVGs (24×24, cropped into a circle). Simplified
@@ -101,8 +87,9 @@ function CircleFlag({ cc, className }: { cc: string; className?: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Picker — a searchable flag popover. Trigger shows the selection; the panel
-// drops below with a search box + scrollable list.
+// Picker — a searchable flag popover. Ready locales are selectable; the rest
+// render disabled with an "Under development" badge. UI copy follows the
+// currently-selected language.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function LanguagePicker({
@@ -117,6 +104,7 @@ export function LanguagePicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const s = getStrings(value);
   const selected = LOCALES.find((l) => l.value === value) ?? LOCALES[0];
 
   const q = query.trim().toLowerCase();
@@ -167,7 +155,7 @@ export function LanguagePicker({
   return (
     <div ref={containerRef} className="relative">
       <label className="mb-1.5 block text-[13px] font-semibold text-ink-900">
-        Language
+        {s.languageLabel}
       </label>
 
       <button
@@ -208,7 +196,7 @@ export function LanguagePicker({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search countries…"
+              placeholder={s.searchPlaceholder}
               className="h-10 w-full rounded-[10px] border border-ink-100 bg-cream-50 pl-10 pr-3 text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
             />
           </div>
@@ -216,10 +204,35 @@ export function LanguagePicker({
           <ul role="listbox" className="max-h-64 overflow-y-auto p-0.5">
             {filtered.length === 0 ? (
               <li className="px-3 py-6 text-center text-[13px] text-ink-400">
-                No matches.
+                {s.noMatches}
               </li>
             ) : (
               filtered.map((l) => {
+                // Not-ready locales: shown, but disabled with a dev badge.
+                if (!l.ready) {
+                  return (
+                    <li key={l.value}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={false}
+                        aria-disabled
+                        disabled
+                        className="flex w-full cursor-not-allowed items-center gap-3 rounded-[10px] px-2.5 py-2 text-left opacity-70"
+                      >
+                        <CircleFlag cc={l.cc} className="size-6 grayscale" />
+                        <span className="min-w-0 flex-1 truncate text-[14px] text-ink-400">
+                          {l.country}
+                          <span className="text-ink-300"> ({l.code})</span>
+                        </span>
+                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          {s.underDevelopment}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                }
+
                 const active = l.value === value;
                 return (
                   <li key={l.value}>
