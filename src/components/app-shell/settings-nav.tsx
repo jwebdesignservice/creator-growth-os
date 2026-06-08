@@ -7,6 +7,7 @@ import {
   Link2,
   Bell,
   CreditCard,
+  Languages,
   Settings,
 } from "lucide-react";
 import {
@@ -30,6 +31,7 @@ const TABS: WorkspaceTab[] = [
   { key: "/settings/connected-accounts", label: "Connected accounts", icon: Link2,      href: "/settings/connected-accounts" },
   { key: "/settings/notifications",      label: "Notifications",      icon: Bell,       href: "/settings/notifications" },
   { key: "/settings/payment-methods",    label: "Payment methods",    icon: CreditCard, href: "/settings/payment-methods" },
+  { key: "/settings/language",           label: "Language",           icon: Languages,  href: "/settings/language" },
 ];
 
 export function SettingsNav() {
