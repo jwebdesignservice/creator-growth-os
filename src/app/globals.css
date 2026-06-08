@@ -453,3 +453,30 @@ select.input {
   .spark-fade { animation: none; opacity: 1; }
   .spark-pulse { animation: none; opacity: 0; }
 }
+
+/* ── Onboarding plan-step animations ───────────────────────────────── */
+@keyframes ob-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ob-sheen {
+  0%   { transform: translateX(0) skewX(-12deg); opacity: 0; }
+  12%  { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translateX(640%) skewX(-12deg); opacity: 0; }
+}
+@keyframes ob-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.ob-rise {
+  opacity: 0;
+  animation: ob-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.ob-sheen { animation: ob-sheen 5s ease-in-out 0.8s infinite; }
+.ob-float { animation: ob-float 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ob-rise  { animation: none; opacity: 1; transform: none; }
+  .ob-sheen { animation: none; opacity: 0; }
+  .ob-float { animation: none; }
+}
