@@ -21,8 +21,12 @@ import { Hero } from "@/components/marketing/hero";
 import { TrustedBy } from "@/components/marketing/trusted-by";
 import { FeaturesGrid } from "@/components/marketing/features-grid";
 import { ServicesGrid } from "@/components/marketing/services-grid";
+import { FeatureShowcase } from "@/components/marketing/feature-showcase";
 import { Integrations } from "@/components/marketing/integrations";
 import { ProgramsTutorials } from "@/components/marketing/programs-tutorials";
+import { Pricing } from "@/components/marketing/pricing";
+import { Cta } from "@/components/marketing/cta";
+import { Footer } from "@/components/marketing/footer";
 
 export const metadata = {
   title: "Profluencer — Creator Growth Platform",
@@ -55,8 +59,12 @@ export default async function HomePage() {
       <TrustedBy />
       <FeaturesGrid />
       <ServicesGrid />
+      <FeatureShowcase />
       <ProgramsTutorials />
       <Integrations />
+      <Pricing />
+      <Cta />
+      <Footer />
     </main>
   );
 }
