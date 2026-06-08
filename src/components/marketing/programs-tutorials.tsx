@@ -1,15 +1,23 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { GraduationCap, Play, Check, ArrowRight, Film, Lock } from "lucide-react";
-import { cn } from "@/lib/cn";
+import {
+  GraduationCap,
+  Play,
+  Check,
+  ArrowRight,
+  Film,
+  Lock,
+  Clock,
+} from "lucide-react";
 
 /**
  * Marketing section — the two learning surfaces, Programs and Tutorials.
  *
  * Deliberately *different* visuals so the cards don't read as twins:
- *   • Tutorials → a video-player mockup (this is on-demand video).
- *   • Programs  → a guided-path mockup (progress ring + module roadmap with
- *     done / in-progress / locked states) — this is a structured course.
+ *   • Tutorials → a video-player mockup (on-demand video).
+ *   • Programs  → an in-progress course mockup: overall progress, a module
+ *     list with the active module highlighted + a "Continue" action, plus
+ *     done / locked states. Reads as a structured, valuable course.
  *
  * In Profluencer's rose/cream/ink language. Sits directly above the
  * Integrations ("Every platform, one workspace") section.
@@ -84,109 +92,99 @@ function FeatureCard({
   );
 }
 
-/* ── Programs mockup — guided path: progress ring + module roadmap ───── */
-
-const PROGRAM_MODULES = [
-  { n: "1", title: "Platform Basics", meta: "3 lessons", state: "done" as const },
-  { n: "2", title: "Your First Week", meta: "2 of 4 lessons", state: "active" as const },
-  { n: "3", title: "Grow Consistently", meta: "3 lessons", state: "locked" as const },
-];
+/* ── Programs mockup — an in-progress course ────────────────────────── */
 
 function ProgramsMockup() {
   return (
     <div className="p-5">
-      {/* Header — program + progress ring */}
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-rose-100 text-rose-600">
-            <GraduationCap className="size-[18px]" strokeWidth={2} />
+      {/* Header + overall progress */}
+      <div className="flex items-center gap-2.5">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-rose-100 text-rose-600">
+          <GraduationCap className="size-[18px]" strokeWidth={2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[13px] font-semibold text-ink-900">
+            Start Here: Platform Intro
+          </div>
+          <div className="text-[11px] text-ink-400">
+            A guided program · 8 video lessons
+          </div>
+        </div>
+        <span className="shrink-0 text-[15px] font-bold tabular-nums text-ink-900">
+          62%
+        </span>
+      </div>
+      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-cream-200">
+        <div className="h-full w-[62%] rounded-full bg-gradient-to-r from-rose-400 to-rose-600" />
+      </div>
+      <div className="mt-1.5 text-[10.5px] text-ink-400">
+        5 of 8 lessons complete
+      </div>
+
+      {/* Modules */}
+      <div className="mt-4 space-y-2">
+        {/* Completed */}
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-ink-100 bg-white px-3 py-2.5">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white">
+            <Check className="size-3.5" strokeWidth={3} />
           </span>
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-semibold text-ink-900">
-              Start Here: Platform Intro
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12.5px] font-semibold text-ink-900">
+              Module 1 · Platform Basics
             </div>
-            <div className="text-[11px] text-ink-400">
-              3 modules · 8 video lessons
+            <div className="text-[10.5px] font-medium text-emerald-600">
+              Completed · 3 lessons
             </div>
           </div>
         </div>
-        <ProgressRing percent={62} />
-      </div>
 
-      {/* Module roadmap — vertical path with a connector line */}
-      <div className="relative space-y-3">
-        <div className="absolute bottom-4 left-[13px] top-4 w-0.5 bg-cream-200" />
-        {PROGRAM_MODULES.map((m) => (
-          <div key={m.n} className="relative flex items-center gap-3">
-            <span
-              className={cn(
-                "relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                m.state === "done" && "bg-rose-500 text-white",
-                m.state === "active" &&
-                  "bg-rose-100 text-rose-600 ring-2 ring-rose-200",
-                m.state === "locked" && "bg-cream-200 text-ink-400",
-              )}
-            >
-              {m.state === "done" ? (
-                <Check className="size-3.5" strokeWidth={3} />
-              ) : m.state === "locked" ? (
-                <Lock className="size-3" strokeWidth={2.5} />
-              ) : (
-                m.n
-              )}
+        {/* Active — highlighted with a Continue action */}
+        <div className="rounded-[12px] border border-rose-200 bg-rose-50/60 px-3 py-2.5 ring-1 ring-rose-100">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-rose-100 text-[11px] font-bold text-rose-600 ring-2 ring-rose-200">
+              2
             </span>
             <div className="min-w-0 flex-1">
-              <div
-                className={cn(
-                  "truncate text-[12.5px] font-semibold",
-                  m.state === "locked" ? "text-ink-400" : "text-ink-900",
-                )}
-              >
-                Module {m.n}: {m.title}
+              <div className="truncate text-[12.5px] font-semibold text-ink-900">
+                Module 2 · Your First Week
               </div>
-              <div className="text-[11px] text-ink-400">{m.meta}</div>
+              <div className="text-[10.5px] font-medium text-rose-600">
+                In progress · 2 of 4 lessons
+              </div>
             </div>
-            {m.state === "active" && (
-              <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
-                In progress
-              </span>
-            )}
-            {m.state === "done" && (
-              <span className="shrink-0 text-[10px] font-semibold text-emerald-600">
-                Done
-              </span>
-            )}
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-[8px] bg-rose-600 px-2.5 py-1 text-[10.5px] font-semibold text-white">
+              Continue
+              <ArrowRight className="size-3" strokeWidth={2.5} />
+            </span>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+          <div className="ml-[38px] mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+            <div className="h-full w-1/2 rounded-full bg-rose-500" />
+          </div>
+        </div>
 
-/* Small donut progress indicator. */
-function ProgressRing({ percent }: { percent: number }) {
-  const r = 15;
-  const c = 2 * Math.PI * r;
-  const off = c - (percent / 100) * c;
-  return (
-    <div className="relative size-[46px] shrink-0">
-      <svg viewBox="0 0 40 40" className="size-[46px] -rotate-90">
-        <circle cx="20" cy="20" r={r} fill="none" stroke="#EDE3DC" strokeWidth="4" />
-        <circle
-          cx="20"
-          cy="20"
-          r={r}
-          fill="none"
-          stroke="#B9485C"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={off}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums text-ink-900">
-        {percent}%
-      </span>
+        {/* Locked */}
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-ink-100 bg-white px-3 py-2.5 opacity-60">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cream-200 text-ink-400">
+            <Lock className="size-3" strokeWidth={2.5} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12.5px] font-semibold text-ink-400">
+              Module 3 · Grow Consistently
+            </div>
+            <div className="text-[10.5px] text-ink-400">Locked · 3 lessons</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-4 flex items-center justify-between border-t border-ink-100 pt-3">
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-400">
+          <Clock className="size-3" strokeWidth={2} /> ~18 min left
+        </span>
+        <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-emerald-600">
+          <span className="size-1.5 rounded-full bg-emerald-500" /> On track
+        </span>
+      </div>
     </div>
   );
 }
