@@ -14,15 +14,9 @@ const LOCALES: Locale[] = [
   { value: "en-US", country: "United States",  cc: "us", code: "US" },
   { value: "en-GB", country: "United Kingdom", cc: "gb", code: "UK" },
   { value: "de-DE", country: "Germany",        cc: "de", code: "DE" },
-  { value: "fr-FR", country: "France",         cc: "fr", code: "FR" },
-  { value: "it-IT", country: "Italy",          cc: "it", code: "IT" },
-  { value: "es-ES", country: "Spain",          cc: "es", code: "ES" },
-  { value: "da-DK", country: "Denmark",        cc: "dk", code: "DK" },
   { value: "nb-NO", country: "Norway",         cc: "no", code: "NO" },
   { value: "sv-SE", country: "Sweden",         cc: "se", code: "SE" },
-  { value: "nl-NL", country: "Netherlands",    cc: "nl", code: "NL" },
-  { value: "pt-PT", country: "Portugal",       cc: "pt", code: "PT" },
-  { value: "fi-FI", country: "Finland",        cc: "fi", code: "FI" },
+  { value: "da-DK", country: "Denmark",        cc: "dk", code: "DK" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,33 +60,6 @@ const FLAGS: Record<string, ReactNode> = {
       <rect y="16" width="24" height="8" fill="#FFCE00" />
     </>
   ),
-  fr: (
-    <>
-      <rect width="8" height="24" fill="#0055A4" />
-      <rect x="8" width="8" height="24" fill="#fff" />
-      <rect x="16" width="8" height="24" fill="#EF4135" />
-    </>
-  ),
-  it: (
-    <>
-      <rect width="8" height="24" fill="#008C45" />
-      <rect x="8" width="8" height="24" fill="#F4F5F0" />
-      <rect x="16" width="8" height="24" fill="#CD212A" />
-    </>
-  ),
-  es: (
-    <>
-      <rect width="24" height="24" fill="#AA151B" />
-      <rect y="6" width="24" height="12" fill="#F1BF00" />
-    </>
-  ),
-  dk: (
-    <>
-      <rect width="24" height="24" fill="#C8102E" />
-      <rect x="7" width="4" height="24" fill="#fff" />
-      <rect y="10" width="24" height="4" fill="#fff" />
-    </>
-  ),
   no: (
     <>
       <rect width="24" height="24" fill="#EF2B2D" />
@@ -109,25 +76,11 @@ const FLAGS: Record<string, ReactNode> = {
       <rect y="10" width="24" height="4" fill="#FECC00" />
     </>
   ),
-  nl: (
+  dk: (
     <>
-      <rect width="24" height="8" fill="#AE1C28" />
-      <rect y="8" width="24" height="8" fill="#fff" />
-      <rect y="16" width="24" height="8" fill="#21468B" />
-    </>
-  ),
-  pt: (
-    <>
-      <rect width="24" height="24" fill="#FF0000" />
-      <rect width="9" height="24" fill="#006600" />
-      <circle cx="9" cy="12" r="2.4" fill="#FFD700" stroke="#fff" strokeWidth="0.5" />
-    </>
-  ),
-  fi: (
-    <>
-      <rect width="24" height="24" fill="#fff" />
-      <rect x="6" width="5" height="24" fill="#003580" />
-      <rect y="9.5" width="24" height="5" fill="#003580" />
+      <rect width="24" height="24" fill="#C8102E" />
+      <rect x="7" width="4" height="24" fill="#fff" />
+      <rect y="10" width="24" height="4" fill="#fff" />
     </>
   ),
 };
