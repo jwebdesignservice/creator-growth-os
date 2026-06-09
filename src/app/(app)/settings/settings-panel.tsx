@@ -29,6 +29,7 @@ import { Avatar } from "@/components/app-shell/topbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import {
   InstagramIcon,
   TiktokIcon,
@@ -237,13 +238,11 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
     profile?.avatar_url ?? null,
   );
   const [uploading, setUploading] = useState(false);
-  const [uploadErr, setUploadErr] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(
     profile?.banner_url ?? null,
   );
   const [bannerUploading, setBannerUploading] = useState(false);
-  const [bannerErr, setBannerErr] = useState<string | null>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -286,20 +285,20 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    setUploadErr(null);
     setUploading(true);
     try {
       const res = await uploadUserImage(file, "avatar");
       if ("error" in res) {
-        setUploadErr(res.error);
+        toast.error(res.error);
         return;
       }
       const saved = await saveAvatarUrl(res.url);
       if (!saved.ok) {
-        setUploadErr(saved.error ?? "Couldn't save your photo.");
+        toast.error(saved.error ?? "Couldn't save your photo.");
         return;
       }
       setAvatarUrl(res.url);
+      toast.success("Profile photo updated");
     } finally {
       setUploading(false);
     }
@@ -309,20 +308,20 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    setBannerErr(null);
     setBannerUploading(true);
     try {
       const res = await uploadUserImage(file, "banner");
       if ("error" in res) {
-        setBannerErr(res.error);
+        toast.error(res.error);
         return;
       }
       const saved = await saveBannerUrl(res.url);
       if (!saved.ok) {
-        setBannerErr(saved.error ?? "Couldn't save your banner.");
+        toast.error(saved.error ?? "Couldn't save your banner.");
         return;
       }
       setBannerUrl(res.url);
+      toast.success("Cover updated");
     } finally {
       setBannerUploading(false);
     }
@@ -368,11 +367,6 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
           onChange={onBannerSelect}
           className="hidden"
         />
-        {bannerErr && (
-          <span className="absolute left-3 bottom-3 z-10 rounded-md bg-white/90 px-2 py-1 text-[11.5px] text-rose-600 shadow-sm">
-            {bannerErr}
-          </span>
-        )}
       </div>
 
       {/* Profile header — large avatar overlapping the banner */}
@@ -415,11 +409,6 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
             onChange={onAvatarSelect}
             className="hidden"
           />
-          {uploadErr && (
-            <p className="mt-2 text-[12px] text-rose-600 max-w-[180px] leading-snug">
-              {uploadErr}
-            </p>
-          )}
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
