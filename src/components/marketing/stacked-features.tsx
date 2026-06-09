@@ -157,8 +157,10 @@ export function StackedFeatures() {
 
                 {/* mockup — right column */}
                 <div aria-hidden className="relative">
-                  {/* desktop: bleeds off the card's right edge */}
-                  <div className="absolute left-2 top-1/2 hidden w-[740px] -translate-y-1/2 lg:block xl:w-[784px]">
+                  {/* desktop: bleeds off the card's right edge. inset-y-[4%]
+                      makes every mockup a uniform 92% of the card height
+                      (centred), and the wider box reads ~15% larger. */}
+                  <div className="absolute inset-y-[4%] left-2 hidden w-[852px] lg:block xl:w-[900px]">
                     {f.mockup}
                   </div>
                   {/* mobile / tablet: full-bleed clipped strip */}
@@ -230,7 +232,7 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[18px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] shadow-[0_40px_90px_-45px_rgba(0,0,0,0.85)] backdrop-blur-sm">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[18px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] shadow-[0_40px_90px_-45px_rgba(0,0,0,0.85)] backdrop-blur-sm">
       {/* glassy top highlight — a hairline of light along the top edge */}
       <span
         aria-hidden
@@ -240,7 +242,8 @@ function Panel({
         <span className="text-[17px] font-bold tracking-[-0.01em] text-white">{title}</span>
         {right}
       </div>
-      {children}
+      {/* body grows to fill the card so all four mockups share one height */}
+      <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }
@@ -331,13 +334,17 @@ const WEEK: { day: string; days: { n: number; events: Ev[] }[] }[] = [
 function CalendarMock() {
   return (
     <Panel title="Calendar" right={<ScheduledBy />}>
-      <div className="grid grid-cols-2 border-t border-white/10">
+      <div className="grid flex-1 grid-cols-2 border-t border-white/10">
         {WEEK.map((col, ci) => (
-          <div key={col.day} className={ci === 0 ? "border-r border-white/10" : ""}>
+          <div
+            key={col.day}
+            className={cn("flex flex-col", ci === 0 && "border-r border-white/10")}
+          >
             <div className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
               {col.day}
             </div>
-            {col.days.map((d) => {
+            <div className="flex flex-1 flex-col justify-between">
+              {col.days.map((d) => {
               const isToday = ci === 0 && d.n === 1;
               return (
                 <div
@@ -406,7 +413,8 @@ function CalendarMock() {
                   </div>
                 </div>
               );
-            })}
+              })}
+            </div>
           </div>
         ))}
       </div>
@@ -473,50 +481,72 @@ const PLAT_ICON = {
 const PLAT_NAME = { ig: "Instagram", tt: "TikTok", yt: "YouTube" };
 
 function PerformanceMock() {
+  const maxReach = Math.max(...CONTENT.map((r) => parseFloat(r.reach)));
   return (
     <Panel title="Top content" right={<Pill tone="green">This month</Pill>}>
-      <div className="border-t border-white/10">
-        <div className="grid grid-cols-[1fr_130px_110px] gap-4 px-6 py-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/30">
+      <div className="flex flex-1 flex-col border-t border-white/10">
+        {/* column header */}
+        <div className="grid grid-cols-[1fr_130px_118px] gap-4 px-6 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
           <span>Content</span>
           <span>Platform</span>
           <span className="text-right">Reach</span>
         </div>
-        {CONTENT.map((r) => (
-          <div
-            key={r.title}
-            className="grid grid-cols-[1fr_130px_110px] items-center gap-4 border-t border-white/[0.06] px-6 py-3.5"
-          >
-            <span className="flex min-w-0 items-center gap-3">
+        {CONTENT.map((r) => {
+          const pct = Math.round((parseFloat(r.reach) / maxReach) * 100);
+          return (
+            <div
+              key={r.title}
+              className="relative grid flex-1 grid-cols-[1fr_130px_118px] items-center gap-4 border-t border-white/[0.055] px-6 py-3.5 transition-colors hover:bg-white/[0.02]"
+            >
+              {/* relative-reach fill — faint, behind the row (analytics leaderboard cue) */}
               <span
-                className={cn(
-                  "inline-flex size-9 shrink-0 items-center justify-center rounded-[10px]",
-                  TONE[r.tone].pill,
-                )}
-              >
-                <r.icon className="size-4" strokeWidth={2} />
-              </span>
-              <span className="min-w-0 leading-tight">
-                <span className="block truncate text-[13.5px] font-semibold text-white">
-                  {r.title}
+                aria-hidden
+                className="pointer-events-none absolute inset-y-px left-0 bg-gradient-to-r from-emerald-400/[0.08] to-transparent"
+                style={{ width: `${pct}%` }}
+              />
+
+              {/* content — glassy glowing type tile + title / format */}
+              <span className="relative flex min-w-0 items-center gap-3">
+                <span
+                  className={cn(
+                    "inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] ring-1 ring-inset",
+                    TONE[r.tone].pill,
+                  )}
+                  style={{
+                    boxShadow: `0 5px 14px -7px ${TONE[r.tone].glow}, inset 0 1px 0 0 rgba(255,255,255,0.14)`,
+                  }}
+                >
+                  <r.icon className="size-[17px]" strokeWidth={2} />
                 </span>
-                <span className="block text-[11.5px] text-white/40">{r.fmt}</span>
+                <span className="min-w-0 leading-tight">
+                  <span className="block truncate text-[13.5px] font-semibold text-white">
+                    {r.title}
+                  </span>
+                  <span className="block text-[11.5px] text-white/40">{r.fmt}</span>
+                </span>
               </span>
-            </span>
-            <span className="flex items-center gap-1.5 text-[12.5px] text-white/60">
-              {PLAT_ICON[r.plat]}
-              {PLAT_NAME[r.plat]}
-            </span>
-            <span className="flex items-center justify-end gap-2">
-              <span className="text-[13.5px] font-semibold tabular-nums text-white">
-                {r.reach}
+
+              {/* platform — icon in a soft tile */}
+              <span className="relative flex items-center gap-2 text-[12.5px] text-white/65">
+                <span className="inline-flex size-6 items-center justify-center rounded-[7px] bg-white/[0.05] ring-1 ring-inset ring-white/10">
+                  {PLAT_ICON[r.plat]}
+                </span>
+                {PLAT_NAME[r.plat]}
               </span>
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-400/12 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
-                <TrendingUp className="size-2.5" strokeWidth={3} />
-                {r.up}
+
+              {/* reach + trend */}
+              <span className="relative flex items-center justify-end gap-2">
+                <span className="text-[13.5px] font-semibold tabular-nums text-white">
+                  {r.reach}
+                </span>
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-400/12 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
+                  <TrendingUp className="size-2.5" strokeWidth={3} />
+                  {r.up}
+                </span>
               </span>
-            </span>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </Panel>
   );
@@ -617,11 +647,11 @@ function HostAvatar({
 function EventsMock() {
   return (
     <Panel title="Events" right={<Pill tone="rose">2 this week</Pill>}>
-      <div className="grid grid-cols-2 gap-4 border-t border-white/10 p-5">
+      <div className="grid flex-1 grid-cols-2 gap-4 border-t border-white/10 p-5">
         {EVENTS.map((e) => (
           <div
             key={e.title}
-            className="relative overflow-hidden rounded-[18px] bg-gradient-to-b from-white/[0.07] to-white/[0.015] p-6 ring-1 ring-inset ring-white/[0.08] shadow-[0_24px_50px_-32px_rgba(0,0,0,0.9)]"
+            className="relative flex flex-col overflow-hidden rounded-[18px] bg-gradient-to-b from-white/[0.07] to-white/[0.015] p-6 ring-1 ring-inset ring-white/[0.08] shadow-[0_24px_50px_-32px_rgba(0,0,0,0.9)]"
           >
             {/* glassy top highlight — seats the card on the panel surface */}
             <span
@@ -646,22 +676,22 @@ function EventsMock() {
             </div>
 
             {/* detail rows — hairline-divided, like the reference */}
-            <div className="relative mt-5 divide-y divide-white/[0.07]">
-              <div className="py-3 first:pt-0 last:pb-0">
+            <div className="relative mt-5 flex flex-1 flex-col divide-y divide-white/[0.07]">
+              <div className="flex flex-1 flex-col justify-center py-3 first:pt-0 last:pb-0">
                 <StatRow label="When" icon={CalendarClock}>
                   <span className="text-[13px] font-medium text-white">
                     {e.when}
                   </span>
                 </StatRow>
               </div>
-              <div className="py-3 first:pt-0 last:pb-0">
+              <div className="flex flex-1 flex-col justify-center py-3 first:pt-0 last:pb-0">
                 <StatRow label="Format" icon={Radio}>
                   <span className="text-[13px] font-medium text-white">
                     {e.format}
                   </span>
                 </StatRow>
               </div>
-              <div className="py-3 first:pt-0 last:pb-0">
+              <div className="flex flex-1 flex-col justify-center py-3 first:pt-0 last:pb-0">
                 <StatRow label="Status" icon={Users}>
                   <span className="flex flex-col items-end gap-1.5">
                     <Pill tone={e.status.tone}>{e.status.label}</Pill>
@@ -701,7 +731,7 @@ function StatRow({
 
 function CoachChatMock() {
   return (
-    <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.035] shadow-[0_40px_90px_-45px_rgba(0,0,0,0.85)] backdrop-blur-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.035] shadow-[0_40px_90px_-45px_rgba(0,0,0,0.85)] backdrop-blur-sm">
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
         <span className="flex items-center gap-2.5">
           <MockAvatar name="Maya Rivers" size={38} />
@@ -734,7 +764,7 @@ function CoachChatMock() {
         </span>
       </div>
 
-      <div className="space-y-3 p-6">
+      <div className="flex flex-1 flex-col justify-end space-y-3 p-6">
         <Bubble side="in">What should I post tomorrow?</Bubble>
         <Bubble side="out">
           Try a Reel: &ldquo;3 mistakes I made at 1K followers.&rdquo; Hook in the
