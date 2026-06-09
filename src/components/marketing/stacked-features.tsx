@@ -482,50 +482,87 @@ const PLAT_ICON = {
 const PLAT_NAME = { ig: "Instagram", tt: "TikTok", yt: "YouTube" };
 
 function PerformanceMock() {
+  // bars scale against the top performer — a real leaderboard cue, not decor
+  const maxReach = Math.max(...CONTENT.map((r) => parseFloat(r.reach)));
   return (
     <Panel title="Top content" right={<Pill tone="green">This month</Pill>}>
-      <div className="flex flex-1 flex-col border-t border-white/10">
-        <div className="grid grid-cols-[1fr_130px_110px] gap-4 px-6 py-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/30">
-          <span>Content</span>
-          <span>Platform</span>
-          <span className="text-right">Reach</span>
-        </div>
-        {CONTENT.map((r) => (
-          <div
-            key={r.title}
-            className="grid flex-1 grid-cols-[1fr_130px_110px] items-center gap-4 border-t border-white/[0.06] px-6 py-3.5"
-          >
-            <span className="flex min-w-0 items-center gap-3">
+      <div className="flex flex-1 flex-col gap-2 border-t border-white/10 px-5 pb-5 pt-3.5">
+        {CONTENT.map((r, idx) => {
+          const pct = Math.round((parseFloat(r.reach) / maxReach) * 100);
+          const top = idx === 0;
+          return (
+            <div
+              key={r.title}
+              className={cn(
+                "group relative flex flex-1 items-center gap-3 overflow-hidden rounded-[12px] bg-gradient-to-b from-white/[0.055] to-white/[0.015] px-3.5 ring-1 ring-inset ring-white/[0.06] shadow-[0_4px_16px_-10px_rgba(0,0,0,0.8)] transition-colors duration-200 hover:from-white/[0.085]",
+                top && "ring-white/[0.1]",
+              )}
+            >
+              {/* glassy top highlight seats each row on the panel surface */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent"
+              />
+
+              {/* rank */}
               <span
                 className={cn(
-                  "inline-flex size-9 shrink-0 items-center justify-center rounded-[10px]",
-                  TONE[r.tone].pill,
+                  "w-3.5 shrink-0 text-center text-[12px] font-semibold tabular-nums",
+                  top ? "text-rose-300" : "text-white/30",
                 )}
               >
-                <r.icon className="size-4" strokeWidth={2} />
+                {idx + 1}
               </span>
-              <span className="min-w-0 leading-tight">
-                <span className="block truncate text-[13.5px] font-semibold text-white">
+
+              {/* format tile — glassy, with a soft colour cast for depth */}
+              <span
+                className={cn(
+                  "relative inline-flex size-10 shrink-0 items-center justify-center rounded-[11px] ring-1 ring-inset",
+                  TONE[r.tone].pill,
+                )}
+                style={{
+                  boxShadow: `0 6px 16px -9px ${TONE[r.tone].glow}, inset 0 1px 0 0 rgba(255,255,255,0.16)`,
+                }}
+              >
+                <r.icon className="size-[18px]" strokeWidth={2} />
+              </span>
+
+              {/* title + metric line — left-anchored so reach / trend / platform
+                  stay visible as the panel bleeds off the right edge */}
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block truncate text-[14px] font-semibold tracking-[-0.01em] text-white">
                   {r.title}
                 </span>
-                <span className="block text-[11.5px] text-white/40">{r.fmt}</span>
+                <span className="mt-[5px] flex items-center gap-2 text-[12px] text-white/45">
+                  <span className="font-semibold tabular-nums text-white/90">
+                    {r.reach}
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-300">
+                    <TrendingUp className="size-3" strokeWidth={3} />
+                    {r.up}
+                  </span>
+                  <span className="size-[3px] shrink-0 rounded-full bg-white/20" />
+                  <span className="inline-flex items-center gap-1">
+                    {PLAT_ICON[r.plat]}
+                    <span className="text-white/55">{PLAT_NAME[r.plat]}</span>
+                  </span>
+                  <span className="truncate text-white/30">· {r.fmt}</span>
+                </span>
               </span>
-            </span>
-            <span className="flex items-center gap-1.5 text-[12.5px] text-white/60">
-              {PLAT_ICON[r.plat]}
-              {PLAT_NAME[r.plat]}
-            </span>
-            <span className="flex items-center justify-end gap-2">
-              <span className="text-[13.5px] font-semibold tabular-nums text-white">
-                {r.reach}
+
+              {/* relative-reach underline — fills from the left by performance */}
+              <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 h-[2px] bg-white/[0.04]"
+              >
+                <span
+                  className="block h-full rounded-r-full bg-gradient-to-r from-emerald-400/50 to-emerald-300/80"
+                  style={{ width: `${pct}%` }}
+                />
               </span>
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-400/12 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
-                <TrendingUp className="size-2.5" strokeWidth={3} />
-                {r.up}
-              </span>
-            </span>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </Panel>
   );
