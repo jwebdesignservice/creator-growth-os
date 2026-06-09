@@ -111,34 +111,25 @@ export function Footer() {
           <FooterColumn title="Follow" links={FOLLOW} />
         </div>
 
-        {/* ── MID: contact · newsletter ────────────────────────────── */}
-        <div className="mt-[clamp(2.75rem,5vw,4rem)] flex flex-col gap-[clamp(2.25rem,4vw,3.25rem)] lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex flex-col gap-[clamp(0.875rem,1.6vw,1.5rem)]">
-            <span className="text-[14px] text-white/50">Contact Us</span>
-            <a
-              href="mailto:hello@profluencer.com"
-              className="self-start text-[clamp(1.55rem,2.5vw,1.95rem)] font-semibold leading-[1.1] text-white underline decoration-[1.5px] underline-offset-[8px] transition-colors hover:text-rose-200 hover:decoration-rose-300"
-            >
-              hello@profluencer.com
-            </a>
-          </div>
-        </div>
-
         {/* ── divider ──────────────────────────────────────────────── */}
         <div className="mt-[clamp(3rem,5vw,4.5rem)] h-px bg-white/15" />
 
-        {/* ── oversized brand wordmark ─────────────────────────────── */}
+        {/* ── oversized contact email ──────────────────────────────── */}
         <div className="py-[clamp(1.6rem,3vw,2.6rem)]">
           <div ref={wordWrapRef} className="w-full">
-            <span
-              ref={wordRef}
-              aria-label="Profluencer"
-              className="inline-flex items-start whitespace-nowrap font-sans font-semibold leading-[0.9] tracking-[-0.03em] text-white"
-              style={{ fontSize: "140px" }}
+            <a
+              href="mailto:hello@profluencer.com"
+              className="inline-block text-white transition-colors hover:text-rose-200"
             >
-              Profluencer
-              <BrandMark className="ml-[0.05em] mt-[0.03em] size-[0.4em] shrink-0 text-rose-400" />
-            </span>
+              <span
+                ref={wordRef}
+                aria-label="hello@profluencer.com"
+                className="inline-flex items-start whitespace-nowrap font-sans font-semibold leading-[0.9] tracking-[-0.03em]"
+                style={{ fontSize: "140px" }}
+              >
+                hello@profluencer.com
+              </span>
+            </a>
           </div>
         </div>
 
