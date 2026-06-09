@@ -157,10 +157,10 @@ export function StackedFeatures() {
 
                 {/* mockup — right column */}
                 <div aria-hidden className="relative">
-                  {/* desktop: bleeds off the card's right edge. inset-y-[4%]
-                      makes every mockup a uniform 92% of the card height
-                      (centred), and the wider box reads ~15% larger. */}
-                  <div className="absolute inset-y-[4%] left-2 hidden w-[852px] lg:block xl:w-[900px]">
+                  {/* desktop: bleeds off the card's right edge. A fixed height
+                      = 92% of the card (centred) makes every mockup share one
+                      size, and the wider box reads ~15% larger. */}
+                  <div className="absolute left-2 top-1/2 hidden h-[clamp(423px,57vh,500px)] w-[852px] -translate-y-1/2 lg:block xl:w-[900px]">
                     {f.mockup}
                   </div>
                   {/* mobile / tablet: full-bleed clipped strip */}
@@ -238,7 +238,7 @@ function Panel({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
       />
-      <div className="relative flex items-center justify-between gap-3 px-6 py-5">
+      <div className="relative flex items-center justify-between gap-3 px-6 py-4">
         <span className="text-[17px] font-bold tracking-[-0.01em] text-white">{title}</span>
         {right}
       </div>
@@ -349,7 +349,7 @@ function CalendarMock() {
               return (
                 <div
                   key={d.n}
-                  className="border-t border-white/[0.06] px-3.5 pb-4 pt-3"
+                  className="border-t border-white/[0.06] px-3.5 pb-3 pt-2.5"
                 >
                   {/* day number + a live "Today" marker on the current day */}
                   <div className="mb-2.5 flex items-center gap-2 px-1">
@@ -370,11 +370,11 @@ function CalendarMock() {
                   </div>
 
                   {/* scheduled-post cards — raised, glassy, with a glowing accent */}
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {d.events.map((e, i) => (
                       <div
                         key={i}
-                        className="relative overflow-hidden rounded-[12px] bg-gradient-to-b from-white/[0.09] to-white/[0.025] py-3 pl-5 pr-4 ring-1 ring-inset ring-white/[0.07] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.75)]"
+                        className="relative overflow-hidden rounded-[12px] bg-gradient-to-b from-white/[0.09] to-white/[0.025] py-2.5 pl-5 pr-4 ring-1 ring-inset ring-white/[0.07] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.75)]"
                       >
                         {/* glowing tone bar (full height, soft bleed into the card) */}
                         <span
@@ -471,6 +471,7 @@ const CONTENT: {
   { title: "3 hooks that doubled my saves", fmt: "Carousel", icon: Images, tone: "blue", plat: "tt", reach: "9.8K", up: "+21%" },
   { title: "My filming setup tour", fmt: "Video", icon: Film, tone: "rose", plat: "yt", reach: "6.4K", up: "+12%" },
   { title: "Reply → Reel in 30 seconds", fmt: "Reel", icon: Play, tone: "green", plat: "ig", reach: "4.1K", up: "+9%" },
+  { title: "Behind the scenes of a shoot", fmt: "Story", icon: Film, tone: "gold", plat: "ig", reach: "3.2K", up: "+6%" },
 ];
 
 const PLAT_ICON = {
@@ -481,72 +482,50 @@ const PLAT_ICON = {
 const PLAT_NAME = { ig: "Instagram", tt: "TikTok", yt: "YouTube" };
 
 function PerformanceMock() {
-  const maxReach = Math.max(...CONTENT.map((r) => parseFloat(r.reach)));
   return (
     <Panel title="Top content" right={<Pill tone="green">This month</Pill>}>
       <div className="flex flex-1 flex-col border-t border-white/10">
-        {/* column header */}
-        <div className="grid grid-cols-[1fr_130px_118px] gap-4 px-6 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+        <div className="grid grid-cols-[1fr_130px_110px] gap-4 px-6 py-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/30">
           <span>Content</span>
           <span>Platform</span>
           <span className="text-right">Reach</span>
         </div>
-        {CONTENT.map((r) => {
-          const pct = Math.round((parseFloat(r.reach) / maxReach) * 100);
-          return (
-            <div
-              key={r.title}
-              className="relative grid flex-1 grid-cols-[1fr_130px_118px] items-center gap-4 border-t border-white/[0.055] px-6 py-3.5 transition-colors hover:bg-white/[0.02]"
-            >
-              {/* relative-reach fill — faint, behind the row (analytics leaderboard cue) */}
+        {CONTENT.map((r) => (
+          <div
+            key={r.title}
+            className="grid flex-1 grid-cols-[1fr_130px_110px] items-center gap-4 border-t border-white/[0.06] px-6 py-3.5"
+          >
+            <span className="flex min-w-0 items-center gap-3">
               <span
-                aria-hidden
-                className="pointer-events-none absolute inset-y-px left-0 bg-gradient-to-r from-emerald-400/[0.08] to-transparent"
-                style={{ width: `${pct}%` }}
-              />
-
-              {/* content — glassy glowing type tile + title / format */}
-              <span className="relative flex min-w-0 items-center gap-3">
-                <span
-                  className={cn(
-                    "inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] ring-1 ring-inset",
-                    TONE[r.tone].pill,
-                  )}
-                  style={{
-                    boxShadow: `0 5px 14px -7px ${TONE[r.tone].glow}, inset 0 1px 0 0 rgba(255,255,255,0.14)`,
-                  }}
-                >
-                  <r.icon className="size-[17px]" strokeWidth={2} />
-                </span>
-                <span className="min-w-0 leading-tight">
-                  <span className="block truncate text-[13.5px] font-semibold text-white">
-                    {r.title}
-                  </span>
-                  <span className="block text-[11.5px] text-white/40">{r.fmt}</span>
-                </span>
+                className={cn(
+                  "inline-flex size-9 shrink-0 items-center justify-center rounded-[10px]",
+                  TONE[r.tone].pill,
+                )}
+              >
+                <r.icon className="size-4" strokeWidth={2} />
               </span>
-
-              {/* platform — icon in a soft tile */}
-              <span className="relative flex items-center gap-2 text-[12.5px] text-white/65">
-                <span className="inline-flex size-6 items-center justify-center rounded-[7px] bg-white/[0.05] ring-1 ring-inset ring-white/10">
-                  {PLAT_ICON[r.plat]}
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-[13.5px] font-semibold text-white">
+                  {r.title}
                 </span>
-                {PLAT_NAME[r.plat]}
+                <span className="block text-[11.5px] text-white/40">{r.fmt}</span>
               </span>
-
-              {/* reach + trend */}
-              <span className="relative flex items-center justify-end gap-2">
-                <span className="text-[13.5px] font-semibold tabular-nums text-white">
-                  {r.reach}
-                </span>
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-400/12 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
-                  <TrendingUp className="size-2.5" strokeWidth={3} />
-                  {r.up}
-                </span>
+            </span>
+            <span className="flex items-center gap-1.5 text-[12.5px] text-white/60">
+              {PLAT_ICON[r.plat]}
+              {PLAT_NAME[r.plat]}
+            </span>
+            <span className="flex items-center justify-end gap-2">
+              <span className="text-[13.5px] font-semibold tabular-nums text-white">
+                {r.reach}
               </span>
-            </div>
-          );
-        })}
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-400/12 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
+                <TrendingUp className="size-2.5" strokeWidth={3} />
+                {r.up}
+              </span>
+            </span>
+          </div>
+        ))}
       </div>
     </Panel>
   );
@@ -776,6 +755,10 @@ function CoachChatMock() {
           variations?
         </Bubble>
         <Bubble side="in">Yes please 🙌</Bubble>
+        <Bubble side="out">
+          On it. Want me to schedule the Reel for tomorrow at 9 AM?
+        </Bubble>
+        <Bubble side="in">Perfect — do it 🚀</Bubble>
       </div>
     </div>
   );
