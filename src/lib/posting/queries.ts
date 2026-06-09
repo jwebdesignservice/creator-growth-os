@@ -187,6 +187,40 @@ export async function getPlannedItems(
   return (items ?? []) as PostingItem[];
 }
 
+export type ItemPhase = {
+  item_id: string;
+  stage: ContentStatus;
+  scheduled_for: string | null;
+};
+
+/**
+ * All scheduled production phases for the given posts (the per-stage dates set
+ * in the post detail popup). Returns [] if the phases table isn't applied yet
+ * (migration 0055), so the calendar degrades to single-day rendering.
+ */
+export async function getItemPhases(itemIds: string[]): Promise<ItemPhase[]> {
+  if (itemIds.length === 0) return [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("posting_item_phases")
+    .select("item_id, stage, scheduled_for")
+    .in("item_id", itemIds)
+    .eq("user_id", user.id);
+  if (error || !data) return [];
+
+  return data.map((r) => ({
+    item_id: (r as { item_id: string }).item_id,
+    stage: (r as { stage: ContentStatus }).stage,
+    scheduled_for:
+      ((r as { scheduled_for: string | null }).scheduled_for) ?? null,
+  }));
+}
+
 export async function getWeeklyStats(planId: string | null): Promise<WeeklyStats> {
   const supabase = await createClient();
   const {

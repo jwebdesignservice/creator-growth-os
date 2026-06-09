@@ -139,18 +139,27 @@ export async function createPostingItem(input: {
 
   // goal + notes arrive with migration 0042 — if it hasn't been applied yet
   // (42703 = undefined_column), retry without them so the form still saves.
-  let { error } = await supabase.from("posting_plan_items").insert({
-    ...base,
-    goal: input.goal?.trim() || null,
-    notes: input.notes?.trim() || null,
-  });
+  // Return the new row id so the caller can attach phases (spread schedule).
+  let { data, error } = await supabase
+    .from("posting_plan_items")
+    .insert({
+      ...base,
+      goal: input.goal?.trim() || null,
+      notes: input.notes?.trim() || null,
+    })
+    .select("id")
+    .single();
   if (error && error.code === "42703") {
-    ({ error } = await supabase.from("posting_plan_items").insert(base));
+    ({ data, error } = await supabase
+      .from("posting_plan_items")
+      .insert(base)
+      .select("id")
+      .single());
   }
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/posting");
-  return { ok: true };
+  return { ok: true, id: (data as { id: string } | null)?.id };
 }
 
 /**
