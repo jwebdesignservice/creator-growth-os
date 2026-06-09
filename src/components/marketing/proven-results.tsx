@@ -27,12 +27,12 @@ const EASE = "cubic-bezier(0.645, 0.045, 0.355, 1)";
 type Stat = { n: string; value: string; label: string; bg: string; img?: string };
 
 // Rose ramp mirroring the reference's blue lightness curve: a bright lead
-// panel, then a hard drop into a tight family of deep wines. The first and last
-// panels carry a real photo (from /public); the middle two keep the solid wine.
+// panel, then a hard drop into a tight family of deep wines. Each panel carries
+// a real photo (from /public) that fades in while that panel is active.
 const STATS: Stat[] = [
   { n: "01", value: "2,000+", label: "Creators on Profluencer", bg: "#CD6178", img: "/Users%20Img.jpg" },
-  { n: "02", value: "92%", label: "Post more consistently", bg: "#8A2540" },
-  { n: "03", value: "3×", label: "Faster audience growth", bg: "#5E1E30" },
+  { n: "02", value: "92%", label: "Post more consistently", bg: "#8A2540", img: "/Posting.jpg" },
+  { n: "03", value: "3×", label: "Faster audience growth", bg: "#5E1E30", img: "/Grow%20audience.jpg" },
   { n: "04", value: "80%", label: "Less time spent planning", bg: "#36141F", img: "/Less%20time%20spent.jpg" },
 ];
 
@@ -121,20 +121,22 @@ export function ProvenResults() {
                   transition: `flex-basis 0.6s ${EASE}`,
                 }}
               >
-                {/* photo (first + last panels) — beneath the depth + text layers */}
+                {/* photo (first + last panels) — fades in ONLY while the panel
+                    is active; otherwise the solid colour shows through */}
                 {s.img && (
-                  <>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 transition-opacity duration-700 ease-out"
+                    style={{ opacity: on ? 1 : 0 }}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={s.img}
                       alt=""
-                      className="pointer-events-none absolute inset-0 size-full object-cover"
+                      className="absolute inset-0 size-full object-cover"
                     />
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/85 via-ink-900/30 to-ink-900/45"
-                    />
-                  </>
+                    <span className="absolute inset-0 bg-gradient-to-t from-ink-900/85 via-ink-900/30 to-ink-900/45" />
+                  </span>
                 )}
 
                 {/* depth — soft studio light (top) + grounding vignette (bottom) */}
