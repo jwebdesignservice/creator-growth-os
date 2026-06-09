@@ -586,8 +586,12 @@ function CreatorBrandCard({
   const [platform, setPlatform] = useState<string | null>(
     profile?.primary_platform ?? null,
   );
-  const [saved, setSaved] = useState(false);
+  // Both sections save the same creator-info payload; tracking which section
+  // triggered the save lets only that button animate (saving / saved / error).
+  const [savedSection, setSavedSection] = useState<"brand" | "platform" | null>(null);
+  const [pendingSection, setPendingSection] = useState<"brand" | "platform" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorSection, setErrorSection] = useState<"brand" | "platform" | null>(null);
   const [isPending, startTransition] = useTransition();
   const pillarInputRef = useRef<HTMLInputElement>(null);
   const [showTips, setShowTips] = useState(true);
@@ -616,8 +620,10 @@ function CreatorBrandCard({
     setPillars(pillars.filter((p) => p !== label));
   }
 
-  function handleSave() {
+  function handleSave(section: "brand" | "platform") {
     setError(null);
+    setErrorSection(null);
+    setPendingSection(section);
     startTransition(async () => {
       const result = await saveCreatorInfo({
         bio,
@@ -625,11 +631,13 @@ function CreatorBrandCard({
         primary_platform: platform,
         pillars,
       });
+      setPendingSection(null);
       if (result.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
+        setSavedSection(section);
+        setTimeout(() => setSavedSection(null), 2500);
       } else {
         setError(result.error ?? "Save failed.");
+        setErrorSection(section);
       }
     });
   }
@@ -796,6 +804,35 @@ function CreatorBrandCard({
             )}
           </div>
       </div>
+
+      {/* Save */}
+      <div className="flex items-center justify-between gap-3 mt-5 flex-wrap sm:flex-nowrap">
+        <p
+          className="text-[12.5px] text-rose-700 flex-1 min-w-0"
+          role={errorSection === "brand" ? "alert" : undefined}
+        >
+          {errorSection === "brand" ? error : ""}
+        </p>
+        <Button
+          size="sm"
+          onClick={() => handleSave("brand")}
+          disabled={isPending}
+          className={cn(
+            "w-full sm:w-auto h-11 sm:h-9 transition-all",
+            savedSection === "brand" && "bg-emerald-600 hover:bg-emerald-600",
+          )}
+        >
+          {savedSection === "brand" ? (
+            <>
+              <Check className="size-3.5" strokeWidth={2.5} /> Saved
+            </>
+          ) : pendingSection === "brand" ? (
+            "Saving…"
+          ) : (
+            "Save changes"
+          )}
+        </Button>
+      </div>
     </SettingRow>
 
     <SettingRow
@@ -868,30 +905,30 @@ function CreatorBrandCard({
         </div>
 
       {/* Save */}
-      <div className="flex items-center justify-between gap-3 mt-5 pt-5 border-t border-ink-100 flex-wrap sm:flex-nowrap">
+      <div className="flex items-center justify-between gap-3 mt-5 flex-wrap sm:flex-nowrap">
         <p
           className="text-[12.5px] text-rose-700 flex-1 min-w-0"
-          role={error ? "alert" : undefined}
+          role={errorSection === "platform" ? "alert" : undefined}
         >
-          {error ?? ""}
+          {errorSection === "platform" ? error : ""}
         </p>
         <Button
           size="sm"
-          onClick={handleSave}
+          onClick={() => handleSave("platform")}
           disabled={isPending}
           className={cn(
             "w-full sm:w-auto h-11 sm:h-9 transition-all",
-            saved && "bg-emerald-600 hover:bg-emerald-600",
+            savedSection === "platform" && "bg-emerald-600 hover:bg-emerald-600",
           )}
         >
-          {saved ? (
+          {savedSection === "platform" ? (
             <>
               <Check className="size-3.5" strokeWidth={2.5} /> Saved
             </>
-          ) : isPending ? (
+          ) : pendingSection === "platform" ? (
             "Saving…"
           ) : (
-            "Save creator info"
+            "Save changes"
           )}
         </Button>
       </div>
