@@ -14,10 +14,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Hero } from "@/components/marketing/hero";
 import { ProvenResults } from "@/components/marketing/proven-results";
-import { NotGeneric } from "@/components/marketing/not-generic";
+import { HowItWorks } from "@/components/marketing/how-it-works";
 import { StackedFeatures } from "@/components/marketing/stacked-features";
 import { DesignedFor } from "@/components/marketing/designed-for";
+import { AgentShowcase } from "@/components/marketing/agent-showcase";
 import { Cta } from "@/components/marketing/cta";
+import { Footer } from "@/components/marketing/footer";
 
 export const metadata = {
   title: "Profluencer — Creator Growth Platform",
@@ -47,10 +49,12 @@ export default async function HomePage() {
     <main className="bg-ink-900">
       <Hero />
       <ProvenResults />
-      <NotGeneric />
+      <HowItWorks />
       <StackedFeatures />
       <DesignedFor />
+      <AgentShowcase />
       <Cta />
+      <Footer />
     </main>
   );
 }
