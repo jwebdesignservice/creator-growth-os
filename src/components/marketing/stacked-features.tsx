@@ -528,6 +528,7 @@ const EVENTS: {
   title: string;
   host: string;
   role: string;
+  img: string;
   when: string;
   format: string;
   status: { tone: Tone; label: string };
@@ -537,6 +538,7 @@ const EVENTS: {
     title: "Hooks Masterclass",
     host: "Sophie Carter",
     role: "Growth Coach",
+    img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=160&q=80",
     when: "Tue · 6:00 PM",
     format: "Live workshop",
     status: { tone: "green", label: "Live now" },
@@ -546,6 +548,7 @@ const EVENTS: {
     title: "Q&A: Going Viral",
     host: "Marcus Lee",
     role: "Creator, 240K",
+    img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80",
     when: "Thu · 5:00 PM",
     format: "Open AMA",
     status: { tone: "gold", label: "Upcoming" },
@@ -553,41 +556,119 @@ const EVENTS: {
   },
 ];
 
+/* Event host avatar — a real photo with a premium gradient-initials fallback
+   (so a missing image degrades cleanly, never to a broken icon), a soft ring
+   + shadow, and a glowing "live" status dot for events happening now. */
+function HostAvatar({
+  name,
+  src,
+  size = 62,
+  live,
+}: {
+  name: string;
+  src?: string;
+  size?: number;
+  live?: boolean;
+}) {
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const grads = [
+    "from-rose-400 to-rose-600",
+    "from-emerald-400 to-emerald-600",
+    "from-amber-400 to-amber-600",
+    "from-sky-400 to-sky-600",
+    "from-violet-400 to-violet-600",
+  ];
+  const g = grads[name.charCodeAt(0) % grads.length];
+  return (
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      <span
+        className={cn(
+          "absolute inset-0 flex items-center justify-center overflow-hidden rounded-full bg-gradient-to-br font-semibold text-white shadow-[0_12px_26px_-10px_rgba(0,0,0,0.85)] ring-1 ring-white/15",
+          g,
+        )}
+        style={{ fontSize: size * 0.34 }}
+      >
+        {initials}
+        {src && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt=""
+            className="absolute inset-0 size-full rounded-full object-cover"
+          />
+        )}
+      </span>
+      {/* subtle outer ring to seat the avatar on the card surface */}
+      <span aria-hidden className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10" />
+      {live && (
+        <span className="absolute bottom-0 right-0 grid size-[15px] place-items-center rounded-full bg-ink-900">
+          <span className="size-[9px] rounded-full bg-emerald-400 shadow-[0_0_8px_1px_rgba(52,211,153,0.8)]" />
+        </span>
+      )}
+    </span>
+  );
+}
+
 function EventsMock() {
   return (
     <Panel title="Events" right={<Pill tone="rose">2 this week</Pill>}>
-      <div className="grid grid-cols-2 gap-3.5 border-t border-white/10 p-4">
+      <div className="grid grid-cols-2 gap-4 border-t border-white/10 p-5">
         {EVENTS.map((e) => (
           <div
             key={e.title}
-            className="rounded-[16px] border border-white/10 bg-white/[0.03] p-5"
+            className="relative overflow-hidden rounded-[18px] bg-gradient-to-b from-white/[0.07] to-white/[0.015] p-6 ring-1 ring-inset ring-white/[0.08] shadow-[0_24px_50px_-32px_rgba(0,0,0,0.9)]"
           >
-            <div className="flex flex-col items-center text-center">
-              <MockAvatar name={e.host} size={56} />
-              <div className="mt-3 text-[15px] font-bold text-white">
+            {/* glassy top highlight — seats the card on the panel surface */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
+            />
+
+            {/* header — avatar + title + host */}
+            <div className="relative flex flex-col items-center text-center">
+              <HostAvatar
+                name={e.host}
+                src={e.img}
+                size={62}
+                live={e.status.tone === "green"}
+              />
+              <div className="mt-3.5 text-[15.5px] font-bold tracking-[-0.01em] text-white">
                 {e.title}
               </div>
-              <div className="text-[12px] text-white/40">
+              <div className="mt-1 text-[12px] text-white/45">
                 {e.host} · {e.role}
               </div>
             </div>
-            <div className="mt-5 space-y-3.5">
-              <StatRow label="When" icon={CalendarClock}>
-                <span className="text-[13px] font-medium text-white">
-                  {e.when}
-                </span>
-              </StatRow>
-              <StatRow label="Format" icon={Radio}>
-                <span className="text-[13px] font-medium text-white">
-                  {e.format}
-                </span>
-              </StatRow>
-              <StatRow label="Status" icon={Users}>
-                <span className="flex flex-col items-end gap-1.5">
-                  <Pill tone={e.status.tone}>{e.status.label}</Pill>
-                  <Pill tone="green">{e.going}</Pill>
-                </span>
-              </StatRow>
+
+            {/* detail rows — hairline-divided, like the reference */}
+            <div className="relative mt-5 divide-y divide-white/[0.07]">
+              <div className="py-3 first:pt-0 last:pb-0">
+                <StatRow label="When" icon={CalendarClock}>
+                  <span className="text-[13px] font-medium text-white">
+                    {e.when}
+                  </span>
+                </StatRow>
+              </div>
+              <div className="py-3 first:pt-0 last:pb-0">
+                <StatRow label="Format" icon={Radio}>
+                  <span className="text-[13px] font-medium text-white">
+                    {e.format}
+                  </span>
+                </StatRow>
+              </div>
+              <div className="py-3 first:pt-0 last:pb-0">
+                <StatRow label="Status" icon={Users}>
+                  <span className="flex flex-col items-end gap-1.5">
+                    <Pill tone={e.status.tone}>{e.status.label}</Pill>
+                    <Pill tone="green">{e.going}</Pill>
+                  </span>
+                </StatRow>
+              </div>
             </div>
           </div>
         ))}
