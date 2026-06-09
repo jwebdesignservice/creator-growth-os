@@ -1,32 +1,23 @@
 /*
  * Marketing / landing page at "/".
  *
- * Two reasons this isn't a pure redirect:
- *   1. Google's OAuth verification cross-checks the OAuth consent app name
- *      ("Profluencer") against what's actually rendered on the homepage URL.
- *      A bare redirect leaves nothing for their crawler to find and trips a
- *      "homepage doesn't match app name" failure during branding review.
- *      The "Profluencer" wordmark in <SiteHeader> keeps that check passing.
- *   2. Random visitors who hit the bare domain deserve a real surface — nav,
- *      a headline, clear CTAs — not a forced bounce to a login form.
+ * Renders the marketing hero. It isn't a pure redirect because:
+ *   1. Google's OAuth verification cross-checks the consent app name
+ *      ("Profluencer") against what's rendered on the homepage URL — the
+ *      "Profluencer" wordmark in the hero nav keeps that check passing.
+ *   2. Anonymous visitors deserve a real surface, not a forced login bounce.
  *
- * Signed-in users still skip the marketing surface and land straight on
- * /dashboard. Built section by section; this is the hero.
+ * Signed-in users skip the marketing surface and land on /dashboard.
  */
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SiteHeader } from "@/components/marketing/site-header";
 import { Hero } from "@/components/marketing/hero";
-import { TrustedBy } from "@/components/marketing/trusted-by";
-import { FeaturesGrid } from "@/components/marketing/features-grid";
-import { ServicesGrid } from "@/components/marketing/services-grid";
-import { FeatureShowcase } from "@/components/marketing/feature-showcase";
-import { Integrations } from "@/components/marketing/integrations";
-import { ProgramsTutorials } from "@/components/marketing/programs-tutorials";
-import { Pricing } from "@/components/marketing/pricing";
+import { ProvenResults } from "@/components/marketing/proven-results";
+import { NotGeneric } from "@/components/marketing/not-generic";
+import { StackedFeatures } from "@/components/marketing/stacked-features";
+import { DesignedFor } from "@/components/marketing/designed-for";
 import { Cta } from "@/components/marketing/cta";
-import { Footer } from "@/components/marketing/footer";
 
 export const metadata = {
   title: "Profluencer — Creator Growth Platform",
@@ -53,18 +44,13 @@ export default async function HomePage() {
   if (user) redirect("/dashboard");
 
   return (
-    <main className="flex min-h-screen flex-col bg-cream-50 text-ink-900">
-      <SiteHeader />
+    <main className="bg-ink-900">
       <Hero />
-      <TrustedBy />
-      <FeaturesGrid />
-      <ServicesGrid />
-      <FeatureShowcase />
-      <ProgramsTutorials />
-      <Integrations />
-      <Pricing />
+      <ProvenResults />
+      <NotGeneric />
+      <StackedFeatures />
+      <DesignedFor />
       <Cta />
-      <Footer />
     </main>
   );
 }
