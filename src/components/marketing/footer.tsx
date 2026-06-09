@@ -93,10 +93,18 @@ export function Footer() {
       <div className="relative mx-auto max-w-[1600px] px-6 sm:px-9">
         {/* ── TOP: statement · nav columns · utility ───────────────── */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-12 pt-[clamp(4.5rem,9vw,7.5rem)] sm:grid-cols-3 lg:grid-cols-[minmax(220px,1.7fr)_repeat(3,minmax(110px,1fr))_auto] lg:gap-x-[clamp(28px,3vw,56px)]">
-          <p className="col-span-2 max-w-[300px] text-[14px] leading-relaxed text-white/50 sm:col-span-3 lg:col-span-1">
-            The creator growth platform — plan, post and track every platform
-            from one workspace.
-          </p>
+          <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <BrandMark size={24} className="text-white" />
+              <span className="text-[19px] font-bold tracking-tight text-white">
+                Profluencer
+              </span>
+            </Link>
+            <p className="mt-5 max-w-[300px] text-[14px] leading-relaxed text-white/50">
+              The creator growth platform — plan, post and track every platform
+              from one workspace.
+            </p>
+          </div>
 
           <FooterColumn title="Product" links={PRODUCT} />
           <FooterColumn title="Company" links={COMPANY} />
