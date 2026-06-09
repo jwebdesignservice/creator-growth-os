@@ -1,14 +1,24 @@
 "use client";
 
-import { useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  useRef,
+  useState,
+  useTransition,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  Camera,
   Check,
   CheckCircle2,
   ExternalLink,
+  Hash,
   Info,
   LifeBuoy,
+  Lightbulb,
+  Loader2,
   Lock,
   Mail,
   Plus,
@@ -25,7 +35,12 @@ import {
   YoutubeIcon,
 } from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
-import { saveCreatorInfo, saveProfileSettings } from "./actions";
+import {
+  saveAvatarUrl,
+  saveBannerUrl,
+  saveCreatorInfo,
+  saveProfileSettings,
+} from "./actions";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -39,6 +54,7 @@ type ProfileRow = {
   email: string;
   phone: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
   category: string;
   plan: Plan;
   follower_base: string | null;
@@ -65,7 +81,7 @@ const PLATFORMS = [
 ] as const;
 
 const PLAN_META: Record<Plan, { label: string; cls: string }> = {
-  free:  { label: "Free plan",  cls: "bg-cream-200 text-ink-600 border border-ink-200" },
+  free:  { label: "Free plan",  cls: "bg-cream-200 text-ink-500 border border-ink-200" },
   basic: { label: "Basic plan", cls: "bg-rose-100 text-rose-700" },
   pro:   { label: "Pro plan",   cls: "bg-amber-100 text-amber-800" },
 };
@@ -85,6 +101,24 @@ const CATEGORY_OPTIONS = [
   { value: "growth",       label: "Growth Creator"       },
   { value: "monetization", label: "Monetization Creator" },
   { value: "scale",        label: "Scale Creator"        },
+];
+
+// Quick-add chips offered under the content-pillar input.
+const SUGGESTED_PILLARS = [
+  "lifestyle",
+  "fitness",
+  "style",
+  "skincare",
+  "travel",
+  "motivation",
+];
+
+// Inline writing guidance toggled by the bio "Tips" button.
+const BIO_TIPS = [
+  "Be clear and authentic",
+  "Highlight your value",
+  "Include keywords",
+  "Keep it concise",
 ];
 
 /** Builds a correct public profile URL per platform (handles the `@` quirks). */
@@ -111,14 +145,7 @@ function socialProfileUrl(platform: string, handle: string): string | null {
 export function SettingsPageClient({ profile, pillars, emailVerified }: Props) {
   return (
     <PageShell>
-      <div className="max-w-[var(--container-content)] space-y-5 sm:space-y-6">
-        <header>
-          <h1 className="text-page-title text-ink-900">Profile settings</h1>
-          <p className="text-[14px] text-ink-500 mt-1">
-            Manage your personal details, creator brand, and account security.
-          </p>
-        </header>
-
+      <div className="w-full">
         <ProfileCard profile={profile} />
         <CreatorBrandCard profile={profile} initialPillars={pillars} />
         <SecurityCard profile={profile} emailVerified={emailVerified} />
@@ -128,13 +155,96 @@ export function SettingsPageClient({ profile, pillars, emailVerified }: Props) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Flat, full-width section row — label + description on the left, controls on
+// the right, divided from the previous section by a hairline. (Mirrors the
+// Untitled-UI settings layout, in our rose / ink / cream language.)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SettingRow({
+  title,
+  description,
+  meta,
+  children,
+}: {
+  title: string;
+  description?: string;
+  meta?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="grid grid-cols-1 gap-x-10 gap-y-4 border-t border-ink-100 py-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:py-8">
+      <div className="lg:max-w-[260px]">
+        <h2 className="text-[15px] font-semibold leading-tight text-ink-900">
+          {title}
+        </h2>
+        {description && (
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
+            {description}
+          </p>
+        )}
+        {meta}
+      </div>
+      <div className="lg:max-w-[680px]">{children}</div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. Personal details
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Upload an image to the signed-in user's own folder in the public
+// `community-media` bucket and return its public URL. Shared by the avatar and
+// the cover banner; `prefix` keeps the two sets of files apart.
+async function uploadUserImage(
+  file: File,
+  prefix: "avatar" | "banner",
+): Promise<{ url: string } | { error: string }> {
+  if (!file.type.startsWith("image/")) {
+    return { error: "Please choose an image file." };
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return { error: "Image must be under 5MB." };
+  }
+  const { createClient } = await import("@/lib/supabase/client");
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You're not signed in." };
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const path = `${user.id}/${prefix}-${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage
+    .from("community-media")
+    .upload(path, file, { cacheControl: "3600", upsert: true });
+  if (upErr) {
+    return {
+      error: /bucket not found/i.test(upErr.message)
+        ? "The 'community-media' storage bucket is missing."
+        : upErr.message,
+    };
+  }
+  const { data } = supabase.storage.from("community-media").getPublicUrl(path);
+  return { url: data.publicUrl };
+}
 
 function ProfileCard({ profile }: { profile: ProfileRow }) {
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [followerBase, setFollowerBase] = useState(profile?.follower_base ?? "");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    profile?.avatar_url ?? null,
+  );
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(
+    profile?.banner_url ?? null,
+  );
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerErr, setBannerErr] = useState<string | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -146,6 +256,12 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
       : null;
 
   const planMeta = PLAN_META[profile?.plan ?? "free"];
+  const categoryLabel =
+    CATEGORY_OPTIONS.find((o) => o.value === (profile?.category ?? "starter"))
+      ?.label ?? "Creator";
+  const followerLabel =
+    FOLLOWER_OPTIONS.find((o) => o.value === followerBase && o.value)?.label ??
+    null;
 
   function handleSave() {
     setError(null);
@@ -164,31 +280,155 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
     });
   }
 
-  return (
-    <section className="card p-5 sm:p-6">
-      <h2 className="text-h4 text-ink-900 mb-5">Personal details</h2>
+  // Profile photo + cover banner uploads. Both push to community-media via the
+  // shared helper, then persist the resulting URL to its matching column.
+  async function onAvatarSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadErr(null);
+    setUploading(true);
+    try {
+      const res = await uploadUserImage(file, "avatar");
+      if ("error" in res) {
+        setUploadErr(res.error);
+        return;
+      }
+      const saved = await saveAvatarUrl(res.url);
+      if (!saved.ok) {
+        setUploadErr(saved.error ?? "Couldn't save your photo.");
+        return;
+      }
+      setAvatarUrl(res.url);
+    } finally {
+      setUploading(false);
+    }
+  }
 
-      <div className="flex flex-col sm:flex-row gap-6">
-        {/* Identity */}
-        <div className="flex flex-col items-center text-center shrink-0 w-full sm:w-[140px]">
-          <div className="size-[96px] rounded-full overflow-hidden border-[3px] border-white shadow-md">
-            {profile?.avatar_url ? (
+  async function onBannerSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBannerErr(null);
+    setBannerUploading(true);
+    try {
+      const res = await uploadUserImage(file, "banner");
+      if ("error" in res) {
+        setBannerErr(res.error);
+        return;
+      }
+      const saved = await saveBannerUrl(res.url);
+      if (!saved.ok) {
+        setBannerErr(saved.error ?? "Couldn't save your banner.");
+        return;
+      }
+      setBannerUrl(res.url);
+    } finally {
+      setBannerUploading(false);
+    }
+  }
+
+  return (
+    <>
+    {/* ── Profile header — cover banner + overlapping avatar (flat) ── */}
+    <section>
+      {/* Cover banner — full-bleed: negate the PageShell page padding so it
+          spans edge-to-edge and pulls flush to the top, under the topbar. */}
+      <div className="relative h-40 overflow-hidden bg-gradient-to-br from-rose-200 via-rose-100 to-cream-200 [margin-inline:calc(var(--mobile-content-x)_*_-1)] [margin-top:calc(var(--mobile-content-y)_*_-1)] sm:h-48 lg:[margin-inline:calc(var(--space-page-x)_*_-1)] lg:[margin-top:calc(var(--space-page-y)_*_-1)]">
+        {bannerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={bannerUrl}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+          />
+        ) : (
+          <>
+            <span aria-hidden className="pointer-events-none absolute -right-8 -top-12 size-44 rounded-full bg-white/25 blur-2xl" />
+            <span aria-hidden className="pointer-events-none absolute left-1/3 top-8 size-28 rounded-full bg-rose-300/25 blur-2xl" />
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => bannerInputRef.current?.click()}
+          disabled={bannerUploading}
+          className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white/85 hover:bg-white text-ink-700 text-[12.5px] font-semibold shadow-sm backdrop-blur-sm transition-colors disabled:opacity-70"
+        >
+          {bannerUploading ? (
+            <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+          ) : (
+            <Camera className="size-4" strokeWidth={2} />
+          )}
+          {bannerUploading ? "Uploading…" : "Change cover"}
+        </button>
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={onBannerSelect}
+          className="hidden"
+        />
+        {bannerErr && (
+          <span className="absolute left-3 bottom-3 z-10 rounded-md bg-white/90 px-2 py-1 text-[11.5px] text-rose-600 shadow-sm">
+            {bannerErr}
+          </span>
+        )}
+      </div>
+
+      {/* Profile header — large avatar overlapping the banner */}
+      <div className="pb-6">
+        <div className="-mt-14 mb-3 w-fit relative z-10">
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={uploading}
+            aria-label="Change profile photo"
+            className="group relative block size-28 rounded-full overflow-hidden border-4 border-white shadow-md bg-cream-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2"
+          >
+            {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={profile.avatar_url}
+                src={avatarUrl}
                 alt={fullName || "Profile photo"}
                 className="size-full object-cover"
               />
             ) : (
-              <Avatar name={fullName || "U"} size={96} />
+              <Avatar name={fullName || "U"} size={112} />
             )}
-          </div>
-          <div className="mt-3 text-[14px] font-semibold text-ink-900 leading-tight break-words max-w-full">
+            <span
+              className={cn(
+                "absolute inset-0 flex items-center justify-center bg-ink-900/45 text-white transition-opacity",
+                uploading ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              )}
+            >
+              {uploading ? (
+                <Loader2 className="size-6 animate-spin" strokeWidth={2} />
+              ) : (
+                <Camera className="size-6" strokeWidth={2} />
+              )}
+            </span>
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={onAvatarSelect}
+            className="hidden"
+          />
+          {uploadErr && (
+            <p className="mt-2 text-[12px] text-rose-600 max-w-[180px] leading-snug">
+              {uploadErr}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h2 className="text-h3 sm:text-[26px] text-ink-900 leading-tight">
             {fullName || "Your name"}
-          </div>
+          </h2>
           <span
             className={cn(
-              "mt-2 inline-flex items-center h-[22px] px-2.5 rounded-full text-[11px] font-semibold",
+              "inline-flex items-center h-[22px] px-2.5 rounded-full text-[11px] font-semibold",
               planMeta.cls,
             )}
           >
@@ -196,9 +436,34 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
           </span>
         </div>
 
-        {/* Form */}
-        <div className="flex-1 min-w-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <p className="text-[14px] text-ink-700 mt-1">{categoryLabel}</p>
+
+        <div className="mt-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap text-[12.5px] text-ink-500">
+          {followerLabel && <span>{followerLabel} followers</span>}
+          {followerLabel && handleUrl && (
+            <span aria-hidden className="text-ink-300">·</span>
+          )}
+          {handleUrl && (
+            <a
+              href={handleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 max-w-full text-rose-600 hover:text-rose-700 font-medium transition-colors"
+            >
+              <span className="truncate">{handleUrl.replace(/^https:\/\//, "")}</span>
+              <ExternalLink className="size-3 shrink-0" strokeWidth={2} />
+            </a>
+          )}
+        </div>
+      </div>
+    </section>
+
+    {/* ── Personal details ──────────────────────────────────────── */}
+    <SettingRow
+      title="Personal details"
+      description="Your name, contact and audience size."
+    >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Full name"
               name="full_name"
@@ -298,9 +563,8 @@ function ProfileCard({ profile }: { profile: ProfileRow }) {
               )}
             </Button>
           </div>
-        </div>
-      </div>
-    </section>
+    </SettingRow>
+    </>
   );
 }
 
@@ -326,10 +590,12 @@ function CreatorBrandCard({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const pillarInputRef = useRef<HTMLInputElement>(null);
+  const [showTips, setShowTips] = useState(true);
 
   const BIO_LIMIT = 250;
   const PILLAR_LIMIT = 6;
   const pillarsFull = pillars.length >= PILLAR_LIMIT;
+  const suggestions = SUGGESTED_PILLARS.filter((s) => !pillars.includes(s));
 
   function addPillar() {
     const trimmed = newPillar.trim();
@@ -337,6 +603,12 @@ function CreatorBrandCard({
       setPillars([...pillars, trimmed]);
       setNewPillar("");
       pillarInputRef.current?.focus();
+    }
+  }
+
+  function addSuggested(label: string) {
+    if (!pillars.includes(label) && !pillarsFull) {
+      setPillars([...pillars, label]);
     }
   }
 
@@ -363,15 +635,22 @@ function CreatorBrandCard({
   }
 
   return (
-    <section className="card p-5 sm:p-6">
-      <h2 className="text-h4 text-ink-900 mb-5">Creator brand</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
-        {/* Left column */}
-        <div className="space-y-5">
+    <>
+    <SettingRow
+      title="Creator brand"
+      description="Your content pillars and creator bio."
+      meta={
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center px-2 h-6 rounded-full bg-rose-50 text-rose-700 text-[11.5px] font-semibold">
+            {pillars.length}/{PILLAR_LIMIT} pillars
+          </span>
+        </div>
+      }
+    >
+      <div className="space-y-5">
           {/* Content pillars */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <label className="block text-[13px] font-semibold text-ink-700">
                 Content pillars
               </label>
@@ -379,8 +658,11 @@ function CreatorBrandCard({
                 {pillars.length}/{PILLAR_LIMIT}
               </span>
             </div>
+            <p className="mb-2.5 text-[12px] leading-relaxed text-ink-500">
+              The core topics and themes you consistently create around.
+            </p>
             {pillars.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
+              <div className="flex flex-wrap gap-2 mb-2.5">
                 {pillars.map((p) => (
                   <span
                     key={p}
@@ -400,56 +682,143 @@ function CreatorBrandCard({
               </div>
             )}
             <div className="flex items-center gap-2">
-              <input
-                ref={pillarInputRef}
-                type="text"
-                placeholder={pillarsFull ? "Pillar limit reached" : "Add a pillar…"}
-                value={newPillar}
-                disabled={pillarsFull}
-                onChange={(e) => setNewPillar(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addPillar();
-                  }
-                }}
-                className="h-9 flex-1 px-3 text-[12.5px] rounded-[10px] bg-cream-50 border border-ink-100 focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-100 placeholder:text-ink-300 disabled:opacity-60"
-              />
+              <div className="relative flex-1">
+                <Hash
+                  aria-hidden
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-300"
+                  strokeWidth={2}
+                />
+                <input
+                  ref={pillarInputRef}
+                  type="text"
+                  placeholder={pillarsFull ? "Pillar limit reached" : "Add a content pillar…"}
+                  value={newPillar}
+                  disabled={pillarsFull}
+                  onChange={(e) => setNewPillar(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addPillar();
+                    }
+                  }}
+                  className="h-11 w-full pl-9 pr-3 text-[13px] rounded-[10px] bg-cream-50 border border-ink-100 focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-100 placeholder:text-ink-300 disabled:opacity-60"
+                />
+              </div>
               <button
                 type="button"
                 onClick={addPillar}
                 disabled={!newPillar.trim() || pillarsFull}
-                className="inline-flex items-center gap-1 h-9 px-3 rounded-[10px] bg-white border border-ink-200 text-[12.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1 h-11 px-3.5 rounded-[10px] bg-white border border-ink-200 text-[13px] font-medium text-ink-700 hover:bg-cream-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus className="size-3.5" strokeWidth={2.5} />
                 Add
               </button>
             </div>
+
+            {/* Suggested pillars — click to add (hidden once added or full) */}
+            {!pillarsFull && suggestions.length > 0 && (
+              <div className="mt-3">
+                <div className="mb-2 flex items-center gap-1.5">
+                  <span className="text-[12.5px] font-semibold text-ink-700">
+                    Suggested pillars
+                  </span>
+                  <Info className="size-3.5 text-ink-300" strokeWidth={2} />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => addSuggested(s)}
+                      className="inline-flex items-center h-8 px-3 rounded-full bg-cream-100 border border-ink-100 text-[12.5px] font-medium text-ink-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bio */}
           <div>
-            <label className="block text-[13px] font-semibold text-ink-700 mb-2">
-              Bio / creator description
-            </label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="block text-[13px] font-semibold text-ink-700">
+                Bio / creator description
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowTips((v) => !v)}
+                aria-pressed={showTips}
+                className={cn(
+                  "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[8px] border text-[12px] font-medium transition-colors",
+                  showTips
+                    ? "bg-rose-50 border-rose-200 text-rose-700"
+                    : "bg-white border-ink-200 text-ink-600 hover:bg-cream-100",
+                )}
+              >
+                <Lightbulb className="size-3.5" strokeWidth={2} />
+                Tips
+              </button>
+            </div>
+            <p className="mb-2.5 text-[12px] leading-relaxed text-ink-500">
+              Tell your audience who you are, what you create, and what to expect.
+            </p>
             <div className="relative">
               <textarea
                 rows={4}
                 maxLength={BIO_LIMIT}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell your audience who you are and what you create…"
+                placeholder="Write a short, catchy bio that describes you and your content…"
                 className="w-full px-3.5 py-3 text-[13px] text-ink-900 rounded-[12px] border border-ink-100 bg-white resize-none focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 placeholder:text-ink-300 leading-relaxed"
               />
               <span className="absolute bottom-2.5 right-3 text-[11px] text-ink-400 tabular-nums">
                 {bio.length}/{BIO_LIMIT}
               </span>
             </div>
+            {showTips && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px]">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-ink-700">
+                  <CheckCircle2 className="size-3.5 text-rose-500" strokeWidth={2} />
+                  Best practices
+                </span>
+                {BIO_TIPS.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1.5 text-ink-500"
+                  >
+                    <Check className="size-3.5 text-emerald-500" strokeWidth={2.5} />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+      </div>
+    </SettingRow>
 
-        {/* Right column */}
-        <div className="space-y-5">
+    <SettingRow
+      title="Platform & audience"
+      description="Your primary platform and niche focus."
+      meta={
+        platform || niche.trim() ? (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {platform && (
+              <span className="inline-flex items-center px-2 h-6 rounded-full bg-cream-100 text-ink-500 text-[11.5px] font-medium capitalize">
+                {PLATFORMS.find((p) => p.key === platform)?.label ?? platform}
+              </span>
+            )}
+            {niche.trim() && (
+              <span className="inline-flex items-center px-2 h-6 rounded-full bg-cream-100 text-ink-500 text-[11.5px] font-medium truncate max-w-[180px]">
+                {niche.trim()}
+              </span>
+            )}
+          </div>
+        ) : undefined
+      }
+    >
+      <div className="space-y-5">
           {/* Primary platform */}
           <div>
             <label className="block text-[13px] font-semibold text-ink-700 mb-2">
@@ -497,7 +866,6 @@ function CreatorBrandCard({
             />
           </div>
         </div>
-      </div>
 
       {/* Save */}
       <div className="flex items-center justify-between gap-3 mt-5 pt-5 border-t border-ink-100 flex-wrap sm:flex-nowrap">
@@ -527,7 +895,8 @@ function CreatorBrandCard({
           )}
         </Button>
       </div>
-    </section>
+    </SettingRow>
+    </>
   );
 }
 
@@ -600,12 +969,25 @@ function SecurityCard({
   }
 
   return (
-    <section className="card p-5 sm:p-6">
-      <h2 className="text-h4 text-ink-900 mb-1">Security</h2>
-      <p className="text-[13px] text-ink-500 mb-4">
-        Keep your account secure and review account access.
-      </p>
-
+    <SettingRow
+      title="Security"
+      description="Keep your account secure and review account access."
+      meta={
+        <div className="mt-3">
+          {emailVerified ? (
+            <span className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-emerald-50 text-emerald-700 text-[11.5px] font-semibold">
+              <CheckCircle2 className="size-3.5" strokeWidth={2.4} />
+              Email verified
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-amber-50 text-amber-700 text-[11.5px] font-semibold">
+              <Mail className="size-3.5" strokeWidth={2.2} />
+              Email not verified
+            </span>
+          )}
+        </div>
+      }
+    >
       <div className="divide-y divide-ink-100">
         {/* Password */}
         <div className="py-4 first:pt-0">
@@ -615,7 +997,7 @@ function SecurityCard({
                 <Lock className="size-4 text-ink-500" strokeWidth={1.8} />
               </RowIcon>
               <div className="min-w-0">
-                <div className="text-[13.5px] font-medium text-ink-800">
+                <div className="text-[13.5px] font-medium text-ink-900">
                   Password
                 </div>
                 <div className="text-[12px] text-ink-500">
@@ -679,7 +1061,7 @@ function SecurityCard({
                 <Mail className="size-4 text-ink-500" strokeWidth={1.8} />
               </RowIcon>
               <div className="min-w-0">
-                <div className="text-[13.5px] font-medium text-ink-800">
+                <div className="text-[13.5px] font-medium text-ink-900">
                   Email verification
                 </div>
                 <div className="text-[12px] text-ink-500 truncate">
@@ -725,7 +1107,7 @@ function SecurityCard({
               <LifeBuoy className="size-4 text-ink-500" strokeWidth={1.8} />
             </RowIcon>
             <div className="min-w-0">
-              <div className="text-[13.5px] font-medium text-ink-800">
+              <div className="text-[13.5px] font-medium text-ink-900">
                 Support tickets
               </div>
               <div className="text-[12px] text-ink-500">
@@ -744,7 +1126,7 @@ function SecurityCard({
           </div>
         </Link>
       </div>
-    </section>
+    </SettingRow>
   );
 }
 
