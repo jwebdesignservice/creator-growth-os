@@ -18,17 +18,16 @@ type Niche = { name: string; tag: string; img: string };
 const U =
   "?auto=format&fit=crop&w=900&q=80";
 
+// The six biggest, most brand-monetised, most platform-native creator verticals
+// — where Profluencer's multi-platform planning, performance and growth tooling
+// delivers the most. Trimmed from a longer list at the user's request.
 const NICHES: Niche[] = [
   { name: "Lifestyle & vlogging", tag: "Lifestyle", img: `https://images.unsplash.com/photo-1517245386807-bb43f82c33c4${U}` },
   { name: "Fashion & beauty",     tag: "Style",     img: `https://images.unsplash.com/photo-1483985988355-763728e1935b${U}` },
   { name: "Fitness & wellness",   tag: "Health",    img: `https://images.unsplash.com/photo-1534438327276-14e5300c3a48${U}` },
   { name: "Food & cooking",       tag: "Culinary",  img: `https://images.unsplash.com/photo-1504674900247-0877df9cc836${U}` },
-  { name: "Gaming & esports",     tag: "Gaming",    img: `https://images.unsplash.com/photo-1542751371-adc38448a05e${U}` },
-  { name: "Tech & reviews",       tag: "Tech",      img: `https://images.unsplash.com/photo-1531297484001-80022131f5a1${U}` },
   { name: "Travel & adventure",   tag: "Travel",    img: `https://images.unsplash.com/photo-1501785888041-af3ef285b470${U}` },
-  { name: "Education & how-to",   tag: "Learning",  img: `https://images.unsplash.com/photo-1522202176988-66273c2fd55f${U}` },
-  { name: "Business & finance",   tag: "Business",  img: `https://images.unsplash.com/photo-1460925895917-afdab827c52f${U}` },
-  { name: "Music & performance",  tag: "Music",     img: `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4${U}` },
+  { name: "Gaming & esports",     tag: "Gaming",    img: `https://images.unsplash.com/photo-1542751371-adc38448a05e${U}` },
 ];
 
 export function DesignedFor() {
@@ -75,7 +74,7 @@ export function DesignedFor() {
         }}
       />
 
-      <div className="relative mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-y-12 px-6 py-16 sm:px-10 sm:py-20 lg:grid-cols-[200px_1fr_400px] lg:gap-x-14 lg:gap-y-0 lg:px-12 lg:py-[clamp(4rem,6vw,7rem)]">
+      <div className="relative mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-y-12 px-6 pt-16 pb-28 sm:px-10 sm:pt-20 sm:pb-36 lg:grid-cols-[200px_1fr_400px] lg:gap-x-14 lg:gap-y-0 lg:px-12 lg:pt-[clamp(4rem,6vw,7rem)] lg:pb-[clamp(7rem,11vw,12rem)]">
 
         {/* ── Left: supportive label ─────────────────────────────────── */}
         <div className="reveal-up self-start lg:sticky lg:top-24">
