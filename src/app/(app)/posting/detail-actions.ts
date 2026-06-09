@@ -14,6 +14,14 @@ export type PostingItemDetail = {
   scheduled_for: string | null;
   platform: string | null;
   content_type: string | null;
+  /** Spread across pipeline phases (true) vs a single day (false). */
+  is_phased: boolean;
+};
+
+/** One scheduled production phase of a post (a pipeline stage on a given day). */
+export type PostingItemPhase = {
+  stage: ContentStatus;
+  scheduled_for: string | null;
 };
 
 /**
@@ -33,11 +41,15 @@ export async function getPostingItemDetail(
 
   let res = await supabase
     .from("posting_plan_items")
-    .select("topic, goal, notes, status, scheduled_for, platform, content_type")
+    .select(
+      "topic, goal, notes, status, scheduled_for, platform, content_type, is_phased",
+    )
     .eq("id", itemId)
     .eq("user_id", user.id)
     .maybeSingle();
   if (res.error?.code === "42703") {
+    // goal/notes (0042) or is_phased (0055) columns not applied yet — retry
+    // with the core columns so the popup still opens.
     res = await supabase
       .from("posting_plan_items")
       .select("topic, status, scheduled_for, platform, content_type")
@@ -56,7 +68,129 @@ export async function getPostingItemDetail(
     scheduled_for: (d.scheduled_for as string | null) ?? null,
     platform: (d.platform as string | null) ?? null,
     content_type: (d.content_type as string | null) ?? null,
+    is_phased: (d.is_phased as boolean | null) ?? false,
   };
+}
+
+/** All scheduled phases for a post (empty if none / table not applied yet). */
+export async function getPostingItemPhases(
+  itemId: string,
+): Promise<PostingItemPhase[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("posting_item_phases")
+    .select("stage, scheduled_for")
+    .eq("item_id", itemId)
+    .eq("user_id", user.id);
+  if (error || !data) return [];
+
+  return data.map((r) => ({
+    stage: (r as { stage: ContentStatus }).stage,
+    scheduled_for:
+      ((r as { scheduled_for: string | null }).scheduled_for) ?? null,
+  }));
+}
+
+/**
+ * Save a post's production schedule: the single-day vs phased flag plus, when
+ * phased, the per-stage dates (only stages with a date are stored). Replaces
+ * the post's phase rows wholesale. When phased, the post's primary
+ * `scheduled_for` is re-anchored to its "Posted" phase (or the latest phase) so
+ * it still places on the calendar. Degrades gracefully pre-migration.
+ */
+export async function savePostingItemPhases(
+  itemId: string,
+  input: {
+    isPhased: boolean;
+    phases: PostingItemPhase[];
+  },
+): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  // Ownership check.
+  const { data: item, error: itemErr } = await supabase
+    .from("posting_plan_items")
+    .select("id")
+    .eq("id", itemId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (itemErr || !item) {
+    return { ok: false, error: itemErr?.message ?? "Post not found." };
+  }
+
+  // Flip the flag (ignore if the column isn't there yet).
+  const { error: flagErr } = await supabase
+    .from("posting_plan_items")
+    .update({ is_phased: input.isPhased })
+    .eq("id", itemId)
+    .eq("user_id", user.id);
+  if (flagErr && flagErr.code !== "42703") {
+    return { ok: false, error: flagErr.message };
+  }
+
+  // Replace phase rows: clear, then insert the dated ones.
+  const { error: delErr } = await supabase
+    .from("posting_item_phases")
+    .delete()
+    .eq("item_id", itemId)
+    .eq("user_id", user.id);
+  if (delErr && delErr.code !== "42P01") {
+    return { ok: false, error: delErr.message };
+  }
+
+  if (input.isPhased) {
+    const rows = input.phases
+      .filter((p) => p.scheduled_for)
+      .map((p) => ({
+        item_id: itemId,
+        user_id: user.id,
+        stage: p.stage,
+        scheduled_for: p.scheduled_for,
+      }));
+
+    if (rows.length > 0) {
+      const { error: insErr } = await supabase
+        .from("posting_item_phases")
+        .insert(rows);
+      if (insErr) {
+        if (insErr.code === "42P01") {
+          return {
+            ok: false,
+            error: "Phases aren't enabled yet — apply migration 0055.",
+          };
+        }
+        return { ok: false, error: insErr.message };
+      }
+
+      // Anchor the post's primary date to the publish phase (or the latest).
+      const posted = rows.find((r) => r.stage === "posted");
+      const anchor =
+        posted?.scheduled_for ??
+        [...rows]
+          .map((r) => r.scheduled_for as string)
+          .sort()
+          .at(-1);
+      if (anchor) {
+        await supabase
+          .from("posting_plan_items")
+          .update({ scheduled_for: anchor })
+          .eq("id", itemId)
+          .eq("user_id", user.id);
+      }
+    }
+  }
+
+  revalidatePath("/posting");
+  return { ok: true };
 }
 
 /** Save edits to a post's title/goal/notes/status (from the detail popup). */

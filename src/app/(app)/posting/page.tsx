@@ -13,7 +13,11 @@ import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
 import { InsightsDashboard } from "@/components/posting/insights-dashboard";
-import { getActivePlan, getPlannedItems } from "@/lib/posting/queries";
+import {
+  getActivePlan,
+  getPlannedItems,
+  getItemPhases,
+} from "@/lib/posting/queries";
 import {
   WorkspaceShell,
   WorkspaceHeader,
@@ -64,6 +68,12 @@ export default async function PostingPage({
       ? await getPlannedItems(activePlan.id, itemLimit)
       : [];
 
+  // Per-post phases power the calendar's Timeline (roadmap) view.
+  const phases =
+    active === "calendar" && items.length > 0
+      ? await getItemPhases(items.map((i) => i.id))
+      : [];
+
   return (
     <PageShell>
       <WorkspaceShell
@@ -92,6 +102,7 @@ export default async function PostingPage({
             items={items}
             weekStart={activePlan.week_start}
             planId={activePlan.id}
+            phases={phases}
             addPostSlot={<PostingActions activePlanId={activePlan.id} />}
           />
         ) : (

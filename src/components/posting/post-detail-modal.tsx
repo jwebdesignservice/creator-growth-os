@@ -34,8 +34,11 @@ import type {
 import { deletePostingItem } from "@/app/(app)/posting/actions";
 import {
   getPostingItemDetail,
+  getPostingItemPhases,
+  savePostingItemPhases,
   updatePostingItemDetail,
   duplicatePostingItem,
+  type PostingItemPhase,
 } from "@/app/(app)/posting/detail-actions";
 
 /**
@@ -165,6 +168,16 @@ export function PostDetailModal({
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [moreOpen, setMoreOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which stage is mid-save from a quick (view-mode) status change → spinner.
+  const [savingStatus, setSavingStatus] = useState<ContentStatus | null>(null);
+
+  // Production schedule: single day vs phases spread across days.
+  const [phased, setPhased] = useState(false);
+  // YYYY-MM-DD per stage (absent = that phase isn't scheduled).
+  const [phaseDates, setPhaseDates] = useState<
+    Partial<Record<ContentStatus, string>>
+  >({});
+  const [savingPhases, setSavingPhases] = useState(false);
 
   // Draft state used only while editing.
   const [draftTopic, setDraftTopic] = useState("");
@@ -197,7 +210,10 @@ export function PostDetailModal({
   // effect, and is guarded so a quick close doesn't update an unmounted modal.
   useEffect(() => {
     let alive = true;
-    getPostingItemDetail(item.id).then((d) => {
+    Promise.all([
+      getPostingItemDetail(item.id),
+      getPostingItemPhases(item.id),
+    ]).then(([d, phases]) => {
       if (!alive) return;
       if (d) {
         setGoal(d.goal ?? "");
@@ -206,7 +222,13 @@ export function PostDetailModal({
         setStatus(d.status);
         setPlatform((d.platform as PlatformKey | null) ?? null);
         setContentType(d.content_type ?? null);
+        setPhased(d.is_phased);
       }
+      const map: Partial<Record<ContentStatus, string>> = {};
+      for (const p of phases) {
+        if (p.scheduled_for) map[p.stage] = isoToDateInput(p.scheduled_for);
+      }
+      setPhaseDates(map);
       setLoadingDetail(false);
     });
     return () => {
@@ -275,6 +297,64 @@ export function PostDetailModal({
       setMode("view");
       router.refresh();
     });
+  }
+
+  // Quick status change from view mode — tap a pipeline stage and it saves
+  // immediately (optimistic, reverts on failure). In edit mode the chips still
+  // just stage the draft until "Save changes".
+  function changeStatus(s: ContentStatus) {
+    if (s === status || pending) return;
+    setError(null);
+    const prev = status;
+    setStatus(s); // optimistic
+    setSavingStatus(s);
+    startTransition(async () => {
+      const res = await updatePostingItemDetail(item.id, { status: s });
+      setSavingStatus(null);
+      if (!res.ok) {
+        setStatus(prev); // revert
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  // Persist the production schedule (single-day flag + per-phase dates).
+  function savePhases() {
+    setError(null);
+    setSavingPhases(true);
+    const phases: PostingItemPhase[] = phased
+      ? (Object.entries(phaseDates) as [ContentStatus, string][])
+          .filter(([, d]) => d)
+          .map(([stage, d]) => ({ stage, scheduled_for: dateInputToIso(d) }))
+      : [];
+    startTransition(async () => {
+      const res = await savePostingItemPhases(item.id, {
+        isPhased: phased,
+        phases,
+      });
+      setSavingPhases(false);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  // Spread all seven phases over consecutive days, with "Posted" on the post's
+  // publish date — a one-click starting point the user can then tweak.
+  function autoSpace() {
+    const base = item.scheduled_for ? new Date(item.scheduled_for) : new Date();
+    const postedIdx = STATUS_ORDER.indexOf("posted");
+    const next: Partial<Record<ContentStatus, string>> = {};
+    STATUS_ORDER.forEach((s, i) => {
+      const d = new Date(base);
+      d.setDate(d.getDate() + (i - postedIdx));
+      next[s] = isoToDateInput(d.toISOString());
+    });
+    setPhaseDates(next);
   }
 
   function handleDuplicate() {
@@ -438,6 +518,111 @@ export function PostDetailModal({
             )}
           </DetailRow>
 
+          {/* Production schedule — single day vs phases spread across days */}
+          <div className="rounded-[12px] border border-ink-100 bg-cream-50/40 p-3">
+            <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
+              <span className="inline-flex items-center gap-2 text-[12px] font-medium text-ink-500">
+                <CalendarClock className="size-3.5" strokeWidth={2} />
+                Production schedule
+              </span>
+              <div className="inline-flex items-center rounded-[8px] border border-ink-200 bg-white p-0.5">
+                {[
+                  { k: false, l: "Single day" },
+                  { k: true, l: "Spread over phases" },
+                ].map((o) => (
+                  <button
+                    key={String(o.k)}
+                    type="button"
+                    onClick={() => setPhased(o.k)}
+                    aria-pressed={phased === o.k}
+                    className={cn(
+                      "h-7 px-2.5 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer",
+                      phased === o.k
+                        ? "bg-rose-600 text-white"
+                        : "text-ink-600 hover:text-ink-900",
+                    )}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {!phased ? (
+              <p className="text-[12.5px] text-ink-600 leading-snug">
+                The whole post happens on{" "}
+                <span className="font-semibold text-ink-900">{dateLabel}</span>
+                {time && <span className="text-ink-500"> · {time}</span>}. Switch
+                to <span className="font-medium">Spread over phases</span> to plan
+                the work across several days.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[11.5px] text-ink-400 leading-snug">
+                    Give each phase the day you&apos;ll do it. Leave a phase blank
+                    to skip it.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={autoSpace}
+                    className="shrink-0 text-[11.5px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+                  >
+                    Auto-space
+                  </button>
+                </div>
+                <ul className="space-y-1">
+                  {STATUS_ORDER.map((s) => {
+                    const val = phaseDates[s] ?? "";
+                    return (
+                      <li key={s} className="flex items-center gap-2">
+                        <span className="w-[74px] shrink-0 text-[12px] font-medium text-ink-700">
+                          {STATUS_LABEL[s]}
+                        </span>
+                        <input
+                          type="date"
+                          value={val}
+                          onChange={(e) =>
+                            setPhaseDates((p) => ({ ...p, [s]: e.target.value }))
+                          }
+                          aria-label={`${STATUS_LABEL[s]} date`}
+                          className="flex-1 min-w-0 rounded-[8px] border border-ink-200 px-2 py-1 text-[12.5px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPhaseDates((p) => {
+                              const n = { ...p };
+                              delete n[s];
+                              return n;
+                            })
+                          }
+                          disabled={!val}
+                          aria-label={`Clear ${STATUS_LABEL[s]} date`}
+                          className="size-6 shrink-0 inline-flex items-center justify-center rounded-md text-ink-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-default cursor-pointer transition-colors"
+                        >
+                          <X className="size-3.5" strokeWidth={2} />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-2.5 pt-2.5 border-t border-ink-100 flex justify-end">
+              <button
+                type="button"
+                onClick={savePhases}
+                disabled={savingPhases || pending}
+                className="h-8 px-3.5 rounded-[8px] bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-semibold inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors"
+              >
+                {savingPhases && <Loader2 className="size-3 animate-spin" />}
+                Save schedule
+              </button>
+            </div>
+          </div>
+
           {/* Goal / objective */}
           <Field icon={Target} label="Goal / objective">
             {editing ? (
@@ -500,16 +685,28 @@ export function PostDetailModal({
               {STATUS_ORDER.map((s, i) => {
                 const done = i + 1 < stage;
                 const current = i + 1 === stage;
+                const saving = savingStatus === s;
                 const cls = cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium border transition-colors",
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium border transition-colors cursor-pointer hover:border-rose-300 disabled:cursor-default disabled:opacity-60",
                   done && "bg-rose-50 text-rose-600 border-rose-100",
                   current && "bg-rose-600 text-white border-rose-600",
                   !done && !current && "bg-white text-ink-400 border-ink-100",
-                  editing && "cursor-pointer hover:border-rose-300",
                 );
-                const inner = (
-                  <>
-                    {done ? (
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() =>
+                      editing ? setDraftStatus(s) : changeStatus(s)
+                    }
+                    disabled={!editing && pending}
+                    aria-pressed={current}
+                    title={`Mark as ${STATUS_LABEL[s]}`}
+                    className={cls}
+                  >
+                    {saving ? (
+                      <Loader2 className="size-3 animate-spin" strokeWidth={2.5} />
+                    ) : done ? (
                       <Check className="size-3" strokeWidth={2.5} />
                     ) : current ? (
                       <span className="size-1.5 rounded-full bg-current" />
@@ -517,24 +714,15 @@ export function PostDetailModal({
                       <Circle className="size-3" strokeWidth={2} />
                     )}
                     {STATUS_LABEL[s]}
-                  </>
-                );
-                return editing ? (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setDraftStatus(s)}
-                    className={cls}
-                  >
-                    {inner}
                   </button>
-                ) : (
-                  <span key={s} className={cls}>
-                    {inner}
-                  </span>
                 );
               })}
             </div>
+            {!editing && (
+              <p className="mt-2 text-[11px] text-ink-400">
+                Tap a stage to update the status.
+              </p>
+            )}
           </div>
 
           {error && (
@@ -711,4 +899,18 @@ function Skeleton({ lines = 1 }: { lines?: number }) {
 
 function Empty({ children }: { children: ReactNode }) {
   return <p className="text-[12.5px] text-ink-400 italic">{children}</p>;
+}
+
+/** ISO datetime → local YYYY-MM-DD for a <input type="date"> value. */
+function isoToDateInput(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** YYYY-MM-DD → ISO anchored at local noon (avoids timezone day-shift). */
+function dateInputToIso(date: string): string {
+  return new Date(`${date}T12:00:00`).toISOString();
 }
