@@ -22,7 +22,7 @@ const U =
 // from a first post to a full-time creator business. The active row's image +
 // caption reinforce "built for *this* kind of creator".
 const NICHES: Niche[] = [
-  { name: "New & aspiring creators", tag: "Starting out", img: `https://images.unsplash.com/photo-1598550880863-4e8aa3d0edb4${U}` },
+  { name: "New creators",            tag: "Starting out", img: `https://images.unsplash.com/photo-1598550880863-4e8aa3d0edb4${U}` },
   { name: "UGC creators",            tag: "UGC",          img: `https://images.unsplash.com/photo-1556745757-8d76bdb6984b${U}` },
   { name: "Influencers",             tag: "Audience",     img: `https://images.unsplash.com/photo-1611162616475-46b635cb6868${U}` },
   { name: "Full-time creators",      tag: "Full-time",    img: `https://images.unsplash.com/photo-1517245386807-bb43f82c33c4${U}` },
