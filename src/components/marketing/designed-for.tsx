@@ -18,16 +18,16 @@ type Niche = { name: string; tag: string; img: string };
 const U =
   "?auto=format&fit=crop&w=900&q=80";
 
-// The six biggest, most brand-monetised, most platform-native creator verticals
-// — where Profluencer's multi-platform planning, performance and growth tooling
-// delivers the most. Trimmed from a longer list at the user's request.
+// Who actually uses Profluencer — creator personas across the whole journey,
+// from a first post to a full-time creator business. The active row's image +
+// caption reinforce "built for *this* kind of creator".
 const NICHES: Niche[] = [
-  { name: "Lifestyle & vlogging", tag: "Lifestyle", img: `https://images.unsplash.com/photo-1517245386807-bb43f82c33c4${U}` },
-  { name: "Fashion & beauty",     tag: "Style",     img: `https://images.unsplash.com/photo-1483985988355-763728e1935b${U}` },
-  { name: "Fitness & wellness",   tag: "Health",    img: `https://images.unsplash.com/photo-1534438327276-14e5300c3a48${U}` },
-  { name: "Food & cooking",       tag: "Culinary",  img: `https://images.unsplash.com/photo-1504674900247-0877df9cc836${U}` },
-  { name: "Travel & adventure",   tag: "Travel",    img: `https://images.unsplash.com/photo-1501785888041-af3ef285b470${U}` },
-  { name: "Gaming & esports",     tag: "Gaming",    img: `https://images.unsplash.com/photo-1542751371-adc38448a05e${U}` },
+  { name: "New & aspiring creators", tag: "Starting out", img: `https://images.unsplash.com/photo-1598550880863-4e8aa3d0edb4${U}` },
+  { name: "UGC creators",            tag: "UGC",          img: `https://images.unsplash.com/photo-1556745757-8d76bdb6984b${U}` },
+  { name: "Influencers",             tag: "Audience",     img: `https://images.unsplash.com/photo-1611162616475-46b635cb6868${U}` },
+  { name: "Full-time creators",      tag: "Full-time",    img: `https://images.unsplash.com/photo-1517245386807-bb43f82c33c4${U}` },
+  { name: "Coaches & educators",     tag: "Educators",    img: `https://images.unsplash.com/photo-1522202176988-66273c2fd55f${U}` },
+  { name: "Side-hustle creators",    tag: "Part-time",    img: `https://images.unsplash.com/photo-1499951360447-b19be8fe80f5${U}` },
 ];
 
 export function DesignedFor() {
@@ -82,10 +82,10 @@ export function DesignedFor() {
           <p className="mt-5 text-[15px] font-medium leading-[1.5] text-white/90">
             Designed for
             <br />
-            <span className="text-white/45">your niche</span>
+            <span className="text-white/45">creators like you</span>
           </p>
-          <p className="mt-4 max-w-[180px] text-[13px] font-medium leading-relaxed text-white/40">
-            Whatever you create, Profluencer is built to grow it.
+          <p className="mt-4 max-w-[185px] text-[13px] font-medium leading-relaxed text-white/40">
+            From your first post to full-time — Profluencer grows with you.
           </p>
         </div>
 
