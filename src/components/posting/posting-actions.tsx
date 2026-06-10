@@ -54,45 +54,16 @@ import {
   rescheduleItem,
 } from "@/app/(app)/posting/actions";
 import {
-  savePostingItemPhases,
   updatePostingItemDetail,
   getPostingItemDetail,
-  getPostingItemPhases,
 } from "@/app/(app)/posting/detail-actions";
+import {
+  IdeaComposer,
+  ideasAddIdea,
+  ideasCreateTag,
+  loadIdeasTags,
+} from "@/components/posting/ideas-board";
 import type { PlatformKey, ContentStatus } from "@/lib/posting/queries";
-
-// The 7 production phases (reused from the content pipeline) a post can be
-// spread across when scheduled over multiple days.
-const PHASE_ORDER: ContentStatus[] = [
-  "idea",
-  "planned",
-  "scripted",
-  "filmed",
-  "edited",
-  "posted",
-  "reviewed",
-];
-const PHASE_LABEL: Record<ContentStatus, string> = {
-  idea: "Idea",
-  planned: "Planned",
-  scripted: "Scripted",
-  filmed: "Filmed",
-  edited: "Edited",
-  posted: "Posted",
-  reviewed: "Reviewed",
-};
-
-/** YYYY-MM-DD → ISO at local noon (matches the detail popup; avoids TZ shift). */
-function phaseDateToIso(date: string): string {
-  return new Date(`${date}T12:00:00`).toISOString();
-}
-/** ISO/Date → local YYYY-MM-DD for a <input type="date">. */
-function toDateInputLocal(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 const GOALS = [
   { value: "", label: "Select a goal (optional)" },
@@ -296,10 +267,25 @@ export function PostingActions({
       {mode === "plan" && (
         <NewPlanForm onClose={() => setMode("closed")} />
       )}
-      {mode === "item" && activePlanId && (
+      {/* "Idea" opens the SAME board composer the Ideas board uses — one popup,
+          one behaviour. Captured ideas are written to the board's store and show
+          up under Posting → Ideas. */}
+      {mode === "item" && intent === "idea" && (
+        <IdeaComposer
+          tags={loadIdeasTags()}
+          initial={null}
+          defaultColumnId="unassigned"
+          onCreateTag={ideasCreateTag}
+          onSave={(data) => {
+            ideasAddIdea(data);
+            setMode("closed");
+          }}
+          onClose={() => setMode("closed")}
+        />
+      )}
+      {mode === "item" && intent === "post" && activePlanId && (
         <NewItemForm
           planId={activePlanId}
-          intent={intent}
           onClose={() => setMode("closed")}
         />
       )}
@@ -480,61 +466,25 @@ export function NewItemForm({
   }
 
 
-  // Production schedule: single day (uses the date above) vs phases spread
-  // across days. phaseDates holds a YYYY-MM-DD per stage (absent = skipped).
-  const [phased, setPhased] = useState(false);
-  const [phaseDates, setPhaseDates] = useState<
-    Partial<Record<ContentStatus, string>>
-  >({});
-  // Remember the created row id so a retry (e.g. after a phase-save hiccup)
-  // re-uses it instead of inserting a duplicate post.
+  // Remember the created row id so a retry re-uses it instead of inserting a
+  // duplicate post.
   const createdId = useRef<string | null>(null);
 
-  // Edit mode: pull the fields the list rows don't carry (goal, notes,
-  // phased flag) plus any production-phase dates, and prefill the form.
+  // Edit mode: pull the fields the list rows don't carry (goal, notes) and
+  // prefill the form.
   useEffect(() => {
     if (!editItem) return;
     let cancelled = false;
     void (async () => {
-      const [detail, phases] = await Promise.all([
-        getPostingItemDetail(editItem.id),
-        getPostingItemPhases(editItem.id),
-      ]);
-      if (cancelled) return;
-      if (detail) {
-        setGoal(detail.goal ?? "");
-        setNotes(detail.notes ?? "");
-        if (detail.is_phased) setPhased(true);
-      }
-      if (phases.length > 0) {
-        setPhased(true);
-        setPhaseDates(() => {
-          const next: Partial<Record<ContentStatus, string>> = {};
-          for (const p of phases) {
-            if (p.scheduled_for)
-              next[p.stage] = toDateInputLocal(new Date(p.scheduled_for));
-          }
-          return next;
-        });
-      }
+      const detail = await getPostingItemDetail(editItem.id);
+      if (cancelled || !detail) return;
+      setGoal(detail.goal ?? "");
+      setNotes(detail.notes ?? "");
     })();
     return () => {
       cancelled = true;
     };
   }, [editItem]);
-
-  // Spread the phases over consecutive days, "Posted" on the chosen date.
-  function autoSpacePhases() {
-    const base = date ? new Date(`${date}T12:00:00`) : new Date();
-    const postedIdx = PHASE_ORDER.indexOf("posted");
-    const next: Partial<Record<ContentStatus, string>> = {};
-    PHASE_ORDER.forEach((s, i) => {
-      const d = new Date(base);
-      d.setDate(d.getDate() + (i - postedIdx));
-      next[s] = toDateInputLocal(d);
-    });
-    setPhaseDates(next);
-  }
 
   const platformLabel = PLATFORMS.find((p) => p.value === platform)?.label ?? platform;
   const contentLabel = CONTENT_TYPES.find((t) => t.value === contentType)?.label ?? contentType;
@@ -626,21 +576,6 @@ export function NewItemForm({
             return;
           }
         }
-        if (phased) {
-          const phases = (
-            Object.entries(phaseDates) as [ContentStatus, string][]
-          )
-            .filter(([, d]) => d)
-            .map(([stage, d]) => ({ stage, scheduled_for: phaseDateToIso(d) }));
-          const pres = await savePostingItemPhases(editItem.id, {
-            isPhased: true,
-            phases,
-          });
-          if (!pres.ok) {
-            setErr(pres.error);
-            return;
-          }
-        }
         router.refresh();
         onClose();
         return;
@@ -671,27 +606,6 @@ export function NewItemForm({
         createdId.current = id;
       }
 
-      // If the user chose to spread the work, save the per-phase dates. The
-      // post's primary date is re-anchored to its "Posted" phase server-side.
-      if (phased && id) {
-        const phases = (
-          Object.entries(phaseDates) as [ContentStatus, string][]
-        )
-          .filter(([, d]) => d)
-          .map(([stage, d]) => ({
-            stage,
-            scheduled_for: phaseDateToIso(d),
-          }));
-        const pres = await savePostingItemPhases(id, {
-          isPhased: true,
-          phases,
-        });
-        if (!pres.ok) {
-          setErr(pres.error);
-          return; // keep the modal open; createdId avoids a duplicate on retry
-        }
-      }
-
       router.refresh();
       if (createAnother) {
         // Keep the composer open for the next entry; platform, type and
@@ -701,8 +615,6 @@ export function NewItemForm({
         setNotes("");
         setGoal("");
         setAiGen(false);
-        setPhased(false);
-        setPhaseDates({});
         return;
       }
       onClose();
@@ -1708,14 +1620,6 @@ export function NewItemForm({
                     {scheduleLabel ?? "Unscheduled"}
                   </span>
                 </li>
-                {phased && (
-                  <li className="flex items-center justify-between gap-3">
-                    <span className="text-ink-500">Production</span>
-                    <span className="font-semibold text-ink-900">
-                      Spread over phases
-                    </span>
-                  </li>
-                )}
               </ul>
             </aside>
           )}
@@ -1959,106 +1863,6 @@ export function NewItemForm({
                             />
                           </div>
                         </div>
-
-                        {/* Production schedule — single day vs spread across phases */}
-                    <div className="mt-3 rounded-[12px] border border-ink-200 bg-cream-50/40 p-3.5">
-                      <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
-                        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-700">
-                          <CalendarDays className="size-3.5 text-rose-500" strokeWidth={2} />
-                          Production schedule
-                        </span>
-                        <div className="inline-flex items-center rounded-[9px] border border-ink-200 bg-white p-0.5">
-                          {[
-                            { k: false, l: "Single day" },
-                            { k: true, l: "Spread over phases" },
-                          ].map((o) => (
-                            <button
-                              key={String(o.k)}
-                              type="button"
-                              onClick={() => {
-                                setPhased(o.k);
-                                if (o.k && Object.keys(phaseDates).length === 0)
-                                  autoSpacePhases();
-                              }}
-                              aria-pressed={phased === o.k}
-                              className={cn(
-                                "h-7 px-2.5 rounded-[7px] text-[11.5px] font-semibold transition-colors",
-                                phased === o.k
-                                  ? "bg-rose-600 text-white"
-                                  : "text-ink-600 hover:text-ink-900",
-                              )}
-                            >
-                              {o.l}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {!phased ? (
-                        <p className="text-[12px] text-ink-500 leading-snug">
-                          The whole post happens on the date above. Switch to{" "}
-                          <span className="font-medium text-ink-700">
-                            Spread over phases
-                          </span>{" "}
-                          to plan the work (film, edit, post…) across several days.
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <p className="text-[11.5px] text-ink-500 leading-snug">
-                              Give each phase the day you&apos;ll do it. Leave a phase
-                              blank to skip it.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={autoSpacePhases}
-                              className="shrink-0 text-[11.5px] font-semibold text-rose-600 hover:text-rose-700"
-                            >
-                              Auto-space
-                            </button>
-                          </div>
-                          <ul className="space-y-1.5">
-                            {PHASE_ORDER.map((s) => {
-                              const val = phaseDates[s] ?? "";
-                              return (
-                                <li key={s} className="flex items-center gap-2.5">
-                                  <span className="w-[74px] shrink-0 text-[12px] font-medium text-ink-700">
-                                    {PHASE_LABEL[s]}
-                                  </span>
-                                  <input
-                                    type="date"
-                                    value={val}
-                                    onChange={(e) =>
-                                      setPhaseDates((p) => ({
-                                        ...p,
-                                        [s]: e.target.value,
-                                      }))
-                                    }
-                                    aria-label={`${PHASE_LABEL[s]} date`}
-                                    className="flex-1 min-w-0 h-9 rounded-[9px] border border-ink-200 bg-white px-2.5 text-[13px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-                                  />
-                                  <button
-                                    type="button"
-                                    aria-label={`Clear ${PHASE_LABEL[s]}`}
-                                    onClick={() =>
-                                      setPhaseDates((p) => {
-                                        const n = { ...p };
-                                        delete n[s];
-                                        return n;
-                                      })
-                                    }
-                                    disabled={!val}
-                                    className="size-7 shrink-0 inline-flex items-center justify-center rounded-md text-ink-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                                  >
-                                    <X className="size-3.5" strokeWidth={2} />
-                                  </button>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
 
                         <div className="mt-3 flex justify-end">
                           <button
