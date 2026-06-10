@@ -40,11 +40,19 @@ type Props = {
   addPostSlot?: ReactNode;
 };
 
-// The calendar shows a sliding 5-day strip: the ‹ / › controls nudge it
-// STEP_DAYS at a time; posts sit in their day column.
-// NOTE: keep VISIBLE_DAYS in sync with the `grid-cols-N` classes on the strip.
-const VISIBLE_DAYS = 5;
-const STEP_DAYS = 2;
+// The week view is a true Sunday–Saturday grid (like the month view, just one
+// week tall): the ‹ / › controls move a whole week at a time.
+const VISIBLE_DAYS = 7;
+const STEP_DAYS = 7;
+
+/** Time-of-day bands that divide each week-view day column (the reference's
+    horizontal grid lines). Chips land in the band containing their hour. */
+const WEEK_BANDS: [number, number][] = [
+  [0, 6],
+  [6, 12],
+  [12, 18],
+  [18, 24],
+];
 
 /**
  * Renders the active plan's posting items as a sliding {@link VISIBLE_DAYS}-day
@@ -72,13 +80,13 @@ export function ContentCalendar({
         i.id === move.id ? { ...i, scheduled_for: move.scheduled_for } : i,
       ),
   );
-  // Open with today as the FIRST column of the strip, so users land on "now"
-  // with the upcoming days to its right.
+  // Open on the CURRENT week, Sunday-aligned (the reference's Sun–Sat grid);
+  // ‹ / › then step the window a whole week at a time.
   const [dayOffset, setDayOffset] = useState(() => {
     const b = startOfDay(weekStart ? new Date(weekStart) : new Date());
-    return Math.round(
-      (startOfDay(new Date()).getTime() - b.getTime()) / 86_400_000,
-    );
+    const sun = startOfDay(new Date());
+    sun.setDate(sun.getDate() - sun.getDay());
+    return Math.round((sun.getTime() - b.getTime()) / 86_400_000);
   });
   // Which day a per-column "Add post" was clicked for (YYYY-MM-DD) → opens the
   // create-post modal pre-filled to that day. null = closed.
@@ -145,12 +153,12 @@ export function ContentCalendar({
     return d;
   });
 
-  // dayOffset that places today as the first column — the "Today" button jumps
-  // straight there even when the plan starts on a different date.
-  // Offset that places today as the FIRST column (what "Today" jumps to).
-  const todayOffset = Math.round(
-    (startOfDay(new Date()).getTime() - base.getTime()) / 86_400_000,
-  );
+  // Offset that shows the CURRENT Sunday-aligned week (what "Today" jumps to).
+  const todayOffset = (() => {
+    const sun = startOfDay(new Date());
+    sun.setDate(sun.getDate() - sun.getDay());
+    return Math.round((sun.getTime() - base.getTime()) / 86_400_000);
+  })();
 
   // A card is "saving" while its optimistic day differs from the persisted day
   // (its reschedule hasn't round-tripped yet) — derived, so no effect is needed.

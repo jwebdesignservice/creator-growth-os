@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { StepHeader } from "./step-header";
+import { DescribeStep } from "./steps/describe";
 import { StageStep } from "./steps/stage";
 import { PlatformStep } from "./steps/platform";
 import { GoalsStep } from "./steps/goals";
@@ -11,13 +12,12 @@ import { PlanStep } from "./steps/plan";
 import { CompleteStep } from "./steps/complete";
 import {
   EMPTY_DRAFT,
+  STEPS,
   isStepComplete,
   type OnboardingDraft,
+  type StepKey,
 } from "./types";
 import { saveOnboarding } from "@/app/onboarding/actions";
-
-type StepKey = "stage" | "platform" | "goals" | "content" | "plan";
-const STEPS: StepKey[] = ["stage", "platform", "goals", "content", "plan"];
 
 /** Shown when the Pro→Stripe handoff fails — onboarding is already saved, so
  *  the user lands on the success screen on Free and must know the trial
@@ -37,9 +37,10 @@ export function OnboardingFlow({ initialDraft, firstName, stripeReady }: Props) 
     ...EMPTY_DRAFT,
     ...initialDraft,
   });
-  const [step, setStep] = useState<StepKey | "complete">("stage");
+  const [step, setStep] = useState<StepKey | "complete">("describe");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const advanceTimer = useRef<number | null>(null);
 
   const onChange = useCallback((patch: Partial<OnboardingDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -59,6 +60,24 @@ export function OnboardingFlow({ initialDraft, firstName, stripeReady }: Props) 
     const i = STEPS.indexOf(step);
     if (i > 0) setStep(STEPS[i - 1]);
   }, [step]);
+
+  // Single-choice screens auto-advance: record the answer, let the selection
+  // state show for a beat, then move on. The Continue button still works as a
+  // fallback, and Back always returns to review.
+  const selectAndAdvance = useCallback(
+    (patch: Partial<OnboardingDraft>) => {
+      onChange(patch);
+      if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = window.setTimeout(goNext, 320);
+    },
+    [onChange, goNext],
+  );
+  useEffect(
+    () => () => {
+      if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+    },
+    [],
+  );
 
   const submit = useCallback(() => {
     setSubmitError(null);
@@ -120,9 +139,18 @@ export function OnboardingFlow({ initialDraft, firstName, stripeReady }: Props) 
               steps again once the user is done. */}
           {step !== "complete" && <StepHeader current={step} />}
 
-          {step === "stage" && <StageStep draft={draft} onChange={onChange} />}
-          {step === "platform" && <PlatformStep draft={draft} onChange={onChange} />}
-          {step === "goals" && <GoalsStep draft={draft} onChange={onChange} />}
+          {step === "describe" && (
+            <DescribeStep draft={draft} onSelect={selectAndAdvance} />
+          )}
+          {step === "stage" && (
+            <StageStep draft={draft} onSelect={selectAndAdvance} />
+          )}
+          {step === "platform" && (
+            <PlatformStep draft={draft} onChange={onChange} />
+          )}
+          {step === "goals" && (
+            <GoalsStep draft={draft} onSelect={selectAndAdvance} />
+          )}
           {step === "content" && <ContentStep draft={draft} onChange={onChange} />}
           {step === "plan" && <PlanStep draft={draft} onChange={onChange} />}
           {step === "complete" && (

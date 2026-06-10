@@ -13,6 +13,8 @@ import {
   Check,
   ChevronDown,
   Ellipsis,
+  Ghost,
+  Globe,
   ImagePlus,
   Kanban,
   LayoutGrid,
@@ -22,11 +24,17 @@ import {
   Plus,
   Search,
   Settings,
+  Smile,
   Tag as TagIcon,
   Trash2,
   Wand2,
   X,
 } from "lucide-react";
+import {
+  InstagramIcon,
+  TiktokIcon,
+  YoutubeIcon,
+} from "@/components/brand-icons";
 import { WorkspaceHeader } from "@/components/app-shell/workspace-shell";
 import { cn } from "@/lib/cn";
 
@@ -49,6 +57,9 @@ type Idea = {
   tagIds: string[];
   columnId: string;
   createdAt: number;
+  /** Channel + format captured by the idea composer (optional metadata). */
+  platform?: string;
+  contentType?: string;
 };
 type Column = { id: string; title: string };
 type Store = { columns: Column[]; ideas: Idea[]; tags: IdeaTag[] };
@@ -82,6 +93,40 @@ const TAG_COLORS = [
   "bg-ink-700 text-white",
 ];
 
+/* Channel + format pickers for the idea composer — mirror the post composer so
+   "New Idea" feels consistent across Posting. Stored on the idea as metadata;
+   the chosen format is also attached as a board tag so ideas stay filterable. */
+const IDEA_PLATFORMS = [
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "youtube", label: "YouTube" },
+  { value: "snapchat", label: "Snapchat" },
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "other", label: "Other" },
+];
+const IDEA_CONTENT_TYPES = [
+  { value: "reel", label: "Reel" },
+  { value: "short_video", label: "Short Video" },
+  { value: "carousel", label: "Carousel" },
+  { value: "story", label: "Story" },
+  { value: "youtube_video", label: "YouTube Video" },
+  { value: "post", label: "Post" },
+];
+
+function PlatformGlyph({ platform, size = 14 }: { platform: string; size?: number }) {
+  if (platform === "instagram")
+    return <InstagramIcon className="text-rose-600" size={size} />;
+  if (platform === "tiktok")
+    return <TiktokIcon className="text-ink-900" size={size} />;
+  if (platform === "youtube")
+    return <YoutubeIcon className="text-rose-600" size={size} />;
+  if (platform === "snapchat")
+    return <Ghost className="text-amber-500" style={{ width: size, height: size }} strokeWidth={2} />;
+  if (platform === "linkedin")
+    return <span className="text-[11px] font-black leading-none text-sky-700">in</span>;
+  return <Globe className="text-ink-500" style={{ width: size, height: size }} strokeWidth={2} />;
+}
+
 /** Curated prompts used by "Generate Ideas" — honest templates, not AI. */
 const IDEA_PROMPTS = [
   "Behind the scenes of how a post gets made",
@@ -114,6 +159,42 @@ function loadStore(): Store {
     // corrupted/blocked storage → start fresh
   }
   return { columns: DEFAULT_COLUMNS, ideas: [SEED_IDEA], tags: [] };
+}
+
+function persistStore(s: Store) {
+  try {
+    window.localStorage.setItem(LS_KEY, JSON.stringify(s));
+  } catch {
+    // storage full/blocked — best effort
+  }
+}
+
+/* Direct-to-localStorage helpers so the idea composer can be opened from OUTSIDE
+   the board (the Posting "Add Post → Idea" shortcut) and still write the same
+   store the board reads — both entry points share one composer + one store. */
+export function loadIdeasTags(): IdeaTag[] {
+  return loadStore().tags;
+}
+export function ideasCreateTag(label: string): IdeaTag {
+  const s = loadStore();
+  const existing = s.tags.find(
+    (t) => t.label.toLowerCase() === label.toLowerCase(),
+  );
+  if (existing) return existing;
+  const tag: IdeaTag = {
+    id: uid(),
+    label,
+    color: TAG_COLORS[s.tags.length % TAG_COLORS.length],
+  };
+  persistStore({ ...s, tags: [...s.tags, tag] });
+  return tag;
+}
+export function ideasAddIdea(data: Omit<Idea, "id" | "createdAt">) {
+  const s = loadStore();
+  persistStore({
+    ...s,
+    ideas: [...s.ideas, { ...data, id: uid(), createdAt: Date.now() }],
+  });
 }
 
 /* ─── Root ──────────────────────────────────────────────────────────────── */
@@ -362,9 +443,8 @@ export function IdeasBoard() {
       </div>
 
       {modal && (
-        <IdeaModal
+        <IdeaComposer
           key={modal.mode === "edit" ? modal.idea.id : `new-${modal.columnId}`}
-          columns={store.columns}
           tags={store.tags}
           initial={modal.mode === "edit" ? modal.idea : null}
           defaultColumnId={
@@ -968,8 +1048,15 @@ function IdeaCard({
         />
       )}
       <div className="p-4">
-        <div className="text-[14.5px] font-bold leading-snug text-ink-900">
-          {idea.title}
+        <div className="flex items-start gap-2">
+          {idea.platform && (
+            <span className="mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] bg-cream-100 ring-1 ring-ink-100">
+              <PlatformGlyph platform={idea.platform} size={12} />
+            </span>
+          )}
+          <div className="text-[14.5px] font-bold leading-snug text-ink-900">
+            {idea.title}
+          </div>
         </div>
         {idea.desc && (
           <p className="mt-1.5 text-[13px] leading-snug text-ink-500 line-clamp-3">
@@ -1110,8 +1197,7 @@ function GalleryGrid({
 
 /* ─── New / edit idea modal ────────────────────────────────────────────── */
 
-function IdeaModal({
-  columns,
+export function IdeaComposer({
   tags,
   initial,
   defaultColumnId,
@@ -1120,7 +1206,6 @@ function IdeaModal({
   onDelete,
   onClose,
 }: {
-  columns: Column[];
   tags: IdeaTag[];
   initial: Idea | null;
   defaultColumnId: string;
@@ -1134,14 +1219,31 @@ function IdeaModal({
   const [imageUrl, setImageUrl] = useState<string | null>(
     initial?.imageUrl ?? null,
   );
-  const [tagIds, setTagIds] = useState<string[]>(initial?.tagIds ?? []);
-  const [columnId, setColumnId] = useState(defaultColumnId);
-  const [newTag, setNewTag] = useState("");
+  const [platform, setPlatform] = useState(initial?.platform ?? "instagram");
+  const [contentType, setContentType] = useState(
+    initial?.contentType ?? "reel",
+  );
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const [chanOpen, setChanOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const canSave = title.trim().length > 0;
+  const canSave = title.trim().length > 0 || desc.trim().length > 0;
+  const platformLabel =
+    IDEA_PLATFORMS.find((p) => p.value === platform)?.label ?? platform;
+  const contentLabel =
+    IDEA_CONTENT_TYPES.find((c) => c.value === contentType)?.label ??
+    contentType;
+
+  // Esc closes the composer (matches the rest of Posting).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function onPickImage(file: File) {
     setUploadErr(null);
@@ -1182,192 +1284,289 @@ function IdeaModal({
     }
   }
 
-  function addNewTag() {
-    const label = newTag.trim();
-    if (!label) return;
+  function handleSave() {
+    // Attach the chosen format as a board tag so ideas stay filterable by
+    // content type (the composer's format pill doubles as the board tag).
+    let nextTagIds = initial?.tagIds ?? [];
     const existing = tags.find(
-      (t) => t.label.toLowerCase() === label.toLowerCase(),
+      (t) => t.label.toLowerCase() === contentLabel.toLowerCase(),
     );
-    const tag = existing ?? onCreateTag(label);
-    setTagIds((prev) => (prev.includes(tag.id) ? prev : [...prev, tag.id]));
-    setNewTag("");
+    const tag = existing ?? onCreateTag(contentLabel);
+    if (tag && !nextTagIds.includes(tag.id))
+      nextTagIds = [...nextTagIds, tag.id];
+    onSave({
+      title: title.trim() || "Untitled idea",
+      desc: desc.trim(),
+      imageUrl,
+      tagIds: nextTagIds,
+      columnId: initial?.columnId ?? defaultColumnId,
+      platform,
+      contentType,
+    });
   }
+
+  const pillCls =
+    "inline-flex items-center gap-2 h-10 px-3.5 rounded-[12px] border border-ink-200 bg-white text-[14px] font-medium text-ink-700 hover:bg-cream-100 transition-colors cursor-pointer";
 
   return (
     <div
-      className="anim-overlay-in fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="anim-overlay-in fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-900/40 p-4 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={initial ? "Edit idea" : "New idea"}
     >
       <div
-        className="anim-modal-in relative w-full max-w-[520px] rounded-[18px] bg-white p-6 shadow-[0_32px_80px_-24px_rgba(26,24,22,0.45)] ring-1 ring-ink-900/[0.06] max-h-[90vh] overflow-y-auto"
+        className="anim-modal-in my-6 w-full max-w-[760px] overflow-hidden rounded-[20px] border border-ink-100 bg-white shadow-[0_32px_80px_-24px_rgba(26,24,22,0.45)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="mb-4 flex items-start justify-between gap-3">
-          <h3 className="text-h4 text-ink-900">
-            {initial ? "Edit idea" : "New idea"}
+        {/* ── Top bar — title · channel · format · close ───────────────── */}
+        <header className="flex items-center gap-2 px-5 py-4 sm:px-6">
+          <h3 className="text-[22px] font-bold tracking-[-0.01em] text-ink-900">
+            {initial ? "Edit Idea" : "New Idea"}
           </h3>
+          <span className="flex-1" />
+
+          {/* channel */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setChanOpen((v) => !v);
+                setTypeOpen(false);
+              }}
+              aria-haspopup="menu"
+              aria-expanded={chanOpen}
+              className={pillCls}
+            >
+              <PlatformGlyph platform={platform} />
+              {platformLabel}
+              <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
+            </button>
+            {chanOpen && (
+              <>
+                <button
+                  type="button"
+                  aria-hidden
+                  tabIndex={-1}
+                  onClick={() => setChanOpen(false)}
+                  className="fixed inset-0 z-40 cursor-default"
+                />
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+6px)] z-50 w-[210px] rounded-[14px] border border-ink-100 bg-white py-1.5 shadow-[0_18px_44px_-16px_rgba(26,24,22,0.35)]"
+                >
+                  {IDEA_PLATFORMS.map((p) => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={platform === p.value}
+                      onClick={() => {
+                        setPlatform(p.value);
+                        setChanOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px] font-medium text-ink-700 transition-colors hover:bg-cream-100"
+                    >
+                      <span className="inline-flex size-6 items-center justify-center rounded-[7px] bg-cream-100 ring-1 ring-ink-100">
+                        <PlatformGlyph platform={p.value} size={13} />
+                      </span>
+                      {p.label}
+                      {platform === p.value && (
+                        <Check className="ml-auto size-4 text-rose-600" strokeWidth={2.5} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* format — doubles as the board tag */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setTypeOpen((v) => !v);
+                setChanOpen(false);
+              }}
+              aria-haspopup="menu"
+              aria-expanded={typeOpen}
+              className={pillCls}
+            >
+              <TagIcon className="size-4 text-ink-500" strokeWidth={2} />
+              {contentLabel}
+              <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
+            </button>
+            {typeOpen && (
+              <>
+                <button
+                  type="button"
+                  aria-hidden
+                  tabIndex={-1}
+                  onClick={() => setTypeOpen(false)}
+                  className="fixed inset-0 z-40 cursor-default"
+                />
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+6px)] z-50 w-[200px] rounded-[14px] border border-ink-100 bg-white py-1.5 shadow-[0_18px_44px_-16px_rgba(26,24,22,0.35)]"
+                >
+                  {IDEA_CONTENT_TYPES.map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={contentType === t.value}
+                      onClick={() => {
+                        setContentType(t.value);
+                        setTypeOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px] font-medium text-ink-700 transition-colors hover:bg-cream-100"
+                    >
+                      {t.label}
+                      {contentType === t.value && (
+                        <Check className="ml-auto size-4 text-rose-600" strokeWidth={2.5} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="inline-flex size-8 items-center justify-center rounded-full text-ink-500 transition-all duration-150 hover:bg-cream-100 hover:text-ink-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-[10px] text-ink-500 transition-colors hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
           >
             <X className="size-4" strokeWidth={2} />
           </button>
         </header>
 
-        {/* image */}
-        <div className="mb-4">
-          {imageUrl ? (
-            <div className="relative overflow-hidden rounded-[12px]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="" className="h-[160px] w-full object-cover" />
-              <button
-                type="button"
-                onClick={() => setImageUrl(null)}
-                aria-label="Remove image"
-                className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/75 transition-colors cursor-pointer"
-              >
-                <X className="size-3.5" strokeWidth={2.5} />
-              </button>
-            </div>
-          ) : (
+        {/* ── Body — title · free-flow · media ─────────────────────────── */}
+        <div className="px-5 pb-4 sm:px-6">
+          <input
+            autoFocus
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value.slice(0, 160))}
+            maxLength={160}
+            placeholder="Give your idea a title"
+            className="w-full border-0 bg-transparent text-[24px] font-bold tracking-[-0.01em] text-ink-900 placeholder:text-ink-900/90 focus:outline-none sm:text-[26px]"
+          />
+
+          <div className="relative mt-2">
+            <textarea
+              value={desc}
+              onChange={(e) => setDesc(e.target.value.slice(0, 600))}
+              maxLength={600}
+              rows={7}
+              spellCheck
+              className="min-h-[200px] w-full resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 focus:outline-none"
+            />
+            {!desc && (
+              <div className="pointer-events-none absolute left-0 top-1 text-[17px] text-ink-400">
+                Let it flow...
+              </div>
+            )}
+          </div>
+
+          {/* media — attached thumb + dropzone (uploaded so it persists) */}
+          <div className="flex items-end gap-3">
+            {imageUrl && (
+              <div className="relative shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="h-[110px] w-[88px] rounded-[10px] border border-ink-200 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImageUrl(null)}
+                  aria-label="Remove media"
+                  className="absolute -right-2 -top-2 inline-flex size-6 items-center justify-center rounded-full bg-ink-900 text-white shadow transition-colors hover:bg-ink-700"
+                >
+                  <X className="size-3" strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void onPickImage(f);
+              }}
+            />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="flex h-[88px] w-full items-center justify-center gap-2 rounded-[12px] border-2 border-dashed border-ink-200 text-[13px] font-medium text-ink-500 transition-colors hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/40 cursor-pointer disabled:opacity-60"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files?.[0];
+                if (f) void onPickImage(f);
+              }}
+              className="w-[170px] rounded-[12px] border-2 border-dashed border-ink-200 px-5 py-6 text-center transition-colors hover:border-rose-300 hover:bg-rose-50/40 disabled:opacity-60"
             >
               {uploading ? (
-                <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+                <Loader2 className="mx-auto mb-2 size-6 animate-spin text-ink-500" strokeWidth={2} />
               ) : (
-                <ImagePlus className="size-4" strokeWidth={2} />
+                <ImagePlus className="mx-auto mb-2 size-6 text-ink-500" strokeWidth={1.8} />
               )}
-              {uploading ? "Uploading…" : "Add a cover image"}
+              <p className="text-[14px] leading-snug text-ink-600">
+                {uploading ? (
+                  "Uploading…"
+                ) : (
+                  <>
+                    Drag &amp; drop or{" "}
+                    <span className="font-medium text-rose-600">select a file</span>
+                  </>
+                )}
+              </p>
             </button>
-          )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (f) void onPickImage(f);
-            }}
-          />
+          </div>
+
           {uploadErr && (
-            <p className="mt-1.5 text-[12px] text-rose-600">{uploadErr}</p>
+            <p className="mt-2 text-[12px] text-rose-600">{uploadErr}</p>
           )}
-        </div>
 
-        <input
-          autoFocus
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={120}
-          placeholder="Idea title"
-          className="mb-3 h-11 w-full rounded-[12px] border border-ink-200 bg-white px-3.5 text-[15px] font-semibold text-ink-900 placeholder:font-normal placeholder:text-ink-400 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-        />
-        <textarea
-          rows={3}
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          maxLength={600}
-          placeholder="What's the idea? Hook, angle, format…"
-          className="mb-4 w-full resize-none rounded-[12px] border border-ink-200 bg-white px-3.5 py-3 text-[13.5px] leading-relaxed text-ink-900 placeholder:text-ink-400 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-        />
-
-        {/* column + tags */}
-        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1.5 block text-[12px] font-semibold text-ink-700">
-              Status
-            </label>
-            <select
-              value={columnId}
-              onChange={(e) => setColumnId(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-ink-200 bg-white px-3 text-[13.5px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+          {/* toolbar */}
+          <div className="mt-4 flex items-center gap-0.5 border-t border-ink-100 pt-2.5">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              aria-label="Add media"
+              className="inline-flex size-9 items-center justify-center rounded-[8px] text-ink-500 transition-colors hover:bg-cream-100 hover:text-ink-900"
             >
-              {columns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-[12px] font-semibold text-ink-700">
-              Add tag
-            </label>
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addNewTag();
-                  }
-                }}
-                placeholder="e.g. Reels"
-                className="h-10 min-w-0 flex-1 rounded-[10px] border border-ink-200 bg-white px-3 text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-              />
-              <button
-                type="button"
-                onClick={addNewTag}
-                disabled={!newTag.trim()}
-                aria-label="Add tag"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] border border-ink-200 bg-white text-ink-700 transition-colors hover:bg-cream-100 disabled:opacity-40 cursor-pointer"
-              >
-                <Plus className="size-4" strokeWidth={2.2} />
-              </button>
-            </div>
+              <Plus className="size-[18px]" strokeWidth={2} />
+            </button>
+            <span aria-hidden className="mx-1.5 h-5 w-px bg-ink-200" />
+            <button
+              type="button"
+              onClick={() => setDesc((t) => (t + "🙂").slice(0, 600))}
+              title="Add emoji"
+              aria-label="Add emoji"
+              className="inline-flex size-9 items-center justify-center rounded-[8px] text-ink-500 transition-colors hover:bg-cream-100 hover:text-ink-900"
+            >
+              <Smile className="size-[18px]" strokeWidth={2} />
+            </button>
           </div>
         </div>
 
-        {/* tag picker */}
-        {tags.length > 0 && (
-          <div className="mb-5 flex flex-wrap gap-1.5">
-            {tags.map((t) => {
-              const on = tagIds.includes(t.id);
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() =>
-                    setTagIds((prev) =>
-                      on ? prev.filter((x) => x !== t.id) : [...prev, t.id],
-                    )
-                  }
-                  aria-pressed={on}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[12px] font-semibold leading-none transition-all duration-150 cursor-pointer",
-                    on
-                      ? t.color
-                      : "bg-cream-100 text-ink-500 hover:bg-cream-200",
-                  )}
-                >
-                  {on && <Check className="size-3" strokeWidth={3} />}
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between gap-2 border-t border-ink-100 pt-4">
+        {/* ── Footer ───────────────────────────────────────────────────── */}
+        <footer className="flex items-center justify-between gap-2.5 border-t border-ink-100 px-5 py-4 sm:px-6">
           {onDelete ? (
             <button
               type="button"
               onClick={onDelete}
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-rose-700 hover:text-rose-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-rose-700 transition-colors hover:text-rose-800 cursor-pointer"
             >
               <Trash2 className="size-3.5" strokeWidth={2} />
               Delete
@@ -1375,32 +1574,29 @@ function IdeaModal({
           ) : (
             <span />
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-10 items-center rounded-[10px] border border-ink-200 px-4 text-[13px] font-semibold text-ink-700 transition-all duration-150 hover:bg-cream-100 hover:border-ink-300 active:scale-[0.98]"
+              className="h-11 rounded-[12px] border border-ink-200 bg-white px-5 text-[14.5px] font-semibold text-ink-900 transition-colors hover:bg-cream-100 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={() =>
-                onSave({
-                  title: title.trim(),
-                  desc: desc.trim(),
-                  imageUrl,
-                  tagIds,
-                  columnId,
-                })
-              }
+              onClick={handleSave}
               disabled={!canSave}
-              className="inline-flex h-10 items-center gap-1.5 rounded-[10px] bg-rose-600 px-5 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] disabled:bg-rose-300 disabled:shadow-none disabled:hover:translate-y-0 cursor-pointer"
+              className={cn(
+                "inline-flex h-11 items-center gap-1.5 rounded-[12px] px-5 text-[14.5px] font-semibold transition-colors",
+                canSave
+                  ? "bg-rose-600 text-white hover:bg-rose-700 cursor-pointer"
+                  : "cursor-not-allowed bg-ink-100 text-ink-400",
+              )}
             >
-              {initial ? "Save idea" : "Add idea"}
+              {initial ? "Save Changes" : "Save Idea"}
             </button>
           </div>
-        </div>
+        </footer>
       </div>
     </div>
   );

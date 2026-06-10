@@ -23,6 +23,8 @@ const PLATFORM_LABEL: Record<string, string> = {
   tiktok: "TikTok",
   youtube: "YouTube",
   snapchat: "Snapchat",
+  linkedin: "LinkedIn",
+  multiple: "Multiple channels",
 };
 const GOAL_LABEL: Record<string, string> = {
   grow_audience: "Grow audience",
@@ -46,35 +48,47 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  // Server-side validation
-  if (!draft.stage || !draft.bottleneck) {
-    return { ok: false, error: "Please complete the first step (stage & bottleneck)." };
+  // Server-side validation — mirrors the simplified one-question-per-screen
+  // quiz: describe-yourself, stage, goal, platform, ≥1 pillar, plan.
+  if (!draft.stage) {
+    return { ok: false, error: "Please pick where you are in your journey." };
   }
-  if (!draft.primary_platform || !draft.content_frequency) {
-    return { ok: false, error: "Platform answers are incomplete." };
+  if (!draft.main_goal) {
+    return { ok: false, error: "Please pick your main goal." };
   }
-  if (!draft.main_goal || !draft.weekly_pace) {
-    return { ok: false, error: "Goal and weekly pace are required." };
+  if (!draft.primary_platform) {
+    return { ok: false, error: "Please pick your primary platform." };
   }
   if (draft.content_pillars.length === 0) {
     return { ok: false, error: "Pick at least one content pillar." };
   }
 
   const category = STAGE_TO_CATEGORY[draft.stage];
+  // The pace question was retired from the quiz — default to the balanced
+  // plan; users can tune it later. Kept when a draft still carries one.
+  const weeklyPace = draft.weekly_pace ?? "balanced";
 
-  // Persist profile fields
+  // Persist profile fields. Retired questions (frequency, bottleneck,
+  // priorities, formats, help needs) are only written when answered, so we
+  // never overwrite older answers with nulls.
   const { error: updateErr } = await supabase
     .from("profiles")
     .update({
       category,
       primary_platform: draft.primary_platform,
-      content_frequency: draft.content_frequency,
-      bottleneck: draft.bottleneck,
       main_goal: draft.main_goal,
-      weekly_pace: draft.weekly_pace,
-      top_value_priorities: draft.top_value_priorities,
-      focus_formats: draft.focus_formats,
-      help_needs: draft.help_needs,
+      weekly_pace: weeklyPace,
+      ...(draft.content_frequency
+        ? { content_frequency: draft.content_frequency }
+        : {}),
+      ...(draft.bottleneck ? { bottleneck: draft.bottleneck } : {}),
+      ...(draft.top_value_priorities.length > 0
+        ? { top_value_priorities: draft.top_value_priorities }
+        : {}),
+      ...(draft.focus_formats.length > 0
+        ? { focus_formats: draft.focus_formats }
+        : {}),
+      ...(draft.help_needs.length > 0 ? { help_needs: draft.help_needs } : {}),
       onboarded: true,
       onboarded_at: new Date().toISOString(),
     })
@@ -82,7 +96,24 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
 
   if (updateErr) {
     console.error("[onboarding] profile update failed:", updateErr);
-    return { ok: false, error: updateErr.message };
+    return { ok: false, error: "Couldn't save your answers. Please try again." };
+  }
+
+  // "How would you describe yourself?" + the full channel selection — stored
+  // on the auth user's metadata (no profiles columns exist for them; schema
+  // changes need separate approval). Non-fatal if it fails.
+  if (draft.creator_type || draft.focus_channels.length > 0) {
+    const { error: metaErr } = await supabase.auth.updateUser({
+      data: {
+        ...(draft.creator_type ? { creator_type: draft.creator_type } : {}),
+        ...(draft.focus_channels.length > 0
+          ? { focus_channels: draft.focus_channels }
+          : {}),
+      },
+    });
+    if (metaErr) {
+      console.error("[onboarding] metadata save failed:", metaErr);
+    }
   }
 
   // Reset and re-insert content pillars for this user
@@ -124,7 +155,7 @@ export async function saveOnboarding(draft: OnboardingDraft): Promise<ActionResu
         category: STAGE_LABEL[draft.stage] ?? category,
         primary_platform: PLATFORM_LABEL[draft.primary_platform] ?? draft.primary_platform,
         main_goal: GOAL_LABEL[draft.main_goal] ?? draft.main_goal,
-        weekly_pace: PACE_LABEL[draft.weekly_pace] ?? draft.weekly_pace,
+        weekly_pace: PACE_LABEL[weeklyPace] ?? weeklyPace,
       },
     });
   } catch (err) {
