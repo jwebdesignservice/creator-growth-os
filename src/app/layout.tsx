@@ -63,6 +63,12 @@ export const metadata: Metadata = {
     },
   },
   formatDetection: { telephone: false },
+  // Google Search Console ownership — set NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+  // in Vercel env to the content value from the HTML-tag verification method;
+  // when unset the tag is simply omitted.
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+  },
 };
 
 export default function RootLayout({
