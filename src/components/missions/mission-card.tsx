@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Camera,
   CalendarDays,
@@ -8,10 +8,7 @@ import {
   BarChart3,
   Wallet,
   Sparkles as ConfidenceIcon,
-  Clock,
   CheckCircle2,
-  Circle,
-  AlertCircle,
   ArrowRight,
   Bookmark,
   Trash2,
@@ -19,7 +16,6 @@ import {
   ListChecks,
   Target,
   Users,
-  Star,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
@@ -145,25 +141,6 @@ const TYPE_COLORS: Record<MissionType, TypeColors> = {
   confidence:   { tile: "bg-[#DCF0EE] text-[#2E8A82]", accent: "bg-[#6FBDB4]", text: "text-[#2E8A82]" },
 };
 
-const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  easy: "Easy",
-  medium: "Medium",
-  hard: "Hard",
-};
-
-const DIFFICULTY_LEVEL: Record<Difficulty, 1 | 2 | 3> = {
-  easy: 1,
-  medium: 2,
-  hard: 3,
-};
-
-/** Linear-style priority code — hard work is P1, light work is P3. */
-const PRIORITY: Record<Difficulty, "P1" | "P2" | "P3"> = {
-  hard: "P1",
-  medium: "P2",
-  easy: "P3",
-};
-
 /** Stable ticket-style code (TSK-10…TSK-99) derived from the mission id. */
 function taskCode(id: string): string {
   let h = 0;
@@ -171,60 +148,6 @@ function taskCode(id: string): string {
   return `TSK-${(h % 90) + 10}`;
 }
 
-/** Property row — muted mono label left, value chips right (reference layout). */
-function PropRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="w-[84px] shrink-0 pt-[5px] font-mono text-[12px] tracking-tight text-ink-400">
-        {label}
-      </span>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function PropChip({
-  className,
-  children,
-  title,
-}: {
-  className?: string;
-  children: ReactNode;
-  title?: string;
-}) {
-  return (
-    <span
-      title={title}
-      className={cn(
-        "inline-flex h-7 min-w-0 items-center gap-1.5 rounded-[9px] bg-white px-2.5 text-[12.5px] font-medium text-ink-700 shadow-[0_1px_2px_rgba(26,24,22,0.04)] ring-1 ring-ink-100",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-/** Tiny 3-bar effort meter — fills by difficulty (1–3). Neutral ink tone so it
-    reads as a quiet, scannable signal without competing with the type colour. */
-function EffortMeter({ level }: { level: 1 | 2 | 3 }) {
-  return (
-    <span className="inline-flex items-end gap-[2px]" aria-hidden>
-      {([1, 2, 3] as const).map((i) => (
-        <span
-          key={i}
-          className={cn(
-            "w-[2.5px] rounded-[1px]",
-            i <= level ? "bg-ink-500" : "bg-ink-200",
-          )}
-          style={{ height: `${3 + i * 2}px` }}
-        />
-      ))}
-    </span>
-  );
-}
 
 type Props = {
   mission: Mission;
@@ -238,7 +161,6 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   const meta = TYPE_META[mission.type];
   const colors = TYPE_COLORS[mission.type];
   const Icon = meta.icon;
-  const MetaIcon = meta.metaIcon;
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
@@ -246,8 +168,6 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   const progressCurrent = mission.progressCurrent ?? 0;
   const progressTarget = mission.progressTarget ?? meta.progressTarget;
   const progressLabel = mission.progressLabel ?? meta.progressLabel;
-  const metaLabel = mission.metaLabel ?? meta.metaLabel;
-  const metaValue = mission.metaValue ?? meta.metaValue;
   // Task data sometimes carries raw markdown ("**Objective:** …") — strip the
   // asterisks so the card never shows formatting characters.
   const desc = mission.description.replace(/\*\*/g, "");
@@ -314,41 +234,10 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
 
         </div>
 
-        {/* ── Status + priority pills ────────────────────────────────── */}
-        <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
-          <span
-            className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-full border bg-white/80 px-2.5 text-[12px] font-semibold",
-              completed
-                ? "border-emerald-200 text-emerald-700"
-                : "border-rose-200/80 text-rose-700",
-            )}
-          >
-            {completed ? (
-              <CheckCircle2 className="size-3.5" strokeWidth={2.2} />
-            ) : (
-              <Circle className="size-3" strokeWidth={2.5} />
-            )}
-            {completed ? "Completed" : "To Do"}
-          </span>
-          <span
-            className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-full border bg-white/80 px-2.5 text-[12px] font-semibold",
-              completed
-                ? "border-ink-200 text-ink-400"
-                : "border-rose-200/80 text-rose-700",
-            )}
-            title={`Priority — based on effort: ${DIFFICULTY_LABEL[mission.difficulty]}`}
-          >
-            <AlertCircle className="size-3.5" strokeWidth={2.2} />
-            {PRIORITY[mission.difficulty]}
-          </span>
-        </div>
-
         {/* ── Title + rose description ───────────────────────────────── */}
         <h3
           className={cn(
-            "mt-3 text-[18px] font-bold leading-snug tracking-[-0.014em] sm:text-[19px]",
+            "mt-3.5 text-[18px] font-bold leading-snug tracking-[-0.014em] sm:text-[19px]",
             completed
               ? "text-ink-400 line-through decoration-ink-300"
               : "text-ink-900",
@@ -369,7 +258,7 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
         {!completed && (
           <>
             <div className="my-4 border-t border-dashed border-rose-200/70" aria-hidden />
-            <div>
+            <div className="mb-5">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="font-mono text-[11px] font-bold uppercase tracking-[0.1em]">
                   <span className="text-ink-400">Task </span>
@@ -421,54 +310,6 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
             </div>
           </>
         )}
-
-        {/* ── Property rows (label left, value chips right) ───────────── */}
-        <div className="my-4 border-t border-dashed border-rose-200/70" aria-hidden />
-        <div className="mb-5 space-y-2.5">
-          <PropRow label="Time">
-            <PropChip>
-              <Clock className="size-3.5 text-ink-400" strokeWidth={2} />
-              {mission.minutes} min
-            </PropChip>
-            <PropChip title={`Effort: ${DIFFICULTY_LABEL[mission.difficulty]}`}>
-              <EffortMeter level={DIFFICULTY_LEVEL[mission.difficulty]} />
-              {DIFFICULTY_LABEL[mission.difficulty]}
-            </PropChip>
-          </PropRow>
-
-          {!completed && (
-            <PropRow label="Goal">
-              <PropChip title={`${metaLabel}: ${metaValue}`}>
-                <MetaIcon className="size-3.5 text-ink-400" strokeWidth={1.9} />
-                <span className="truncate">{metaValue}</span>
-              </PropChip>
-            </PropRow>
-          )}
-
-          <PropRow label="Tags">
-            <PropChip
-              className={cn(
-                "font-semibold ring-0",
-                completed ? "bg-cream-200 text-ink-400" : colors.tile,
-              )}
-            >
-              <span className="opacity-60">#</span>
-              {meta.label}
-            </PropChip>
-            <PropChip
-              className={cn(
-                "font-semibold",
-                completed
-                  ? "bg-cream-100 text-ink-400 ring-ink-100"
-                  : "bg-gradient-to-b from-amber-50 to-amber-100/70 text-amber-700 ring-amber-200/70",
-              )}
-              title={`${mission.points} points`}
-            >
-              <Star className="-ml-0.5 size-3.5" fill="currentColor" strokeWidth={0} />
-              {mission.points} pts
-            </PropChip>
-          </PropRow>
-        </div>
 
         {/* ── Footer: summary left, /programs-style CTA pill right ────── */}
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-dashed border-rose-200/70 pt-4">
