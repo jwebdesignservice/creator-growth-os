@@ -203,7 +203,7 @@ function OverviewPanel({
                   key={c.id}
                   className="flex items-center gap-2.5 text-[13px] text-ink-700"
                 >
-                  <span className="size-5 rounded-full bg-rose-50 text-rose-600 inline-flex items-center justify-center text-[10.5px] font-bold tabular-nums shrink-0">
+                  <span className="size-5 rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 ring-1 ring-rose-200/50 inline-flex items-center justify-center text-[10.5px] font-bold tabular-nums shrink-0">
                     {i + 1}
                   </span>
                   <span className="min-w-0 truncate">{c.title}</span>
@@ -327,7 +327,7 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
   if (chapters.length === 0) {
     return (
       <div className="card rounded-[16px] px-5 py-12 flex flex-col items-center justify-center text-center">
-        <span className="size-11 rounded-full bg-cream-100 text-ink-400 inline-flex items-center justify-center mb-3">
+        <span className="size-11 rounded-full bg-gradient-to-br from-cream-100 to-cream-200 text-ink-400 ring-1 ring-ink-100 inline-flex items-center justify-center mb-3">
           <CalendarDays className="size-5" strokeWidth={1.8} aria-hidden />
         </span>
         <div className="text-[13.5px] font-semibold text-ink-900">
@@ -410,7 +410,7 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
                   href={`/tutorials/${linked.slug}?tab=path`}
                   className="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] border border-rose-200 bg-rose-50/40 transition-all duration-150 hover:bg-rose-50 hover:border-rose-300 hover:-translate-y-px hover:shadow-[0_8px_18px_-12px_rgba(185,72,92,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1"
                 >
-                  <span className="size-6 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
+                  <span className="size-6 rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 ring-1 ring-rose-200/50 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
                     {i + 1}
                   </span>
                   <span
@@ -469,10 +469,10 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
               key={c.id}
               className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] border border-ink-100 bg-white"
             >
-              <span className="size-6 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
+              <span className="size-6 rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 ring-1 ring-rose-200/50 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
                 {i + 1}
               </span>
-              <span className="size-8 rounded-[9px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+              <span className="size-8 rounded-[9px] bg-gradient-to-br from-rose-50 to-rose-100/80 text-rose-600 ring-1 ring-rose-200/40 inline-flex items-center justify-center shrink-0">
                 <Icon className="size-4" strokeWidth={1.9} aria-hidden />
               </span>
               <div className="flex-1 min-w-0">
@@ -544,7 +544,7 @@ function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
 
       {resources.length === 0 ? (
         <div className="border-t border-ink-100 flex flex-col items-center justify-center px-5 sm:px-6 py-12 text-center">
-          <span className="size-11 rounded-full bg-cream-100 text-ink-400 inline-flex items-center justify-center mb-3">
+          <span className="size-11 rounded-full bg-gradient-to-br from-cream-100 to-cream-200 text-ink-400 ring-1 ring-ink-100 inline-flex items-center justify-center mb-3">
             <Files className="size-5" strokeWidth={1.8} aria-hidden />
           </span>
           <h4 className="text-[14px] font-semibold text-ink-900 mb-1">

@@ -254,19 +254,24 @@ export function CreateNoteModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="anim-overlay-in fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={() => !pending && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Create note"
     >
       <div
-        className="bg-white rounded-[18px] shadow-xl border border-ink-100 w-full max-w-[560px] p-6"
+        className="anim-modal-in relative bg-white rounded-[18px] shadow-[0_32px_80px_-24px_rgba(26,24,22,0.45)] ring-1 ring-ink-900/[0.06] w-full max-w-[560px] p-6"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* top edge light — seats the panel */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-ink-900/[0.08] to-transparent"
+        />
         <header className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-start gap-3 min-w-0">
-            <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+            <span className="size-10 rounded-[12px] bg-gradient-to-br from-rose-100 to-rose-200/70 text-rose-600 ring-1 ring-rose-200/60 inline-flex items-center justify-center shrink-0">
               <NotebookPen className="size-5" strokeWidth={1.9} />
             </span>
             <div className="min-w-0">
@@ -281,7 +286,7 @@ export function CreateNoteModal({
             onClick={onClose}
             disabled={pending}
             aria-label="Close"
-            className="size-8 rounded-full hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 disabled:opacity-50 shrink-0"
+            className="size-8 rounded-full inline-flex items-center justify-center text-ink-500 transition-all duration-150 hover:bg-cream-100 hover:text-ink-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:opacity-50 shrink-0"
           >
             <X className="size-4" strokeWidth={2} />
           </button>
@@ -407,7 +412,7 @@ export function CreateNoteModal({
                   type="button"
                   onClick={onClose}
                   disabled={pending}
-                  className="inline-flex items-center h-10 px-4 rounded-[10px] border border-ink-200 text-[13px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
+                  className="inline-flex items-center h-10 px-4 rounded-[10px] border border-ink-200 text-[13px] font-semibold text-ink-700 transition-all duration-150 hover:bg-cream-100 hover:border-ink-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -415,7 +420,7 @@ export function CreateNoteModal({
                   type="button"
                   onClick={save}
                   disabled={pending || isEmpty || tooLong}
-                  className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold"
+                  className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[10px] bg-rose-600 text-white text-[13px] font-semibold shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 disabled:bg-rose-300 disabled:shadow-none disabled:hover:translate-y-0"
                 >
                   {pending && (
                     <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />

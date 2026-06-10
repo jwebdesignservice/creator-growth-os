@@ -545,9 +545,25 @@ select.input {
 .anim-bar-sweep {
   animation: lesson-bar-sweep 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s backwards;
 }
+/* Modal entrance — overlay fades, the panel settles up into place. */
+@keyframes lesson-overlay-in {
+  from { opacity: 0; }
+}
+.anim-overlay-in {
+  animation: lesson-overlay-in 0.2s ease-out both;
+}
+@keyframes lesson-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.anim-modal-in {
+  animation: lesson-modal-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 @media (prefers-reduced-motion: reduce) {
   .anim-pop-in,
-  .anim-bar-sweep { animation: none; }
+  .anim-bar-sweep,
+  .anim-overlay-in,
+  .anim-modal-in { animation: none; }
 }
 
 /* Programs library — progress fills sweep from 0 to their inline width on
