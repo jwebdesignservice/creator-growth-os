@@ -145,17 +145,95 @@ export function PostingActions({
   activePlanId: string | null;
 }) {
   const [mode, setMode] = useState<"closed" | "plan" | "item">("closed");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [intent, setIntent] = useState<"post" | "idea">("post");
+
+  // "Add Post" first asks what you're adding: a post for a channel, or a
+  // quick content idea. Both open the same form, tuned per intent.
+  const openItem = (kind: "post" | "idea") => {
+    setMenuOpen(false);
+    setIntent(kind);
+    setMode("item");
+  };
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setMode(activePlanId ? "item" : "plan")}
-        className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors shadow-sm"
-      >
-        <Plus className="size-4" strokeWidth={2.5} />
-        {activePlanId ? "Add Post" : "Create New Plan"}
-      </button>
+      <div className="relative inline-block">
+        <button
+          type="button"
+          onClick={() =>
+            activePlanId ? setMenuOpen((v) => !v) : setMode("plan")
+          }
+          aria-haspopup={activePlanId ? "menu" : undefined}
+          aria-expanded={activePlanId ? menuOpen : undefined}
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors shadow-sm"
+        >
+          <Plus className="size-4" strokeWidth={2.5} />
+          {activePlanId ? "Add Post" : "Create New Plan"}
+          {activePlanId && (
+            <ChevronDown
+              className={cn(
+                "-mr-1 size-3.5 opacity-80 transition-transform duration-150",
+                menuOpen && "rotate-180",
+              )}
+              strokeWidth={2.5}
+            />
+          )}
+        </button>
+
+        {menuOpen && (
+          <>
+            <button
+              type="button"
+              aria-hidden
+              tabIndex={-1}
+              onClick={() => setMenuOpen(false)}
+              className="fixed inset-0 z-40 cursor-default"
+            />
+            <div
+              role="menu"
+              className="absolute right-0 top-[calc(100%+8px)] z-50 w-[300px] rounded-[16px] border border-ink-100 bg-white p-2 shadow-card"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => openItem("post")}
+                className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-colors hover:bg-cream-100"
+              >
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-sky-100 text-sky-600">
+                  <FileText className="size-5" strokeWidth={2} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[14.5px] font-semibold text-ink-900">
+                    Post
+                  </span>
+                  <span className="block text-[12.5px] text-ink-500">
+                    Publish content to a channel
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => openItem("idea")}
+                className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-colors hover:bg-cream-100"
+              >
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-emerald-100 text-emerald-600">
+                  <Lightbulb className="size-5" strokeWidth={2} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[14.5px] font-semibold text-ink-900">
+                    Idea
+                  </span>
+                  <span className="block text-[12.5px] text-ink-500">
+                    Capture a content idea
+                  </span>
+                </span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       {mode === "plan" && (
         <NewPlanForm onClose={() => setMode("closed")} />
@@ -163,6 +241,7 @@ export function PostingActions({
       {mode === "item" && activePlanId && (
         <NewItemForm
           planId={activePlanId}
+          intent={intent}
           onClose={() => setMode("closed")}
         />
       )}
@@ -255,12 +334,16 @@ export function NewItemForm({
   planId,
   onClose,
   initialDate,
+  intent = "post",
 }: {
   planId: string;
   onClose: () => void;
   /** Pre-select a calendar day (YYYY-MM-DD) — used by the per-column "Add post". */
   initialDate?: string;
+  /** "idea" opens the form in capture-an-idea mode (idea-first save CTA). */
+  intent?: "post" | "idea";
 }) {
+  const isIdea = intent === "idea";
   const router = useRouter();
   const [platform, setPlatform] = useState<PlatformKey>("instagram");
   const [contentType, setContentType] = useState("reel");
@@ -391,15 +474,28 @@ export function NewItemForm({
       >
         {/* Header */}
         <header className="flex items-start gap-3 px-6 sm:px-8 pt-6">
-          <span className="size-11 rounded-[13px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-            <CalendarCheck className="size-5" strokeWidth={2} />
+          <span
+            className={cn(
+              "size-11 rounded-[13px] inline-flex items-center justify-center shrink-0",
+              isIdea
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-rose-100 text-rose-600",
+            )}
+          >
+            {isIdea ? (
+              <Lightbulb className="size-5" strokeWidth={2} />
+            ) : (
+              <CalendarCheck className="size-5" strokeWidth={2} />
+            )}
           </span>
           <div className="flex-1 min-w-0">
             <h3 className="text-h3 sm:text-[26px] text-ink-900 leading-tight">
-              Add a planned post
+              {isIdea ? "Capture a content idea" : "Add a planned post"}
             </h3>
             <p className="text-[13px] text-ink-500 mt-0.5">
-              Plan and organize your content ahead of time.
+              {isIdea
+                ? "Save the spark now — schedule it whenever you're ready."
+                : "Plan and organize your content ahead of time."}
             </p>
           </div>
           <button
@@ -740,27 +836,36 @@ export function NewItemForm({
             >
               Cancel
             </button>
+            {!isIdea && (
+              <button
+                type="button"
+                onClick={() => save("idea")}
+                disabled={pending}
+                className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[12px] border border-ink-200 bg-white text-[14px] font-medium text-ink-700 hover:bg-cream-100 disabled:opacity-50 transition-colors"
+              >
+                <FileText className="size-4" strokeWidth={2} />
+                Save as draft
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => save("idea")}
+              onClick={() => save(isIdea ? "idea" : "planned")}
               disabled={pending}
-              className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[12px] border border-ink-200 bg-white text-[14px] font-medium text-ink-700 hover:bg-cream-100 disabled:opacity-50 transition-colors"
-            >
-              <FileText className="size-4" strokeWidth={2} />
-              Save as draft
-            </button>
-            <button
-              type="button"
-              onClick={() => save("planned")}
-              disabled={pending}
-              className="inline-flex items-center gap-1.5 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[14px] font-semibold transition-colors shadow-sm"
+              className={cn(
+                "inline-flex items-center gap-1.5 h-11 px-5 rounded-[12px] text-white text-[14px] font-semibold transition-colors shadow-sm",
+                isIdea
+                  ? "bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300"
+                  : "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300",
+              )}
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+              ) : isIdea ? (
+                <Lightbulb className="size-4" strokeWidth={2} />
               ) : (
                 <CalendarCheck className="size-4" strokeWidth={2} />
               )}
-              Save planned post
+              {isIdea ? "Save idea" : "Save planned post"}
             </button>
           </div>
         </footer>
