@@ -13,8 +13,8 @@ import {
   Eye,
   Info,
   Lightbulb,
-  Ban,
   ChevronDown,
+  ChevronRight,
   Clapperboard,
   Loader2,
   Sparkles,
@@ -24,6 +24,21 @@ import {
   ImagePlus,
   Ghost,
   Globe,
+  Bell,
+  Check,
+  Star,
+  Link2,
+  Search,
+  Heart,
+  MessageCircle,
+  Bookmark,
+  Share2,
+  Palette,
+  HardDrive,
+  Images,
+  Cloud,
+  Aperture,
+  Package,
 } from "lucide-react";
 import {
   InstagramIcon,
@@ -82,13 +97,17 @@ const GOALS = [
   { value: "promotion", label: "Promotion" },
 ];
 
-const QUICK = [
-  { key: "today", label: "Today" },
-  { key: "tomorrow", label: "Tomorrow" },
-  { key: "this_week", label: "This week" },
-  { key: "next_week", label: "Next week" },
-  { key: "none", label: "No schedule", ban: true },
+/* Media sources offered by the composer's "+" menu (reference). The
+   integrations themselves ship later — the menu is the design contract. */
+const MEDIA_SOURCES: { label: string; icon: LucideIconType; more?: boolean }[] = [
+  { label: "Canva", icon: Palette, more: true },
+  { label: "Dropbox", icon: Package },
+  { label: "Google Drive", icon: HardDrive },
+  { label: "Google Photos", icon: Images },
+  { label: "OneDrive", icon: Cloud },
+  { label: "Unsplash", icon: Aperture },
 ];
+type LucideIconType = typeof Palette;
 
 function PlatformGlyph({ platform, size = 16 }: { platform: PlatformKey; size?: number }) {
   if (platform === "instagram") return <InstagramIcon className="text-rose-600" size={size} />;
@@ -102,14 +121,6 @@ function toDateInput(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function quickDate(kind: string) {
-  const d = new Date();
-  if (kind === "tomorrow") d.setDate(d.getDate() + 1);
-  else if (kind === "this_week") d.setDate(d.getDate() + ((5 - d.getDay() + 7) % 7)); // upcoming Friday
-  else if (kind === "next_week") d.setDate(d.getDate() + (((8 - d.getDay()) % 7) || 7)); // next Monday
-  return toDateInput(d);
 }
 
 /** Current local time as HH:MM — based on the browser's (user's) timezone. */
@@ -157,6 +168,17 @@ function PlatformTileGlyph({ platform }: { platform: PlatformKey }) {
   if (platform === "linkedin")
     return <span className="text-[14px] font-black leading-none">in</span>;
   return <Globe className="size-[17px]" strokeWidth={2} />;
+}
+
+/** Tiny glyph for the avatar's corner badge (reference's channel badge). */
+function PlatformBadgeGlyph({ platform }: { platform: PlatformKey }) {
+  if (platform === "instagram") return <InstagramIcon size={10} />;
+  if (platform === "tiktok") return <TiktokIcon size={10} />;
+  if (platform === "youtube") return <YoutubeIcon size={10} />;
+  if (platform === "snapchat") return <Ghost className="size-[10px]" strokeWidth={2.5} />;
+  if (platform === "linkedin")
+    return <span className="text-[8px] font-black leading-none">in</span>;
+  return <Globe className="size-[10px]" strokeWidth={2.5} />;
 }
 
 function mondayIso() {
@@ -382,7 +404,6 @@ export function NewItemForm({
   // specific calendar day was passed in (per-column "Add post").
   const [date, setDate] = useState(() => initialDate ?? toDateInput(new Date()));
   const [time, setTime] = useState(() => nowTimeHHMM());
-  const [quick, setQuick] = useState<string | null>(initialDate ? null : "today");
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -392,6 +413,29 @@ export function NewItemForm({
   const [schedOpen, setSchedOpen] = useState(false);
   const [aiGen, setAiGen] = useState(false);
   const [createAnother, setCreateAnother] = useState(false);
+  // Posting mode for the footer's split button: queue slot, bump, right now,
+  // or an explicit date/time (the only mode that uses the date inputs).
+  const [schedMode, setSchedMode] = useState<
+    "next" | "prioritize" | "now" | "custom"
+  >(initialDate ? "custom" : "next");
+  // Automatic vs Notify-Me publishing preference (composer's quiet menu).
+  const [autoMode, setAutoMode] = useState<"automatic" | "notify">("automatic");
+  const [autoOpen, setAutoOpen] = useState(false);
+  // "+" media-source menu.
+  const [plusOpen, setPlusOpen] = useState(false);
+  // Locally attached media — previewed in the composer + platform mock.
+  // Persisting uploads needs a storage bucket + column, so the file stays
+  // client-side for now and is not written on save.
+  const [media, setMedia] = useState<{ url: string; name: string } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function attachFile(f: File | null | undefined) {
+    if (!f) return;
+    setMedia((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return { url: URL.createObjectURL(f), name: f.name };
+    });
+  }
 
   // Production schedule: single day (uses the date above) vs phases spread
   // across days. phaseDates holds a YYYY-MM-DD per stage (absent = skipped).
@@ -429,22 +473,37 @@ export function NewItemForm({
       })
     : null;
 
-  function pickQuick(kind: string) {
-    setQuick(kind);
-    if (kind === "none") {
-      setDate("");
-      setTime("");
-      return;
+  /** Resolve the posting moment from the split-button mode. */
+  function resolveWhen(): Date | null {
+    if (schedMode === "now") return new Date();
+    if (schedMode === "prioritize") {
+      // Bump to the top of the queue — the next full hour.
+      const d = new Date();
+      d.setMinutes(0, 0, 0);
+      d.setHours(d.getHours() + 1);
+      return d;
     }
-    setDate(quickDate(kind));
-    if (!time) setTime(nowTimeHHMM());
+    if (schedMode === "next") {
+      // Next available slot in the queue — tomorrow morning, 10:00.
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      d.setHours(10, 0, 0, 0);
+      return d;
+    }
+    return date ? new Date(`${date}T${time || nowTimeHHMM()}`) : null;
   }
+
+  const SCHED_MODE_LABEL: Record<typeof schedMode, string> = {
+    next: "Next Available",
+    prioritize: "Prioritize",
+    now: "Now",
+    custom: scheduleLabel ?? "Set Date and Time",
+  };
 
   function save(status: "idea" | "planned") {
     setErr(null);
-    const scheduledFor = date
-      ? new Date(`${date}T${time || nowTimeHHMM()}`).toISOString()
-      : undefined;
+    const when = resolveWhen();
+    const scheduledFor = when ? when.toISOString() : undefined;
     // The AI-Generated toggle records the disclosure with the post's notes.
     const finalNotes = [
       notes.trim(),
@@ -581,7 +640,7 @@ export function NewItemForm({
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors",
               showPreview
-                ? "bg-rose-100 text-rose-700"
+                ? "bg-emerald-100 text-emerald-700"
                 : "text-ink-600 hover:bg-cream-100",
             )}
           >
@@ -629,40 +688,83 @@ export function NewItemForm({
                     aria-pressed={active}
                     title={p.label}
                     className={cn(
-                      "relative size-11 rounded-[13px] inline-flex items-center justify-center transition-all",
+                      "relative size-12 rounded-[14px] inline-flex items-center justify-center transition-all",
                       PLATFORM_TILE[p.value],
                       active
-                        ? "ring-2 ring-rose-500 ring-offset-2"
+                        ? "ring-2 ring-ink-900 ring-offset-2"
                         : "opacity-40 saturate-50 hover:opacity-80",
                     )}
                   >
                     <PlatformTileGlyph platform={p.value} />
+                    {/* corner channel badge, like the reference avatar */}
+                    <span className="absolute -bottom-1 -right-1 size-5 rounded-full bg-ink-900 text-white ring-2 ring-white inline-flex items-center justify-center">
+                      <PlatformBadgeGlyph platform={p.value} />
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* composer box */}
-            <div className="rounded-[16px] border border-ink-200 bg-white focus-within:border-rose-300 focus-within:ring-2 focus-within:ring-rose-100 transition-shadow">
+            {/* composer card — caption · media · toolbar · publish mode · title */}
+            <div className="rounded-[16px] border border-ink-200 bg-white focus-within:border-ink-300 transition-shadow">
               <div className="flex items-start gap-3 p-4 pb-0">
                 <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
                   <PlatformGlyph platform={platform} size={16} />
                 </span>
                 <textarea
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value.slice(0, 160))}
-                  maxLength={160}
-                  rows={4}
-                  placeholder="Start writing your hook or topic…"
-                  className="flex-1 min-w-0 resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 placeholder:text-ink-400 focus:outline-none min-h-[110px]"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value.slice(0, 500))}
+                  maxLength={500}
+                  rows={5}
+                  spellCheck
+                  placeholder="Start writing or get inspired with Templates"
+                  className="flex-1 min-w-0 resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 placeholder:text-ink-400 focus:outline-none min-h-[150px]"
                 />
               </div>
 
-              {/* media dropzone — visual per the reference; uploads land later */}
-              <div className="px-4 pt-2 pb-4">
-                <div
-                  title="Media upload — coming soon"
-                  className="w-[210px] rounded-[12px] border-2 border-dashed border-ink-200 px-4 py-5 text-center select-none cursor-not-allowed"
+              {/* media row — attached preview + drag & drop / file picker */}
+              <div className="flex items-end gap-3 px-4 pt-2 pb-3">
+                {media && (
+                  <div className="relative shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
+                    <img
+                      src={media.url}
+                      alt={media.name}
+                      className="h-[110px] w-[88px] rounded-[10px] border border-ink-200 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        URL.revokeObjectURL(media.url);
+                        setMedia(null);
+                      }}
+                      aria-label="Remove media"
+                      title="Remove media"
+                      className="absolute -right-2 -top-2 size-6 rounded-full bg-ink-900 text-white inline-flex items-center justify-center shadow hover:bg-ink-700 transition-colors"
+                    >
+                      <X className="size-3" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    attachFile(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    attachFile(e.dataTransfer.files?.[0]);
+                  }}
+                  className="w-[210px] rounded-[12px] border-2 border-dashed border-ink-200 px-4 py-5 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50/30"
                 >
                   <ImagePlus
                     className="mx-auto mb-1.5 size-5 text-ink-400"
@@ -670,30 +772,66 @@ export function NewItemForm({
                   />
                   <p className="text-[12.5px] leading-snug text-ink-500">
                     Drag &amp; drop or{" "}
-                    <span className="font-medium text-rose-600">select a file</span>
+                    <span className="font-medium text-emerald-600">
+                      select a file
+                    </span>
                   </p>
-                  <p className="text-[10.5px] text-ink-400 mt-0.5">Coming soon</p>
-                </div>
+                </button>
               </div>
 
               {/* toolbar */}
               <div className="flex items-center gap-0.5 px-3 py-2 border-t border-ink-100">
-                <span
-                  className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-300 cursor-not-allowed"
-                  title="Coming soon"
-                >
-                  <Plus className="size-4" strokeWidth={2} />
-                </span>
-                <span
-                  className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-300 cursor-not-allowed"
-                  title="Coming soon"
-                >
-                  <ChevronDown className="size-4" strokeWidth={2} />
-                </span>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setPlusOpen((v) => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={plusOpen}
+                    aria-label="Add media from…"
+                    className="inline-flex items-center gap-0.5 h-8 px-1.5 rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
+                  >
+                    <Plus className="size-4" strokeWidth={2} />
+                    <ChevronDown className="size-3.5" strokeWidth={2} />
+                  </button>
+                  {plusOpen && (
+                    <>
+                      <button
+                        type="button"
+                        aria-hidden
+                        tabIndex={-1}
+                        onClick={() => setPlusOpen(false)}
+                        className="fixed inset-0 z-40 cursor-default"
+                      />
+                      <div
+                        role="menu"
+                        className="absolute left-0 bottom-[calc(100%+8px)] z-50 w-[220px] rounded-[14px] border border-ink-100 bg-white py-1.5 shadow-card"
+                      >
+                        {MEDIA_SOURCES.map((s) => (
+                          <button
+                            key={s.label}
+                            type="button"
+                            role="menuitem"
+                            title="Integration coming soon"
+                            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px] font-medium text-ink-400 cursor-not-allowed"
+                          >
+                            <s.icon className="size-4" strokeWidth={2} />
+                            {s.label}
+                            {s.more && (
+                              <ChevronRight
+                                className="ml-auto size-3.5"
+                                strokeWidth={2}
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
                 <span aria-hidden className="w-px h-4 bg-ink-200 mx-1" />
                 <button
                   type="button"
-                  onClick={() => setTopic((t) => (t + "🙂").slice(0, 160))}
+                  onClick={() => setNotes((t) => (t + "🙂").slice(0, 500))}
                   title="Add emoji"
                   aria-label="Add emoji"
                   className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
@@ -702,49 +840,150 @@ export function NewItemForm({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTopic((t) => (t + "#").slice(0, 160))}
+                  onClick={() => setNotes((t) => (t + "#").slice(0, 500))}
                   title="Add hashtag"
                   aria-label="Add hashtag"
                   className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
                 >
                   <Hash className="size-4" strokeWidth={2} />
                 </button>
+                <span
+                  className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-300 cursor-not-allowed"
+                  title="Link shortening — coming soon"
+                >
+                  <Link2 className="size-4" strokeWidth={2} />
+                </span>
                 <span className="flex-1" />
                 <span
                   className="rounded-[8px] border border-ink-200 px-2 py-0.5 text-[11.5px] tabular-nums text-ink-500"
                   title="Characters left"
                 >
-                  {160 - topic.length}
+                  {500 - notes.length}
                 </span>
               </div>
-            </div>
 
-            {/* goal — the reference's quiet right-aligned control row */}
-            <div className="mt-3 flex justify-end">
-              <div className="relative">
-                <Target
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-                  strokeWidth={2}
-                />
-                <select
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  aria-label="Goal / objective"
-                  className="h-9 pl-8 pr-8 rounded-[10px] border border-transparent bg-transparent text-[13.5px] font-medium text-ink-700 appearance-none cursor-pointer hover:border-ink-200 hover:bg-cream-50 focus:outline-none focus:border-rose-300 transition-colors"
-                >
-                  {GOALS.map((g) => (
-                    <option key={g.value} value={g.value}>{g.label}</option>
-                  ))}
-                </select>
-                <ChevronDown
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
-                  strokeWidth={2}
+              {/* publish mode — goal (left) · Automatic/Notify Me (right) */}
+              <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-ink-100">
+                <div className="relative">
+                  <Target
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+                    strokeWidth={2}
+                  />
+                  <select
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    aria-label="Goal / objective"
+                    className="h-9 pl-8 pr-8 rounded-[10px] border border-transparent bg-transparent text-[13.5px] font-medium text-ink-700 appearance-none cursor-pointer hover:border-ink-200 hover:bg-cream-50 focus:outline-none focus:border-rose-300 transition-colors"
+                  >
+                    {GOALS.map((g) => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
+                    strokeWidth={2}
+                  />
+                </div>
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setAutoOpen((v) => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={autoOpen}
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[13.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
+                  >
+                    {autoMode === "automatic" ? (
+                      <Sparkles className="size-4 text-ink-500" strokeWidth={2} />
+                    ) : (
+                      <Bell className="size-4 text-ink-500" strokeWidth={2} />
+                    )}
+                    {autoMode === "automatic" ? "Automatic" : "Notify Me"}
+                    <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
+                  </button>
+                  {autoOpen && (
+                    <>
+                      <button
+                        type="button"
+                        aria-hidden
+                        tabIndex={-1}
+                        onClick={() => setAutoOpen(false)}
+                        className="fixed inset-0 z-40 cursor-default"
+                      />
+                      <div
+                        role="menu"
+                        className="absolute right-0 bottom-[calc(100%+8px)] z-50 w-[320px] rounded-[16px] border border-ink-100 bg-white p-2 shadow-card"
+                      >
+                        <button
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={autoMode === "automatic"}
+                          onClick={() => {
+                            setAutoMode("automatic");
+                            setAutoOpen(false);
+                          }}
+                          className="flex w-full items-start gap-3 rounded-[12px] px-3 py-2.5 text-left hover:bg-cream-100 transition-colors"
+                        >
+                          <Sparkles className="size-4 mt-0.5 text-ink-600 shrink-0" strokeWidth={2} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[14px] font-semibold text-ink-900">
+                              Automatic
+                            </span>
+                            <span className="block text-[12.5px] text-ink-500">
+                              Profluencer will post automatically for you
+                            </span>
+                          </span>
+                          {autoMode === "automatic" && (
+                            <Check className="size-4 mt-1 text-ink-900 shrink-0" strokeWidth={2.5} />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={autoMode === "notify"}
+                          onClick={() => {
+                            setAutoMode("notify");
+                            setAutoOpen(false);
+                          }}
+                          className="flex w-full items-start gap-3 rounded-[12px] px-3 py-2.5 text-left hover:bg-cream-100 transition-colors"
+                        >
+                          <Bell className="size-4 mt-0.5 text-amber-600 shrink-0" strokeWidth={2} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[14px] font-semibold text-ink-900">
+                              Notify Me
+                            </span>
+                            <span className="block text-[12.5px] text-ink-500">
+                              You&apos;ll receive a mobile notification to post yourself.
+                            </span>
+                          </span>
+                          {autoMode === "notify" && (
+                            <Check className="size-4 mt-1 text-ink-900 shrink-0" strokeWidth={2.5} />
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* title — the post's hook/topic */}
+              <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100">
+                <span className="w-[44px] shrink-0 text-[14px] text-ink-600">
+                  Title
+                </span>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value.slice(0, 160))}
+                  maxLength={160}
+                  placeholder="Add a title…"
+                  className={cn(fieldCls, "h-11")}
                 />
               </div>
             </div>
 
             {/* AI-Generated disclosure — saved alongside the post's notes */}
-            <div className="mt-2 flex items-center gap-3 border-t border-ink-100 pt-3.5">
+            <div className="mt-3 flex items-center gap-3 pt-1">
               <span className="text-[13.5px] font-semibold text-ink-900 shrink-0">
                 AI-Generated
               </span>
@@ -759,7 +998,7 @@ export function NewItemForm({
                 onClick={() => setAiGen((v) => !v)}
                 className={cn(
                   "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-                  aiGen ? "bg-rose-600" : "bg-ink-200",
+                  aiGen ? "bg-emerald-500" : "bg-ink-200",
                 )}
               >
                 <span
@@ -770,21 +1009,6 @@ export function NewItemForm({
                   )}
                 />
               </button>
-            </div>
-
-            {/* notes — quick capture, kept from the original form */}
-            <div className="relative mt-3">
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value.slice(0, 500))}
-                rows={2}
-                maxLength={500}
-                placeholder="Notes / caption direction (optional)"
-                className={cn(fieldCls, "py-2.5 pr-16 resize-none text-[13.5px]")}
-              />
-              <span className="absolute bottom-2 right-3 text-[11px] text-ink-400 tabular-nums pointer-events-none">
-                {notes.length} / 500
-              </span>
             </div>
 
             {err && (
@@ -808,33 +1032,109 @@ export function NewItemForm({
                 />
               </div>
 
-              {/* mock post — fills in as you type */}
-              <div className="rounded-[14px] bg-white border border-ink-100 shadow-sm p-3.5">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <span className="size-8 rounded-full bg-cream-100 inline-flex items-center justify-center shrink-0">
-                    <PlatformGlyph platform={platform} size={14} />
-                  </span>
-                  <div className="space-y-1" aria-hidden>
-                    <div className="h-2 w-24 rounded-full bg-cream-200" />
-                    <div className="h-2 w-14 rounded-full bg-cream-100" />
+              {platform === "tiktok" ? (
+                /* TikTok mock — 1:1 with the reference preview */
+                <div className="rounded-[16px] overflow-hidden bg-black text-white shadow-sm">
+                  <div className="relative flex items-center justify-center gap-5 px-3 pt-3 pb-2.5">
+                    <span className="text-[13px] font-medium text-white/60">
+                      Following
+                    </span>
+                    <span className="relative text-[13px] font-bold">
+                      For You
+                      <span
+                        aria-hidden
+                        className="absolute -bottom-1.5 left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-white"
+                      />
+                    </span>
+                    <Search
+                      className="absolute right-3 top-3 size-4 text-white"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  </div>
+                  <div className="relative aspect-[3/4] bg-ink-900">
+                    {media ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */
+                      <img
+                        src={media.url}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/35">
+                        <ImagePlus className="size-7" strokeWidth={1.5} />
+                        <span className="text-[12px]">
+                          See your post&apos;s preview here
+                        </span>
+                      </div>
+                    )}
+                    {/* action rail */}
+                    <div className="absolute bottom-3 right-2 flex flex-col items-center gap-3.5">
+                      <span className="relative">
+                        <span className="size-9 rounded-full bg-cream-100 ring-2 ring-white inline-flex items-center justify-center">
+                          <PlatformGlyph platform={platform} size={15} />
+                        </span>
+                        <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 size-4 rounded-full bg-rose-500 text-white text-[11px] font-bold leading-none inline-flex items-center justify-center">
+                          +
+                        </span>
+                      </span>
+                      <Heart className="size-6" fill="currentColor" strokeWidth={0} aria-hidden />
+                      <MessageCircle className="size-6" fill="currentColor" strokeWidth={0} aria-hidden />
+                      <Bookmark className="size-6" fill="currentColor" strokeWidth={0} aria-hidden />
+                      <Share2 className="size-6" fill="currentColor" strokeWidth={0} aria-hidden />
+                    </div>
+                  </div>
+                  <div className="space-y-1 px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13.5px] font-bold">@you</span>
+                      <span className="inline-flex items-center gap-1 rounded-[6px] bg-white/20 px-1.5 py-0.5 text-[10.5px] font-semibold">
+                        <ImagePlus className="size-3" strokeWidth={2} />
+                        {media ? "Photo" : "Post"}
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-[12.5px] text-white/90 whitespace-pre-wrap break-words">
+                      {notes || "Your caption will appear here"}
+                    </p>
                   </div>
                 </div>
-                {topic ? (
-                  <p className="text-[13px] leading-snug text-ink-800 mb-3 whitespace-pre-wrap break-words">
-                    {topic}
-                  </p>
-                ) : (
-                  <div className="space-y-1.5 mb-3" aria-hidden>
-                    <div className="h-2 rounded-full bg-cream-200 w-full" />
-                    <div className="h-2 rounded-full bg-cream-200 w-3/4" />
+              ) : (
+                /* generic mock for the other platforms */
+                <div className="rounded-[14px] bg-white border border-ink-100 shadow-sm p-3.5">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <span className="size-8 rounded-full bg-cream-100 inline-flex items-center justify-center shrink-0">
+                      <PlatformGlyph platform={platform} size={14} />
+                    </span>
+                    <div className="space-y-1" aria-hidden>
+                      <div className="h-2 w-24 rounded-full bg-cream-200" />
+                      <div className="h-2 w-14 rounded-full bg-cream-100" />
+                    </div>
                   </div>
-                )}
-                <div className="aspect-[4/3] rounded-[10px] bg-cream-100 border border-ink-100 flex items-center justify-center text-ink-300">
-                  <ImagePlus className="size-6" strokeWidth={1.5} />
+                  {notes ? (
+                    <p className="text-[13px] leading-snug text-ink-800 mb-3 whitespace-pre-wrap break-words line-clamp-4">
+                      {notes}
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 mb-3" aria-hidden>
+                      <div className="h-2 rounded-full bg-cream-200 w-full" />
+                      <div className="h-2 rounded-full bg-cream-200 w-3/4" />
+                    </div>
+                  )}
+                  <div className="relative aspect-[4/3] rounded-[10px] bg-cream-100 border border-ink-100 flex items-center justify-center overflow-hidden text-ink-300">
+                    {media ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */
+                      <img
+                        src={media.url}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <ImagePlus className="size-6" strokeWidth={1.5} />
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {!topic && (
+              {!notes && platform !== "tiktok" && (
                 <p className="mt-3 text-center text-[12.5px] text-ink-400">
                   See your post&apos;s preview here
                 </p>
@@ -907,18 +1207,18 @@ export function NewItemForm({
             )}
           </div>
 
-          <div className="flex items-center gap-2 justify-end">
-            {/* schedule — the reference's "Next Available" control */}
+          <div className="flex items-stretch justify-end">
+            {/* schedule — the reference's "Next Available" split control */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setSchedOpen((v) => !v)}
-                aria-haspopup="dialog"
+                aria-haspopup="menu"
                 aria-expanded={schedOpen}
-                className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[12px] border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
+                className="inline-flex h-11 items-center gap-1.5 rounded-l-[12px] border border-ink-200 bg-white px-4 text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
               >
                 <CalendarDays className="size-4 text-ink-500" strokeWidth={2} />
-                {scheduleLabel ?? "No schedule"}
+                {SCHED_MODE_LABEL[schedMode]}
                 <ChevronDown
                   className={cn(
                     "size-3.5 text-ink-400 transition-transform",
@@ -938,62 +1238,172 @@ export function NewItemForm({
                     className="fixed inset-0 z-40 cursor-default"
                   />
                   <div
-                    role="dialog"
-                    aria-label="Schedule"
-                    className="absolute right-0 bottom-[calc(100%+8px)] z-50 w-[340px] max-h-[58vh] overflow-y-auto rounded-[16px] border border-ink-100 bg-white shadow-card p-4 text-left"
+                    role="menu"
+                    aria-label="When to post"
+                    className="absolute right-0 bottom-[calc(100%+8px)] z-50 w-[360px] max-h-[62vh] overflow-y-auto rounded-[16px] border border-ink-100 bg-white p-2 shadow-card text-left"
                   >
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="relative">
-                        <CalendarDays
-                          className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-                          strokeWidth={2}
-                        />
-                        <input
-                          type="date"
-                          value={date}
-                          onChange={(e) => {
-                            setDate(e.target.value);
-                            setQuick(e.target.value ? null : "none");
-                          }}
-                          className={cn(fieldCls, "h-11 pl-9")}
-                        />
-                      </div>
-                      <div className="relative">
-                        <Clock
-                          className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-                          strokeWidth={2}
-                        />
-                        <input
-                          type="time"
-                          value={time}
-                          onChange={(e) => setTime(e.target.value)}
-                          className={cn(fieldCls, "h-11 pl-9")}
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                      {QUICK.map((q) => {
-                        const active = quick === q.key;
-                        return (
-                          <button
-                            key={q.key}
-                            type="button"
-                            onClick={() => pickQuick(q.key)}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12.5px] font-medium border transition-colors",
-                              active
-                                ? "bg-rose-50 border-rose-300 text-rose-700"
-                                : "bg-white border-ink-200 text-ink-700 hover:bg-cream-100",
-                            )}
-                          >
-                            {q.ban && <Ban className="size-3.5" strokeWidth={2} />}
-                            {q.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={schedMode === "next"}
+                      onClick={() => {
+                        setSchedMode("next");
+                        setSchedOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-start gap-2.5 rounded-[12px] px-3.5 py-3 text-left transition-colors",
+                        schedMode === "next"
+                          ? "bg-emerald-50"
+                          : "hover:bg-cream-100",
+                      )}
+                    >
+                      <span className="mt-0.5 w-4 shrink-0">
+                        {schedMode === "next" && (
+                          <Check className="size-4 text-emerald-700" strokeWidth={2.5} />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            "block text-[14.5px] font-semibold",
+                            schedMode === "next"
+                              ? "text-emerald-800"
+                              : "text-ink-900",
+                          )}
+                        >
+                          Next Available
+                        </span>
+                        <span
+                          className={cn(
+                            "block text-[12.5px]",
+                            schedMode === "next"
+                              ? "text-emerald-700/80"
+                              : "text-ink-500",
+                          )}
+                        >
+                          Use the next available posting slot in your queue.
+                        </span>
+                      </span>
+                      <Star
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0",
+                          schedMode === "next"
+                            ? "text-emerald-700"
+                            : "text-ink-300",
+                        )}
+                        fill={schedMode === "next" ? "currentColor" : "none"}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </button>
 
-                    {/* Production schedule — single day vs spread across phases */}
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={schedMode === "prioritize"}
+                      onClick={() => {
+                        setSchedMode("prioritize");
+                        setSchedOpen(false);
+                      }}
+                      className="flex w-full items-start gap-2.5 rounded-[12px] px-3.5 py-3 text-left hover:bg-cream-100 transition-colors"
+                    >
+                      <span className="mt-0.5 w-4 shrink-0">
+                        {schedMode === "prioritize" && (
+                          <Check className="size-4 text-ink-900" strokeWidth={2.5} />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14.5px] font-semibold text-ink-900">
+                          Prioritize
+                        </span>
+                        <span className="block text-[12.5px] text-ink-500">
+                          Bump your post to the top of the queue.
+                        </span>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={schedMode === "now"}
+                      onClick={() => {
+                        setSchedMode("now");
+                        setSchedOpen(false);
+                      }}
+                      className="flex w-full items-start gap-2.5 rounded-[12px] px-3.5 py-3 text-left hover:bg-cream-100 transition-colors"
+                    >
+                      <span className="mt-0.5 w-4 shrink-0">
+                        {schedMode === "now" && (
+                          <Check className="size-4 text-ink-900" strokeWidth={2.5} />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14.5px] font-semibold text-ink-900">
+                          Now
+                        </span>
+                        <span className="block text-[12.5px] text-ink-500">
+                          Publish your post right away.
+                        </span>
+                      </span>
+                      <Star
+                        className="mt-0.5 size-4 shrink-0 text-ink-300"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={schedMode === "custom"}
+                      onClick={() => setSchedMode("custom")}
+                      className="flex w-full items-start gap-2.5 rounded-[12px] px-3.5 py-3 text-left hover:bg-cream-100 transition-colors"
+                    >
+                      <span className="mt-0.5 w-4 shrink-0">
+                        {schedMode === "custom" && (
+                          <Check className="size-4 text-ink-900" strokeWidth={2.5} />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14.5px] font-semibold text-ink-900">
+                          Set Date and Time
+                        </span>
+                        <span className="block text-[12.5px] text-ink-500">
+                          Choose a specific time to post, or use our recommendation.
+                        </span>
+                      </span>
+                    </button>
+
+                    {schedMode === "custom" && (
+                      <div className="mt-1 border-t border-ink-100 px-1.5 pt-3 pb-1">
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <div className="relative">
+                            <CalendarDays
+                              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+                              strokeWidth={2}
+                            />
+                            <input
+                              type="date"
+                              value={date}
+                              onChange={(e) => setDate(e.target.value)}
+                              className={cn(fieldCls, "h-11 pl-9")}
+                            />
+                          </div>
+                          <div className="relative">
+                            <Clock
+                              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+                              strokeWidth={2}
+                            />
+                            <input
+                              type="time"
+                              value={time}
+                              onChange={(e) => setTime(e.target.value)}
+                              className={cn(fieldCls, "h-11 pl-9")}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Production schedule — single day vs spread across phases */}
                     <div className="mt-3 rounded-[12px] border border-ink-200 bg-cream-50/40 p-3.5">
                       <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
                         <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-700">
@@ -1093,15 +1503,17 @@ export function NewItemForm({
                       )}
                     </div>
 
-                    <div className="mt-3 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setSchedOpen(false)}
-                        className="h-9 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors"
-                      >
-                        Done
-                      </button>
-                    </div>
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setSchedOpen(false)}
+                            className="h-9 px-4 rounded-[10px] bg-emerald-500 hover:bg-emerald-600 text-white text-[12.5px] font-semibold transition-colors"
+                          >
+                            Done
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -1111,12 +1523,7 @@ export function NewItemForm({
               type="button"
               onClick={() => save(isIdea ? "idea" : "planned")}
               disabled={pending}
-              className={cn(
-                "inline-flex items-center gap-1.5 h-11 px-5 rounded-[12px] text-white text-[14px] font-semibold transition-colors shadow-sm",
-                isIdea
-                  ? "bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300"
-                  : "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300",
-              )}
+              className="-ml-px inline-flex h-11 items-center gap-1.5 rounded-r-[12px] bg-emerald-500 px-5 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:bg-emerald-300"
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" strokeWidth={2} />
