@@ -39,6 +39,7 @@ import {
   Cloud,
   Aperture,
   Package,
+  Tag,
 } from "lucide-react";
 import {
   InstagramIcon,
@@ -423,6 +424,9 @@ export function NewItemForm({
   const [autoOpen, setAutoOpen] = useState(false);
   // "+" media-source menu.
   const [plusOpen, setPlusOpen] = useState(false);
+  // Idea layout's channel + tags (content type) menus.
+  const [chanOpen, setChanOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   // Locally attached media — previewed in the composer + platform mock.
   // Persisting uploads needs a storage bucket + column, so the file stays
   // client-side for now and is not written on save.
@@ -573,6 +577,348 @@ export function NewItemForm({
 
   const fieldCls =
     "w-full px-3.5 rounded-[12px] border border-ink-200 bg-white text-[14px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100";
+
+  const canSaveIdea = !!(topic.trim() || notes.trim());
+
+  /* ── Idea variant — the reference's "New Idea" sheet ─────────────────── */
+  if (isIdea) {
+    return (
+      <div
+        className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white rounded-[20px] shadow-xl border border-ink-100 w-full max-w-[760px] my-6 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* top bar */}
+          <header className="flex items-center gap-2 px-5 sm:px-6 py-4">
+            <h3 className="text-[22px] font-bold text-ink-900 tracking-[-0.01em]">
+              New Idea
+            </h3>
+            <span className="flex-1" />
+            {/* channel assignment */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setChanOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={chanOpen}
+                className="inline-flex items-center gap-2 h-10 px-3.5 rounded-[12px] border border-ink-200 bg-white text-[14px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
+              >
+                <PlatformGlyph platform={platform} size={14} />
+                {platformLabel}
+                <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
+              </button>
+              {chanOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setChanOpen(false)}
+                    className="fixed inset-0 z-40 cursor-default"
+                  />
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+6px)] z-50 w-[210px] rounded-[14px] border border-ink-100 bg-white py-1.5 shadow-card"
+                  >
+                    {PLATFORMS.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={platform === p.value}
+                        onClick={() => {
+                          setPlatform(p.value);
+                          setChanOpen(false);
+                        }}
+                        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
+                      >
+                        <span
+                          className={cn(
+                            "size-6 rounded-[7px] inline-flex items-center justify-center",
+                            PLATFORM_TILE[p.value],
+                          )}
+                        >
+                          <PlatformBadgeGlyph platform={p.value} />
+                        </span>
+                        {p.label}
+                        {platform === p.value && (
+                          <Check className="ml-auto size-4" strokeWidth={2.5} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            {/* tags = content type */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setTagsOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={tagsOpen}
+                className="inline-flex items-center gap-2 h-10 px-3.5 rounded-[12px] border border-ink-200 bg-white text-[14px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
+              >
+                <Tag className="size-4 text-ink-500" strokeWidth={2} />
+                {contentLabel}
+                <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
+              </button>
+              {tagsOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setTagsOpen(false)}
+                    className="fixed inset-0 z-40 cursor-default"
+                  />
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+6px)] z-50 w-[200px] rounded-[14px] border border-ink-100 bg-white py-1.5 shadow-card"
+                  >
+                    {CONTENT_TYPES.map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={contentType === t.value}
+                        onClick={() => {
+                          setContentType(t.value);
+                          setTagsOpen(false);
+                        }}
+                        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px] font-medium text-ink-700 hover:bg-cream-100 transition-colors"
+                      >
+                        {t.label}
+                        {contentType === t.value && (
+                          <Check className="ml-auto size-4" strokeWidth={2.5} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="size-9 rounded-[10px] hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-ink-900 shrink-0 transition-colors"
+            >
+              <X className="size-4" strokeWidth={2} />
+            </button>
+          </header>
+
+          {/* body */}
+          <div className="px-5 sm:px-6 pb-4">
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value.slice(0, 160))}
+              maxLength={160}
+              placeholder="Give your idea a title"
+              className="w-full border-0 bg-transparent text-[24px] sm:text-[26px] font-bold tracking-[-0.01em] text-ink-900 placeholder:text-ink-900 focus:outline-none"
+            />
+
+            {/* free-flow body with the reference's inline AI hint */}
+            <div className="relative mt-2">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value.slice(0, 500))}
+                maxLength={500}
+                rows={10}
+                spellCheck
+                className="w-full min-h-[300px] resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 focus:outline-none"
+              />
+              {!notes && (
+                <div className="pointer-events-none absolute left-0 top-1 flex flex-wrap items-center gap-2 text-[17px] text-ink-400">
+                  Let it flow... or
+                  <span className="pointer-events-auto">
+                    <button
+                      type="button"
+                      disabled
+                      title="AI Assistant — coming soon"
+                      className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] border border-ink-200 bg-white text-[15px] font-medium text-violet-400 cursor-not-allowed"
+                    >
+                      <Sparkles className="size-4" strokeWidth={2} />
+                      Use the AI Assistant
+                    </button>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* media thumb + dropzone */}
+            <div className="flex items-end gap-3">
+              {media && (
+                <div className="relative shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
+                  <img
+                    src={media.url}
+                    alt={media.name}
+                    className="h-[110px] w-[88px] rounded-[10px] border border-ink-200 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      URL.revokeObjectURL(media.url);
+                      setMedia(null);
+                    }}
+                    aria-label="Remove media"
+                    title="Remove media"
+                    className="absolute -right-2 -top-2 size-6 rounded-full bg-ink-900 text-white inline-flex items-center justify-center shadow hover:bg-ink-700 transition-colors"
+                  >
+                    <X className="size-3" strokeWidth={2.5} />
+                  </button>
+                </div>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => {
+                  attachFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  attachFile(e.dataTransfer.files?.[0]);
+                }}
+                className="w-[170px] rounded-[12px] border-2 border-dashed border-ink-200 px-5 py-6 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50/30"
+              >
+                <ImagePlus
+                  className="mx-auto mb-2 size-6 text-ink-500"
+                  strokeWidth={1.8}
+                />
+                <p className="text-[14px] leading-snug text-ink-600">
+                  Drag &amp; drop or{" "}
+                  <span className="font-medium text-emerald-600">
+                    select a file
+                  </span>
+                </p>
+              </button>
+            </div>
+
+            {/* toolbar */}
+            <div className="mt-4 flex items-center gap-0.5 border-t border-ink-100 pt-2.5">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setPlusOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={plusOpen}
+                  aria-label="Add media from…"
+                  className="inline-flex items-center gap-0.5 h-9 px-1.5 rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
+                >
+                  <Plus className="size-[18px]" strokeWidth={2} />
+                  <ChevronDown className="size-4" strokeWidth={2} />
+                </button>
+                {plusOpen && (
+                  <>
+                    <button
+                      type="button"
+                      aria-hidden
+                      tabIndex={-1}
+                      onClick={() => setPlusOpen(false)}
+                      className="fixed inset-0 z-40 cursor-default"
+                    />
+                    <div
+                      role="menu"
+                      className="absolute left-0 bottom-[calc(100%+8px)] z-50 w-[220px] rounded-[14px] border border-ink-100 bg-white py-1.5 shadow-card"
+                    >
+                      {MEDIA_SOURCES.map((s) => (
+                        <button
+                          key={s.label}
+                          type="button"
+                          role="menuitem"
+                          title="Integration coming soon"
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px] font-medium text-ink-400 cursor-not-allowed"
+                        >
+                          <s.icon className="size-4" strokeWidth={2} />
+                          {s.label}
+                          {s.more && (
+                            <ChevronRight
+                              className="ml-auto size-3.5"
+                              strokeWidth={2}
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+              <span aria-hidden className="w-px h-5 bg-ink-200 mx-1.5" />
+              <button
+                type="button"
+                onClick={() => setNotes((t) => (t + "🙂").slice(0, 500))}
+                title="Add emoji"
+                aria-label="Add emoji"
+                className="inline-flex size-9 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
+              >
+                <Smile className="size-[18px]" strokeWidth={2} />
+              </button>
+              <span aria-hidden className="w-px h-5 bg-ink-200 mx-1.5" />
+              <span
+                title="AI Assistant — coming soon"
+                className="inline-flex items-center gap-1.5 h-9 px-2 rounded-[8px] text-[15px] font-medium text-ink-300 cursor-not-allowed"
+              >
+                <Sparkles className="size-[18px]" strokeWidth={2} />
+                AI Assistant
+              </span>
+            </div>
+
+            {err && (
+              <div className="mt-3 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2 rounded-[10px]">
+                {err}
+              </div>
+            )}
+          </div>
+
+          {/* footer */}
+          <footer className="flex items-center justify-end gap-2.5 px-5 sm:px-6 py-4 border-t border-ink-100">
+            <button
+              type="button"
+              onClick={() => save("planned")}
+              disabled={pending || !canSaveIdea}
+              className={cn(
+                "h-11 px-5 rounded-[12px] text-[14.5px] font-semibold transition-colors",
+                canSaveIdea
+                  ? "border border-ink-200 bg-white text-ink-900 hover:bg-cream-100"
+                  : "bg-ink-100 text-ink-400 cursor-not-allowed",
+              )}
+            >
+              Create Post
+            </button>
+            <button
+              type="button"
+              onClick={() => save("idea")}
+              disabled={pending || !canSaveIdea}
+              className={cn(
+                "inline-flex items-center gap-1.5 h-11 px-5 rounded-[12px] text-[14.5px] font-semibold transition-colors",
+                canSaveIdea
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "bg-ink-100 text-ink-400 cursor-not-allowed",
+              )}
+            >
+              {pending && (
+                <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+              )}
+              Save Idea
+            </button>
+          </footer>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
