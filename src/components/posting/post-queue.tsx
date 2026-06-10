@@ -9,6 +9,7 @@ import {
   Video,
   Clapperboard,
   Images,
+  ImagePlus,
   FileText,
   type LucideIcon,
 } from "lucide-react";
@@ -190,7 +191,7 @@ function QueueCard({
     });
 
   return (
-    <div className="group overflow-hidden rounded-[16px] border border-ink-100 bg-white shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-ink-200 hover:shadow-[0_16px_32px_-20px_rgba(26,24,22,0.38)]">
+    <div className="group flex min-h-[270px] flex-col overflow-hidden rounded-[16px] border border-ink-100 bg-white shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-ink-200 hover:shadow-[0_16px_32px_-20px_rgba(26,24,22,0.38)]">
       {/* Body — click anywhere to open the editor */}
       <div
         role="button"
@@ -203,7 +204,7 @@ function QueueCard({
           }
         }}
         aria-label={`Open “${item.topic ?? "post"}”`}
-        className="cursor-pointer px-4 pb-3.5 pt-4 focus-visible:bg-cream-50 focus-visible:outline-none"
+        className="flex flex-1 flex-col cursor-pointer px-4 pb-3.5 pt-4 focus-visible:bg-cream-50 focus-visible:outline-none"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -236,17 +237,35 @@ function QueueCard({
           </span>
         </div>
 
-        {/* Topic — the card's main text */}
-        <p
-          className={cn(
-            "mt-3 text-[14.5px] leading-relaxed",
-            item.topic
-              ? "font-medium text-ink-900"
-              : "italic text-ink-400",
-          )}
-        >
-          {item.topic ?? "No topic yet — click to add one"}
-        </p>
+        {/* Topic + description (left) · media placeholder (right) */}
+        <div className="mt-3 flex flex-1 items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <p
+              className={cn(
+                "text-[14.5px] leading-snug",
+                item.topic
+                  ? "font-semibold text-ink-900"
+                  : "italic text-ink-400",
+              )}
+            >
+              {item.topic ?? "No topic yet — click to add one"}
+            </p>
+            {item.notes ? (
+              <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink-500 line-clamp-4">
+                {item.notes}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-[13px] italic leading-relaxed text-ink-400">
+                No caption yet — click to write one
+              </p>
+            )}
+          </div>
+          {/* media placeholder — where the post's attachment will live */}
+          <span className="inline-flex h-[124px] w-[104px] shrink-0 flex-col items-center justify-center gap-1.5 self-start rounded-[12px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
+            <ImagePlus className="size-5 text-ink-300" strokeWidth={1.8} />
+            <span className="text-[10px] font-medium text-ink-400">No media</span>
+          </span>
+        </div>
       </div>
 
       {/* Footer — full date·time · quick actions */}
