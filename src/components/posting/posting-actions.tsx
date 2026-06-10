@@ -856,33 +856,16 @@ export function NewItemForm({
               className="w-full border-0 bg-transparent text-[24px] sm:text-[26px] font-bold tracking-[-0.01em] text-ink-900 placeholder:text-ink-900 focus:outline-none"
             />
 
-            {/* free-flow body with the reference's inline AI hint */}
-            <div className="relative mt-2">
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value.slice(0, 4000))}
-                maxLength={4000}
-                rows={10}
-                spellCheck
-                className="w-full min-h-[300px] resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 focus:outline-none"
-              />
-              {!notes && (
-                <div className="pointer-events-none absolute left-0 top-1 flex flex-wrap items-center gap-2 text-[17px] text-ink-400">
-                  Let it flow... or
-                  <span className="pointer-events-auto">
-                    <button
-                      type="button"
-                      disabled
-                      title="AI Assistant — coming soon"
-                      className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] border border-ink-200 bg-white text-[15px] font-medium text-ink-400 cursor-not-allowed"
-                    >
-                      <Sparkles className="size-4" strokeWidth={2} />
-                      Use the AI Assistant
-                    </button>
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* free-flow body */}
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value.slice(0, 4000))}
+              maxLength={4000}
+              rows={10}
+              spellCheck
+              placeholder="Let it flow..."
+              className="mt-2 w-full min-h-[300px] resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 placeholder:text-[17px] placeholder:text-ink-400 focus:outline-none"
+            />
 
             {/* media thumb + dropzone */}
             <div className="flex items-end gap-3">
