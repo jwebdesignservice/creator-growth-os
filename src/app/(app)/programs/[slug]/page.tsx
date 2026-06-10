@@ -7,7 +7,6 @@ import {
   BarChart3,
   Clock,
   Check,
-  ArrowRight,
   FileText,
   FileSpreadsheet,
   Files,
@@ -41,6 +40,8 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/app-shell/avatar";
 import { CurriculumAccordion } from "@/components/programs/curriculum-accordion";
+import { LearnCollapsible } from "@/components/programs/overview-learn";
+import { ProgramSectionCards } from "@/components/programs/overview-cards";
 import {
   WorkspaceShell,
   WorkspaceHeader,
@@ -337,13 +338,40 @@ export default async function ProgramDetailPage({
                 enrolledCount={enrolledCount}
                 coverImageUrl={program.cover_image_url ?? null}
                 coverHue={program.cover_hue ?? null}
+              >
+                <LearnCollapsible
+                  flush
+                  completed={Math.min(
+                    learnOutcomes.length,
+                    Math.round((effectivePercent / 100) * learnOutcomes.length),
+                  )}
+                  outcomes={learnOutcomes.map((o) => {
+                    const OutcomeIcon = o.icon;
+                    return {
+                      icon: <OutcomeIcon className="size-[18px]" strokeWidth={1.9} />,
+                      title: o.title,
+                      desc: o.desc,
+                    };
+                  })}
+                />
+              </ProgramHero>
+              <ProgramSectionCards
+                slug={slug}
+                lessonCount={effectiveTotal}
+                moduleCount={modules.length || Math.ceil(effectiveTotal / 4)}
+                lessons={flatLessons
+                  .slice(0, 3)
+                  .map((l) => ({ title: l.title, status: l.status }))}
+                noteCount={programNotes.length}
+                tasks={programTasks
+                  .slice(0, 3)
+                  .map((t) => ({
+                    title: t.title,
+                    done: t.status === "completed",
+                  }))}
+                taskOpen={programTasks.filter((t) => t.status !== "completed").length}
+                taskDone={programTasks.filter((t) => t.status === "completed").length}
               />
-              <WhatYoullLearn
-                outcomes={learnOutcomes}
-                percent={effectivePercent}
-                continueHref={continueHref}
-              />
-              <CurriculumAccordion modules={modules} programSlug={slug} />
             </>
           )}
 
@@ -388,6 +416,7 @@ function ProgramHero({
   enrolledCount,
   coverImageUrl,
   coverHue,
+  children,
 }: {
   title: string;
   description: string;
@@ -398,6 +427,9 @@ function ProgramHero({
   enrolledCount: number;
   coverImageUrl: string | null;
   coverHue: string | null;
+  /** Optional attached footer row (e.g. the What You'll Learn dropdown) —
+   *  renders inside the same card, below the banner's progress strip. */
+  children?: React.ReactNode;
 }) {
   const completedLessons = Math.min(
     totalLessons,
@@ -411,7 +443,10 @@ function ProgramHero({
         : "from-cream-200 via-cream-100 to-rose-100/40";
 
   return (
-    <section className="relative overflow-hidden rounded-[20px] border border-ink-100 shadow-[0_1px_2px_rgba(26,24,22,0.04),0_10px_28px_-18px_rgba(26,24,22,0.10)]">
+    <section className="relative overflow-hidden rounded-[20px] border border-ink-100 bg-white shadow-[0_1px_2px_rgba(26,24,22,0.04),0_10px_28px_-18px_rgba(26,24,22,0.10)]">
+      {/* ── Banner — cover art, content and the bottom progress strip are
+          scoped here so an attached footer row (children) stays white. ── */}
+      <div className="relative">
       {/* ── Cover surface — real photo, or the card-family gradient ──── */}
       {coverImageUrl ? (
         <>
@@ -474,55 +509,60 @@ function ProgramHero({
             </p>
           )}
 
-          {/* One quiet meta line — coach + the old stats row */}
-          <div className="flex items-center gap-x-3.5 gap-y-1 flex-wrap mt-2.5 text-[12.5px] text-ink-600">
-            <span className="inline-flex items-center gap-1.5">
-              <Avatar name="Sophie Carter" size={20} />
-              <span>
-                Coach <span className="font-semibold text-ink-800">Sophie Carter</span>
+          {/* CTA + social proof — directly under the description */}
+          <div className="mt-4 flex items-center gap-3.5 flex-wrap">
+            <Link
+              href={continueHref}
+              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold shadow-sm transition-colors"
+            >
+              <Play className="size-4" fill="currentColor" />
+              {progress > 0 ? "Continue Program" : "Start Program"}
+            </Link>
+            <span className="inline-flex items-center gap-2">
+              <span className="flex -space-x-1.5" aria-hidden>
+                <span className="size-5 rounded-full bg-gradient-to-br from-rose-300 to-rose-500 ring-2 ring-white/80" />
+                <span className="size-5 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 ring-2 ring-white/80" />
+                <span className="size-5 rounded-full bg-gradient-to-br from-emerald-300 to-emerald-500 ring-2 ring-white/80" />
               </span>
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Users className="size-3.5 text-rose-500" strokeWidth={2} />
-              {Math.ceil(totalLessons / 4)} Module{Math.ceil(totalLessons / 4) === 1 ? "" : "s"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <BookOpen className="size-3.5 text-rose-500" strokeWidth={2} />
-              {totalLessons} Lesson{totalLessons === 1 ? "" : "s"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <BarChart3 className="size-3.5 text-rose-500" strokeWidth={2} />
-              Intermediate
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock className="size-3.5 text-rose-500" strokeWidth={2} />
-              {Math.ceil(estimatedDays / 7)} Weeks
+              <span className="text-[11.5px] text-ink-600 leading-none">
+                <span className="font-bold text-ink-900 tabular-nums">
+                  {enrolledCount.toLocaleString()}
+                </span>{" "}
+                learner{enrolledCount === 1 ? "" : "s"} enrolled
+              </span>
             </span>
           </div>
         </div>
 
-        {/* CTA + social proof, stacked on the banner's right */}
-        <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
-          <Link
-            href={continueHref}
-            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold shadow-sm transition-colors"
-          >
-            <Play className="size-4" fill="currentColor" />
-            {progress > 0 ? "Continue Program" : "Start Program"}
-          </Link>
-          <span className="inline-flex items-center gap-2">
-            <span className="flex -space-x-1.5" aria-hidden>
-              <span className="size-5 rounded-full bg-gradient-to-br from-rose-300 to-rose-500 ring-2 ring-white/80" />
-              <span className="size-5 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 ring-2 ring-white/80" />
-              <span className="size-5 rounded-full bg-gradient-to-br from-emerald-300 to-emerald-500 ring-2 ring-white/80" />
+        {/* Facts card — coach + program stats, glassy on the cover art */}
+        <div className="w-full sm:w-[238px] shrink-0 rounded-[14px] bg-white/85 backdrop-blur-sm ring-1 ring-ink-900/[0.06] shadow-[0_8px_24px_-16px_rgba(26,24,22,0.4)] p-3.5">
+          <div className="flex items-center gap-2.5 pb-2.5 border-b border-ink-100">
+            <Avatar name="Sophie Carter" size={28} />
+            <div className="min-w-0 leading-tight">
+              <div className="text-[12.5px] font-semibold text-ink-900 truncate">
+                Sophie Carter
+              </div>
+              <div className="text-[10.5px] text-ink-500">Your Coach</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 pt-2.5">
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-700">
+              <Users className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
+              {Math.ceil(totalLessons / 4)} Module{Math.ceil(totalLessons / 4) === 1 ? "" : "s"}
             </span>
-            <span className="text-[11.5px] text-ink-600 leading-none">
-              <span className="font-bold text-ink-900 tabular-nums">
-                {enrolledCount.toLocaleString()}
-              </span>{" "}
-              learner{enrolledCount === 1 ? "" : "s"} enrolled
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-700">
+              <BookOpen className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
+              {totalLessons} Lesson{totalLessons === 1 ? "" : "s"}
             </span>
-          </span>
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-700">
+              <BarChart3 className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
+              Intermediate
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-700">
+              <Clock className="size-3.5 text-rose-500 shrink-0" strokeWidth={2} />
+              {Math.ceil(estimatedDays / 7)} Weeks
+            </span>
+          </div>
         </div>
       </div>
 
@@ -541,149 +581,10 @@ function ProgramHero({
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </span>
-    </section>
-  );
-}
-
-function WhatYoullLearn({
-  outcomes,
-  percent,
-  continueHref,
-}: {
-  outcomes: { icon: LucideIcon; title: string; desc: string }[];
-  percent: number;
-  continueHref: string;
-}) {
-  const total = outcomes.length;
-  const completed = Math.min(total, Math.round((percent / 100) * total));
-  const allDone = completed >= total;
-
-  return (
-    <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-5">
-      {/* ── Left: outcomes ───────────────────────────────────────────── */}
-      <div className="rounded-[20px] bg-cream-100 border border-cream-200 p-5 sm:p-6">
-        <header className="flex items-start justify-between gap-4 mb-5 flex-wrap">
-          <div className="flex items-start gap-3.5 min-w-0">
-            <span className="size-12 rounded-[14px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-              <BookOpen className="size-[22px]" strokeWidth={1.9} />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-h3 text-ink-900 leading-tight mb-1">
-                What You&apos;ll Learn
-              </h2>
-              <p className="text-[13px] text-ink-500 leading-snug max-w-md">
-                Master the essential building blocks to grow your brand,
-                attract your audience, and create real impact.
-              </p>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12.5px] font-semibold whitespace-nowrap shrink-0">
-            <Sparkles className="size-3.5" strokeWidth={2} />
-            <span>Complete</span>
-            <span className="tabular-nums">
-              {completed} / {total}
-            </span>
-          </span>
-        </header>
-
-        <ul className="rounded-[16px] bg-white border border-ink-100 overflow-hidden">
-          {outcomes.map((o, i) => {
-            const isDone = i < completed;
-            const Icon = o.icon;
-            return (
-              <li
-                key={o.title}
-                className={`flex items-center gap-4 p-4 ${
-                  i > 0 ? "border-t border-ink-100" : ""
-                }`}
-              >
-                <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-                  <Icon className="size-[20px]" strokeWidth={1.9} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-semibold text-ink-900 leading-snug">
-                    {o.title}
-                  </div>
-                  <div className="text-[12.5px] text-ink-500 leading-snug mt-0.5">
-                    {o.desc}
-                  </div>
-                </div>
-                <span
-                  className={`size-7 rounded-full inline-flex items-center justify-center shrink-0 ${
-                    isDone
-                      ? "bg-rose-100 text-rose-600"
-                      : "bg-cream-100 text-ink-300"
-                  }`}
-                  aria-label={isDone ? "Mastered" : "Not yet mastered"}
-                >
-                  <Check className="size-3.5" strokeWidth={3} />
-                </span>
-              </li>
-            );
-          })}
-        </ul>
       </div>
 
-      {/* ── Right: status / celebration ──────────────────────────────── */}
-      <aside className="rounded-[20px] bg-rose-50 border border-rose-100 p-6 flex flex-col items-center text-center">
-        <div className="relative mb-4 mt-1">
-          <span className="size-16 rounded-full bg-rose-500 text-white inline-flex items-center justify-center shadow-sm">
-            <Star className="size-7" fill="currentColor" strokeWidth={0} />
-          </span>
-          <span
-            aria-hidden
-            className="absolute -top-1 -left-2 text-rose-400 text-[10px]"
-          >
-            ✦
-          </span>
-          <span
-            aria-hidden
-            className="absolute -top-2 right-0 text-rose-400 text-[13px]"
-          >
-            ✦
-          </span>
-          <span
-            aria-hidden
-            className="absolute -bottom-1 -right-2 text-rose-400 text-[11px]"
-          >
-            ✦
-          </span>
-        </div>
-        {allDone ? (
-          <>
-            <p className="text-[12.5px] text-ink-500 mb-1.5">
-              You&apos;re all set!
-            </p>
-            <h3 className="text-h3 text-ink-900 leading-tight mb-3">
-              All lessons completed
-            </h3>
-            <p className="text-[12.5px] text-ink-500 leading-relaxed mb-5 max-w-[220px]">
-              You&apos;ve completed everything in this section. Keep building
-              and keep growing!
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-[12.5px] text-ink-500 mb-1.5">
-              You&apos;re making progress!
-            </p>
-            <h3 className="text-h3 text-ink-900 leading-tight mb-3 tabular-nums">
-              {percent}% complete
-            </h3>
-            <p className="text-[12.5px] text-ink-500 leading-relaxed mb-5 max-w-[220px]">
-              Stick with it — every lesson moves you closer to mastering all{" "}
-              {total} outcomes.
-            </p>
-          </>
-        )}
-        <Link
-          href={continueHref}
-          className="inline-flex items-center gap-1.5 h-11 px-5 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-700 text-[14px] font-semibold transition-colors"
-        >
-          {allDone ? "Keep Going" : "Continue"}
-          <ArrowRight className="size-4" strokeWidth={2.5} />
-        </Link>
-      </aside>
+      {/* ── Attached footer row (What You'll Learn dropdown) ──────────── */}
+      {children}
     </section>
   );
 }
