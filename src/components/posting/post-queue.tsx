@@ -259,7 +259,7 @@ function QueueCard({
               type="button"
               onClick={markPosted}
               disabled={pending}
-              className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-emerald-500 px-3 text-[12.5px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:bg-emerald-300"
+              className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
             >
               {pending ? (
                 <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
