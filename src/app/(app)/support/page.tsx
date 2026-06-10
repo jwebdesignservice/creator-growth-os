@@ -21,7 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { cn } from "@/lib/cn";
 
-export const metadata = { title: "Help & Support | Creator Growth OS" };
+export const metadata = { title: "Help & Support | Profluencer" };
 
 /**
  * Help & Support hub — the support landing at /support.

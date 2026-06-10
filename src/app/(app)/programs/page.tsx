@@ -14,7 +14,7 @@ import {
   ONBOARDING_PROGRAM_SLUG,
 } from "@/lib/onboarding/gate";
 
-export const metadata = { title: "Programs | Creator Growth OS" };
+export const metadata = { title: "Programs | Profluencer" };
 
 type SearchParams = Promise<{ previewGate?: string }>;
 

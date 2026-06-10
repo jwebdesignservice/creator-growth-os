@@ -58,25 +58,24 @@ export function EventsExplorer({ events }: { events: CommunityEvent[] }) {
   const [typeOpen, setTypeOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"soonest" | "latest">("soonest");
+  // Clock read once per mount (lazy initializer) so the memoized filter stays pure.
+  const [now] = useState(() => Date.now());
 
   const visible = useMemo(() => {
     let rows = events;
     if (type !== "all") rows = rows.filter((e) => (e.kind ?? "other") === type);
-    {
-      const now = Date.now();
-      if (range === "upcoming") {
-        rows = rows.filter((e) => new Date(e.starts_at).getTime() >= now);
-      } else if (range === "past") {
-        rows = rows.filter((e) => new Date(e.starts_at).getTime() < now);
-      } else if (range === "week" || range === "month") {
-        const horizon = now + (range === "week" ? 7 : 30) * 86_400_000;
-        rows = rows.filter((e) => {
-          const t = new Date(e.starts_at).getTime();
-          return t >= now && t <= horizon;
-        });
-      }
-      // range === "all" → no date filter
+    if (range === "upcoming") {
+      rows = rows.filter((e) => new Date(e.starts_at).getTime() >= now);
+    } else if (range === "past") {
+      rows = rows.filter((e) => new Date(e.starts_at).getTime() < now);
+    } else if (range === "week" || range === "month") {
+      const horizon = now + (range === "week" ? 7 : 30) * 86_400_000;
+      rows = rows.filter((e) => {
+        const t = new Date(e.starts_at).getTime();
+        return t >= now && t <= horizon;
+      });
     }
+    // range === "all" → no date filter
     const q = query.trim().toLowerCase();
     if (q) {
       rows = rows.filter(
@@ -88,7 +87,7 @@ export function EventsExplorer({ events }: { events: CommunityEvent[] }) {
     }
     if (sort === "latest") rows = [...rows].reverse();
     return rows;
-  }, [events, type, range, query, sort]);
+  }, [events, type, range, query, sort, now]);
 
   const noEventsAtAll = events.length === 0;
   const hasFilters =

@@ -62,6 +62,8 @@ function Cover({ cover, pos }: { cover: ProgramCover; pos: (typeof POS)[number] 
         <img
           src={cover.imageUrl}
           alt=""
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (

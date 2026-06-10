@@ -72,8 +72,9 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
+    // `redirect` is the param the sign-in page/action actually consumes.
     return NextResponse.redirect(
-      new URL("/sign-in?next=/performance", new URL(_req.url).origin),
+      new URL("/sign-in?redirect=/performance", new URL(_req.url).origin),
     );
   }
 

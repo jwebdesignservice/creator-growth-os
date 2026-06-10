@@ -7,7 +7,7 @@ import { BRAND_NAME } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import { ResetForm } from "./reset-form";
 
-export const metadata = { title: "Set new password · Creator Growth OS" };
+export const metadata = { title: "Set new password · Profluencer" };
 
 /**
  * Reset / set-new-password page.
@@ -60,7 +60,7 @@ export default async function ResetPasswordPage() {
             Growth OS keeps your work, your audience, and your revenue safe.
             <span aria-hidden className="text-ink-700">&rdquo;</span>
           </p>
-          <p className="text-[13px] text-ink-500 mb-6">— Security at Creator Growth OS</p>
+          <p className="text-[13px] text-ink-500 mb-6">— Security at Profluencer</p>
 
           <CarouselDots active={1} count={4} />
         </div>

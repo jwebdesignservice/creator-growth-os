@@ -7,7 +7,7 @@ import {
   useTransition,
   type KeyboardEvent,
 } from "react";
-import { Send, Loader2, X, CornerUpLeft, Paperclip, Image as ImageIcon } from "lucide-react";
+import { Send, Loader2, X, CornerUpLeft, Paperclip } from "lucide-react";
 import { MentionPopover } from "./mention-popover";
 import { sendMessage, searchHandles } from "@/lib/community/chat/actions";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
@@ -105,12 +105,11 @@ export function Composer({ channelId, onSent, onError, isConnected, replyTo, onC
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [body]);
 
-  // Fetch mention candidates when query changes
+  // Fetch mention candidates when query changes. Clearing the list when the
+  // query goes away happens in the event handlers that reset the query, so
+  // this effect only ever sets state asynchronously (fetch result).
   useEffect(() => {
-    if (mentionQuery === null) {
-      setCandidates([]);
-      return;
-    }
+    if (mentionQuery === null) return;
     searchHandles(mentionQuery).then(setCandidates);
   }, [mentionQuery]);
 
@@ -125,6 +124,7 @@ export function Composer({ channelId, onSent, onError, isConnected, replyTo, onC
     setBody(val);
     const q = detectMentionQuery(val, e.target.selectionStart ?? val.length);
     setMentionQuery(q);
+    if (q === null) setCandidates([]);
     setSelectedIndex(0);
   }
 

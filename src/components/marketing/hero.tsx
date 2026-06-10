@@ -15,10 +15,9 @@ import { HeroSpotlight } from "@/components/marketing/hero-spotlight";
  */
 
 const NAV = [
+  { label: "Results", href: "#results" },
   { label: "Features", href: "#features" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Blog", href: "#blog" },
-  { label: "Resources", href: "#resources" },
+  { label: "Book a demo", href: "/book-a-demo" },
 ];
 
 const ACCENT = "#D08171"; // rose-400 — the brand equivalent of the reference accent

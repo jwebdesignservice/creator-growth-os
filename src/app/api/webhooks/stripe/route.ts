@@ -89,6 +89,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);
+  // Mirror the plan onto profiles.plan — the shell/settings UI and pro-content
+  // gating read profiles.plan, so it must track the subscription state.
+  await supabase.from("profiles").update({ plan: "free" }).eq("id", userId);
   await notifyBillingUpdate(
     userId,
     "Your subscription was cancelled. You're back on the Free plan.",
@@ -197,6 +200,18 @@ async function syncSubscriptionRow(
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);
+
+  // Mirror the plan onto profiles.plan — the shell/settings UI and pro-content
+  // gating read profiles.plan, so it must track the subscription state. Gate
+  // on status: subscription.updated also fires for non-entitled statuses
+  // (incomplete, incomplete_expired, unpaid), which must not grant paid gating.
+  const entitled = ["active", "trialing", "past_due"].includes(
+    subscription.status,
+  );
+  await supabase
+    .from("profiles")
+    .update({ plan: entitled ? plan : "free" })
+    .eq("id", userId);
 
   if (!prev.data || prev.data.plan !== plan) {
     await notifyBillingUpdate(

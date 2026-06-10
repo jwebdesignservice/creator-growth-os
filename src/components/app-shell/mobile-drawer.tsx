@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   Menu,
   X,
@@ -51,15 +51,20 @@ type Props = {
   isDev?: boolean;
 };
 
+// Stable no-op subscription for the hydration check below.
+const emptySubscribe = () => () => {};
+
 export function MobileDrawer({ plan = "free", isAdmin = false, isDev = false }: Props) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  // Defer portal mount until after hydration so document.body exists.
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Defer portal mount until after hydration so document.body exists —
+  // false on the server snapshot, true once the client takes over.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   // Close on route change — adjust state during render (recommended pattern).
   const [prevPath, setPrevPath] = useState(pathname);

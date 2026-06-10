@@ -48,6 +48,10 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/settings") ||
     pathname.startsWith("/billing") ||
     pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/support") ||
+    pathname.startsWith("/notifications") ||
+    pathname.startsWith("/invoices") ||
+    pathname.startsWith("/create-new") ||
     pathname.startsWith("/admin");
 
   if (!user && isAppRoute) {

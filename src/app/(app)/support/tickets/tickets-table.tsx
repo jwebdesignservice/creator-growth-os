@@ -60,24 +60,26 @@ const PRIORITY_PILL: Record<SupportTicketPriority, string> = {
 const STATUS_LABEL: Record<SupportTicketStatus, string> = {
   open:        "Open",
   waiting:     "Waiting",
-  in_progress: "In Progress",
+  in_progress: "In progress",
   resolved:    "Resolved",
   closed:      "Closed",
 };
 
+// Status→color mapping shared with the /support hub (TICKET_PILL in
+// support/page.tsx) so the same ticket reads identically on both surfaces.
 const STATUS_PILL: Record<SupportTicketStatus, string> = {
-  open:        "bg-success-bg text-success",
+  open:        "bg-rose-100 text-rose-700",
   waiting:     "bg-gold-500/15 text-gold-500",
-  in_progress: "bg-rose-100 text-rose-700",
+  in_progress: "bg-rose-50 text-rose-600",
   resolved:    "bg-success-bg text-success",
-  closed:      "bg-gold-500/15 text-gold-500",
+  closed:      "bg-cream-200 text-ink-500",
 };
 
 const STATUS_FILTERS: { value: "all" | SupportTicketStatus; label: string }[] = [
   { value: "all",         label: "All" },
   { value: "open",        label: "Open" },
   { value: "waiting",     label: "Waiting" },
-  { value: "in_progress", label: "In Progress" },
+  { value: "in_progress", label: "In progress" },
   { value: "resolved",    label: "Resolved" },
   { value: "closed",      label: "Closed" },
 ];

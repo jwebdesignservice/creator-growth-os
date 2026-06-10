@@ -3,7 +3,7 @@
 /* Posting Insights dashboard ───────────────────────────────────────────────
    A creator-facing analytics overview laid out like a reports dashboard —
    wide KPI overview + a narrow action panel, then balanced breakdown rows —
-   in the Creator Growth OS rose/cream language, tuned to be genuinely useful:
+   in the Profluencer rose/cream language, tuned to be genuinely useful:
 
      • The period switcher (7 / 28 / 90 days) recomputes the WHOLE surface —
        headline KPIs + trend, platform reach, top content, audience geo,
@@ -13,11 +13,11 @@
      • The "Key takeaways" panel and the consistency nudge link to real
        destinations (calendar / plans / programs) so insight → action.
 
-   Reuses the /design library where it fits perfectly:
-     • RetentionCohort     (funnels)          → audience-retention cohort
-     • BestTimeHeatmap     (posting-insights) → best time to post
-     • FormatPerformance   (posting-insights) → format engagement bars
-     • ContributionHeatmap (heatmap)          → posting activity
+   Local widget library (./insights-widgets):
+     • RetentionCohort     → audience-retention cohort
+     • BestTimeHeatmap     → best time to post
+     • FormatPerformance   → format engagement bars
+     • ContributionHeatmap → posting activity
 
    Deterministic sample data (no Math.random / Date) — the page's "Preview"
    framing keeps it honest until the analytics pipeline lands.
@@ -40,9 +40,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { BestTimeHeatmap, FormatPerformance } from "@/design-templates/posting-insights";
-import { ContributionHeatmap } from "@/design-templates/heatmap";
-import { RetentionCohort } from "@/design-templates/funnels";
+import {
+  BestTimeHeatmap,
+  FormatPerformance,
+  ContributionHeatmap,
+  RetentionCohort,
+} from "./insights-widgets";
 
 /* ─── Period model — one source of truth, drives every card ───────────── */
 
@@ -227,7 +230,7 @@ export function InsightsDashboard() {
 
       {/* ── Footer ── */}
       <div className="pt-2 text-center text-[12px] text-ink-400">
-        Preview data — your real numbers fill in as you post · Creator Growth OS
+        Preview data — your real numbers fill in as you post · Profluencer
       </div>
     </div>
   );

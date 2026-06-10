@@ -79,6 +79,13 @@ export function StatusPill({
   useEffect(() => {
     if (!open) return;
     place();
+    // Batch repositions through rAF so rapid scroll/resize events trigger at
+    // most one measurement + setState per frame.
+    let raf = 0;
+    function schedulePlace() {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(place);
+    }
     function onDoc(e: MouseEvent) {
       const t = e.target as Node;
       if (rootRef.current?.contains(t) || menuRef.current?.contains(t)) return;
@@ -90,13 +97,15 @@ export function StatusPill({
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
     // Keep the menu glued to the pill as the page / table scrolls or resizes.
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
+    // Capture catches scrolls in nested containers; passive keeps them cheap.
+    window.addEventListener("resize", schedulePlace, { passive: true });
+    window.addEventListener("scroll", schedulePlace, { capture: true, passive: true });
     return () => {
+      cancelAnimationFrame(raf);
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", schedulePlace);
+      window.removeEventListener("scroll", schedulePlace, { capture: true });
     };
   }, [open, place]);
 

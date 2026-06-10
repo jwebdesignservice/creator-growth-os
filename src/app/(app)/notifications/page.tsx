@@ -3,7 +3,7 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getUserNotifications } from "@/lib/notifications/queries";
 import { NotificationsPageClient } from "./notifications-panel";
 
-export const metadata = { title: "Notifications | Creator Growth OS" };
+export const metadata = { title: "Notifications | Profluencer" };
 
 export default async function NotificationsPage() {
   const ctx = await getShellContext();

@@ -43,11 +43,22 @@ export function EventForm({
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const formRef = useRef<HTMLFormElement | null>(null);
+
+  // Clear upload state when the action succeeds — adjust state during render
+  // (recommended pattern) instead of setState inside the effect.
+  const [prevState, setPrevState] = useState<State>(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok) {
+      setCover(null);
+      setUploadErr(null);
+    }
+  }
+
+  // External-system work (DOM reset + navigation) stays in the effect.
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset();
-      setCover(null);
-      setUploadErr(null);
       if (redirectTo) router.push(redirectTo);
     }
   }, [state, redirectTo, router]);

@@ -41,7 +41,7 @@ export const EMAIL_VARIABLES: EmailVariable[] = [
   /* — Context ——————————————————————————————————————————————————————— */
   { key: "program_name",  label: "Program name",  code: "{{ program_name }}",  example: "Starter Creator" },
   { key: "cta_link",      label: "CTA link",      code: "{{ cta_link }}",      example: "https://creatorgrowth.app/dashboard" },
-  { key: "platform_name", label: "Platform name", code: "{{ platform_name }}", example: "Creator Growth OS" },
+  { key: "platform_name", label: "Platform name", code: "{{ platform_name }}", example: "Profluencer" },
 
   /* — Sender + send-time —————————————————————————————————————————————— */
   { key: "sender_name",   label: "Sender name",   code: "{{ sender_name }}",   example: "Deividas Burkauskas",

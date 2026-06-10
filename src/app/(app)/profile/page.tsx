@@ -18,7 +18,7 @@ import { Avatar } from "@/components/app-shell/avatar";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Profile | Creator Growth OS" };
+export const metadata = { title: "Profile | Profluencer" };
 
 const PLAN_LABEL: Record<string, string> = {
   free:  "Free",

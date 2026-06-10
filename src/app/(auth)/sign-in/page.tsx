@@ -5,7 +5,7 @@ import { AuthHeroPhoto, FeatureOverlayCard } from "@/components/auth/hero-photo"
 import { BRAND_NAME } from "@/lib/brand";
 import { SignInForm } from "./sign-in-form";
 
-export const metadata = { title: "Sign in · Creator Growth OS" };
+export const metadata = { title: "Sign in · Profluencer" };
 
 type SearchParams = Promise<{
   redirect?: string | string[];

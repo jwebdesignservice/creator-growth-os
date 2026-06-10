@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/cn";
 
 /**
@@ -30,10 +31,10 @@ type Stat = { n: string; value: string; label: string; bg: string; img?: string 
 // panel, then a hard drop into a tight family of deep wines. Each panel carries
 // a real photo (from /public) that fades in while that panel is active.
 const STATS: Stat[] = [
-  { n: "01", value: "2,000+", label: "Creators on Profluencer", bg: "#CD6178", img: "/Users%20Img.jpg" },
+  { n: "01", value: "2,000+", label: "Creators on Profluencer", bg: "#CD6178", img: "/Users Img.jpg" },
   { n: "02", value: "92%", label: "Post more consistently", bg: "#8A2540", img: "/Posting.jpg" },
-  { n: "03", value: "3×", label: "Faster audience growth", bg: "#5E1E30", img: "/Grow%20audience.jpg" },
-  { n: "04", value: "80%", label: "Less time spent planning", bg: "#36141F", img: "/Less%20time%20spent.jpg" },
+  { n: "03", value: "3×", label: "Faster audience growth", bg: "#5E1E30", img: "/Grow audience.jpg" },
+  { n: "04", value: "80%", label: "Less time spent planning", bg: "#36141F", img: "/Less time spent.jpg" },
 ];
 
 function Heading() {
@@ -119,6 +120,9 @@ export function ProvenResults() {
                   flexGrow: 1,
                   flexShrink: 1,
                   transition: `flex-basis 0.6s ${EASE}`,
+                  // Scope the per-frame reflow/repaint of the flex-basis
+                  // transition to each panel (it already clips overflow).
+                  contain: "layout paint",
                 }}
               >
                 {/* photo (first + last panels) — fades in ONLY while the panel
@@ -129,11 +133,12 @@ export function ProvenResults() {
                     className="pointer-events-none absolute inset-0 transition-opacity duration-700 ease-out"
                     style={{ opacity: on ? 1 : 0 }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={s.img}
                       alt=""
-                      className="absolute inset-0 size-full object-cover"
+                      fill
+                      sizes="(min-width: 1024px) 75vw, 100vw"
+                      className="object-cover"
                     />
                     <span className="absolute inset-0 bg-gradient-to-t from-ink-900/85 via-ink-900/30 to-ink-900/45" />
                   </span>
@@ -200,11 +205,12 @@ export function ProvenResults() {
             >
               {s.img && (
                 <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={s.img}
                     alt=""
-                    className="pointer-events-none absolute inset-0 size-full object-cover"
+                    fill
+                    sizes="(min-width: 640px) 50vw, 100vw"
+                    className="pointer-events-none object-cover"
                   />
                   <span
                     aria-hidden

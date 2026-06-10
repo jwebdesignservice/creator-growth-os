@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { relativeTimeDays } from "@/lib/format";
 import { SUPPORT_TICKET_DETAIL_SUP_10482 } from "@/lib/dev-dashboard/mock-data";
 import type {
   SupportConversationEntry,
@@ -75,19 +76,6 @@ function formatShort(iso: string): string {
     minute: "2-digit",
     hour12: false,
   });
-}
-
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return iso;
-  const diff = Math.max(0, Date.now() - then);
-  const m = Math.floor(diff / 60_000);
-  if (m < 1)   return "just now";
-  if (m < 60)  return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24)  return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
 }
 
 function formatRemaining(deadlineIso: string | null): string {
@@ -244,7 +232,7 @@ export async function getDevTicketDetailByPublicId(
       kind: messageKind(m.author_role),
       authorName: authorNameFromEmail(m.author_email),
       message: m.body,
-      timeLabel: relativeTime(m.created_at),
+      timeLabel: relativeTimeDays(m.created_at),
       createdAtIso: m.created_at,
     }));
 
@@ -254,7 +242,7 @@ export async function getDevTicketDetailByPublicId(
       authorName: authorNameFromEmail(e.actor_email),
       authorContext: e.kind === "internal_note" ? "Internal" : undefined,
       message: e.body,
-      timeLabel: relativeTime(e.created_at),
+      timeLabel: relativeTimeDays(e.created_at),
       createdAtIso: e.created_at,
     }));
 
@@ -294,7 +282,7 @@ export async function getDevTicketDetailByPublicId(
         tone: "violet",
       },
       createdAt: formatLong(ticket.created_at),
-      lastUpdatedAt: relativeTime(ticket.updated_at),
+      lastUpdatedAt: relativeTimeDays(ticket.updated_at),
       slaDeadline: ticket.sla_deadline ? formatLong(ticket.sla_deadline) : "—",
       slaRemaining: formatRemaining(ticket.sla_deadline),
       accountPlan: "Enterprise", // No DB column — display value

@@ -101,7 +101,6 @@ import {
   Trophy,
   Users,
   UsersRound,
-  Vote,
   Wallet,
   Workflow,
   Wrench,

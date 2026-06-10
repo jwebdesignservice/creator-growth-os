@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { formatCompact } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { syncPlatform, disconnectPlatform } from "@/lib/social/actions";
 import type { PerformanceEntry } from "@/lib/performance/queries";
@@ -489,7 +490,7 @@ function OverviewChart({
             key={i}
             type="button"
             aria-label={`${longDate(p.date)}: ${cfg.label}`}
-            className="absolute top-0 bottom-0 -translate-x-1/2 cursor-pointer focus:outline-none"
+            className="absolute top-0 bottom-0 -translate-x-1/2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
             style={{ left: `${(p.x / W) * 100}%`, width: `${100 / n}%` }}
             onPointerEnter={() => setHovered(i)}
             onFocus={() => setHovered(i)}
@@ -656,14 +657,6 @@ function signed(n: number): string {
 
 function formatNumber(n: number): string {
   return Math.round(n).toLocaleString();
-}
-
-function formatCompact(n: number): string {
-  if (Math.abs(n) >= 1_000_000)
-    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (Math.abs(n) >= 1_000)
-    return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return Math.round(n).toString();
 }
 
 function shortDate(iso: string): string {

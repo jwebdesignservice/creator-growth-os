@@ -36,7 +36,10 @@ export async function saveMediaKit(input: {
     },
     { onConflict: "user_id" },
   );
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[monetization/actions] saveMediaKit failed:", error);
+    return { ok: false, error: "Couldn't save your media kit. Please try again." };
+  }
 
   revalidatePath("/monetization");
   return { ok: true };
@@ -67,7 +70,13 @@ export async function toggleMediaKitPublished(
     .from("media_kits")
     .update({ published, share_slug: published ? slug : null })
     .eq("user_id", user.id);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[monetization/actions] toggleMediaKitPublished failed:", error);
+    return {
+      ok: false,
+      error: "Couldn't update your media kit's visibility. Please try again.",
+    };
+  }
 
   revalidatePath("/monetization");
   return { ok: true };
@@ -107,7 +116,10 @@ export async function createBrandDeal(input: {
     due_date: input.due_date ?? null,
     notes: input.notes?.trim() || null,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[monetization/actions] createBrandDeal failed:", error);
+    return { ok: false, error: "Couldn't add the brand deal. Please try again." };
+  }
 
   revalidatePath("/monetization");
   return { ok: true };
@@ -128,7 +140,10 @@ export async function updateDealStage(
     .update({ stage })
     .eq("id", dealId)
     .eq("user_id", user.id);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[monetization/actions] updateDealStage failed:", error);
+    return { ok: false, error: "Couldn't update the deal stage. Please try again." };
+  }
 
   revalidatePath("/monetization");
   return { ok: true };
@@ -146,7 +161,10 @@ export async function deleteDeal(dealId: string): Promise<Result> {
     .delete()
     .eq("id", dealId)
     .eq("user_id", user.id);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[monetization/actions] deleteDeal failed:", error);
+    return { ok: false, error: "Couldn't delete the deal. Please try again." };
+  }
 
   revalidatePath("/monetization");
   return { ok: true };
@@ -181,7 +199,13 @@ export async function createRevenueEntry(input: {
     received_on: input.received_on ?? new Date().toISOString().slice(0, 10),
     note: input.note?.trim() || null,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[monetization/actions] createRevenueEntry failed:", error);
+    return {
+      ok: false,
+      error: "Couldn't add the revenue entry. Please try again.",
+    };
+  }
 
   revalidatePath("/monetization");
   return { ok: true };
@@ -199,7 +223,13 @@ export async function deleteRevenueEntry(entryId: string): Promise<Result> {
     .delete()
     .eq("id", entryId)
     .eq("user_id", user.id);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[monetization/actions] deleteRevenueEntry failed:", error);
+    return {
+      ok: false,
+      error: "Couldn't delete the revenue entry. Please try again.",
+    };
+  }
 
   revalidatePath("/monetization");
   return { ok: true };

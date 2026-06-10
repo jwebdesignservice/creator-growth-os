@@ -11,7 +11,7 @@ import { ChannelList } from "@/components/community/chat/channel-list";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatReaction } from "@/lib/community/chat/types";
 
-export const metadata = { title: "Community Chat · Creator Growth OS" };
+export const metadata = { title: "Community Chat · Profluencer" };
 
 type Params = { slug: string };
 

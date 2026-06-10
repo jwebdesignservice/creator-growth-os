@@ -8,15 +8,15 @@ import { renderWelcomeEmail } from "./welcome-template";
  * Configuration:
  *   - RESEND_API_KEY: required to actually send. Without it, we log and
  *     no-op so onboarding completes regardless.
- *   - EMAIL_FROM: optional. Defaults to `Creator Growth OS <onboarding@resend.dev>`
+ *   - EMAIL_FROM: optional. Defaults to `Profluencer <onboarding@resend.dev>`
  *     which works without verifying a domain in development.
  *     In production, set a verified-domain sender like
- *     `Creator Growth OS <welcome@your-domain.com>`.
+ *     `Profluencer <welcome@your-domain.com>`.
  */
 function getFromAddress() {
   return (
     process.env.EMAIL_FROM ??
-    "Creator Growth OS <onboarding@resend.dev>"
+    "Profluencer <onboarding@resend.dev>"
   );
 }
 

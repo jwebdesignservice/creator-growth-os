@@ -5,7 +5,7 @@ import { AuthHeroPhoto } from "@/components/auth/hero-photo";
 import { BRAND_NAME } from "@/lib/brand";
 import { ForgotForm } from "./forgot-form";
 
-export const metadata = { title: "Forgot password · Creator Growth OS" };
+export const metadata = { title: "Forgot password · Profluencer" };
 
 /**
  * Forgot-password page.

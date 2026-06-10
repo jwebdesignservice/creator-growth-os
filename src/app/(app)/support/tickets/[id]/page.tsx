@@ -22,7 +22,6 @@ import { getMyTicketByPublicId, getTicketMessages } from "@/lib/support/queries"
 import { PageShell } from "@/components/app-shell/page-shell";
 import { UserTicketRealtime } from "@/components/support/user-ticket-realtime";
 import { UserTicketReplyForm } from "@/components/support/user-ticket-reply-form";
-import { ticketStatusLabel } from "../../support-panel";
 import {
   SUPPORT_TOPICS,
   SUPPORT_PAGE_OPTIONS,
@@ -30,6 +29,7 @@ import {
 import type {
   SupportTicketMessage,
   SupportTicketPriority,
+  SupportTicketStatus,
   SupportTicketTopic,
 } from "@/lib/support/types";
 import { CloseTicketButton, CopyLinkButton } from "./ticket-actions";
@@ -61,17 +61,27 @@ type Props = {
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
-  return { title: `#${id} · Support · Creator Growth OS` };
+  return { title: `#${id} · Support · Profluencer` };
 }
 
 /* ─── Visual mappings ─────────────────────────────────────────────────── */
 
-const STATUS_PILL: Record<ReturnType<typeof ticketStatusLabel>, string> = {
-  Open:          "bg-success-bg text-success",
-  Waiting:       "bg-gold-500/15 text-gold-500",
-  "In Progress": "bg-rose-100 text-rose-700",
-  Resolved:      "bg-success-bg text-success",
-  Closed:        "bg-gold-500/15 text-gold-500",
+const STATUS_LABEL: Record<SupportTicketStatus, string> = {
+  open:        "Open",
+  waiting:     "Waiting",
+  in_progress: "In progress",
+  resolved:    "Resolved",
+  closed:      "Closed",
+};
+
+// Status→color mapping shared with the /support hub (TICKET_PILL in
+// support/page.tsx) so the same ticket reads identically on both surfaces.
+const STATUS_PILL: Record<SupportTicketStatus, string> = {
+  open:        "bg-rose-100 text-rose-700",
+  waiting:     "bg-gold-500/15 text-gold-500",
+  in_progress: "bg-rose-50 text-rose-600",
+  resolved:    "bg-success-bg text-success",
+  closed:      "bg-cream-200 text-ink-500",
 };
 
 const PRIORITY_PILL: Record<SupportTicketPriority, string> = {
@@ -112,7 +122,7 @@ export default async function TicketDetailPage({ params }: Props) {
     attachmentUrl = signed?.signedUrl ?? null;
   }
 
-  const status        = ticketStatusLabel(ticket.status);
+  const status        = STATUS_LABEL[ticket.status];
   const topic         = SUPPORT_TOPICS.find((t) => t.key === (ticket.topic as SupportTicketTopic));
   const pageLabel     = SUPPORT_PAGE_OPTIONS.find((o) => o.value === ticket.pageAffected)?.label ?? ticket.pageAffected ?? "—";
   const priorityLabel = PRIORITY_LABEL[ticket.priority];
@@ -171,7 +181,7 @@ export default async function TicketDetailPage({ params }: Props) {
                 <span
                   className={cn(
                     "inline-flex items-center px-2.5 h-[28px] rounded-full text-[12px] font-semibold whitespace-nowrap",
-                    STATUS_PILL[status],
+                    STATUS_PILL[ticket.status],
                   )}
                 >
                   {status}

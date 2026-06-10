@@ -38,7 +38,9 @@
   --ink-300: #C2BAB0;
   --ink-400: #9B928A;
   --ink-500: #756E66;
+  --ink-600: #57514A;
   --ink-700: #3A3631;
+  --ink-800: #2A2724;
   --ink-900: #1A1816;
 
   /* Gold — premium / pro accent */
@@ -87,7 +89,9 @@
   --color-ink-300: var(--ink-300);
   --color-ink-400: var(--ink-400);
   --color-ink-500: var(--ink-500);
+  --color-ink-600: var(--ink-600);
   --color-ink-700: var(--ink-700);
+  --color-ink-800: var(--ink-800);
   --color-ink-900: var(--ink-900);
 
   /* Gold */
@@ -522,6 +526,19 @@ select.input {
 }
 @media (prefers-reduced-motion: reduce) {
   .agent-progress { animation: none !important; height: 100% !important; }
+}
+
+/* Programs library — progress fills sweep from 0 to their inline width on
+   mount (the thumbnail strip on program cards). `backwards` holds width:0
+   through the small delay so the sweep reads as one deliberate motion. */
+@keyframes program-bar-fill {
+  from { width: 0; }
+}
+.program-bar {
+  animation: program-bar-fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .program-bar { animation: none; }
 }
 
 /* "How It Works" supporting paragraph — each word slides + fades in from the

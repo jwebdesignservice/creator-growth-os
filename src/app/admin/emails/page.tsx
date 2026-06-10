@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getAdminContext } from "@/lib/admin/is-admin";
 import { ComposeForm } from "./compose-form";
 
-export const metadata = { title: "Compose · Email · Admin · Creator Growth OS" };
+export const metadata = { title: "Compose · Email · Admin · Profluencer" };
 
 /**
  * /admin/emails — the Compose page. Server shell pulls the admin's info +

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Send, ArrowRight } from "lucide-react";
 
 export const metadata = {
-  title: "Campaigns · Email · Admin · Creator Growth OS",
+  title: "Campaigns · Email · Admin · Profluencer",
 };
 
 /**

@@ -6,11 +6,11 @@ import { BRAND_NAME } from "@/lib/brand";
 /**
  * Root-level 404. Catches anything that doesn't match a route — invalid
  * URLs, deleted media kit slugs, hand-typed mistakes. Branded so users
- * see a friendly Creator Growth OS page instead of Next.js's default
+ * see a friendly Profluencer page instead of Next.js's default
  * "404 — This page could not be found" on a white background.
  */
 export const metadata = {
-  title: "Page not found · Creator Growth OS",
+  title: "Page not found · Profluencer",
 };
 
 export default function NotFound() {

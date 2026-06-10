@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { TemplatesView, type TemplateRow } from "./templates-view";
 
 export const metadata = {
-  title: "Templates · Email · Admin · Creator Growth OS",
+  title: "Templates · Email · Admin · Profluencer",
 };
 
 /**

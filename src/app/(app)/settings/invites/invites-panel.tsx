@@ -85,8 +85,8 @@ export function InvitesPanel({
     if (!shareUrl) return;
     try {
       await navigator.share({
-        title: "Join me on Creator Growth OS",
-        text: "I am growing my audience with Creator Growth OS — join with my invite link:",
+        title: "Join me on Profluencer",
+        text: "I am growing my audience with Profluencer — join with my invite link:",
         url: shareUrl,
       });
     } catch {
@@ -98,9 +98,9 @@ export function InvitesPanel({
   // sends it themselves; nothing is dispatched on their behalf.
   const mailtoHref = shareUrl
     ? `mailto:?subject=${encodeURIComponent(
-        "Join me on Creator Growth OS",
+        "Join me on Profluencer",
       )}&body=${encodeURIComponent(
-        `I am growing my audience with Creator Growth OS and thought you would like it too.\n\nSign up with my invite link and we both benefit:\n${shareUrl}`,
+        `I am growing my audience with Profluencer and thought you would like it too.\n\nSign up with my invite link and we both benefit:\n${shareUrl}`,
       )}`
     : undefined;
 

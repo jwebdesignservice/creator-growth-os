@@ -16,7 +16,7 @@ import { ProgramGridCard } from "./program-grid-card";
 import { ProgramsToolbar } from "./toolbar";
 import { cn } from "@/lib/cn";
 
-export const metadata = { title: "Programs · Admin · Creator Growth OS" };
+export const metadata = { title: "Programs · Admin · Profluencer" };
 
 type SearchParams = Promise<{
   search?: string;

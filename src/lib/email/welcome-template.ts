@@ -1,10 +1,12 @@
 /**
- * Welcome email — branded Creator Growth OS template.
+ * Welcome email — branded template (brand name from lib/brand BRAND_NAME).
  * Matches the website fonts (DM Sans + Cormorant Garamond) and brand mark.
  * Email-safe inline-styled HTML. Table-based layout, max width 600px,
  * centered content. Google Fonts link for capable clients; system fallbacks
  * for the rest (Outlook desktop, etc.).
  */
+
+import { BRAND_NAME } from "@/lib/brand";
 
 type Summary = {
   category?: string;
@@ -38,7 +40,7 @@ export function renderWelcomeEmail({
   dashboardUrl,
   summary,
 }: WelcomeEmailParams): { subject: string; html: string; text: string } {
-  const subject = `Welcome to Creator Growth OS, ${firstName} — your dashboard is ready 🎉`;
+  const subject = `Welcome to ${BRAND_NAME}, ${firstName} — your dashboard is ready 🎉`;
 
   const summaryRows: { label: string; value: string }[] = [];
   if (summary?.category) summaryRows.push({ label: "Your category", value: summary.category });
@@ -103,7 +105,7 @@ export function renderWelcomeEmail({
           <tr>
             <td style="background:${HEADER_BG};padding:28px 32px 22px;text-align:center;">
               ${BRAND_MARK_SVG}
-              <div style="font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK_900};line-height:1.1;margin-top:8px;letter-spacing:0.01em;">Creator Growth OS</div>
+              <div style="font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK_900};line-height:1.1;margin-top:8px;letter-spacing:0.01em;">${BRAND_NAME}</div>
               <div style="font-family:${FONT_BODY};font-size:10.5px;letter-spacing:0.12em;color:${INK_500};text-transform:uppercase;margin-top:4px;font-weight:500;">Grow · Inspire · Earn</div>
             </td>
           </tr>
@@ -168,7 +170,7 @@ export function renderWelcomeEmail({
                 Need a hand? Just reply to this email — a real human reads every one.
               </p>
               <p style="font-family:${FONT_BODY};font-size:11px;color:${INK_400};margin:0;">
-                Creator Growth OS · You&apos;re receiving this because you signed up at creator-growth-os.com.
+                ${BRAND_NAME} · You&apos;re receiving this because you signed up for a ${BRAND_NAME} account.
               </p>
             </td>
           </tr>
@@ -179,7 +181,7 @@ export function renderWelcomeEmail({
 </body>
 </html>`;
 
-  const text = `Welcome to Creator Growth OS, ${firstName}!
+  const text = `Welcome to ${BRAND_NAME}, ${firstName}!
 
 Your personalized creator dashboard is ready. We've used your onboarding
 answers to tailor your programs, posting plans, tutorials, and daily
@@ -194,7 +196,7 @@ What you can do first:
 - Update your weekly performance entry on Sunday
 
 Need a hand? Just reply to this email.
-— Creator Growth OS`;
+— ${BRAND_NAME}`;
 
   return { subject, html, text };
 }

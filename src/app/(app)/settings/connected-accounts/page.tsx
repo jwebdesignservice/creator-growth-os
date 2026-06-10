@@ -6,7 +6,7 @@ import { ConnectSocialCard } from "@/components/performance/connect-social-card"
 import { AutoSyncOnMount } from "@/components/performance/auto-sync-on-mount";
 
 export const metadata = {
-  title: "Connected accounts · Settings · Creator Growth OS",
+  title: "Connected accounts · Settings · Profluencer",
 };
 
 /**

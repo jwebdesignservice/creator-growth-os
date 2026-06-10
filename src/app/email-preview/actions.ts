@@ -32,7 +32,7 @@ export async function sendAllPreviewsToInbox(
 
   const from =
     process.env.EMAIL_FROM ??
-    "Creator Growth OS <onboarding@resend.dev>";
+    "Profluencer <onboarding@resend.dev>";
 
   const resend = new Resend(apiKey);
   const templates = await getAllPreviewTemplates();

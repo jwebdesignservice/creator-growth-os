@@ -3,7 +3,7 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getReferralActivity, getReferralStats } from "@/lib/referrals/queries";
 import { InvitesPanel } from "./invites-panel";
 
-export const metadata = { title: "Invites · Settings · Creator Growth OS" };
+export const metadata = { title: "Invites · Settings · Profluencer" };
 
 export default async function InvitesSettingsPage() {
   const ctx = await getShellContext();

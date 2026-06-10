@@ -4,7 +4,7 @@ import { PageShell } from "@/components/app-shell/page-shell";
 import { LanguageForm } from "./language-form";
 
 export const metadata = {
-  title: "Language · Settings · Creator Growth OS",
+  title: "Language · Settings · Profluencer",
 };
 
 export default async function LanguageSettingsPage() {
