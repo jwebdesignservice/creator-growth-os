@@ -17,6 +17,13 @@ import {
   ChevronDown,
   Clapperboard,
   Loader2,
+  Sparkles,
+  Maximize2,
+  Smile,
+  Hash,
+  ImagePlus,
+  Ghost,
+  Globe,
 } from "lucide-react";
 import {
   InstagramIcon,
@@ -130,6 +137,27 @@ const CONTENT_TYPES = [
   { value: "youtube_video", label: "YouTube Video" },
   { value: "post", label: "Post" },
 ];
+
+/* Channel-picker avatar tiles — each platform in its brand colour. */
+const PLATFORM_TILE: Record<PlatformKey, string> = {
+  instagram: "bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#962FBF] text-white",
+  tiktok:    "bg-[#010101] text-white",
+  youtube:   "bg-[#FF0000] text-white",
+  snapchat:  "bg-[#FFFC00] text-ink-900",
+  linkedin:  "bg-[#0A66C2] text-white",
+  multiple:  "bg-ink-900 text-white",
+  other:     "bg-ink-200 text-ink-600",
+};
+
+function PlatformTileGlyph({ platform }: { platform: PlatformKey }) {
+  if (platform === "instagram") return <InstagramIcon size={18} />;
+  if (platform === "tiktok") return <TiktokIcon size={17} />;
+  if (platform === "youtube") return <YoutubeIcon size={18} />;
+  if (platform === "snapchat") return <Ghost className="size-[18px]" strokeWidth={2} />;
+  if (platform === "linkedin")
+    return <span className="text-[14px] font-black leading-none">in</span>;
+  return <Globe className="size-[17px]" strokeWidth={2} />;
+}
 
 function mondayIso() {
   const d = new Date();
@@ -358,6 +386,13 @@ export function NewItemForm({
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  /* Reference-composer UI state ---------------------------------------- */
+  const [showPreview, setShowPreview] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [schedOpen, setSchedOpen] = useState(false);
+  const [aiGen, setAiGen] = useState(false);
+  const [createAnother, setCreateAnother] = useState(false);
+
   // Production schedule: single day (uses the date above) vs phases spread
   // across days. phaseDates holds a YYYY-MM-DD per stage (absent = skipped).
   const [phased, setPhased] = useState(false);
@@ -410,6 +445,13 @@ export function NewItemForm({
     const scheduledFor = date
       ? new Date(`${date}T${time || nowTimeHHMM()}`).toISOString()
       : undefined;
+    // The AI-Generated toggle records the disclosure with the post's notes.
+    const finalNotes = [
+      notes.trim(),
+      aiGen ? "Disclose: content generated or edited with AI." : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
     startTransition(async () => {
       // Create the post once; reuse its id on retry so we never duplicate.
       let id = createdId.current;
@@ -420,7 +462,7 @@ export function NewItemForm({
           content_type: contentType,
           topic: topic.trim() || undefined,
           goal: goal || undefined,
-          notes: notes.trim() || undefined,
+          notes: finalNotes || undefined,
           scheduled_for: scheduledFor,
           status,
         });
@@ -454,12 +496,22 @@ export function NewItemForm({
       }
 
       router.refresh();
+      if (createAnother) {
+        // Keep the composer open for the next entry; platform, type and
+        // schedule stay as helpful context, the content fields reset.
+        createdId.current = null;
+        setTopic("");
+        setNotes("");
+        setGoal("");
+        setAiGen(false);
+        setPhased(false);
+        setPhaseDates({});
+        return;
+      }
       onClose();
     });
   }
 
-  const sel =
-    "w-full h-11 pl-10 pr-9 rounded-[12px] border border-ink-200 bg-white text-[14px] text-ink-900 appearance-none focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100";
   const fieldCls =
     "w-full px-3.5 rounded-[12px] border border-ink-200 bg-white text-[14px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100";
 
@@ -469,384 +521,592 @@ export function NewItemForm({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[20px] shadow-xl border border-ink-100 w-full max-w-[960px] my-6 overflow-hidden"
+        className={cn(
+          "bg-white rounded-[20px] shadow-xl border border-ink-100 w-full my-6 overflow-hidden transition-[max-width] duration-200",
+          expanded ? "max-w-[1280px]" : "max-w-[1040px]",
+        )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <header className="flex items-start gap-3 px-6 sm:px-8 pt-6">
-          <span
+        {/* ── Top bar ─────────────────────────────────────────────────── */}
+        <header className="flex items-center gap-2.5 px-5 sm:px-6 py-3.5 border-b border-ink-100">
+          <h3 className="text-[19px] font-bold text-ink-900 tracking-[-0.01em] shrink-0">
+            {isIdea ? "Capture Idea" : "Create Post"}
+          </h3>
+          {/* content type — the reference's Tags-style pill */}
+          <div className="relative shrink-0">
+            <Clapperboard
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-ink-500 pointer-events-none"
+              strokeWidth={2}
+            />
+            <select
+              value={contentType}
+              onChange={(e) => setContentType(e.target.value)}
+              aria-label="Content type"
+              className="h-9 pl-8 pr-8 rounded-full border border-ink-200 bg-white text-[13px] font-medium text-ink-700 appearance-none cursor-pointer hover:bg-cream-100 focus:outline-none focus:border-rose-300 transition-colors"
+            >
+              {CONTENT_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            <ChevronDown
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
+              strokeWidth={2}
+            />
+          </div>
+
+          <span className="flex-1" />
+
+          <button
+            type="button"
+            disabled
+            title="Templates — coming soon"
+            className="hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[13px] font-medium text-ink-300 cursor-not-allowed"
+          >
+            <FileText className="size-4" strokeWidth={2} />
+            Templates
+          </button>
+          <button
+            type="button"
+            disabled
+            title="AI Assistant — coming soon"
+            className="hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[13px] font-medium text-ink-300 cursor-not-allowed"
+          >
+            <Sparkles className="size-4" strokeWidth={2} />
+            AI Assistant
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowPreview((v) => !v)}
+            aria-pressed={showPreview}
             className={cn(
-              "size-11 rounded-[13px] inline-flex items-center justify-center shrink-0",
-              isIdea
-                ? "bg-emerald-100 text-emerald-600"
-                : "bg-rose-100 text-rose-600",
+              "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors",
+              showPreview
+                ? "bg-rose-100 text-rose-700"
+                : "text-ink-600 hover:bg-cream-100",
             )}
           >
-            {isIdea ? (
-              <Lightbulb className="size-5" strokeWidth={2} />
-            ) : (
-              <CalendarCheck className="size-5" strokeWidth={2} />
-            )}
-          </span>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-h3 sm:text-[26px] text-ink-900 leading-tight">
-              {isIdea ? "Capture a content idea" : "Add a planned post"}
-            </h3>
-            <p className="text-[13px] text-ink-500 mt-0.5">
-              {isIdea
-                ? "Save the spark now — schedule it whenever you're ready."
-                : "Plan and organize your content ahead of time."}
-            </p>
-          </div>
+            <Eye className="size-4" strokeWidth={2} />
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-pressed={expanded}
+            aria-label={expanded ? "Shrink window" : "Expand window"}
+            title={expanded ? "Shrink" : "Expand"}
+            className="hidden lg:inline-flex size-9 rounded-[10px] items-center justify-center text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
+          >
+            <Maximize2 className="size-4" strokeWidth={2} />
+          </button>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="size-9 rounded-full hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-ink-900 shrink-0 transition-colors"
+            className="size-9 rounded-[10px] hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 hover:text-ink-900 shrink-0 transition-colors"
           >
             <X className="size-4" strokeWidth={2} />
           </button>
         </header>
 
-        {/* Body */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 px-6 sm:px-8 py-6">
-          {/* LEFT — form */}
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label className="block">
-                <span className="text-[12.5px] font-medium text-ink-700 mb-1.5 block">Platform</span>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <PlatformGlyph platform={platform} />
-                  </span>
-                  <select
-                    value={platform}
-                    onChange={(e) => setPlatform(e.target.value as PlatformKey)}
-                    className={sel}
+        {/* ── Body: composer · live preview ───────────────────────────── */}
+        <div
+          className={cn(
+            "grid grid-cols-1",
+            showPreview && "lg:grid-cols-[minmax(0,1fr)_350px]",
+          )}
+        >
+          {/* LEFT — composer */}
+          <div className="px-5 sm:px-6 py-5">
+            {/* channel picker — the reference's avatar row, one per platform */}
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              {PLATFORMS.map((p) => {
+                const active = platform === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPlatform(p.value)}
+                    aria-pressed={active}
+                    title={p.label}
+                    className={cn(
+                      "relative size-11 rounded-[13px] inline-flex items-center justify-center transition-all",
+                      PLATFORM_TILE[p.value],
+                      active
+                        ? "ring-2 ring-rose-500 ring-offset-2"
+                        : "opacity-40 saturate-50 hover:opacity-80",
+                    )}
                   >
-                    {PLATFORMS.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none" strokeWidth={2} />
-                </div>
-              </label>
-              <label className="block">
-                <span className="text-[12.5px] font-medium text-ink-700 mb-1.5 block">Content type</span>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-rose-500">
-                    <Clapperboard className="size-4" strokeWidth={2} />
-                  </span>
-                  <select
-                    value={contentType}
-                    onChange={(e) => setContentType(e.target.value)}
-                    className={sel}
-                  >
-                    {CONTENT_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none" strokeWidth={2} />
-                </div>
-              </label>
+                    <PlatformTileGlyph platform={p.value} />
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Topic */}
-            <label className="block">
-              <span className="text-[12.5px] font-medium text-ink-700 mb-1.5 block">Topic / hook</span>
-              <div className="relative">
+            {/* composer box */}
+            <div className="rounded-[16px] border border-ink-200 bg-white focus-within:border-rose-300 focus-within:ring-2 focus-within:ring-rose-100 transition-shadow">
+              <div className="flex items-start gap-3 p-4 pb-0">
+                <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
+                  <PlatformGlyph platform={platform} size={16} />
+                </span>
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value.slice(0, 160))}
-                  rows={2}
                   maxLength={160}
-                  placeholder="e.g. 3 hooks to stop the scroll"
-                  className={cn(fieldCls, "py-2.5 pr-16 resize-none")}
+                  rows={4}
+                  placeholder="Start writing your hook or topic…"
+                  className="flex-1 min-w-0 resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 placeholder:text-ink-400 focus:outline-none min-h-[110px]"
                 />
-                <span className="absolute bottom-2 right-3 text-[11px] text-ink-400 tabular-nums pointer-events-none">
-                  {topic.length} / 160
+              </div>
+
+              {/* media dropzone — visual per the reference; uploads land later */}
+              <div className="px-4 pt-2 pb-4">
+                <div
+                  title="Media upload — coming soon"
+                  className="w-[210px] rounded-[12px] border-2 border-dashed border-ink-200 px-4 py-5 text-center select-none cursor-not-allowed"
+                >
+                  <ImagePlus
+                    className="mx-auto mb-1.5 size-5 text-ink-400"
+                    strokeWidth={1.8}
+                  />
+                  <p className="text-[12.5px] leading-snug text-ink-500">
+                    Drag &amp; drop or{" "}
+                    <span className="font-medium text-rose-600">select a file</span>
+                  </p>
+                  <p className="text-[10.5px] text-ink-400 mt-0.5">Coming soon</p>
+                </div>
+              </div>
+
+              {/* toolbar */}
+              <div className="flex items-center gap-0.5 px-3 py-2 border-t border-ink-100">
+                <span
+                  className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-300 cursor-not-allowed"
+                  title="Coming soon"
+                >
+                  <Plus className="size-4" strokeWidth={2} />
+                </span>
+                <span
+                  className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-300 cursor-not-allowed"
+                  title="Coming soon"
+                >
+                  <ChevronDown className="size-4" strokeWidth={2} />
+                </span>
+                <span aria-hidden className="w-px h-4 bg-ink-200 mx-1" />
+                <button
+                  type="button"
+                  onClick={() => setTopic((t) => (t + "🙂").slice(0, 160))}
+                  title="Add emoji"
+                  aria-label="Add emoji"
+                  className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
+                >
+                  <Smile className="size-4" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTopic((t) => (t + "#").slice(0, 160))}
+                  title="Add hashtag"
+                  aria-label="Add hashtag"
+                  className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
+                >
+                  <Hash className="size-4" strokeWidth={2} />
+                </button>
+                <span className="flex-1" />
+                <span
+                  className="rounded-[8px] border border-ink-200 px-2 py-0.5 text-[11.5px] tabular-nums text-ink-500"
+                  title="Characters left"
+                >
+                  {160 - topic.length}
                 </span>
               </div>
-              <p className="text-[11.5px] text-ink-500 mt-1">
-                Write a short, attention-grabbing hook or topic for your post.
-              </p>
-            </label>
+            </div>
 
-            {/* Goal */}
-            <label className="block">
-              <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-700 mb-1.5">
-                <Target className="size-3.5 text-rose-500" strokeWidth={2} />
-                Goal / objective
-              </span>
+            {/* goal — the reference's quiet right-aligned control row */}
+            <div className="mt-3 flex justify-end">
               <div className="relative">
+                <Target
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+                  strokeWidth={2}
+                />
                 <select
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
-                  className="w-full h-11 px-3.5 pr-9 rounded-[12px] border border-ink-200 bg-white text-[14px] text-ink-900 appearance-none focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                  aria-label="Goal / objective"
+                  className="h-9 pl-8 pr-8 rounded-[10px] border border-transparent bg-transparent text-[13.5px] font-medium text-ink-700 appearance-none cursor-pointer hover:border-ink-200 hover:bg-cream-50 focus:outline-none focus:border-rose-300 transition-colors"
                 >
                   {GOALS.map((g) => (
                     <option key={g.value} value={g.value}>{g.label}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none" strokeWidth={2} />
-              </div>
-              <p className="text-[11.5px] text-ink-500 mt-1">
-                Choose the primary purpose of this post.
-              </p>
-            </label>
-
-            {/* Notes */}
-            <label className="block">
-              <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-700 mb-1.5">
-                <FileText className="size-3.5 text-rose-500" strokeWidth={2} />
-                Notes / caption direction <span className="text-ink-400 font-normal">(optional)</span>
-              </span>
-              <div className="relative">
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value.slice(0, 500))}
-                  rows={3}
-                  maxLength={500}
-                  placeholder="Add any notes, caption ideas, CTAs, hashtags, or creative direction…"
-                  className={cn(fieldCls, "py-2.5 pr-16 resize-none")}
+                <ChevronDown
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
+                  strokeWidth={2}
                 />
-                <span className="absolute bottom-2 right-3 text-[11px] text-ink-400 tabular-nums pointer-events-none">
-                  {notes.length} / 500
-                </span>
               </div>
-              <p className="text-[11.5px] text-ink-500 mt-1">
-                Use this space to capture ideas and important details for your content.
-              </p>
-            </label>
-
-            {/* Schedule */}
-            <div>
-              <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-700 mb-1.5">
-                <CalendarDays className="size-3.5 text-rose-500" strokeWidth={2} />
-                Schedule
-              </span>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none" strokeWidth={2} />
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => {
-                      setDate(e.target.value);
-                      setQuick(e.target.value ? null : "none");
-                    }}
-                    className={cn(fieldCls, "h-11 pl-9")}
-                  />
-                </div>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none" strokeWidth={2} />
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className={cn(fieldCls, "h-11 pl-9")}
-                  />
-                </div>
-              </div>
-              <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                {QUICK.map((q) => {
-                  const active = quick === q.key;
-                  return (
-                    <button
-                      key={q.key}
-                      type="button"
-                      onClick={() => pickQuick(q.key)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12.5px] font-medium border transition-colors",
-                        active
-                          ? "bg-rose-50 border-rose-300 text-rose-700"
-                          : "bg-white border-ink-200 text-ink-700 hover:bg-cream-100",
-                      )}
-                    >
-                      {q.ban && <Ban className="size-3.5" strokeWidth={2} />}
-                      {q.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[11.5px] text-ink-500 mt-1.5">
-                Select when you want this post to go live. You can leave it unscheduled.
-              </p>
             </div>
 
-            {/* Production schedule — single day vs spread across phases */}
-            <div className="rounded-[12px] border border-ink-200 bg-cream-50/40 p-3.5">
-              <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-700">
-                  <CalendarDays className="size-3.5 text-rose-500" strokeWidth={2} />
-                  Production schedule
-                </span>
-                <div className="inline-flex items-center rounded-[9px] border border-ink-200 bg-white p-0.5">
-                  {[
-                    { k: false, l: "Single day" },
-                    { k: true, l: "Spread over phases" },
-                  ].map((o) => (
-                    <button
-                      key={String(o.k)}
-                      type="button"
-                      onClick={() => {
-                        setPhased(o.k);
-                        if (o.k && Object.keys(phaseDates).length === 0)
-                          autoSpacePhases();
-                      }}
-                      aria-pressed={phased === o.k}
-                      className={cn(
-                        "h-7 px-2.5 rounded-[7px] text-[11.5px] font-semibold transition-colors",
-                        phased === o.k
-                          ? "bg-rose-600 text-white"
-                          : "text-ink-600 hover:text-ink-900",
-                      )}
-                    >
-                      {o.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {/* AI-Generated disclosure — saved alongside the post's notes */}
+            <div className="mt-2 flex items-center gap-3 border-t border-ink-100 pt-3.5">
+              <span className="text-[13.5px] font-semibold text-ink-900 shrink-0">
+                AI-Generated
+              </span>
+              <span className="flex-1 min-w-0 text-[13px] text-ink-500 truncate">
+                Tell viewers your content was generated or edited with AI.
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={aiGen}
+                aria-label="AI-Generated disclosure"
+                onClick={() => setAiGen((v) => !v)}
+                className={cn(
+                  "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+                  aiGen ? "bg-rose-600" : "bg-ink-200",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute top-0.5 size-5 rounded-full bg-white shadow transition-[left]",
+                    aiGen ? "left-[22px]" : "left-0.5",
+                  )}
+                />
+              </button>
+            </div>
 
-              {!phased ? (
-                <p className="text-[12px] text-ink-500 leading-snug">
-                  The whole post happens on the date above. Switch to{" "}
-                  <span className="font-medium text-ink-700">
-                    Spread over phases
-                  </span>{" "}
-                  to plan the work (film, edit, post…) across several days.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-[11.5px] text-ink-500 leading-snug">
-                      Give each phase the day you&apos;ll do it. Leave a phase
-                      blank to skip it.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={autoSpacePhases}
-                      className="shrink-0 text-[11.5px] font-semibold text-rose-600 hover:text-rose-700"
-                    >
-                      Auto-space
-                    </button>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {PHASE_ORDER.map((s) => {
-                      const val = phaseDates[s] ?? "";
-                      return (
-                        <li key={s} className="flex items-center gap-2.5">
-                          <span className="w-[74px] shrink-0 text-[12px] font-medium text-ink-700">
-                            {PHASE_LABEL[s]}
-                          </span>
-                          <input
-                            type="date"
-                            value={val}
-                            onChange={(e) =>
-                              setPhaseDates((p) => ({
-                                ...p,
-                                [s]: e.target.value,
-                              }))
-                            }
-                            aria-label={`${PHASE_LABEL[s]} date`}
-                            className="flex-1 min-w-0 h-9 rounded-[9px] border border-ink-200 bg-white px-2.5 text-[13px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-                          />
-                          <button
-                            type="button"
-                            aria-label={`Clear ${PHASE_LABEL[s]}`}
-                            onClick={() =>
-                              setPhaseDates((p) => {
-                                const n = { ...p };
-                                delete n[s];
-                                return n;
-                              })
-                            }
-                            disabled={!val}
-                            className="size-7 shrink-0 inline-flex items-center justify-center rounded-md text-ink-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                          >
-                            <X className="size-3.5" strokeWidth={2} />
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
+            {/* notes — quick capture, kept from the original form */}
+            <div className="relative mt-3">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value.slice(0, 500))}
+                rows={2}
+                maxLength={500}
+                placeholder="Notes / caption direction (optional)"
+                className={cn(fieldCls, "py-2.5 pr-16 resize-none text-[13.5px]")}
+              />
+              <span className="absolute bottom-2 right-3 text-[11px] text-ink-400 tabular-nums pointer-events-none">
+                {notes.length} / 500
+              </span>
             </div>
 
             {err && (
-              <div className="text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2 rounded-[10px]">
+              <div className="mt-3 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2 rounded-[10px]">
                 {err}
               </div>
             )}
           </div>
 
-          {/* RIGHT — preview */}
-          <aside className="space-y-3.5">
-            <div className="rounded-[16px] border border-ink-100 bg-white p-4">
-              <header className="flex items-start gap-2 mb-3">
-                <Eye className="size-4 text-rose-500 mt-0.5" strokeWidth={2} />
-                <div>
-                  <div className="text-[13px] font-bold text-ink-900">Post preview</div>
-                  <p className="text-[11.5px] text-ink-500">A quick overview of your planned post.</p>
-                </div>
-              </header>
-              <ul className="divide-y divide-ink-100">
-                <PreviewRow icon={<PlatformGlyph platform={platform} size={16} />} label="Platform" value={platformLabel} />
-                <PreviewRow icon={<Clapperboard className="size-4 text-rose-500" strokeWidth={2} />} label="Content type" value={contentLabel} />
-                <PreviewRow icon={<Target className="size-4 text-rose-500" strokeWidth={2} />} label="Goal" value={goalLabel ?? "—"} muted={!goalLabel} />
-                <PreviewRow
-                  icon={<CalendarDays className="size-4 text-rose-500" strokeWidth={2} />}
-                  label="Schedule"
-                  value={scheduleLabel ?? "No schedule set"}
-                  badge={scheduleLabel ? null : "Unscheduled"}
-                  muted={!scheduleLabel}
+          {/* RIGHT — live preview (reference panel) */}
+          {showPreview && (
+            <aside className="border-t lg:border-t-0 lg:border-l border-ink-100 bg-cream-50/70 px-5 sm:px-6 py-5">
+              <div className="flex items-center gap-1.5 mb-4">
+                <span className="text-[15px] font-bold text-ink-900">
+                  {platformLabel} Preview
+                </span>
+                <Info
+                  className="size-3.5 text-ink-400"
+                  strokeWidth={2}
+                  aria-label="A quick look at how this post is shaping up"
                 />
-              </ul>
-            </div>
-
-            <div className="rounded-[16px] bg-cream-50/70 border border-ink-100 p-4">
-              <div className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-900 mb-1">
-                <Info className="size-3.5 text-rose-500" strokeWidth={2} />
-                Good to know
               </div>
-              <p className="text-[12px] text-ink-600 leading-relaxed">
-                You can edit or reschedule this post after saving. Drafts are saved in
-                your content calendar.
-              </p>
-            </div>
-          </aside>
+
+              {/* mock post — fills in as you type */}
+              <div className="rounded-[14px] bg-white border border-ink-100 shadow-sm p-3.5">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <span className="size-8 rounded-full bg-cream-100 inline-flex items-center justify-center shrink-0">
+                    <PlatformGlyph platform={platform} size={14} />
+                  </span>
+                  <div className="space-y-1" aria-hidden>
+                    <div className="h-2 w-24 rounded-full bg-cream-200" />
+                    <div className="h-2 w-14 rounded-full bg-cream-100" />
+                  </div>
+                </div>
+                {topic ? (
+                  <p className="text-[13px] leading-snug text-ink-800 mb-3 whitespace-pre-wrap break-words">
+                    {topic}
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 mb-3" aria-hidden>
+                    <div className="h-2 rounded-full bg-cream-200 w-full" />
+                    <div className="h-2 rounded-full bg-cream-200 w-3/4" />
+                  </div>
+                )}
+                <div className="aspect-[4/3] rounded-[10px] bg-cream-100 border border-ink-100 flex items-center justify-center text-ink-300">
+                  <ImagePlus className="size-6" strokeWidth={1.5} />
+                </div>
+              </div>
+
+              {!topic && (
+                <p className="mt-3 text-center text-[12.5px] text-ink-400">
+                  See your post&apos;s preview here
+                </p>
+              )}
+
+              <ul className="mt-4 space-y-2.5 text-[12.5px]">
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-ink-500">Content type</span>
+                  <span className="font-semibold text-ink-900">{contentLabel}</span>
+                </li>
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-ink-500">Goal</span>
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      goalLabel ? "text-ink-900" : "text-ink-400",
+                    )}
+                  >
+                    {goalLabel ?? "—"}
+                  </span>
+                </li>
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-ink-500">Schedule</span>
+                  <span
+                    className={cn(
+                      "font-semibold text-right",
+                      scheduleLabel ? "text-ink-900" : "text-ink-400",
+                    )}
+                  >
+                    {scheduleLabel ?? "Unscheduled"}
+                  </span>
+                </li>
+                {phased && (
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-ink-500">Production</span>
+                    <span className="font-semibold text-ink-900">
+                      Spread over phases
+                    </span>
+                  </li>
+                )}
+              </ul>
+            </aside>
+          )}
         </div>
 
-        {/* Footer */}
-        <footer className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-6 sm:px-8 py-4 border-t border-ink-100 bg-cream-50/40">
-          <div className="inline-flex items-start gap-2 rounded-[12px] bg-rose-50/70 border border-rose-100 px-3.5 py-2.5 max-w-md">
-            <Lightbulb className="size-4 text-rose-500 shrink-0 mt-0.5" strokeWidth={2} />
-            <p className="text-[12px] text-ink-700 leading-snug">
-              <span className="font-semibold text-ink-900">Planning tip:</span> Great content
-              starts with a plan. Stay consistent and keep your audience engaged! ✨
-            </p>
-          </div>
-          <div className="flex items-center gap-2.5 justify-end shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={pending}
-              className="h-11 px-4 rounded-[12px] border border-ink-200 bg-white text-[14px] font-medium text-ink-700 hover:bg-cream-100 disabled:opacity-50 transition-colors"
-            >
-              Cancel
-            </button>
+        {/* ── Footer ──────────────────────────────────────────────────── */}
+        <footer className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-ink-100">
+          <div className="flex items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-[13.5px] font-medium text-ink-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={createAnother}
+                onChange={(e) => setCreateAnother(e.target.checked)}
+                className="size-4 rounded border-ink-300 accent-rose-600"
+              />
+              Create Another
+            </label>
             {!isIdea && (
+              <>
+                <span aria-hidden className="w-px h-4 bg-ink-200" />
+                <button
+                  type="button"
+                  onClick={() => save("idea")}
+                  disabled={pending}
+                  className="text-[13.5px] font-semibold text-ink-600 hover:text-ink-900 disabled:opacity-50 transition-colors"
+                >
+                  Save Draft
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 justify-end">
+            {/* schedule — the reference's "Next Available" control */}
+            <div className="relative">
               <button
                 type="button"
-                onClick={() => save("idea")}
-                disabled={pending}
-                className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[12px] border border-ink-200 bg-white text-[14px] font-medium text-ink-700 hover:bg-cream-100 disabled:opacity-50 transition-colors"
+                onClick={() => setSchedOpen((v) => !v)}
+                aria-haspopup="dialog"
+                aria-expanded={schedOpen}
+                className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[12px] border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
               >
-                <FileText className="size-4" strokeWidth={2} />
-                Save as draft
+                <CalendarDays className="size-4 text-ink-500" strokeWidth={2} />
+                {scheduleLabel ?? "No schedule"}
+                <ChevronDown
+                  className={cn(
+                    "size-3.5 text-ink-400 transition-transform",
+                    schedOpen && "rotate-180",
+                  )}
+                  strokeWidth={2}
+                />
               </button>
-            )}
+
+              {schedOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setSchedOpen(false)}
+                    className="fixed inset-0 z-40 cursor-default"
+                  />
+                  <div
+                    role="dialog"
+                    aria-label="Schedule"
+                    className="absolute right-0 bottom-[calc(100%+8px)] z-50 w-[340px] max-h-[58vh] overflow-y-auto rounded-[16px] border border-ink-100 bg-white shadow-card p-4 text-left"
+                  >
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="relative">
+                        <CalendarDays
+                          className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+                          strokeWidth={2}
+                        />
+                        <input
+                          type="date"
+                          value={date}
+                          onChange={(e) => {
+                            setDate(e.target.value);
+                            setQuick(e.target.value ? null : "none");
+                          }}
+                          className={cn(fieldCls, "h-11 pl-9")}
+                        />
+                      </div>
+                      <div className="relative">
+                        <Clock
+                          className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+                          strokeWidth={2}
+                        />
+                        <input
+                          type="time"
+                          value={time}
+                          onChange={(e) => setTime(e.target.value)}
+                          className={cn(fieldCls, "h-11 pl-9")}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                      {QUICK.map((q) => {
+                        const active = quick === q.key;
+                        return (
+                          <button
+                            key={q.key}
+                            type="button"
+                            onClick={() => pickQuick(q.key)}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12.5px] font-medium border transition-colors",
+                              active
+                                ? "bg-rose-50 border-rose-300 text-rose-700"
+                                : "bg-white border-ink-200 text-ink-700 hover:bg-cream-100",
+                            )}
+                          >
+                            {q.ban && <Ban className="size-3.5" strokeWidth={2} />}
+                            {q.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Production schedule — single day vs spread across phases */}
+                    <div className="mt-3 rounded-[12px] border border-ink-200 bg-cream-50/40 p-3.5">
+                      <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-700">
+                          <CalendarDays className="size-3.5 text-rose-500" strokeWidth={2} />
+                          Production schedule
+                        </span>
+                        <div className="inline-flex items-center rounded-[9px] border border-ink-200 bg-white p-0.5">
+                          {[
+                            { k: false, l: "Single day" },
+                            { k: true, l: "Spread over phases" },
+                          ].map((o) => (
+                            <button
+                              key={String(o.k)}
+                              type="button"
+                              onClick={() => {
+                                setPhased(o.k);
+                                if (o.k && Object.keys(phaseDates).length === 0)
+                                  autoSpacePhases();
+                              }}
+                              aria-pressed={phased === o.k}
+                              className={cn(
+                                "h-7 px-2.5 rounded-[7px] text-[11.5px] font-semibold transition-colors",
+                                phased === o.k
+                                  ? "bg-rose-600 text-white"
+                                  : "text-ink-600 hover:text-ink-900",
+                              )}
+                            >
+                              {o.l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {!phased ? (
+                        <p className="text-[12px] text-ink-500 leading-snug">
+                          The whole post happens on the date above. Switch to{" "}
+                          <span className="font-medium text-ink-700">
+                            Spread over phases
+                          </span>{" "}
+                          to plan the work (film, edit, post…) across several days.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-[11.5px] text-ink-500 leading-snug">
+                              Give each phase the day you&apos;ll do it. Leave a phase
+                              blank to skip it.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={autoSpacePhases}
+                              className="shrink-0 text-[11.5px] font-semibold text-rose-600 hover:text-rose-700"
+                            >
+                              Auto-space
+                            </button>
+                          </div>
+                          <ul className="space-y-1.5">
+                            {PHASE_ORDER.map((s) => {
+                              const val = phaseDates[s] ?? "";
+                              return (
+                                <li key={s} className="flex items-center gap-2.5">
+                                  <span className="w-[74px] shrink-0 text-[12px] font-medium text-ink-700">
+                                    {PHASE_LABEL[s]}
+                                  </span>
+                                  <input
+                                    type="date"
+                                    value={val}
+                                    onChange={(e) =>
+                                      setPhaseDates((p) => ({
+                                        ...p,
+                                        [s]: e.target.value,
+                                      }))
+                                    }
+                                    aria-label={`${PHASE_LABEL[s]} date`}
+                                    className="flex-1 min-w-0 h-9 rounded-[9px] border border-ink-200 bg-white px-2.5 text-[13px] text-ink-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                                  />
+                                  <button
+                                    type="button"
+                                    aria-label={`Clear ${PHASE_LABEL[s]}`}
+                                    onClick={() =>
+                                      setPhaseDates((p) => {
+                                        const n = { ...p };
+                                        delete n[s];
+                                        return n;
+                                      })
+                                    }
+                                    disabled={!val}
+                                    className="size-7 shrink-0 inline-flex items-center justify-center rounded-md text-ink-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                                  >
+                                    <X className="size-3.5" strokeWidth={2} />
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setSchedOpen(false)}
+                        className="h-9 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => save(isIdea ? "idea" : "planned")}
@@ -865,52 +1125,12 @@ export function NewItemForm({
               ) : (
                 <CalendarCheck className="size-4" strokeWidth={2} />
               )}
-              {isIdea ? "Save idea" : "Save planned post"}
+              {isIdea ? "Save Idea" : "Schedule Post"}
             </button>
           </div>
         </footer>
       </div>
     </div>
-  );
-}
-
-function PreviewRow({
-  icon,
-  label,
-  value,
-  badge,
-  muted,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  badge?: string | null;
-  muted?: boolean;
-}) {
-  return (
-    <li className="flex items-center gap-3 py-3">
-      <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="text-[11px] text-ink-500">{label}</div>
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "text-[13.5px] font-semibold truncate",
-              muted ? "text-ink-400" : "text-ink-900",
-            )}
-          >
-            {value}
-          </span>
-          {badge && (
-            <span className="chip bg-amber-50 text-amber-700 text-[10px] shrink-0">
-              {badge}
-            </span>
-          )}
-        </div>
-      </div>
-    </li>
   );
 }
 
