@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GraduationCap, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { getT } from "@/lib/i18n/server";
 
 export type ProgramCover = {
   imageUrl: string | null;
@@ -94,10 +95,11 @@ function Cover({ cover, pos }: { cover: ProgramCover; pos: (typeof POS)[number] 
  * hover the covers spread apart like pulling courses off a shelf. Text and
  * covers live in separate columns so the fan never overlaps the copy.
  */
-export function ProgramsCard({ href, total, inProgress, covers }: Props) {
+export async function ProgramsCard({ href, total, inProgress, covers }: Props) {
+  const t = await getT();
   const meta =
-    `${total} program${total === 1 ? "" : "s"}` +
-    (inProgress > 0 ? ` · ${inProgress} in progress` : "");
+    `${total} ${t(total === 1 ? "program" : "programs")}` +
+    (inProgress > 0 ? ` · ${inProgress} ${t("in progress")}` : "");
   const shown = covers.slice(0, 3);
 
   return (
@@ -111,16 +113,16 @@ export function ProgramsCard({ href, total, inProgress, covers }: Props) {
           <GraduationCap className="size-[22px]" strokeWidth={2} />
         </span>
         <h3 className="mt-3.5 text-[20px] font-bold tracking-[-0.01em] text-ink-900">
-          Programs
+          {t("Programs")}
         </h3>
         <p className="mt-1 max-w-[260px] text-[13px] leading-snug text-ink-500">
-          Structured courses to grow your audience
+          {t("Structured courses to grow your audience")}
         </p>
         <span className="mt-3 self-start whitespace-nowrap rounded-full bg-rose-50 px-[11px] py-[5px] text-[11.5px] font-semibold text-rose-700">
           {meta}
         </span>
         <span className="mt-auto inline-flex items-center gap-1.5 pt-3.5 text-[13px] font-semibold text-rose-700">
-          Open
+          {t("Open")}
           <ArrowRight
             className="size-[15px] transition-transform duration-[380ms] ease-[cubic-bezier(0.45,0,0.55,1)] group-hover:translate-x-1"
             strokeWidth={2}
