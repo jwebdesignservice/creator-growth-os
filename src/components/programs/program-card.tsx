@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Lock, BookOpen, CheckSquare, CalendarDays, CheckCircle2 } from "lucide-react";
+import {
+  Lock,
+  BookOpen,
+  CheckSquare,
+  CheckCircle2,
+  ArrowRight,
+  Crown,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 
 /** Human-friendly program length: 3 days · 1 week · 3 weeks · 1 month. */
@@ -31,19 +38,25 @@ export type ProgramRow = {
 };
 
 /**
- * Program card — YouTube-inspired layout.
+ * Program card — a framed "course tile" with real depth and a status-aware
+ * footer.
  *
- * Borderless (no card chrome): a rounded 16:9 "thumbnail" carries the
- * artwork, a dark days badge in the corner mirrors YouTube's duration
- * pill. Title + meta sit directly on the page background below, but unlike
- * a raw video listing we keep the full course info: a clean lessons/tasks
- * stat row and an explicit progress bar with its percentage.
+ * Structure: a white frame (p-3) holds a rounded 16:9 thumbnail; glassy
+ * overlay pills carry status (top-left), Pro (top-right) and duration
+ * (bottom-right, YouTube-style). Below: an uppercase category eyebrow,
+ * title, two-line description and a lessons/tasks meta row. A hairline
+ * divider then anchors a consistent footer that adapts per status —
+ * progress + "Continue", "Start program", "Review", "Upgrade" or the
+ * Start-Here lock note — so every card ends with a clear next action.
+ * The whole card is one link; hover lifts it, scales the artwork a touch
+ * and nudges the footer arrow.
  */
 export function ProgramCard({ program }: { program: ProgramRow }) {
   const isLocked     = !!program.locked;
   const isPro        = !isLocked && program.status === "pro_only";
   const isCompleted  = !isLocked && program.status === "completed";
   const isInProgress = !isLocked && program.status === "in_progress";
+  const isNotStarted = !isLocked && program.status === "not_started";
   // Locked cards route to Start Here (helpful), never the program itself.
   const href = isLocked
     ? "/programs/start-here"
@@ -51,115 +64,181 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
       ? "/billing?upgrade=pro"
       : `/programs/${program.slug}`;
   const progress = Math.min(100, Math.max(0, program.progress ?? 0));
+  const duration =
+    typeof program.estimated_days === "number" && program.estimated_days > 0
+      ? formatDuration(program.estimated_days)
+      : null;
 
   return (
     <Link
       href={href}
-      className="group flex flex-col gap-3 rounded-[18px] border border-ink-100 bg-white p-3 transition-shadow hover:shadow-[0_14px_32px_-20px_rgba(26,24,22,0.45)]"
+      className="group flex h-full flex-col rounded-[18px] border border-ink-100 bg-white p-3 shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-ink-200 hover:shadow-[0_22px_44px_-24px_rgba(26,24,22,0.42),0_6px_14px_-8px_rgba(26,24,22,0.14)]"
     >
       {/* ── Thumbnail ─────────────────────────────────────────────── */}
-      <div className="relative aspect-video rounded-xl overflow-hidden">
+      <div className="relative aspect-video overflow-hidden rounded-[12px] bg-cream-100">
         <CoverArt
           hue={program.cover_hue}
           status={program.status}
           coverImageUrl={program.cover_image_url}
         />
 
-        {/* Status badge (top-left) — only for states worth calling out. */}
+        {/* inset hairline — seats the artwork in its frame */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[12px] ring-1 ring-inset ring-ink-900/[0.07]"
+        />
+
+        {/* Status pill (top-left) — glassy, reads on any artwork */}
         {isInProgress && (
-          <span className="absolute top-2.5 left-2.5 chip chip-rose text-[10px] font-semibold uppercase tracking-wide shadow-soft">
+          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-800 shadow-[0_2px_10px_-2px_rgba(26,24,22,0.3)] ring-1 ring-ink-900/[0.06] backdrop-blur-sm">
+            <span className="size-1.5 rounded-full bg-rose-500" />
             In progress
           </span>
         )}
         {isCompleted && (
-          <span className="absolute top-2.5 left-2.5 chip chip-success text-[10px] font-semibold uppercase tracking-wide shadow-soft">
+          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-800 shadow-[0_2px_10px_-2px_rgba(26,24,22,0.3)] ring-1 ring-ink-900/[0.06] backdrop-blur-sm">
+            <CheckCircle2 className="size-3 text-success" strokeWidth={2.5} />
             Completed
+          </span>
+        )}
+
+        {/* Pro pill (top-right) */}
+        {isPro && (
+          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-700 shadow-[0_2px_10px_-2px_rgba(26,24,22,0.3)] ring-1 ring-amber-500/25 backdrop-blur-sm">
+            <Crown className="size-3" strokeWidth={2.5} />
+            Pro
+          </span>
+        )}
+
+        {/* Duration pill (bottom-right, YouTube-style) */}
+        {duration && !isLocked && (
+          <span className="absolute bottom-2.5 right-2.5 rounded-[7px] bg-ink-900/72 px-2 py-[3px] text-[11px] font-semibold tracking-[0.01em] text-white backdrop-blur-sm">
+            {duration}
           </span>
         )}
 
         {/* Onboarding soft-lock overlay */}
         {isLocked && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink-900/35 backdrop-blur-[2px]">
-            <span className="size-11 rounded-full bg-white/85 inline-flex items-center justify-center shadow-soft">
+            <span className="inline-flex size-11 items-center justify-center rounded-full bg-white/85 shadow-soft">
               <Lock className="size-5 text-rose-600" strokeWidth={2} />
             </span>
           </div>
         )}
       </div>
 
-      {/* ── Meta (borderless, on the page background) ─────────────────── */}
-      <div className="flex flex-col gap-2.5 px-0.5">
-        {/* Title + category */}
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-[15px] font-semibold text-ink-900 leading-snug line-clamp-2 group-hover:text-rose-700 transition-colors">
-            {program.title}
-          </h3>
-          {program.category_label && !isPro && (
-            <span className="chip chip-rose shrink-0">
-              {program.category_label}
-            </span>
-          )}
-        </div>
+      {/* ── Body ──────────────────────────────────────────────────── */}
+      <div className="flex flex-1 flex-col px-1 pb-0.5 pt-3">
+        {/* Category eyebrow — editorial, never squeezes the title */}
+        {program.category_label && (
+          <span className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-rose-600/85">
+            {program.category_label}
+          </span>
+        )}
 
-        {/* Short description */}
+        <h3 className="text-[15.5px] font-semibold leading-snug text-ink-900 line-clamp-2 transition-colors group-hover:text-rose-700">
+          {program.title}
+        </h3>
+
         {program.description && (
-          <p className="text-[12.5px] text-ink-500 leading-snug line-clamp-2">
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-500 line-clamp-2">
             {program.description}
           </p>
         )}
 
-        {/* Stat row — lessons / tasks / duration. */}
-        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[12px] text-ink-500">
+        {/* Meta row — lessons / tasks */}
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[12px] font-medium text-ink-500">
           {typeof program.total_lessons === "number" && (
             <span className="inline-flex items-center gap-1.5">
               <BookOpen className="size-3.5 text-ink-400" strokeWidth={1.8} />
-              {program.total_lessons} Lessons
+              {program.total_lessons}{" "}
+              {program.total_lessons === 1 ? "lesson" : "lessons"}
             </span>
           )}
           {typeof program.total_tasks === "number" && (
             <span className="inline-flex items-center gap-1.5">
               <CheckSquare className="size-3.5 text-ink-400" strokeWidth={1.8} />
-              {program.total_tasks} Tasks
-            </span>
-          )}
-          {typeof program.estimated_days === "number" && program.estimated_days > 0 && (
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays className="size-3.5 text-ink-400" strokeWidth={1.8} />
-              {formatDuration(program.estimated_days)}
+              {program.total_tasks} {program.total_tasks === 1 ? "task" : "tasks"}
             </span>
           )}
         </div>
 
-        {/* Progress / Pro CTA / Locked */}
-        {isLocked ? (
-          <div className="h-9 inline-flex items-center justify-center w-full rounded-[10px] bg-cream-100 border border-ink-200 text-ink-600 text-[12px] font-medium gap-1.5">
-            <Lock className="size-3.5" strokeWidth={2} />
-            Complete Start Here to unlock
+        {/* ── Footer — divided, status-aware, consistent height ───── */}
+        <div className="mt-auto pt-3.5">
+          <div className="flex h-8 items-center gap-2.5 border-t border-ink-100/90 pt-3">
+            {isLocked ? (
+              <>
+                <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-ink-500">
+                  <Lock className="size-3.5 shrink-0 text-ink-400" strokeWidth={2} />
+                  <span className="truncate">Complete Start Here to unlock</span>
+                </span>
+                <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-[12.5px] font-semibold text-rose-700">
+                  Start Here
+                  <ArrowRight
+                    className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                    strokeWidth={2.5}
+                  />
+                </span>
+              </>
+            ) : isPro ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-500">
+                  <Lock className="size-3.5 text-amber-600/80" strokeWidth={2} />
+                  Pro membership
+                </span>
+                <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] font-semibold text-rose-700">
+                  Upgrade
+                  <ArrowRight
+                    className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                    strokeWidth={2.5}
+                  />
+                </span>
+              </>
+            ) : isNotStarted ? (
+              <>
+                <span className="text-[12.5px] font-semibold text-ink-700 transition-colors group-hover:text-rose-700">
+                  Start program
+                </span>
+                <span className="ml-auto inline-flex size-7 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition-all duration-200 group-hover:border-rose-600 group-hover:bg-rose-600 group-hover:text-white">
+                  <ArrowRight className="size-3.5" strokeWidth={2.5} />
+                </span>
+              </>
+            ) : (
+              <>
+                {/* in progress / completed — progress + contextual action */}
+                <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-cream-200 ring-1 ring-inset ring-ink-900/[0.03]">
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      isCompleted
+                        ? "bg-success"
+                        : "bg-gradient-to-r from-rose-600 to-rose-400",
+                    )}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 text-[11.5px] font-semibold tabular-nums",
+                    isCompleted ? "text-success" : "text-ink-500",
+                  )}
+                >
+                  {isCompleted && (
+                    <CheckCircle2 className="size-3.5" strokeWidth={2} />
+                  )}
+                  {progress}%
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-[12.5px] font-semibold text-rose-700">
+                  {isCompleted ? "Review" : "Continue"}
+                  <ArrowRight
+                    className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                    strokeWidth={2.5}
+                  />
+                </span>
+              </>
+            )}
           </div>
-        ) : isPro ? (
-          <div className="h-9 inline-flex items-center justify-center w-full rounded-[10px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
-            <Lock className="size-3.5 mr-1.5" strokeWidth={2} />
-            Upgrade to Pro
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5">
-            <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden flex-1">
-              <div
-                className={cn("h-full rounded-full", isCompleted ? "bg-success" : "bg-rose-500")}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span
-              className={cn(
-                "text-[11.5px] font-semibold tabular-nums shrink-0 inline-flex items-center gap-1",
-                isCompleted ? "text-success" : "text-ink-500",
-              )}
-            >
-              {isCompleted && <CheckCircle2 className="size-3.5" strokeWidth={2} />}
-              {progress}%
-            </span>
-          </div>
-        )}
+        </div>
       </div>
     </Link>
   );
@@ -188,19 +267,20 @@ export function CoverArt({
   // working without next/image domain config.
   if (coverImageUrl) {
     return (
-      <div className="absolute inset-0 transition-[filter,transform] duration-300 group-hover:brightness-[0.98]">
+      <div className="absolute inset-0 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={coverImageUrl}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+        />
+        {/* bottom scrim so the duration pill always reads on photos */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-900/30 to-transparent"
         />
         {isPro && (
-          <div className="absolute inset-0 flex items-center justify-center bg-ink-900/20">
-            <div className="size-14 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-soft">
-              <Lock className="size-6 text-rose-600" strokeWidth={2} />
-            </div>
-          </div>
+          <span aria-hidden className="absolute inset-0 bg-ink-900/15" />
         )}
       </div>
     );
@@ -209,10 +289,21 @@ export function CoverArt({
   return (
     <div
       className={cn(
-        "absolute inset-0 transition-[filter,transform] duration-300 group-hover:brightness-[0.98]",
+        "absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.03]",
         `bg-gradient-to-br ${palette}`,
       )}
     >
+      {/* soft radial highlight — gives the flat gradient a light source */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(60% 75% at 78% 18%, rgba(255,255,255,0.55), transparent 62%)," +
+            "radial-gradient(45% 60% at 12% 92%, rgba(225,118,132,0.14), transparent 60%)",
+        }}
+      />
+
       {/* Decorative dots */}
       <svg
         className="absolute inset-0 h-full w-full text-rose-300/70"
@@ -226,14 +317,6 @@ export function CoverArt({
         <circle cx="50" cy="92" r="2.5" />
         <circle cx="150" cy="84" r="2" />
       </svg>
-
-      {isPro && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="size-14 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-soft">
-            <Lock className="size-6 text-rose-600" strokeWidth={2} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
