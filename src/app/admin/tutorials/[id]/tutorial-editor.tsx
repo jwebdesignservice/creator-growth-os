@@ -44,6 +44,7 @@ import {
   duplicateTutorial,
 } from "@/app/admin/lessons/actions";
 import { cn } from "@/lib/cn";
+import { formatDuration } from "@/lib/format";
 import { toast } from "@/components/ui/toast";
 import { ThumbnailTab } from "./thumbnail-tab";
 import { VideoTab } from "./video-tab";
@@ -1367,13 +1368,6 @@ function PublishingReadinessCard({
 /* ─────────────────────────────────────────────────────────────────────────
    Helpers
    ───────────────────────────────────────────────────────────────────────── */
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds < 0) return "—";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
 
 function formatVideoTime(seconds: number): string {
   if (!seconds || !Number.isFinite(seconds) || seconds < 0) return "00:00";

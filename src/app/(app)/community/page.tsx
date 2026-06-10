@@ -34,7 +34,7 @@ import {
   type WorkspaceTab,
 } from "@/components/app-shell/workspace-shell";
 
-export const metadata = { title: "Community · Creator Growth OS" };
+export const metadata = { title: "Community · Profluencer" };
 
 type CommunityTab = "feed" | "chat" | "events" | "members";
 
@@ -77,34 +77,42 @@ export default async function CommunityPage({
     ? (tab as CommunityTab)
     : "feed";
 
-  const spaces = await listSpaces();
-  const spaceOptions = spaces.map((s) => ({ slug: s.slug, name: s.name }));
-
   // Fetch only what the active tab needs. Chat fetches its own data inside
-  // <ChatTab>, so the other tabs stay lean.
-  const posts = active === "feed" ? await listRecentPosts(20) : [];
+  // <ChatTab>, so the other tabs stay lean. Independent queries run in two
+  // parallel batches instead of a serial waterfall.
+  const supabase = await createClient();
+  const [spaces, posts, isAdminRes] = await Promise.all([
+    listSpaces(),
+    active === "feed" ? listRecentPosts(20) : Promise.resolve([]),
+    // Admins can pin threads — surface the controls only to them.
+    active === "feed" ? supabase.rpc("is_admin") : Promise.resolve(null),
+  ]);
+  const spaceOptions = spaces.map((s) => ({ slug: s.slug, name: s.name }));
+  const isAdmin = isAdminRes?.data === true;
+
   // Pull each post's replies + like/dislike tallies so the feed can show the
-  // conversation and votes inline.
-  const repliesByPost =
-    active === "feed" && posts.length
-      ? await listRepliesForPosts(posts.map((p) => p.id), ctx.user.id)
-      : new Map();
-  const votesByPost: Map<string, PostVotes> =
-    active === "feed" && posts.length
-      ? await getPostVotes(posts.map((p) => p.id), ctx.user.id)
-      : new Map();
-  const reactionsByPost: Map<string, PostReaction[]> =
-    active === "feed" && posts.length
-      ? await getPostReactions(posts.map((p) => p.id), ctx.user.id)
-      : new Map();
-  const attachmentsByPost: Map<string, PostAttachment[]> =
-    active === "feed" && posts.length
-      ? await getPostAttachments(posts.map((p) => p.id))
-      : new Map();
-  const pollsByPost: Map<string, PostPoll> =
-    active === "feed" && posts.length
-      ? await getPostPolls(posts.map((p) => p.id), ctx.user.id)
-      : new Map();
+  // conversation and votes inline. Each helper early-returns an empty Map with
+  // zero network calls when postIds is empty (non-feed tabs / empty feed).
+  const postIds = posts.map((p) => p.id);
+  const [
+    repliesByPost,
+    votesByPost,
+    reactionsByPost,
+    attachmentsByPost,
+    pollsByPost,
+  ]: [
+    Awaited<ReturnType<typeof listRepliesForPosts>>,
+    Map<string, PostVotes>,
+    Map<string, PostReaction[]>,
+    Map<string, PostAttachment[]>,
+    Map<string, PostPoll>,
+  ] = await Promise.all([
+    listRepliesForPosts(postIds, ctx.user.id),
+    getPostVotes(postIds, ctx.user.id),
+    getPostReactions(postIds, ctx.user.id),
+    getPostAttachments(postIds),
+    getPostPolls(postIds, ctx.user.id),
+  ]);
   const feedPosts = posts.map((p) => ({
     ...p,
     replies: repliesByPost.get(p.id) ?? [],
@@ -113,11 +121,6 @@ export default async function CommunityPage({
     attachments: attachmentsByPost.get(p.id) ?? [],
     poll: pollsByPost.get(p.id) ?? null,
   }));
-  // Admins can pin threads — surface the controls only to them.
-  const isAdmin =
-    active === "feed"
-      ? (await (await createClient()).rpc("is_admin")).data === true
-      : false;
   const events = active === "events" ? await listAllEvents(100) : [];
   const members = active === "members" ? await listMemberSpotlight(12) : [];
 

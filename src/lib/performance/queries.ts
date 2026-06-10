@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { formatCompact } from "@/lib/format";
 
 export type PerformanceEntry = {
   id: string | null;
@@ -358,12 +359,4 @@ export function getLoggingStreak(entries: PerformanceEntry[]): {
     w = addWeeks(w, -1);
   }
   return { current, last8 };
-}
-
-function formatCompact(n: number) {
-  if (Math.abs(n) >= 1_000_000)
-    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (Math.abs(n) >= 1_000)
-    return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return n.toLocaleString();
 }

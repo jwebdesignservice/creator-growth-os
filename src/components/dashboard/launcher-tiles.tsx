@@ -19,6 +19,7 @@ import {
   SnapchatIcon,
 } from "@/components/brand-icons";
 import { cn } from "@/lib/cn";
+import { getT } from "@/lib/i18n/server";
 
 // Symmetric ease-in-out so the hover *out* is as smooth as the hover in.
 const EASE = "ease-[cubic-bezier(0.45,0,0.55,1)]";
@@ -29,7 +30,7 @@ function fmtNum(n: number): string {
   return `${n}`;
 }
 
-function LauncherTile({
+async function LauncherTile({
   href,
   icon: Icon,
   title,
@@ -44,6 +45,7 @@ function LauncherTile({
   meta: string;
   children: ReactNode;
 }) {
+  const t = await getT();
   return (
     <Link
       href={href}
@@ -71,7 +73,7 @@ function LauncherTile({
           {meta}
         </span>
         <span className="mt-auto inline-flex items-center gap-1.5 pt-3.5 text-[13px] font-semibold text-rose-700">
-          Open
+          {t("Open")}
           <ArrowRight
             className={cn(
               "size-[15px] transition-transform duration-[380ms] group-hover:translate-x-1",
@@ -89,13 +91,14 @@ function LauncherTile({
 }
 
 /* ───────────────────────────── Tutorials ───────────────────────────── */
-export function TutorialsCard({ total }: { total: number }) {
+export async function TutorialsCard({ total }: { total: number }) {
+  const t = await getT();
   return (
     <LauncherTile
       href="/tutorials"
       icon={Play}
       title="Tutorials"
-      desc="Short, focused how-to videos"
+      desc={t("Short, focused how-to videos")}
       meta={`${total} tutorial${total === 1 ? "" : "s"}`}
     >
       {/* back peeks */}
@@ -169,7 +172,7 @@ const brandOf = (p: string) =>
     label: (p?.[0] ?? "•").toUpperCase(),
   };
 
-export function ContentCard({
+export async function ContentCard({
   thisWeek,
   posts,
   days,
@@ -178,14 +181,15 @@ export function ContentCard({
   posts: { platform: string; type: string; when: string }[];
   days: { letter: string; count: number; isToday: boolean }[];
 }) {
+  const t = await getT();
   const rows = posts.slice(0, 2);
   return (
     <LauncherTile
       href="/posting"
       icon={CalendarDays}
-      title="Posting Plans"
-      desc="Plan & schedule your content"
-      meta={thisWeek > 0 ? `${thisWeek} scheduled this week` : "Plan your week"}
+      title={t("Posting Plans")}
+      desc={t("Plan & schedule your content")}
+      meta={thisWeek > 0 ? `${thisWeek} ${t("scheduled this week")}` : t("Plan your week")}
     >
       <div className="absolute inset-0 flex flex-col justify-center gap-2.5">
         {/* Week calendar — a dot marks days that have posts; today is bold. */}
@@ -256,7 +260,7 @@ export function ContentCard({
           </div>
         ) : (
           <div className="flex items-center justify-center gap-1.5 py-3 text-[11.5px] font-semibold text-rose-600">
-            <CalendarPlus className="size-3.5" strokeWidth={2} /> Plan your week
+            <CalendarPlus className="size-3.5" strokeWidth={2} /> {t("Plan your week")}
           </div>
         )}
       </div>
@@ -265,7 +269,7 @@ export function ContentCard({
 }
 
 /* ─────────────────────────────── Tasks ─────────────────────────────── */
-export function TasksCard({
+export async function TasksCard({
   dueToday,
   completed,
   total,
@@ -276,27 +280,28 @@ export function TasksCard({
   total: number;
   tasks: { title: string; done: boolean }[];
 }) {
+  const t = await getT();
   const meta =
     dueToday > 0
-      ? `${dueToday} due today`
+      ? `${dueToday} ${t("due today")}`
       : total > 0
-        ? `${completed}/${total} done`
-        : "All caught up";
+        ? `${completed}/${total} ${t("done")}`
+        : t("All caught up");
   const rows =
     tasks.length > 0
       ? tasks.slice(0, 3)
       : [
-          { title: "Plan this week's content", done: true },
-          { title: "Film your next short", done: false },
-          { title: "Reply to comments", done: false },
+          { title: t("Plan this week's content"), done: true },
+          { title: t("Film your next short"), done: false },
+          { title: t("Reply to comments"), done: false },
         ];
   const firstUndone = rows.findIndex((r) => !r.done);
   return (
     <LauncherTile
       href="/missions"
       icon={ListChecks}
-      title="Tasks"
-      desc="Your missions & daily to-dos"
+      title={t("Tasks")}
+      desc={t("Your missions & daily to-dos")}
       meta={meta}
     >
       <div className="absolute left-1/2 top-1/2 -ml-[104px] -mt-[57px] w-[208px] space-y-2">
@@ -398,7 +403,7 @@ function buildChart(series: number[], w = 230, h = 96) {
   };
 }
 
-export function PerformanceCard({
+export async function PerformanceCard({
   followers,
   series,
   deltaPct,
@@ -407,6 +412,7 @@ export function PerformanceCard({
   series: number[];
   deltaPct: number;
 }) {
+  const t = await getT();
   const { pts, line, area, len, w, h, plotL, plotR, plotT, plotB, min, max, n } =
     buildChart(series);
   const end = pts[pts.length - 1];
@@ -415,9 +421,9 @@ export function PerformanceCard({
     <LauncherTile
       href="/performance"
       icon={TrendingUp}
-      title="Performance"
-      desc="Track followers & engagement"
-      meta={followers > 0 ? `${fmtNum(followers)} followers` : "Connect accounts"}
+      title={t("Performance")}
+      desc={t("Track followers & engagement")}
+      meta={followers > 0 ? `${fmtNum(followers)} ${t("followers")}` : t("Connect accounts")}
     >
       <div className="absolute inset-0 flex flex-col justify-center gap-1">
         <div className="flex items-start justify-between gap-2 pl-1">
@@ -426,13 +432,18 @@ export function PerformanceCard({
               {followers > 0 ? fmtNum(followers) : "—"}
             </span>
             {hasData && (
-              <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-emerald-600">
-                ▲ {Math.abs(deltaPct).toFixed(1)}%
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 text-[12px] font-semibold",
+                  deltaPct >= 0 ? "text-emerald-600" : "text-rose-600",
+                )}
+              >
+                {deltaPct >= 0 ? "▲" : "▼"} {Math.abs(deltaPct).toFixed(1)}%
               </span>
             )}
           </div>
           <span className="shrink-0 rounded-full border border-ink-200 bg-white px-2.5 py-[3px] text-[10px] font-semibold text-ink-500">
-            Followers
+            {t("Followers")}
           </span>
         </div>
         <svg
@@ -473,7 +484,7 @@ export function PerformanceCard({
               <text x={plotL - 5} y={plotT + 3} textAnchor="end">{fmtNum(max)}</text>
               <text x={plotL - 5} y={plotB} textAnchor="end">{fmtNum(min)}</text>
               <text x={plotL} y={h - 5} textAnchor="start">{n - 1}w</text>
-              <text x={plotR} y={h - 5} textAnchor="end">now</text>
+              <text x={plotR} y={h - 5} textAnchor="end">{t("now")}</text>
             </g>
           )}
           <path d={area} fill="url(#perfFill)" className="spark-fade" />
@@ -518,13 +529,14 @@ export function PerformanceCard({
 }
 
 /* ──────────────────────────── Community ────────────────────────────── */
-export function CommunityCard({
+export async function CommunityCard({
   members,
   avatars,
 }: {
   members: number;
   avatars: (string | null)[];
 }) {
+  const t = await getT();
   const slots = (avatars.length ? avatars : [null, null, null, null]).slice(0, 4);
   const grads = [
     "from-[#C26174] to-[#8E3447]",
@@ -537,9 +549,9 @@ export function CommunityCard({
     <LauncherTile
       href="/community"
       icon={Users}
-      title="Community"
-      desc="Connect with other creators"
-      meta={members > 0 ? `${fmtNum(members)} members` : "Join the community"}
+      title={t("Community")}
+      desc={t("Connect with other creators")}
+      meta={members > 0 ? `${fmtNum(members)} ${t("members")}` : t("Join the community")}
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
         <div className="flex items-center">
@@ -572,9 +584,8 @@ export function CommunityCard({
             </span>
           )}
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-semibold text-emerald-600 shadow-[0_2px_8px_-3px_rgba(26,24,22,0.3)]">
-          <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-          Creators online now
+        <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-[10.5px] font-semibold text-rose-700 shadow-[0_2px_8px_-3px_rgba(26,24,22,0.3)]">
+          {t("Join the conversation")}
         </span>
       </div>
     </LauncherTile>

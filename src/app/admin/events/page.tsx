@@ -5,7 +5,7 @@ import { EVENT_KIND_VALUES } from "@/lib/community/event-kinds";
 import { EventsToolbar } from "./events-toolbar";
 import { EventAdminRow, type EventRowData } from "./event-admin-row";
 
-export const metadata = { title: "Events · Admin · Creator Growth OS" };
+export const metadata = { title: "Events · Admin · Profluencer" };
 
 type SearchParams = Promise<{
   status?: string;
@@ -26,14 +26,8 @@ export default async function AdminEventsPage({
   const sort = sortRaw === "latest" ? "latest" : "soonest";
 
   const all = await getAdminEvents(); // ascending by starts_at
-  const now = Date.now();
 
-  let rows: EventRowData[] = all;
-  if (status === "upcoming") {
-    rows = rows.filter((e) => new Date(e.starts_at).getTime() >= now);
-  } else if (status === "past") {
-    rows = rows.filter((e) => new Date(e.starts_at).getTime() < now);
-  }
+  let rows: EventRowData[] = filterByStatus(all, status);
   if (kind) rows = rows.filter((e) => (e.kind ?? "other") === kind);
   if (sort === "latest") rows = [...rows].reverse();
 
@@ -104,6 +98,22 @@ export default async function AdminEventsPage({
       </section>
     </div>
   );
+}
+
+/** Upcoming/past split — the per-request clock read lives outside the
+ *  component body so the render itself stays pure. */
+function filterByStatus(
+  rows: EventRowData[],
+  status: "upcoming" | "past" | "all",
+): EventRowData[] {
+  const now = Date.now();
+  if (status === "upcoming") {
+    return rows.filter((e) => new Date(e.starts_at).getTime() >= now);
+  }
+  if (status === "past") {
+    return rows.filter((e) => new Date(e.starts_at).getTime() < now);
+  }
+  return rows;
 }
 
 function EmptyState({

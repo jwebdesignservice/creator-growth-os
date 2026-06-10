@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin/is-admin";
 import { CreateNewPicker } from "./picker";
 
-export const metadata = { title: "Choose what to create · Creator Growth OS" };
+export const metadata = { title: "Choose what to create · Profluencer" };
 
 /**
  * Full-screen format picker reached from the admin dashboard's

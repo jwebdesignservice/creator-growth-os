@@ -3,8 +3,8 @@ import { BrandMark } from "@/components/brand-mark";
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: "Privacy Policy · Creator Growth OS",
-  description: "Privacy Policy for Creator Growth OS.",
+  title: "Privacy Policy · Profluencer",
+  description: "Privacy Policy for Profluencer.",
 };
 
 export default function PrivacyPage() {
@@ -151,14 +151,14 @@ export default function PrivacyPage() {
               >
                 hei@bwstudio.no
               </a>
-              . Signed-in users can also reach us from the in-app{" "}
+              . You can also{" "}
               <Link
-                href="/support"
+                href="/book-a-demo"
                 className="text-rose-600 font-medium hover:text-rose-700"
               >
-                Support
+                book a call
               </Link>{" "}
-              page.
+              with our team.
             </p>
           </section>
         </div>

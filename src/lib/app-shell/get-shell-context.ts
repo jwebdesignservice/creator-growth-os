@@ -14,13 +14,43 @@ export const getShellContext = cache(async () => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(
-      "full_name, display_name, email, phone, avatar_url, category, plan, onboarded, primary_platform, follower_base, main_goal, niche, bottleneck",
-    )
-    .eq("id", user.id)
-    .maybeSingle();
+  // The four queries below only need user.id and are mutually independent,
+  // so they run in parallel — one round trip of latency instead of four.
+  // Supabase builders never reject (errors come back as { data: null,
+  // count: null }), so the count fallbacks below keep the shell fail-soft
+  // even if a table is missing (pre-migration).
+  const [profileRes, notifRes, taskRes, socialRes, dmRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "full_name, display_name, email, phone, avatar_url, category, plan, onboarded, primary_platform, follower_base, main_goal, niche, bottleneck",
+      )
+      .eq("id", user.id)
+      .maybeSingle(),
+    // Lightweight unread count for the bell badge — one cheap COUNT query.
+    supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "unread"),
+    // Open (unfinished) task/mission count for the sidebar "Tasks" badge —
+    // one cheap COUNT query. Counts missions that aren't completed yet.
+    supabase
+      .from("missions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .neq("status", "completed"),
+    // Real per-platform follower counts from social_accounts.
+    // Platforms not yet connected render as undefined (shown as — in the UI).
+    supabase
+      .from("social_accounts")
+      .select("platform, follower_count")
+      .eq("user_id", user.id),
+    // Unread DM conversations for the "Messages" badge (RPC from 0057).
+    supabase.rpc("dm_unread_count"),
+  ]);
+
+  const profile = profileRes.data;
 
   const fallbackName =
     (user.user_metadata?.full_name as string | undefined) ||
@@ -34,53 +64,15 @@ export const getShellContext = cache(async () => {
   const categoryMeta =
     CATEGORIES.find((c) => c.key === categoryKey) ?? CATEGORIES[1];
 
-  // Lightweight unread count for the bell badge — one cheap COUNT query.
-  // Defaults to 0 on error so a missing notifications table never breaks the shell.
-  let unreadNotificationCount = 0;
-  try {
-    const { count } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "unread");
-    unreadNotificationCount = count ?? 0;
-  } catch {
-    // notifications table may not exist yet (pre-migration); safe to ignore
-  }
-
-  // Open (unfinished) task/mission count for the sidebar "Tasks" badge — one
-  // cheap COUNT query. Counts missions that aren't completed yet. Defaults to
-  // 0 on error so a missing missions table never breaks the shell.
-  let openTaskCount = 0;
-  try {
-    const { count } = await supabase
-      .from("missions")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .neq("status", "completed");
-    openTaskCount = count ?? 0;
-  } catch {
-    // missions table may not exist yet; safe to ignore
-  }
-
-  // Unread direct-message count for the sidebar "Messages" badge — number of
-  // conversations whose latest message came from the other person after the
-  // user last opened that thread. Defaults to 0 on error so a missing
-  // read-state migration never breaks the shell.
-  let unreadMessageCount = 0;
-  try {
-    const { data } = await supabase.rpc("dm_unread_count");
-    unreadMessageCount = (data as number | null) ?? 0;
-  } catch {
-    // dm read-state functions may not exist yet (pre-migration); safe to ignore
-  }
-
-  // Real per-platform follower counts from social_accounts.
-  // Platforms not yet connected render as undefined (shown as — in the UI).
-  const { data: socialRows } = await supabase
-    .from("social_accounts")
-    .select("platform, follower_count")
-    .eq("user_id", user.id);
+  // Defaults to 0 on error so a missing table never breaks the shell.
+  const unreadNotificationCount = notifRes.count ?? 0;
+  const openTaskCount = taskRes.count ?? 0;
+  // Unread DM conversations for the sidebar "Messages" badge — conversations
+  // whose latest message came from the other person after the user last
+  // opened the thread. The RPC may not exist pre-migration (0057); builders
+  // resolve with { data: null } instead of throwing, so this stays fail-soft.
+  const unreadMessageCount = (dmRes.data as number | null) ?? 0;
+  const socialRows = socialRes.data;
 
   const socials: { instagram?: number; tiktok?: number; youtube?: number } = {};
   for (const row of socialRows ?? []) {

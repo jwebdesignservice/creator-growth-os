@@ -181,6 +181,17 @@ export async function addTicketMessage(
     return { ok: false, error: "Message cannot be empty." };
   }
 
+  // Confirm the ticket belongs to the caller before inserting. RLS enforces
+  // this too (support_messages_insert_own), but scoping here as well matches
+  // closeTicket and keeps the action safe on its own.
+  const { data: ticket } = await supabase
+    .from("support_tickets")
+    .select("id")
+    .eq("id", ticketId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!ticket) return { ok: false, error: "Ticket not found." };
+
   const { error } = await supabase.from("support_ticket_messages").insert({
     ticket_id: ticketId,
     author:    "user",

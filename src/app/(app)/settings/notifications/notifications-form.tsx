@@ -196,7 +196,7 @@ export function NotificationsForm({
   /* ── Render ────────────────────────────────────────────────────────── */
 
   return (
-    <section className="rounded-[16px] bg-gradient-to-br from-rose-50/50 via-cream-50/50 to-rose-50/30 border border-rose-100/60 p-5 sm:p-6 space-y-5">
+    <section className="space-y-5">
       {/* Header */}
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">

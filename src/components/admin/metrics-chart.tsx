@@ -60,11 +60,10 @@ export function AdminMetricsChart({ series }: { series: AdminMetricsSeries }) {
   const [granularity, setGranularity] = useState<Granularity>("monthly");
 
   const metricCfg = METRICS.find((m) => m.key === metric)!;
-  const raw = series[metric] ?? [];
 
   const filtered = useMemo(
-    () => raw.filter((p) => p.date >= from && p.date <= to),
-    [raw, from, to],
+    () => (series[metric] ?? []).filter((p) => p.date >= from && p.date <= to),
+    [series, metric, from, to],
   );
   const grouped = useMemo(
     () => groupSeries(filtered, granularity),
@@ -419,7 +418,7 @@ function MetricChart({
                 onFocus={() => setHover(i)}
                 onBlur={() => setHover((cur) => (cur === i ? null : cur))}
                 onTouchStart={() => setHover(i)}
-                className="cursor-pointer focus:outline-none"
+                className="cursor-pointer focus:outline-none focus-visible:stroke-rose-400 focus-visible:stroke-2"
               />
             );
           })}

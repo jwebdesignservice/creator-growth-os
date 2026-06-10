@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   User,
   Mail,
@@ -23,6 +23,21 @@ export function SignUpForm({ referralCode }: { referralCode: string | null }) {
   // checklist + show-password toggle already let the user verify what they
   // typed, so a second box is redundant friction at signup.
   const [password, setPassword] = useState("");
+
+  // Pre-fill the email when the visitor came from the homepage hero's
+  // "Start in seconds" capture (handed over via sessionStorage, not the URL).
+  const emailRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("signup_email");
+      if (saved && emailRef.current) {
+        emailRef.current.value = saved;
+        sessionStorage.removeItem("signup_email");
+      }
+    } catch {
+      // sessionStorage unavailable — ignore
+    }
+  }, []);
 
   const passwordGateOpen = password.length >= 8;
 
@@ -50,6 +65,7 @@ export function SignUpForm({ referralCode }: { referralCode: string | null }) {
       />
 
       <TextInput
+        ref={emailRef}
         label="Email address"
         name="email"
         type="email"

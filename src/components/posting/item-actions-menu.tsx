@@ -112,6 +112,13 @@ export function ItemActionsMenu({
       const rect = triggerRef.current?.getBoundingClientRect();
       if (rect) setPos(computeMenuPos(rect));
     }
+    // Batch repositions through rAF so rapid scroll/resize events trigger at
+    // most one measurement + setState per frame.
+    let raf = 0;
+    function scheduleReposition() {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(reposition);
+    }
     function onPointerDown(e: PointerEvent) {
       const t = e.target as Node;
       // Clicks on the trigger (handled by toggle) or inside the menu stay open.
@@ -122,14 +129,16 @@ export function ItemActionsMenu({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    // Capture scroll on any ancestor (the table/card scrolls) + window resize.
-    window.addEventListener("scroll", reposition, true);
-    window.addEventListener("resize", reposition);
+    // Capture scroll on any ancestor (the table/card scrolls) + window resize;
+    // passive keeps the listeners cheap.
+    window.addEventListener("scroll", scheduleReposition, { capture: true, passive: true });
+    window.addEventListener("resize", scheduleReposition, { passive: true });
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("scroll", reposition, true);
-      window.removeEventListener("resize", reposition);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", scheduleReposition, { capture: true });
+      window.removeEventListener("resize", scheduleReposition);
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKey);
     };

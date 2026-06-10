@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: STRIPE_PRICE_IDS[plan], quantity: 1 }],
-    success_url: `${appUrl}/billing?status=success`,
-    cancel_url: `${appUrl}/billing?status=cancelled`,
+    success_url: `${appUrl}/settings/payment-methods?status=success`,
+    cancel_url: `${appUrl}/settings/payment-methods?status=cancelled`,
     allow_promotion_codes: true,
     metadata: { user_id: user.id, plan },
     subscription_data: {

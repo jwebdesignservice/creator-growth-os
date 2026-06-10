@@ -21,6 +21,7 @@ import {
   Eye,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Avatar } from "@/components/app-shell/avatar";
 import type {
   CommunityPost,
   CommunityReply,
@@ -184,7 +185,11 @@ function DiscussionRow({
 
       {/* author row */}
       <div className="flex items-center gap-2.5 mb-3">
-        <Avatar name={post.author_name} src={post.author_avatar} size={38} />
+        <Avatar
+          name={post.author_name}
+          src={post.author_avatar ?? undefined}
+          size={38}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="text-[14px] font-semibold text-ink-900 truncate">
@@ -241,6 +246,8 @@ function DiscussionRow({
                   <img
                     src={imageAtt.url}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="size-16 rounded-[10px] object-cover border border-ink-100"
                   />
                 ) : (
@@ -429,7 +436,7 @@ function MediaGrid({ attachments }: { attachments: PostAttachment[] }) {
     >
       {attachments.map((a) =>
         a.type === "image" ? (
-          // eslint-disable-next-line @next/next/no-img-element
+           
           <a
             key={a.url}
             href={a.url}
@@ -437,7 +444,7 @@ function MediaGrid({ attachments }: { attachments: PostAttachment[] }) {
             rel="noopener noreferrer"
             className="block rounded-[12px] overflow-hidden border border-ink-100"
           >
-            <img src={a.url} alt={a.name} className="w-full h-44 object-cover" />
+            <img src={a.url} alt={a.name} loading="lazy" decoding="async" className="w-full h-44 object-cover" />
           </a>
         ) : (
           <video
@@ -571,7 +578,11 @@ function ReplyNode({
 
   return (
     <div className="flex items-start gap-2.5">
-      <Avatar name={reply.author_name} src={reply.author_avatar} size={30} />
+      <Avatar
+        name={reply.author_name}
+        src={reply.author_avatar ?? undefined}
+        size={30}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-[11.5px] text-ink-500">
           <span className="text-[12.5px] font-semibold text-ink-900">
@@ -835,9 +846,9 @@ function ReactionBar({
             <button
               key={emoji}
               type="button"
-              role="menuitem"
+              role="menuitemcheckbox"
               onClick={() => react(emoji)}
-              aria-pressed={reactedSet.has(emoji)}
+              aria-checked={reactedSet.has(emoji)}
               className={cn(
                 "size-8 rounded-lg text-[17px] leading-none transition-colors hover:bg-cream-100",
                 reactedSet.has(emoji) && "bg-rose-50 ring-1 ring-rose-200",
@@ -855,11 +866,11 @@ function ReactionBar({
 /* ── Misc ────────────────────────────────────────────────────────────── */
 
 /**
- * PLACEHOLDER — shows who's viewed the thread as a row of stacked profile
- * photos (max 8, then "+N"). Until real view-tracking exists, the count + faces
- * are derived deterministically from the post id (stable, no flicker) and the
- * images come from a placeholder avatar service. Swap `viewer*` out for real
- * data once view-tracking lands.
+ * PLACEHOLDER — shows who's viewed the thread as a row of stacked initials
+ * avatars (max 8, then "+N"). Until real view-tracking exists, the count +
+ * initials are derived deterministically from the post id (stable, no flicker,
+ * no third-party requests). Swap `viewer*` out for real data once
+ * view-tracking lands.
  */
 const MAX_VIEWERS = 8;
 
@@ -881,14 +892,15 @@ function ViewedBy({ postId }: { postId: string }) {
       </span>
       <span className="flex -space-x-2">
         {Array.from({ length: shown }).map((_, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <span
             key={i}
-            src={`https://i.pravatar.cc/48?img=${((seed + i * 7) % 70) + 1}`}
-            alt=""
-            loading="lazy"
-            className="size-6 rounded-full object-cover ring-2 ring-white bg-cream-200"
-          />
+            className="inline-flex rounded-full ring-2 ring-white"
+          >
+            <Avatar
+              name={String.fromCharCode(65 + ((seed + i * 7) % 26))}
+              size={24}
+            />
+          </span>
         ))}
       </span>
       {extra > 0 && (
@@ -934,35 +946,5 @@ function CommenterFacepile({
         <span className="ml-1.5 text-[11.5px] text-ink-500">+{extra}</span>
       )}
     </span>
-  );
-}
-
-function Avatar({
-  name,
-  src,
-  size = 40,
-}: {
-  name: string;
-  src: string | null;
-  size?: number;
-}) {
-  if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <img
-        src={src}
-        alt={name}
-        className="rounded-full object-cover shrink-0"
-        style={{ width: size, height: size }}
-      />
-    );
-  }
-  return (
-    <div
-      className="rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-semibold shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.35 }}
-    >
-      {name.charAt(0).toUpperCase()}
-    </div>
   );
 }

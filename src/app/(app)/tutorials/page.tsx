@@ -11,7 +11,7 @@ import {
 } from "@/lib/onboarding/gate";
 import { OnboardingLockedNotice } from "@/components/onboarding/onboarding-locked-notice";
 
-export const metadata = { title: "Tutorials | Creator Growth OS" };
+export const metadata = { title: "Tutorials | Profluencer" };
 
 type SearchParams = Promise<{ q?: string; previewGate?: string }>;
 

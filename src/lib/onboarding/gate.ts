@@ -55,21 +55,25 @@ export const getOnboardingGate = cache(async (): Promise<OnboardingGate> => {
   } = await supabase.auth.getUser();
   if (!user) return OPEN;
 
-  // Admins bypass entirely.
-  const { data: admin } = await supabase
-    .from("admin_users")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Admins bypass entirely. The admin check and the Start Here program
+  // lookup are independent of each other — run them in parallel.
+  // Fail open if the program isn't seeded — never lock everyone out.
+  const [{ data: admin }, { data: program }] = await Promise.all([
+    supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("programs")
+      .select("id")
+      .eq("slug", ONBOARDING_PROGRAM_SLUG)
+      .maybeSingle(),
+  ]);
   const isAdmin = !!admin;
 
   // Derive Start Here completion from real progress. Fail open if the program
-  // isn't seeded or has no lessons — never lock everyone out.
-  const { data: program } = await supabase
-    .from("programs")
-    .select("id")
-    .eq("slug", ONBOARDING_PROGRAM_SLUG)
-    .maybeSingle();
+  // has no lessons — never lock everyone out.
   if (!program) return { ...OPEN, isAdmin };
 
   const { data: lessons } = await supabase

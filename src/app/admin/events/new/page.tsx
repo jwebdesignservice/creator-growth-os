@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { EventForm } from "../event-form";
 
-export const metadata = { title: "New event · Admin · Creator Growth OS" };
+export const metadata = { title: "New event · Admin · Profluencer" };
 
 export default async function NewEventPage() {
   const ctx = await getShellContext();

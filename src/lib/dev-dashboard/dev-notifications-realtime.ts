@@ -91,7 +91,12 @@ export function useDevNotificationsRealtime(
   handlers: DevNotificationsRealtimeHandlers,
 ): void {
   const ref = useRef(handlers);
-  ref.current = handlers;
+
+  // Written in an effect (refs must not be mutated during render); no dep
+  // array so the latest handlers are captured after every render.
+  useEffect(() => {
+    ref.current = handlers;
+  });
 
   useEffect(() => {
     const unsub = subscribeDevNotifications({

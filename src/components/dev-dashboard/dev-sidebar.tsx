@@ -46,13 +46,13 @@ export function DevSidebar() {
       {/* System time + Report an Issue */}
       <div className="px-3 pt-3 pb-4 border-t border-[var(--dev-border-soft)] space-y-2.5">
         <SystemTimeCard />
-        <button
-          type="button"
+        <Link
+          href="/dev/support"
           className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-[var(--dev-text-secondary)] hover:text-[var(--dev-text-primary)] hover:bg-[var(--dev-surface-soft)] transition-colors"
         >
           <LifeBuoy className="size-4 shrink-0" strokeWidth={1.8} />
           Report an Issue
-        </button>
+        </Link>
       </div>
     </aside>
   );

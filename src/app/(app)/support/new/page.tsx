@@ -4,7 +4,7 @@ import { getMyRecentTickets, getPopularHelpArticles } from "@/lib/support/querie
 import { SupportPageClient } from "../support-panel";
 import type { SupportStepKey } from "../types";
 
-export const metadata = { title: "Contact Support | Creator Growth OS" };
+export const metadata = { title: "Contact Support | Profluencer" };
 
 /**
  * Contact-support wizard.
@@ -36,6 +36,7 @@ const VALID_TOPIC_KEYS = new Set([
   "community",
   "coaching",
   "feature",
+  "other",
 ]);
 
 function parseTopic(v: string | string[] | undefined): string | undefined {

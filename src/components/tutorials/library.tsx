@@ -15,8 +15,12 @@ import {
   LayoutTemplate,
   ListChecks,
   ClipboardList,
+  ArrowRight,
+  Crown,
+  Hash,
   type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import type { TutorialRow } from "@/lib/programs/tutorial-queries";
 
@@ -305,6 +309,27 @@ function LoadingDots() {
   );
 }
 
+/* Per-type icon + the verb the footer CTA leads with. */
+const TYPE_META: Record<string, { icon: LucideIcon; cta: string }> = {
+  video:      { icon: Play,           cta: "Watch" },
+  drill:      { icon: Dumbbell,       cta: "Start" },
+  template:   { icon: LayoutTemplate, cta: "Open" },
+  checklist:  { icon: ListChecks,     cta: "Open" },
+  assignment: { icon: ClipboardList,  cta: "Start" },
+};
+
+/**
+ * Tutorial card — same premium family as the Programs library card.
+ *
+ * Framed 16:9 thumbnail (inset ring, slow art zoom) with glassy overlay
+ * pills: content type (top-left, with icon), Completed or gold Pro
+ * (top-right), dark duration pill (bottom-right) and a full emerald strip
+ * along the bottom edge once completed. The centre play/lock puck scales
+ * up as the card lifts. Body: category eyebrow → two-line title →
+ * description → cream stat chips (lesson № · resources · notes). A
+ * hairline-divided footer pairs the source program with a pill CTA that
+ * fills with its accent while the card is hovered.
+ */
 function TutorialCard({
   tutorial,
   userPlan,
@@ -317,115 +342,228 @@ function TutorialCard({
     ? "/billing?upgrade=pro"
     : `/tutorials/${tutorial.slug}`;
 
-  const hasDuration = tutorial.duration && tutorial.duration !== "—";
+  const hasDuration = !!tutorial.duration && tutorial.duration !== "—";
+  const type = TYPE_META[tutorial.contentType] ?? { icon: Play, cta: "Open" };
+  const TypeIcon = type.icon;
+  const ctaLabel = proLocked
+    ? "Upgrade"
+    : tutorial.completed
+      ? tutorial.contentType === "video"
+        ? "Rewatch"
+        : "Review"
+      : type.cta;
 
   return (
     <Link
       href={href}
-      className="card overflow-hidden hover:shadow-card hover:border-rose-200 transition-all group flex flex-col"
+      className={cn(
+        "group flex h-full flex-col rounded-[20px] border border-ink-100 bg-gradient-to-b from-white to-cream-50 p-3",
+        "shadow-[0_1px_2px_rgba(26,24,22,0.04),0_10px_28px_-18px_rgba(26,24,22,0.10)]",
+        "transition-[transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "hover:-translate-y-1 hover:border-ink-200 hover:shadow-[0_2px_4px_rgba(26,24,22,0.05),0_26px_48px_-24px_rgba(26,24,22,0.38)]",
+        "active:-translate-y-0 active:shadow-[0_1px_2px_rgba(26,24,22,0.05),0_12px_28px_-20px_rgba(26,24,22,0.25)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50",
+      )}
     >
-      {/* Thumbnail — Loom-style tile with a corner duration badge */}
-      <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-rose-100/60 via-cream-200 to-rose-100/30">
-        {/* Cover image — sits behind the overlay; gradient shows through when absent */}
-        {tutorial.coverUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={tutorial.coverUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      {/* ── Thumbnail ─────────────────────────────────────────────── */}
+      <div className="relative aspect-video overflow-hidden rounded-[13px] bg-gradient-to-br from-rose-100/60 via-cream-200 to-rose-100/30">
+        {/* Cover image — gradient shows through when absent */}
+        {tutorial.coverUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={tutorial.coverUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]"
+            />
+            {/* bottom scrim so the duration pill + strip read on photos */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-900/35 to-transparent"
+            />
+          </>
+        ) : (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(60% 75% at 78% 18%, rgba(255,255,255,0.5), transparent 62%)," +
+                "radial-gradient(45% 60% at 12% 92%, rgba(225,118,132,0.12), transparent 60%)",
+            }}
           />
         )}
-        {/* Category + type badges (top-left) */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-          <span className="chip chip-rose text-[10px]">
-            {tutorial.categoryLabel.split(" ")[0]}
-          </span>
-          <span className="chip bg-white/85 text-ink-700 text-[10px]">
-            {prettyContentType(tutorial.contentType)}
-          </span>
-        </div>
 
-        {/* Completed badge (top-right) */}
-        {tutorial.completed && (
-          <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 chip chip-success text-[10px]">
-            <CheckCircle2 className="size-3" strokeWidth={3} />
+        {/* inset hairline — seats the artwork in its frame */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[13px] ring-1 ring-inset ring-ink-900/[0.08]"
+        />
+
+        {/* Type pill (top-left) — glassy, reads on any artwork */}
+        <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-800 shadow-[0_2px_10px_-2px_rgba(26,24,22,0.32)] ring-1 ring-ink-900/[0.06] backdrop-blur-sm">
+          <TypeIcon className="size-3 text-rose-600" strokeWidth={2.5} />
+          {prettyContentType(tutorial.contentType)}
+        </span>
+
+        {/* Completed / Pro pill (top-right) */}
+        {proLocked ? (
+          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/88 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-700 shadow-[0_2px_10px_-2px_rgba(26,24,22,0.32)] ring-1 ring-amber-500/25 backdrop-blur-sm">
+            <Crown className="size-3" strokeWidth={2.5} />
+            Pro
+          </span>
+        ) : tutorial.completed ? (
+          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-800 shadow-[0_2px_10px_-2px_rgba(26,24,22,0.32)] ring-1 ring-ink-900/[0.06] backdrop-blur-sm">
+            <CheckCircle2 className="size-3 text-success" strokeWidth={2.5} />
             Completed
           </span>
-        )}
+        ) : null}
 
-        {/* Center play / lock — the platform play button, kept as-is */}
+        {/* Centre play / lock puck — lifts with the card */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="size-12 rounded-full inline-flex items-center justify-center bg-white/85 text-rose-600 backdrop-blur shadow-soft group-hover:scale-105 transition-transform">
+          <span className="inline-flex size-12 items-center justify-center rounded-full bg-white/90 text-rose-600 shadow-[0_8px_24px_-6px_rgba(26,24,22,0.45)] ring-1 ring-ink-900/[0.06] backdrop-blur transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-110">
             {proLocked ? (
               <Lock className="size-5" strokeWidth={2} />
             ) : (
-              <Play className="size-5 ml-0.5" fill="currentColor" />
+              <Play className="ml-0.5 size-5" fill="currentColor" />
             )}
           </span>
         </div>
 
-        {/* Duration badge (bottom-right) — Loom signature */}
+        {/* Duration pill (bottom-right, YouTube-style) */}
         {hasDuration && (
-          <span className="absolute bottom-2 right-2 rounded-md bg-ink-900/85 px-1.5 py-0.5 text-[11px] font-semibold text-white tabular-nums leading-none">
+          <span
+            className={cn(
+              "absolute right-2.5 rounded-[7px] bg-ink-900/75 px-2 py-[3px] text-[11px] font-semibold tabular-nums tracking-[0.01em] text-white backdrop-blur-sm",
+              tutorial.completed ? "bottom-3.5" : "bottom-2.5",
+            )}
+          >
             {tutorial.duration}
           </span>
         )}
+
+        {/* Completed strip along the bottom edge (matches program cards) */}
+        {tutorial.completed && (
+          <span
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-[3px] bg-success"
+          />
+        )}
       </div>
 
-      {/* Meta — inside the card body */}
-      <div className="p-3.5 flex-1 flex flex-col">
-        <h3 className="text-[14px] font-semibold text-ink-900 leading-snug line-clamp-2 group-hover:text-rose-700 transition-colors">
+      {/* ── Body ──────────────────────────────────────────────────── */}
+      <div className="flex flex-1 flex-col px-1.5 pb-1 pt-3.5">
+        {/* Category eyebrow — which track this belongs to */}
+        <span className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-rose-600/85">
+          {tutorial.categoryLabel}
+        </span>
+
+        <h3 className="text-[14.5px] font-semibold leading-[1.35] tracking-[-0.01em] text-ink-900 line-clamp-2 transition-colors duration-200 group-hover:text-rose-700">
           {tutorial.title}
         </h3>
+
         {tutorial.description && (
-          <p className="mt-1.5 text-[12px] text-ink-500 leading-snug line-clamp-3">
+          <p className="mt-1.5 text-[12px] leading-relaxed text-ink-500 line-clamp-2">
             {clampSentences(tutorial.description, 2)}
           </p>
         )}
-        <div className="mt-2 text-[12px] text-ink-500 inline-flex items-center gap-1.5 flex-wrap">
-          {proLocked ? (
-            <span className="inline-flex items-center gap-1 text-rose-700 font-medium">
-              <Lock className="size-3" strokeWidth={2} />
-              Pro — upgrade to unlock
-            </span>
-          ) : (
-            <>
-              <span>{prettyContentType(tutorial.contentType)}</span>
-              {tutorial.moduleNumber && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>Lesson {tutorial.moduleNumber}</span>
-                </>
-              )}
-              {tutorial.resourcesCount > 0 && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span
-                    className="inline-flex items-center gap-1"
-                    title={`${tutorial.resourcesCount} resource${tutorial.resourcesCount === 1 ? "" : "s"} attached`}
-                  >
-                    <Paperclip className="size-3" strokeWidth={2} aria-hidden />
-                    {tutorial.resourcesCount}
-                  </span>
-                </>
-              )}
-              {tutorial.notesCount > 0 && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span
-                    className="inline-flex items-center gap-1 text-rose-600 font-medium"
-                    title={`${tutorial.notesCount} note${tutorial.notesCount === 1 ? "" : "s"} saved`}
-                  >
-                    <NotebookPen className="size-3" strokeWidth={2} aria-hidden />
-                    {tutorial.notesCount}
-                  </span>
-                </>
-              )}
-            </>
-          )}
+
+        {/* Stat chips — lesson № / resources / saved notes */}
+        {(tutorial.moduleNumber ||
+          tutorial.resourcesCount > 0 ||
+          tutorial.notesCount > 0) && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {tutorial.moduleNumber && (
+              <span className="inline-flex h-[26px] items-center gap-1 rounded-full bg-cream-100 px-2.5 text-[11.5px] font-medium text-ink-600 ring-1 ring-inset ring-ink-100/90">
+                <Hash className="size-3 text-ink-400" strokeWidth={2} />
+                Lesson {tutorial.moduleNumber}
+              </span>
+            )}
+            {tutorial.resourcesCount > 0 && (
+              <span
+                className="inline-flex h-[26px] items-center gap-1.5 rounded-full bg-cream-100 px-2.5 text-[11.5px] font-medium text-ink-600 ring-1 ring-inset ring-ink-100/90"
+                title={`${tutorial.resourcesCount} resource${tutorial.resourcesCount === 1 ? "" : "s"} attached`}
+              >
+                <Paperclip className="size-3 text-ink-400" strokeWidth={2} />
+                {tutorial.resourcesCount}{" "}
+                {tutorial.resourcesCount === 1 ? "resource" : "resources"}
+              </span>
+            )}
+            {tutorial.notesCount > 0 && (
+              <span
+                className="inline-flex h-[26px] items-center gap-1.5 rounded-full bg-rose-50 px-2.5 text-[11.5px] font-medium text-rose-700 ring-1 ring-inset ring-rose-200/70"
+                title={`${tutorial.notesCount} note${tutorial.notesCount === 1 ? "" : "s"} saved`}
+              >
+                <NotebookPen className="size-3" strokeWidth={2} />
+                {tutorial.notesCount} {tutorial.notesCount === 1 ? "note" : "notes"}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* ── Footer — context · pill CTA ─────────────────────────── */}
+        <div className="mt-auto pt-3.5">
+          <div className="flex h-9 items-center gap-2.5 border-t border-ink-100/90 pt-3">
+            {proLocked ? (
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-ink-500">
+                <Lock className="size-3.5 shrink-0 text-amber-600/80" strokeWidth={2} />
+                <span className="truncate">Pro membership</span>
+              </span>
+            ) : tutorial.completed ? (
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-success">
+                <CheckCircle2 className="size-3.5" strokeWidth={2.2} />
+                Completed
+              </span>
+            ) : (
+              <span className="min-w-0 truncate text-[12px] font-medium text-ink-400">
+                {tutorial.programTitle ?? prettyContentType(tutorial.contentType)}
+              </span>
+            )}
+            <CtaPill
+              tone={proLocked ? "rose" : tutorial.completed ? "emerald" : "rose"}
+              className="ml-auto"
+            >
+              {ctaLabel}
+            </CtaPill>
+          </div>
         </div>
       </div>
     </Link>
+  );
+}
+
+/* Footer CTA pill — tinted at rest, fills with its accent while the card is
+   hovered, and nudges its arrow. Pure presentation; the card is the link. */
+function CtaPill({
+  tone,
+  className,
+  children,
+}: {
+  tone: "rose" | "emerald";
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const tones = {
+    rose: "bg-rose-50 text-rose-700 ring-rose-200/80 group-hover:bg-rose-600 group-hover:text-white group-hover:ring-rose-600",
+    emerald:
+      "bg-emerald-50 text-emerald-700 ring-emerald-200/80 group-hover:bg-emerald-600 group-hover:text-white group-hover:ring-emerald-600",
+  } as const;
+  return (
+    <span
+      className={cn(
+        "inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-semibold ring-1 ring-inset transition-colors duration-200",
+        tones[tone],
+        className,
+      )}
+    >
+      {children}
+      <ArrowRight
+        className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+        strokeWidth={2.5}
+      />
+    </span>
   );
 }
 

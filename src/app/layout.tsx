@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, Caveat } from "next/font/google";
+import { BRAND_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -24,7 +25,7 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "Creator Growth OS",
+  title: BRAND_NAME,
   description:
     "Become a successful social media influencer. Your daily creator command center — programs, missions, posting plans, performance and monetization.",
 };

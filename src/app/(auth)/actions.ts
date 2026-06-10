@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { linkReferral } from "@/lib/referrals/service";
 import { REF_COOKIE, sanitizeReferralCode } from "@/lib/referrals/cookie";
@@ -140,8 +140,14 @@ export async function requestPasswordReset(
   if (!email) return { error: "Enter your email." };
 
   const supabase = await createClient();
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  // Derive the origin from the request headers (same pattern as
+  // onboarding/actions.ts) so the reset link always points at the host the
+  // user is actually on, instead of a hardcoded localhost fallback.
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const appUrl = host
+    ? `${host.startsWith("localhost") ? "http" : "https"}://${host}`
+    : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${appUrl}/auth/callback?type=recovery&next=/reset-password`,
   });

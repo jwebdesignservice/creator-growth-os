@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   CheckCircle2,
   CalendarDays,
@@ -18,6 +19,7 @@ import {
   Image as ImageIcon,
   Link2,
   ExternalLink,
+  Play,
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
@@ -40,6 +42,13 @@ type Chapter = {
   type: string;
   durationMinutes: number;
   iconKey: string;
+  /** Set on "video" steps that point at another tutorial. */
+  linkedLessonId?: string | null;
+  /** Resolved navigation target (published videos only) — null/absent when
+   *  the target is unpublished, deleted, or this isn't a video step. */
+  linked?: { id: string; slug: string; title: string } | null;
+  /** True when the learner already completed the linked video. */
+  linkedCompleted?: boolean;
 };
 
 /** A real uploaded file / external link attached to this lesson. */
@@ -158,6 +167,7 @@ const CHAPTER_ICONS: Record<string, LucideIcon> = {
   target:    Target,
   flag:      Flag,
   square:    Square,
+  play:      Play,
 };
 
 const CHAPTER_TYPE_LABEL: Record<string, string> = {
@@ -166,6 +176,7 @@ const CHAPTER_TYPE_LABEL: Record<string, string> = {
   activity:   "Activity",
   closing:    "Closing",
   checkpoint: "Checkpoint",
+  video:      "Video",
 };
 
 function PathPanel({ chapters }: { chapters: Chapter[] }) {
@@ -206,6 +217,79 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
       <ul className="space-y-1.5">
         {chapters.map((c, i) => {
           const Icon = CHAPTER_ICONS[c.iconKey] ?? Square;
+          const linked = c.type === "video" ? (c.linked ?? null) : null;
+          const done = !!linked && !!c.linkedCompleted;
+          // "Up next" = the first linked video the learner hasn't seen yet;
+          // when everything is watched no step claims the badge.
+          const isUpNext =
+            !!linked &&
+            chapters.findIndex(
+              (x) => x.type === "video" && x.linked && !x.linkedCompleted,
+            ) === i;
+
+          // Linked video step → a navigable card that sends the learner to
+          // the next tutorial in the authored path.
+          if (linked) {
+            return (
+              <li key={c.id}>
+                <Link
+                  href={`/tutorials/${linked.slug}?tab=path`}
+                  className="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] border border-rose-200 bg-rose-50/40 hover:bg-rose-50 hover:border-rose-300 transition-colors"
+                >
+                  <span className="size-6 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
+                    {i + 1}
+                  </span>
+                  <span
+                    className={
+                      done
+                        ? "size-8 rounded-[9px] bg-success/15 text-success inline-flex items-center justify-center shrink-0"
+                        : "size-8 rounded-[9px] bg-rose-600 text-white inline-flex items-center justify-center shrink-0"
+                    }
+                  >
+                    {done ? (
+                      <CheckCircle2 className="size-4" strokeWidth={2.2} aria-hidden />
+                    ) : (
+                      <Play
+                        className="size-3.5"
+                        fill="currentColor"
+                        strokeWidth={0}
+                        aria-hidden
+                      />
+                    )}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-ink-900 truncate transition-colors group-hover:text-rose-700">
+                      {c.title}
+                    </div>
+                    <div className="text-[11px] text-ink-500 tabular-nums">
+                      Video · ~{c.durationMinutes} min
+                      {done ? " · Completed" : ""}
+                    </div>
+                  </div>
+                  {isUpNext && (
+                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-white bg-rose-600 rounded-full px-2 py-0.5 shrink-0">
+                      Up next
+                    </span>
+                  )}
+                  <span
+                    className={
+                      done
+                        ? "inline-flex items-center gap-0.5 text-[12px] font-semibold text-ink-500 shrink-0"
+                        : "inline-flex items-center gap-0.5 text-[12px] font-semibold text-rose-600 shrink-0"
+                    }
+                  >
+                    {done ? "Rewatch" : "Watch"}
+                    <ChevronRight
+                      className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                      strokeWidth={2.5}
+                      aria-hidden
+                    />
+                  </span>
+                </Link>
+              </li>
+            );
+          }
+
           return (
             <li
               key={c.id}

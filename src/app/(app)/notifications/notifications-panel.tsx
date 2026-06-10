@@ -210,10 +210,25 @@ function NotificationsMain({
           )}
           <button
             type="button"
-            className="size-10 rounded-[10px] bg-white border border-ink-100 hover:bg-cream-100 flex items-center justify-center transition-colors"
-            aria-label="Filter options"
+            onClick={() =>
+              setActiveFilter((f) => (f === "unread" ? "all" : "unread"))
+            }
+            aria-pressed={activeFilter === "unread"}
+            aria-label="Show unread only"
+            className={cn(
+              "size-10 rounded-[10px] border flex items-center justify-center transition-colors",
+              activeFilter === "unread"
+                ? "bg-rose-600 border-rose-600"
+                : "bg-white border-ink-100 hover:bg-cream-100",
+            )}
           >
-            <SlidersHorizontal className="size-4 text-ink-500" strokeWidth={2} />
+            <SlidersHorizontal
+              className={cn(
+                "size-4",
+                activeFilter === "unread" ? "text-white" : "text-ink-500",
+              )}
+              strokeWidth={2}
+            />
           </button>
         </div>
       </div>

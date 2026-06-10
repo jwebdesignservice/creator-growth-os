@@ -5,7 +5,7 @@ import { PageShell } from "@/components/app-shell/page-shell";
 import { NotificationsForm } from "./notifications-form";
 
 export const metadata = {
-  title: "Notifications · Settings · Creator Growth OS",
+  title: "Notifications · Settings · Profluencer",
 };
 
 export default async function NotificationsSettingsPage() {

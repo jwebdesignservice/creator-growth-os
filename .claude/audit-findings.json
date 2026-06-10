@@ -1,0 +1,818 @@
+{
+ "routes-nav-1": {
+  "title": "All 4 homepage nav links are dead anchors (sections never rendered)",
+  "severity": "high",
+  "files": [
+   "src/components/marketing/hero.tsx",
+   "src/app/page.tsx",
+   "src/app/book-a-demo/page.tsx"
+  ],
+  "description": "hero.tsx:17-22 defines the landing-page nav as #features, #pricing, #blog, #resources, and book-a-demo/page.tsx:26-31 repeats the same four as /#features, /#pricing, /#blog, /#resources. But src/app/page.tsx:48-58 renders only Hero, ProvenResults, HowItWorks, StackedFeatures, DesignedFor, AgentShowcase, Cta, Footer — verified via curl on the running dev server: the only section id in the homepage HTML is id=\"results\". The components that DO carry the target ids (pricing.tsx id=pricing, features-grid.tsx id=features, faq.tsx id=faq, integrations.tsx id=integrations) plus site-header.tsx, programs-tutorials.tsx and services-grid.tsx are imported by no page at all (grep confirms zero imports). Result: every nav link on the public landing page and the book-a-demo header does nothing. Note: stacked-features.tsx is files-off-limits (owned by another session) — do not add an id there; fix in hero.tsx/page.tsx/book-a-demo instead.",
+  "fix": "Minimal: in src/app/page.tsx render the existing <FeaturesGrid/>, <Pricing/> and <Faq/> sections (they already have matching ids and scroll-mt-24), then trim both NAV arrays (hero.tsx:17-22 and book-a-demo/page.tsx:26-31) to entries whose anchors exist — e.g. Features→#features, Pricing→#pricing, FAQ→#faq — and drop Blog/Resources (no such sections exist). If adding sections is out of scope, instead repoint the NAV arrays to anchors that exist today (#results) and remove the rest.",
+  "correctedFix": "Do NOT bulk-render the orphaned FeaturesGrid/Pricing/Faq sections: they are cream-themed (bg-cream-100/bg-cream-50) leftovers from a previous homepage design and would visually clash with the current dark ink-900 page; pricing.tsx also hardcodes plan copy (Free / 999 kr / 1499 kr) that must first be verified against the live plan catalogue in billing-panel.tsx before appearing on a public page. Also do NOT repoint \"Features\"/\"Pricing\" labels at #results — mislabeled links are worse than dead ones. Minimal correct fix touching only files this session owns: (1) in src/app/page.tsx wrap the existing rendered section in an anchor wrapper, e.g. <div id=\"features\" className=\"scroll-mt-24\"><StackedFeatures /></div> (avoids editing the off-limits stacked-features.tsx); (2) trim both NAV arrays (hero.tsx:17-22 and book-a-demo/page.tsx:26-31) to entries with real targets — keep Features -> #features (or /#features), optionally add Results -> #results, and drop Pricing/Blog/Resources since no such sections or routes exist. If the team wants Pricing back on the homepage, do it as a follow-up after confirming pricing.tsx copy matches billing-panel.tsx.",
+  "verdictReasoning": "Fully reproduced in code. hero.tsx:17-22 and book-a-demo/page.tsx:26-31 link to #features/#pricing/#blog/#resources, but src/app/page.tsx renders only Hero, ProvenResults, HowItWorks, StackedFeatures, DesignedFor, AgentShowcase, Cta, Footer; grep over src/components/marketing shows the only id on a rendered component is id=\"results\" (proven-results.tsx:90). The id-bearing components (features-grid.tsx id=features, pricing.tsx id=pricing, faq.tsx id=faq, integrations.tsx id=integrations) plus site-header.tsx are imported by no page (the design-gallery 'PricingGrid' is from @/design-templates/pricing, a different module), and id=\"blog\"/id=\"resources\" exist nowhere; no /blog or /resources routes exist either. Nothing in middleware, layouts, or Next behavior rescues a same-page hash link to a nonexistent id. Severity downgraded to medium: all conversion paths (Sign in, Get started, hero email form, demo form) work; the dead links fail silently with no error or broken flow — it is a high-visibility polish/UX defect on the public landing page, not functional breakage. Note the orphaned sections appear to be remnants of a previous homepage iteration (cream-themed) superseded by the current dark redesign, so the right fix is nav-side, not resurrecting old sections wholesale."
+ },
+ "routes-nav-2": {
+  "title": "Marketing footer: 8 dead href=\"#\" links (Company + Follow columns)",
+  "severity": "medium",
+  "files": [
+   "src/components/marketing/footer.tsx"
+  ],
+  "description": "footer.tsx:30-41: the COMPANY column (About, Pricing, Blog, Contact) and the FOLLOW column (Instagram, X, LinkedIn, YouTube) are all href=\"#\" — eight no-op links rendered on every visit to the public landing page. The file's own doc comment (lines 13-15) also promises 'top-right utility links (Login / Book a Demo)' that are not rendered (the lg grid template has a trailing `auto` column with no child).",
+  "fix": "In footer.tsx: point Contact → /book-a-demo, Pricing → /#pricing (once the section is rendered per the homepage finding, otherwise /sign-up); remove or comment out About/Blog and the four social links until real URLs exist (rendering dead '#' links is worse than omitting the column). Optionally add the documented Login (/sign-in) / Book a Demo (/book-a-demo) utility links to fill the empty grid column.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-3": {
+  "title": "/book-a-demo conversion page is an orphan — no UI links to it",
+  "severity": "medium",
+  "files": [
+   "src/app/book-a-demo/page.tsx",
+   "src/components/marketing/footer.tsx"
+  ],
+  "description": "Grep across src/ finds zero links to /book-a-demo (the only matches are inside the page and its form component). The footer's Contact link is href=\"#\" and neither the hero nav (hero.tsx:17-22) nor any marketing CTA references it, so the demo funnel is unreachable except by typing the URL. The page itself works (public, renders form).",
+  "fix": "Add at least one inbound link: set footer.tsx COMPANY 'Contact' href to /book-a-demo, and consider adding a 'Book a demo' entry to the hero NAV array in src/components/marketing/hero.tsx.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-4": {
+  "title": "Upgrade funnel: ?upgrade=pro is silently dropped by the /billing redirect and consumed nowhere",
+  "severity": "medium",
+  "files": [
+   "src/app/(app)/billing/page.tsx",
+   "src/app/(app)/settings/payment-methods/page.tsx",
+   "src/app/(app)/billing/billing-panel.tsx"
+  ],
+  "description": "At least 12 'Upgrade to Pro' CTAs link to /billing?upgrade=pro (app-shell/sidebar.tsx:179, app-shell/right-rail.tsx:246, app-shell/mobile-drawer.tsx:216, (app)/monetization/page.tsx:99, (app)/programs/page.tsx:133, (app)/tutorials/[slug]/page.tsx:200, (app)/programs/[slug]/[lessonSlug]/page.tsx:267, dashboard/programs-row.tsx:95, tutorials/detail-rail.tsx:173, programs/program-detail-rail.tsx:153, profile/rail.tsx:175, monetization/pitch-templates.tsx:96). But (app)/billing/page.tsx:12 does redirect(\"/settings/payment-methods\") which discards the query string, payment-methods/page.tsx reads no searchParams, and billing-panel.tsx contains no useSearchParams/'upgrade' reference (grep verified). The upgrade intent never reaches the billing UI — users land on a generic billing page with the Compare Plans section possibly collapsed (it only auto-expands on the free plan).",
+  "fix": "In src/app/(app)/billing/page.tsx, accept searchParams and forward them: redirect(`/settings/payment-methods${qs ? `?${qs}` : \"\"}`). In settings/payment-methods/page.tsx read the `upgrade` param and pass e.g. `highlightPlan=\"pro\"` into BillingPageClient; in billing-panel.tsx use that prop to force ComparePlansSection open and visually highlight/scroll to the Pro plan. No payment logic changes.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-5": {
+  "title": "'Message Coach' CTA points at /support?topic=coaching, where the topic param is ignored",
+  "severity": "medium",
+  "files": [
+   "src/components/programs/program-detail-rail.tsx",
+   "src/app/(app)/support/new/page.tsx"
+  ],
+  "description": "programs/program-detail-rail.tsx:130 links to /support?topic=coaching, but the support hub page ((app)/support/page.tsx:151, SupportHubPage) accepts no searchParams — the param is dropped and the user lands on the generic Help & Support hub. The ticket wizard that actually consumes ?topic= lives at /support/new and explicitly validates 'coaching' as a topic key (support/new/page.tsx:30-45). The wizard moved from /support to /support/new (per the comment in support/new/page.tsx:10-17) and this link was never updated.",
+  "fix": "In src/components/programs/program-detail-rail.tsx line 130, change href from \"/support?topic=coaching\" to \"/support/new?topic=coaching\".",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-6": {
+  "title": "Profile page 'View Public Profile' button is a dead href=\"#\"",
+  "severity": "medium",
+  "files": [
+   "src/components/profile/rail.tsx",
+   "src/app/(app)/profile/page.tsx"
+  ],
+  "description": "profile/rail.tsx:57-63 renders a prominent full-width 'View Public Profile' button with href=\"#\" — clicking it does nothing on the user-facing /profile page. A real public surface exists: /media-kit/[slug] resolves media_kits.share_slug with published=true (src/app/media-kit/[slug]/page.tsx:24-33), and monetization/media-kit-builder.tsx:106 already links to /media-kit/${shareSlug}.",
+  "fix": "In src/app/(app)/profile/page.tsx, fetch the user's media_kits row (share_slug, published) and pass it into ProfileRail; in src/components/profile/rail.tsx link the button to `/media-kit/${shareSlug}` when a published kit exists and hide it (or link to /monetization to create one) when not. No schema change needed — read-only query on the existing table.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-7": {
+  "title": "Middleware protected-path list omits /support, /notifications, /invoices, /create-new — return-path (?redirect=) lost",
+  "severity": "low",
+  "files": [
+   "src/lib/supabase/middleware.ts"
+  ],
+  "description": "lib/supabase/middleware.ts:38-51 (isAppRoute) covers /dashboard, /programs, /tutorials, /posting, /missions, /performance, /community, /monetization, /profile, /settings, /billing, /onboarding, /admin — but not /support/*, /notifications, /invoices/* or /create-new/*. Those pages self-guard (e.g. (app)/support/page.tsx:153, (app)/notifications/page.tsx:10, invoices/[id]/page.tsx:35, create-new/page.tsx:15) so there is no auth hole, but their page-level redirect(\"/sign-in\") drops the ?redirect= return path that middleware-protected routes get (middleware.ts:53-58). An unauthenticated user following e.g. a /support/tickets/<id> email link signs in and lands on /dashboard instead of the ticket. Not an auth-flow redesign — just extending the existing prefix list.",
+  "fix": "Add `pathname.startsWith(\"/support\") || pathname.startsWith(\"/notifications\") || pathname.startsWith(\"/invoices\") || pathname.startsWith(\"/create-new\")` to the isAppRoute expression in src/lib/supabase/middleware.ts (lines 38-51). Page-level guards stay as defense-in-depth.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-8": {
+  "title": "Auth callback redirects to unvalidated ?next= value",
+  "severity": "low",
+  "files": [
+   "src/app/auth/callback/route.ts"
+  ],
+  "description": "auth/callback/route.ts:8-16 takes `next` straight from the query string and does NextResponse.redirect(`${origin}${next}`). Because origin is prefixed it is not a cross-origin open redirect, but the value is unvalidated: an absolute URL (next=https://evil.com) produces the malformed URL `http://host:porthttps://evil.com`, making NextResponse.redirect throw a 500, and arbitrary junk paths are accepted. Every other redirect target in the auth flow is validated (safeInternalPath in (auth)/actions.ts:16-25 and the sign-in page's check at (auth)/sign-in/page.tsx:31-32) — this route is the one gap. Security hardening, no auth-flow change.",
+  "fix": "In src/app/auth/callback/route.ts, validate `next` the same way as safeInternalPath: if it is missing, doesn't start with \"/\", or starts with \"//\", fall back to the existing default (\"/reset-password\" for type=recovery, else \"/dashboard\") before redirecting.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-9": {
+  "title": "Dev console: /dev/database card links to removed /dev/data-integrity route (404) and sidebar 'Report an Issue' button is a no-op",
+  "severity": "low",
+  "files": [
+   "src/components/dev-dashboard/sections/database/integrity-warnings-card.tsx",
+   "src/components/dev-dashboard/dev-sidebar.tsx"
+  ],
+  "description": "integrity-warnings-card.tsx:27 (rendered on /dev/database) links href=\"/dev/data-integrity\"; that route was deliberately removed (see the removal note in src/lib/dev-dashboard/dev-routes.ts:29-31) and there is no page.tsx for it — curl confirms a 404. Separately, dev-sidebar.tsx:49-55 renders a 'Report an Issue' <button> with no onClick/handler — it does nothing. Dev console is low priority, but both are real breakage, not mock-data styling.",
+  "fix": "In integrity-warnings-card.tsx change the link to an existing destination (e.g. \"/dev/logs\" or drop the link and keep plain text, since the card already lives on /dev/database). In dev-sidebar.tsx either remove the 'Report an Issue' button or wire it to an existing destination such as /dev/support.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-10": {
+  "title": "~10 orphaned admin program subpages remain routable but unlinked",
+  "severity": "low",
+  "files": [
+   "src/components/admin/program-nav.tsx",
+   "src/app/admin/programs/[id]/information/page.tsx",
+   "src/app/admin/programs/[id]/pricing/page.tsx"
+  ],
+  "description": "admin/program-nav.tsx:31-49 intentionally pared the program sub-nav down to Setup guide / Curriculum / Access / Students / Reports, but the removed surfaces still exist as live routes with page.tsx files: /admin/programs/[id]/{information, pricing, sales-pages, coupons, upsell, embed, design, certificates, comments, tasks}. Grep finds no link anywhere in src/ to any of them — they are reachable only by typing the URL (still admin-guarded via admin/programs/[id]/layout.tsx:28-29). Per project constraints routes must not be renamed/removed, so this is flagged as a consistency/product decision, not a delete request.",
+  "fix": "Product decision needed: either (a) leave the routes but add a notFound() or redirect to `/admin/programs/[id]` at the top of each orphaned page so stale bookmarks don't expose abandoned UIs, or (b) re-add nav entries for any of them that are still supported. Option (a) is the minimal consistent fix; confirm with the owner before touching them since constraints forbid removing working functionality.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "routes-nav-11": {
+  "title": "Public Terms/Privacy pages link 'contact support' to the auth-gated /support hub",
+  "severity": "low",
+  "files": [
+   "src/app/terms/page.tsx",
+   "src/app/privacy/page.tsx"
+  ],
+  "description": "terms/page.tsx:144 and privacy/page.tsx:156 link to /support, but /support requires a session ((app)/support/page.tsx:153 redirects to /sign-in) — an anonymous visitor reading legal pages gets bounced to the sign-in screen with no return path (compounded by the middleware-list gap reported separately). Both pages do offer a working mailto:hei@bwstudio.no alongside (terms/page.tsx:137, privacy/page.tsx:149), though that address is inconsistent with the footer's hello@profluencer.com (footer.tsx:84).",
+  "fix": "On terms/page.tsx:144 and privacy/page.tsx:156, point the secondary link at a public destination (/book-a-demo or the mailto address) instead of /support, or keep /support only if the middleware ?redirect= fix lands so users return after signing in. Align the contact email with the brand address used in the footer.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "ui-ux-1": {
+  "title": "ink-600 / ink-800 utility classes do not exist in the theme — ~120 usages across 60 files silently render unstyled",
+  "severity": "high",
+  "files": [
+   "src/app/globals.css",
+   "src/components/app-shell/workspace-shell.tsx",
+   "src/components/ui/confirm-dialog.tsx",
+   "src/components/ui/segmented-tabs.tsx",
+   "src/components/app-shell/profile-menu.tsx",
+   "src/app/(app)/notifications/notifications-panel.tsx",
+   "src/app/terms/page.tsx",
+   "src/app/privacy/page.tsx"
+  ],
+  "description": "The Tailwind v4 @theme block in src/app/globals.css (lines 83-91) registers ink-50/100/200/300/400/500/700/900 only — there is no --color-ink-600 or --color-ink-800. Yet `text-ink-600`, `text-ink-800`, `hover:text-ink-800`, `bg-ink-100 text-ink-600`, and `hover:bg-ink-800` are used ~120 times across ~60 files (verified by grep). I confirmed against the dev server's compiled CSS (curl http://localhost:8080 → /_next/static/chunks/...css): zero `.text-ink-600`, `.text-ink-800`, or `.bg-ink-800` rules are generated, while `.text-ink-700` exists. Concrete breakage: workspace-shell.tsx:122 inactive section tabs (`text-ink-600`) inherit full-strength ink-900 instead of muted; segmented-tabs.tsx:44 `hover:text-ink-800` does nothing; confirm-dialog.tsx:133 the dark primary button's `hover:bg-ink-800` gives no hover feedback; profile-menu.tsx:130,144 menu items, terms/privacy body copy (`text-ink-800`), notifications empty-state title, support tickets table title links, dashboard hero/upcoming-content, community discussion-list, posting and notes components are all affected. (One affected file, src/components/tutorials/lesson-tabs.tsx:105,284, is files-off-limits — owned by another active session — but the fix below does not touch it.)",
+  "fix": "In src/app/globals.css add two primitives to the :root palette after `--ink-500` (line ~40): `--ink-600: #57514A;` and after `--ink-700`: `--ink-800: #2A2724;` (interpolated between the existing 500→700→900 steps). Then register them in the @theme inline block next to the other ink entries (line ~89): `--color-ink-600: var(--ink-600);` and `--color-ink-800: var(--ink-800);`. No component edits needed — all 120 existing class usages start resolving.",
+  "correctedFix": null,
+  "verdictReasoning": "Verified end-to-end. The @theme inline block in src/app/globals.css (lines 84-91) registers only ink-50/100/200/300/400/500/700/900; --color-ink-600 and --color-ink-800 are not defined in any CSS file in the repo (checked all of src/styles/tokens/* and dev-dashboard.css), there is no tailwind.config.* and no @config directive, and the :root primitives also lack --ink-600/--ink-800. Independently confirmed in compiled output (.next/dev/static/chunks/src_app_globals_css...css): .text-ink-700/.text-ink-900/.bg-ink-700 are generated but .text-ink-600, .text-ink-800, and .bg-ink-800 do not exist — Tailwind v4 silently drops utilities for unregistered theme keys. All cited component lines verified verbatim (workspace-shell.tsx:122 inactive nav tabs, segmented-tabs.tsx:44 hover:text-ink-800, confirm-dialog.tsx:133 hover:bg-ink-800, profile-menu.tsx:130/144). The auditor actually UNDERcounted: 193 occurrences across 100 files (vs claimed ~120/60). Impact is cosmetic-only (text inherits ink-900 from body, so it stays readable and contrast increases), but it collapses the entire muted/secondary text tier of the design system on every page including the persistent app shell, and kills hover feedback on primary dark buttons and tabs — high is justified within a ui-ux audit. The proposed fix is correct and minimal: the suggested hexes are within 1-2 RGB units of the true 500→700 and 700→900 midpoints, and it follows the file's existing :root-primitive + @theme-inline-registration pattern exactly, requiring no component edits and not touching the off-limits lesson-tabs.tsx."
+ },
+ "ui-ux-2": {
+  "title": "Marketing homepage hero nav links are all dead anchors (#features, #pricing, #blog, #resources)",
+  "severity": "high",
+  "files": [
+   "src/components/marketing/hero.tsx",
+   "src/app/page.tsx"
+  ],
+  "description": "hero.tsx lines 17-22 define the homepage top-nav as anchors to #features, #pricing, #blog and #resources. The rendered homepage (verified via curl on the running dev server) contains exactly one id: `id=\"results\"` (in proven-results.tsx). The sections that do carry matching ids — features-grid.tsx (id=\"features\") and pricing.tsx (id=\"pricing\") — are NOT rendered by src/app/page.tsx (it renders Hero, ProvenResults, HowItWorks, StackedFeatures, DesignedFor, AgentShowcase, Cta, Footer). So all four primary nav links on the public landing page do nothing when clicked. (site-header.tsx has the same dead anchors but is currently unused/unimported.)",
+  "fix": "In src/app/page.tsx wrap <StackedFeatures /> in a `<div id=\"features\" className=\"scroll-mt-24\">` (do NOT edit stacked-features.tsx — it is owned by another session). Then in src/components/marketing/hero.tsx update NAV: keep Features→\"#features\"; change Pricing→\"/book-a-demo\" (or render <Pricing/> on the page and keep \"#pricing\"); remove the Blog and Resources entries (no such pages exist) or point Resources→\"#results\".",
+  "correctedFix": "The proposed fix works but is incomplete and one option is self-defeating. (1) Wrapping <StackedFeatures /> in <div id=\"features\" className=\"scroll-mt-24\"> in src/app/page.tsx is fine and correctly avoids editing the other-session-owned stacked-features.tsx. (2) For Pricing, prefer rendering the existing, already-built <Pricing /> (src/components/marketing/pricing.tsx — it already has id=\"pricing\" and scroll-mt-24) on page.tsx and keeping href=\"#pricing\"; the alternative \"Pricing → /book-a-demo\" is semantically misleading (a Pricing label opening a demo-booking form) and becomes circular once you fix (3). (3) MISSING from the proposal: src/app/book-a-demo/page.tsx lines 26-31 has the same four links as /#features, /#pricing, /#blog, /#resources — its NAV must be updated in lockstep (e.g., keep /#features and /#pricing once targets exist on the homepage; drop Blog/Resources there too), otherwise the demo page's nav stays dead. (4) Removing Blog/Resources entries is correct (no such routes exist); pointing Resources at #results is a label/content mismatch — plain removal is cleaner. Total touched files: hero.tsx, page.tsx, book-a-demo/page.tsx (3 files, within the project's 5-file rule; per the user's standing rules, list these files before editing and summarize after). Leave the unused site-header.tsx alone — deleting it is out of scope.",
+  "verdictReasoning": "Fully reproduced in code. src/components/marketing/hero.tsx:17-22 links to #features/#pricing/#blog/#resources, but src/app/page.tsx renders only Hero, ProvenResults, HowItWorks, StackedFeatures, DesignedFor, AgentShowcase, Cta, Footer — and a grep for id= across src/components/marketing shows the only rendered anchor target is id=\"results\" (proven-results.tsx:90). The components that do carry matching ids — features-grid.tsx:25 (id=\"features\") and pricing.tsx:68 (id=\"pricing\") — are exported but imported nowhere in src (grep confirms zero imports), as is site-header.tsx. No /blog or /resources route exists anywhere under src/app. Nothing rescues this elsewhere: URL fragments are never sent to the server so middleware/proxy.ts is irrelevant, and there is no client-side hashchange/scrollIntoView handler in the marketing components. So all four primary nav links on the public landing page silently do nothing (hash updates, no scroll). Severity \"high\" is fair for a ui-ux audit: it is 100% of the primary navigation on the most public surface of the product (desktop only — the nav is hidden below md). The claim also undercounts the blast radius: src/app/book-a-demo/page.tsx:26-31 duplicates the identical NAV with /#features, /#pricing, /#blog, /#resources, all equally dead."
+ },
+ "ui-ux-3": {
+  "title": "Missions Activity tab shows hardcoded fake challenge progress ('3 of 7 days completed') to every user",
+  "severity": "high",
+  "files": [
+   "src/components/missions/mission-activity.tsx",
+   "src/app/(app)/missions/page.tsx"
+  ],
+  "description": "mission-activity.tsx lines 309-310 define `CHALLENGE_TOTAL_DAYS = 7; CHALLENGE_COMPLETED_DAYS = 3;`. These constants drive both the 'Active Challenge' stat card (lines 155-180, '3 / 7 days completed' with a 43% progress bar) and the large ChallengeBanner (lines 312-437: 'Active Challenge · Day 3 of 7', a 7-step day tracker with days 1-3 checked, and '4 days left'). Every user sees identical, never-changing fake progress on /missions?tab=activity, directly beside real data (the activity chart, streak and points are all computed from the missions table in missions/page.tsx). 'Continue Challenge' links to /missions?tab=tasks, so the loop never updates what it claims to track.",
+  "fix": "In src/components/missions/mission-activity.tsx, derive challenge progress from data already passed as props: compute `completedDays = streakLast7.filter(d => d.done).length` (or pass a dedicated last-7-day completion count from missions/page.tsx, which already buckets daily mission completions) and use it in place of CHALLENGE_COMPLETED_DAYS in both the StatCard and ChallengeBanner. Alternatively hide the Active Challenge card + banner entirely until a real challenge feature exists.",
+  "correctedFix": "The proposed primary fix is semantically wrong: streakLast7.filter(d => d.done).length is a rolling 7-calendar-day activity count, not challenge progress. Progress would decrease as active days fall out of the window, \"Day N of 7\" and \"X days left\" would be incoherent (the challenge could regress or never complete), and the sequential day tracker would check the first N circles regardless of which days were actually active — replacing one fake display with another. Since no challenge entity (start date/enrollment) exists in the schema, true progress cannot be derived from existing props. Correct fix: adopt the auditor's stated alternative — remove or hide the Active Challenge StatCard (mission-activity.tsx lines 155-180) and ChallengeBanner (lines 183, 312-437), and also update the teaser copy in src/components/missions/missions-overview.tsx (line 147) that advertises \"the 7-Day Challenge\", until a real challenge feature with persisted state exists. If a live number is required without schema changes, Math.min(streakCurrent, 7) at least matches consecutive-posting-day semantics, but hiding is the honest, least-invasive option given the project's strict editing-scope rules.",
+  "verdictReasoning": "Verified directly in source. mission-activity.tsx lines 309-310 hardcode CHALLENGE_TOTAL_DAYS = 7 and CHALLENGE_COMPLETED_DAYS = 3; the Active Challenge StatCard (lines 155-180) and the prop-less ChallengeBanner (lines 312-437) render \"3 / 7 days completed\", a 43% bar, \"Active Challenge · Day 3 of 7\", days 1-3 checked, and \"4 days left\" for every user, never changing. All sibling data on the same tab (activity series, streak, points, week total) is genuinely computed from the missions table in missions/page.tsx, so the fake card is indistinguishable from real data. A repo-wide grep confirms no challenges table, no enrollment state, and no server logic backing this — the only SQL hits are unrelated MFA-challenge audit events. missions-overview.tsx line 147 even advertises the 7-Day Challenge. The claim is fully reproduced and not mitigated elsewhere. However, severity is overstated: it is misleading static placeholder UI with no functional, data-integrity, or security impact — medium, not high."
+ },
+ "ui-ux-4": {
+  "title": "Notifications dropdown is fixed 380px wide and overflows off-screen on mobile",
+  "severity": "high",
+  "files": [
+   "src/components/app-shell/notifications-dropdown.tsx",
+   "src/components/app-shell/topbar.tsx"
+  ],
+  "description": "notifications-dropdown.tsx line 227 renders the panel as `absolute right-0 ... w-[380px]` with no max-width. The bell trigger is rendered in the MOBILE topbar (topbar.tsx line 72) roughly 50-60px from the right screen edge, so on a 360-390px viewport the panel's left edge lands off-screen and is clipped by the global `body { overflow-x: hidden }` (globals.css lines 145-147) — notification text and the left edge of every row are cut off and unreachable. The dev-dashboard's equivalent dropdown already guards against this with `max-w-[calc(100vw-2rem)]` (src/components/dev-dashboard/dev-notifications-dropdown.tsx line 249), proving the pattern is known.",
+  "fix": "In src/components/app-shell/notifications-dropdown.tsx line 227 change the panel class to include a viewport clamp, mirroring the dev dropdown: `w-[380px] max-w-[calc(100vw-2rem)]` and adjust anchoring so it stays on-screen (e.g. `right-0` is fine once max-width caps it; or use `fixed inset-x-4` below the topbar on <sm).",
+  "correctedFix": "Adding `max-w-[calc(100vw-2rem)]` alone is NOT sufficient, and the auditor's claim that \"right-0 is fine once max-width caps it\" is wrong. The bell's right edge sits ~66px from the viewport right edge in the mobile topbar (44px avatar link + 6px gap + 16px padding are to its right), so a panel capped at calc(100vw-2rem) anchored right-0 still has its left edge at 32-66 = -34px — still clipped. (The referenced dev dropdown has the same residual defect: its bell also has a user chip to its right.) A correct fix must both cap the width and shift the anchor on small screens. Option A (pure CSS, matches the fixed mobile layout): change line 227's classes to `absolute -right-[50px] sm:right-0 top-[calc(100%+8px)] w-[380px] max-w-[calc(100vw-2rem)] ...` — the -50px (44px avatar + 6px gap) puts the panel's right edge at the 16px content padding, and the max-width cap then puts the left edge at exactly 16px from the viewport edge. Option B: on <sm use fixed positioning (`fixed inset-x-4 top-[calc(var(--mobile-topbar-height)+4px)] w-auto sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[380px]`) — but note the header's `backdrop-blur` (backdrop-filter) makes the header the containing block for fixed-position descendants; this happens to be harmless here because the header is full-width and sticky at top 0, but it should be verified visually. Option A is lower-risk.",
+  "verdictReasoning": "All cited evidence reproduces. (1) src/components/app-shell/notifications-dropdown.tsx line 227 renders the panel as `absolute right-0 top-[calc(100%+8px)] w-[380px]` with no max-width, anchored to the 40px bell wrapper (`<div ref={ref} className=\"relative\">`). (2) topbar.tsx line 72 renders NotifDropdown inside the `lg:hidden` mobile bar's right cluster: to the bell's right sit a gap-1.5 (6px), the avatar link (36px avatar + p-1 = 44px), and `--mobile-content-x` padding (clamp(1rem,4vw,1.25rem) = 16px on phones, defined in src/styles/tokens/containers.css line 31). So the bell's right edge is ~66px from the viewport right edge; the panel spans from (vw-66-380) to (vw-66): left edge at -56px on a 390px viewport, -86px on 360px — 15-23% of the panel clipped. (3) globals.css does set `body { overflow-x: hidden; }` (~line 146), so the clipped region cannot be scrolled into view. (4) dev-notifications-dropdown.tsx line 249 does use `w-[400px] max-w-[calc(100vw-2rem)]`. The bug is real and affects every mobile user. However, severity \"high\" overstates impact: what gets clipped is the panel's left border, the per-row color border, unread dots, and the leading ~40-80px of header/chip/title text. Every interactive affordance remains visible and tappable — \"Mark all read\" (right-aligned), the centered \"View all notifications\" footer link, and the rows themselves (links span full width, visible portion is clickable) — and the full /notifications page is unaffected. Degraded readability with no blocked functionality is a medium, not high. Additionally, the proposed fix is incomplete (see correctedFix): the cited dev-dropdown pattern itself does not fully solve this anchoring geometry."
+ },
+ "ui-ux-5": {
+  "title": "Dashboard Performance tile renders follower DECLINES as green '▲ +x%' growth",
+  "severity": "high",
+  "files": [
+   "src/app/(app)/dashboard/page.tsx",
+   "src/components/dashboard/launcher-tiles.tsx"
+  ],
+  "description": "dashboard/page.tsx lines 340-347 compute `perfDelta` with `Math.abs(((last - prev) / ...) * 100)` — the comment admits it is 'shown as positive growth on the tile'. launcher-tiles.tsx lines 434-438 then unconditionally render `▲ {Math.abs(deltaPct).toFixed(1)}%` in text-emerald-600 whenever 2+ data points exist. A creator who lost followers week-over-week sees a green up-arrow with the magnitude of their loss presented as growth — factually wrong data on the app's primary screen.",
+  "fix": "In src/app/(app)/dashboard/page.tsx remove both Math.abs calls so perfDelta keeps its sign; in src/components/dashboard/launcher-tiles.tsx (PerformanceCard, ~line 434) branch on sign: `deltaPct >= 0` → '▲' + emerald-600, else → '▼' + a muted/rose tone, displaying Math.abs(deltaPct) for the number only.",
+  "correctedFix": "Direction is right but slightly imprecise: in src/app/(app)/dashboard/page.tsx remove only the OUTER Math.abs — keep the denominator guard, i.e. `return ((last - prev) / Math.max(1, Math.abs(prev))) * 100;`. The inner Math.abs is the divide-by-zero guard, not sign-stripping; removing it is only incidentally safe because followersSeries clamps to non-negative via `r.followers ?? 0`. Then in src/components/dashboard/launcher-tiles.tsx PerformanceCard (~line 434), branch on sign: `deltaPct >= 0` → \"▲\" with text-emerald-600, else \"▼\" with text-rose-600 (or a muted tone), rendering `Math.abs(deltaPct).toFixed(1)` for the number in both branches.",
+  "verdictReasoning": "Evidence confirmed verbatim. page.tsx:341-347 computes perfDelta with an outer Math.abs (comment even says \"shown as positive growth on the tile\") and passes it to PerformanceCard at line 392-396. launcher-tiles.tsx:434-438 unconditionally renders the badge as green emerald with a hardcoded ▲ whenever series.length >= 2; there is no sign branch and no other caller or wrapper that corrects it. So follower declines do render as a green up-arrow \"growth\" badge. However, severity is overstated: the bug is purely presentational (the magnitude shown is correct, only the direction indicator is wrong), the sparkline drawn immediately below plots the real series so a decline is visibly trending down next to the badge, and there is no security/data-integrity impact. Medium, not high."
+ },
+ "ui-ux-6": {
+  "title": "Support ticket status colors are ambiguous within the table and contradict the support hub",
+  "severity": "medium",
+  "files": [
+   "src/app/(app)/support/tickets/tickets-table.tsx",
+   "src/app/(app)/support/tickets/[id]/page.tsx",
+   "src/app/(app)/support/page.tsx"
+  ],
+  "description": "Three sibling support surfaces style the same five ticket statuses differently. tickets-table.tsx lines 68-74 and ticket detail page.tsx lines 69-75 use: open=green (bg-success-bg), resolved=green (identical — Open and Resolved are indistinguishable), waiting=gold, closed=gold (also identical). The hub (support/page.tsx lines 110-116) uses the sensible mapping: Open=rose, Waiting=gold, In progress=rose-soft, Resolved=success green, Closed=neutral cream/ink. A user moving from /support to /support/tickets sees the same ticket flip from a rose 'Open' pill to a green one, and cannot tell Open from Resolved (or Waiting from Closed) in the list. Labels also differ in casing ('In progress' vs 'In Progress').",
+  "fix": "Copy the hub's TICKET_PILL mapping (src/app/(app)/support/page.tsx:110-116) into STATUS_PILL in src/app/(app)/support/tickets/tickets-table.tsx:68-74 and src/app/(app)/support/tickets/[id]/page.tsx:69-75 (open: bg-rose-100 text-rose-700; waiting: bg-gold-500/15 text-gold-500; in_progress: bg-rose-50 text-rose-600; resolved: bg-success-bg text-success; closed: bg-cream-200 text-ink-500), and normalize the label to 'In progress' in both.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "ui-ux-7": {
+  "title": "Dead 'Filter options' button on the Notifications page",
+  "severity": "medium",
+  "files": [
+   "src/app/(app)/notifications/notifications-panel.tsx"
+  ],
+  "description": "notifications-panel.tsx lines 211-217 render a prominent 40x40 icon button (SlidersHorizontal, aria-label 'Filter options') in the page header with no onClick handler and no menu — clicking it does nothing. The functional filter tabs already exist directly to its left, so this is pure dead UI on a primary (app) page.",
+  "fix": "Delete the button (lines 211-217 of src/app/(app)/notifications/notifications-panel.tsx) — the existing filter tab row already provides filtering — or wire it to a real dropdown if one is planned imminently.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "ui-ux-8": {
+  "title": "Marketing footer Company and Follow columns are all dead href=\"#\" links",
+  "severity": "medium",
+  "files": [
+   "src/components/marketing/footer.tsx"
+  ],
+  "description": "footer.tsx lines 30-41: all four Company links (About, Pricing, Blog, Contact) and all four Follow links (Instagram, X, LinkedIn, YouTube) point to href=\"#\" — eight dead links rendered on the public homepage footer that scroll to top when clicked. The Product column at least routes to /sign-up.",
+  "fix": "In src/components/marketing/footer.tsx: point Contact→mailto:hello@profluencer.com (the address already shown in this footer), Pricing→/book-a-demo or the pricing section once anchored; remove the About/Blog entries and the entire Follow column until real social profiles exist (or fill in the real profile URLs if known).",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "ui-ux-9": {
+  "title": "Split user-facing branding: 'Profluencer' vs 'Creator Growth OS' (and lowercase 'profluencer' in the app topbar)",
+  "severity": "medium",
+  "files": [
+   "src/lib/brand.ts",
+   "src/app/layout.tsx",
+   "src/components/app-shell/topbar.tsx",
+   "src/app/invoices/[id]/page.tsx",
+   "src/lib/email/welcome-template.ts"
+  ],
+  "description": "Users see two different product names depending on surface. Marketing pages, the mobile app topbar wordmark (topbar.tsx line 67 — rendered lowercase 'profluencer', inconsistent even with the marketing 'Profluencer'), and invoices (invoices/[id]/page.tsx lines 6,12) say Profluencer; every in-app browser-tab title ('Dashboard | Creator Growth OS' etc.), the root layout title (layout.tsx:27), welcome emails, and lib/brand.ts BRAND_NAME say Creator Growth OS. A paying customer's invoice and their receipt email carry different brand names. The homepage comment (src/app/page.tsx:5-8) explains the 'Profluencer' wordmark is required by Google OAuth verification, so Profluencer appears to be the customer-facing name.",
+  "fix": "Standardize customer-visible strings on one name driven by BRAND_NAME in src/lib/brand.ts (set it to 'Profluencer', per the OAuth-verified name): update page `metadata.title` templates across (app)/admin pages, the root layout title, and the email templates to use it; capitalize the topbar wordmark in src/components/app-shell/topbar.tsx:67 to match ('Profluencer'). Keep route names and internal identifiers untouched.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "ui-ux-10": {
+  "title": "Success/warning states use Tailwind default emerald/amber instead of the project's state tokens (160+ occurrences)",
+  "severity": "medium",
+  "files": [
+   "src/components/ui/toast.ts",
+   "src/app/(app)/notifications/notifications-panel.tsx",
+   "src/app/(app)/settings/settings-panel.tsx",
+   "src/app/(app)/settings/invites/invites-panel.tsx",
+   "src/app/(app)/billing/billing-panel.tsx",
+   "src/components/community/chat/message-bubble.tsx"
+  ],
+  "description": "The token system defines --color-state-success (#3DA862), --success-bg, --color-state-warning and warning-bg (src/styles/tokens/colors.css lines 40-47), and support pages correctly use bg-success-bg/text-success. But 118 occurrences in src/components and 46 in src/app/(app) use Tailwind's default emerald/green/amber palette instead (e.g. toast.ts success toasts, notifications-panel.tsx:224-225 'all caught up' state, settings-panel, invites-panel, billing-panel, dashboard launcher tiles) — producing two visibly different 'success greens' across adjacent surfaces. Related: message-bubble.tsx:51 uses `text-rose-800`, which (verified in the compiled CSS) falls through to Tailwind's DEFAULT vivid rose-800 (#9f1239) because the brand rose ramp only overrides 50-700 — an off-brand color on mention highlights.",
+  "fix": "Sweep user-facing (app) + shared components replacing success-state emerald/green classes with the tokens (text-success / bg-success-bg; for borders use border-success at reduced opacity), and amber warning chips with the state-warning tokens. Replace `text-rose-800` in src/components/community/chat/message-bubble.tsx:51 with text-rose-700. Skip decorative platform-brand colors (Instagram gradient, YouTube red, flag SVGs, Mastercard logo) — those are intentional.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "ui-ux-11": {
+  "title": "Dashboard Community tile fakes a live-presence indicator ('Creators online now')",
+  "severity": "low",
+  "files": [
+   "src/components/dashboard/launcher-tiles.tsx"
+  ],
+  "description": "launcher-tiles.tsx lines 582-585 (CommunityCard) render a pill with a green animate-pulse dot and the text 'Creators online now'. No presence data exists or is queried — the indicator is pure decoration claiming live activity, shown to every user even when the community is empty.",
+  "fix": "In src/components/dashboard/launcher-tiles.tsx CommunityCard, change the pill copy to a neutral truthful label (e.g. t('Join the conversation')) and remove the pulsing green dot, or gate the 'online' pill behind a real presence count if one becomes available.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "ui-ux-12": {
+  "title": "Keyboard focus invisible on chart hover targets (outline removed with no focus-visible replacement)",
+  "severity": "low",
+  "files": [
+   "src/components/dashboard/this-weeks-overview.tsx",
+   "src/components/performance/weekly-overview.tsx",
+   "src/components/admin/metrics-chart.tsx"
+  ],
+  "description": "Focusable interactive elements strip the outline with `focus:outline-none` and provide no focus-visible substitute: this-weeks-overview.tsx lines 556-571 (tabIndex={0} role=\"button\" SVG rects for the dashboard followers chart), weekly-overview.tsx line 492 (performance chart scrubber), metrics-chart.tsx line 422. Keyboard users tabbing through these get zero visual indication of focus, while the tooltip handler relies on onFocus — so the control IS keyboard-reachable but invisible. (Broader context: only 9 files in src/components use focus-visible at all; ui/button.tsx has a proper ring, so this is limited to bespoke controls.)",
+  "fix": "Replace `focus:outline-none` with `focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300` on the cited elements (for the SVG rects, a `focus-visible:stroke-rose-400 focus-visible:stroke-2` on the rect or a ring on a wrapping element works).",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-1": {
+  "title": "11 dead marketing components (~2,011 lines) never imported anywhere",
+  "severity": "medium",
+  "files": [
+   "src/components/marketing/dashboard-preview.tsx",
+   "src/components/marketing/faq.tsx",
+   "src/components/marketing/feature-showcase.tsx",
+   "src/components/marketing/features-grid.tsx",
+   "src/components/marketing/integrations.tsx",
+   "src/components/marketing/not-generic.tsx",
+   "src/components/marketing/pricing.tsx",
+   "src/components/marketing/programs-tutorials.tsx",
+   "src/components/marketing/services-grid.tsx",
+   "src/components/marketing/site-header.tsx",
+   "src/components/marketing/trusted-by.tsx"
+  ],
+  "description": "The live homepage (src/app/page.tsx lines 15-22) imports only hero, proven-results, how-it-works, stacked-features, designed-for, agent-showcase, cta, footer. The 11 files listed are leftovers from a previous homepage iteration. Evidence: `grep -rnE \"from ['\\\"][^'\\\"]*marketing/(faq|pricing|integrations|dashboard-preview|feature-showcase|features-grid|not-generic|programs-tutorials|services-grid|site-header|trusted-by)['\\\"]\" src` returns zero matches; plain-string greps for site-header/trusted-by also return 0 mentions outside the files themselves. Dangerous specifically because stale pricing.tsx and faq.tsx contain plan/price copy that can silently drift from the real billing plans, and site-header.tsx is a second, conflicting nav implementation. Repo is git-tracked (.git present) so deletion is recoverable. Note: src/components/marketing/stacked-features.tsx is files-off-limits (owned by another session) but is NOT in this deletion list — it is live.",
+  "fix": "Delete the 11 listed files in src/components/marketing. Run `npm run typecheck` afterwards to confirm nothing references them (greps already prove zero imports).",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-2": {
+  "title": "9 dead dashboard components (~1,893 lines) including transitively-dead sparkline.tsx",
+  "severity": "medium",
+  "files": [
+   "src/components/dashboard/continue-learning.tsx",
+   "src/components/dashboard/getting-started.tsx",
+   "src/components/dashboard/kpi-cards.tsx",
+   "src/components/dashboard/performance-overview.tsx",
+   "src/components/dashboard/programs-row.tsx",
+   "src/components/dashboard/this-weeks-overview.tsx",
+   "src/components/dashboard/todays-plan.tsx",
+   "src/components/dashboard/upcoming-content.tsx",
+   "src/components/dashboard/sparkline.tsx"
+  ],
+  "description": "The live dashboard page (src/app/(app)/dashboard/page.tsx lines 1-15) uses only hero.tsx, programs-card.tsx, launcher-tiles.tsx (plus donut.tsx which is imported by live admin/missions surfaces). The 8 other section components have zero importers: `grep -rnE \"from ['\\\"][^'\\\"]*/(continue-learning|getting-started|kpi-cards|performance-overview|programs-row|this-weeks-overview|todays-plan|upcoming-content)['\\\"]\" src` returns nothing, and plain-string grep for kpi-cards finds only a comment in src/design-templates/plan-gating.tsx. sparkline.tsx is imported ONLY by the dead kpi-cards.tsx and performance-overview.tsx, so it is transitively dead. Keep donut.tsx and launcher-tiles.tsx — they are live (imported by src/app/admin/programs/[id]/reports/reports-view.tsx, src/components/missions/mission-activity.tsx, src/app/(app)/dashboard/page.tsx).",
+  "fix": "Delete the 9 listed files in src/components/dashboard (do NOT delete donut.tsx, hero.tsx, programs-card.tsx, launcher-tiles.tsx). Run `npm run typecheck` to confirm.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-3": {
+  "title": "16 more orphaned components across app areas (~2,300 lines): rails, featured cards, stubs, unused ui kit pieces",
+  "severity": "medium",
+  "files": [
+   "src/components/app-shell/right-rail.tsx",
+   "src/components/posting/rail.tsx",
+   "src/components/posting/kpi-tiles.tsx",
+   "src/components/posting/plan-actions-menu.tsx",
+   "src/components/profile/rail.tsx",
+   "src/components/programs/program-detail-rail.tsx",
+   "src/components/programs/featured-program.tsx",
+   "src/components/tutorials/detail-rail.tsx",
+   "src/components/tutorials/featured.tsx",
+   "src/components/onboarding/rail.tsx",
+   "src/components/community/space-card.tsx",
+   "src/components/settings/under-development.tsx",
+   "src/components/admin/stat-tile.tsx",
+   "src/components/page-stub.tsx",
+   "src/components/ui/oauth-buttons.tsx",
+   "src/components/ui/segmented-tabs.tsx"
+  ],
+  "description": "Each file has zero importers, verified two ways: (1) alias scan `grep -rl \"@/components/<path>\" src`, (2) relative-import regex `grep -rlnE \"from ['\\\"][^'\\\"]*/<basename>['\\\"]\" src` — both return only the file itself. For ambiguous basenames a plain-string grep was also run: right-rail's 4 mentions are comments/CSS docs (page-skeleton.tsx:4, get-shell-context.ts:7, design-templates), space-card's 14 mentions are all the CSS variable --space-card-padding, oauth-buttons' single mention is a comment in src/design-templates/auth-blocks.tsx:134. page-stub.tsx (a 'Coming up next' construction placeholder) and settings/under-development.tsx are leftovers from before pages were implemented. ui/oauth-buttons.tsx is dead because the auth forms (src/app/(auth)/sign-in/sign-in-form.tsx, sign-up/sign-up-form.tsx) are email-only — no OAuth UI imports it. These dead rails are also the main remaining importers of patterns like formatCompact, inflating the duplication count.",
+  "fix": "Delete all 16 listed files. They are grep-proven unreferenced and git-recoverable. Run `npm run typecheck` after deletion. Do not touch app-shell/avatar.tsx, page-skeleton.tsx, or any other app-shell file — those are live.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-4": {
+  "title": "~30 copy-pasted date/number format helpers (relativeTime x16, formatCompact x8, formatDuration x6) with drifting behavior",
+  "severity": "medium",
+  "files": [
+   "src/components/notes/notes-list.tsx",
+   "src/lib/admin/queries.ts",
+   "src/app/(app)/notifications/notifications-panel.tsx",
+   "src/app/admin/users/users-table.tsx",
+   "src/app/admin/users/[id]/page.tsx",
+   "src/components/performance/connect-social-card.tsx",
+   "src/components/performance/weekly-overview.tsx",
+   "src/lib/performance/queries.ts",
+   "src/lib/programs/queries.ts",
+   "src/lib/programs/tutorial-queries.ts",
+   "src/app/admin/tutorials/tutorials-view.tsx",
+   "src/app/admin/tutorials/[id]/tutorial-editor.tsx",
+   "src/components/admin/posting-overview.tsx",
+   "src/components/admin/posting-plan-drawer.tsx",
+   "src/lib/dev-support/queries.ts"
+  ],
+  "description": "grep for `function (relativeTime|timeAgo|formatRelative)` finds 16 private copies outside design-templates; `function formatCompact` finds 8; `function formatDuration` finds 6. The copies have already diverged: src/components/notes/notes-list.tsx:71 renders '5 minutes ago'/'yesterday' while src/lib/admin/queries.ts:462 renders '5m ago'/'2mo ago' — so the same timestamp reads differently on adjacent surfaces. The formatCompact copies (e.g. weekly-overview.tsx:661 vs lib/dev-dashboard/logs-queries.ts:677) differ only in Math.abs handling and toString vs toLocaleString. This is the project's only systemic duplication: there is no shared format module in src/lib (only cn.ts and brand.ts at top level).",
+  "fix": "Create src/lib/format.ts exporting three helpers: relativeTime(iso, style?: 'long'|'short'), formatCompact(n), formatDuration(seconds). Then replace the private copies one call-site at a time, starting with the byte-near-identical formatCompact and formatDuration copies (lib/programs/queries.ts:299 and lib/programs/tutorial-queries.ts:274 are identical). For relativeTime, map existing 'short' outputs ('5m ago') and 'long' outputs ('5 minutes ago') to the style param so no visible copy changes. Skip files owned by other sessions (none of the listed ones are) and skip dead files slated for deletion.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-5": {
+  "title": "Production posting page imports widgets from src/design-templates (design scratch library)",
+  "severity": "medium",
+  "files": [
+   "src/components/posting/insights-dashboard.tsx",
+   "src/design-templates/posting-insights.tsx",
+   "src/design-templates/heatmap.tsx",
+   "src/design-templates/funnels.tsx"
+  ],
+  "description": "src/components/posting/insights-dashboard.tsx lines 43-45 import BestTimeHeatmap, FormatPerformance (design-templates/posting-insights), ContributionHeatmap (design-templates/heatmap) and RetentionCohort (design-templates/funnels). insights-dashboard is rendered on the live creator posting page (src/app/(app)/posting/page.tsx:15). This is the ONLY production (non-/design) consumer of the ~140-file design-templates tree, and it couples a shipped surface to an internal gallery directory: any cleanup/exclusion of design-templates (which other audit streams may propose) would break /posting, and edits made for gallery purposes silently change production UI. The three template files are small (83/69/73 lines) and self-contained.",
+  "fix": "Move the four widgets (BestTimeHeatmap, FormatPerformance, ContributionHeatmap, RetentionCohort) into a new file src/components/posting/insights-widgets.tsx (copy the component code verbatim from the three design-templates files). Update src/components/posting/insights-dashboard.tsx lines 43-45 to import from './insights-widgets'. In the three design-templates files, replace the duplicated bodies with re-exports from '@/components/posting/insights-widgets' so the /design gallery (src/app/design/design-gallery.tsx) keeps working unchanged.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-6": {
+  "title": "Two dead server-query modules in src/lib: profile/queries.ts and marketing/intro-video.ts",
+  "severity": "medium",
+  "files": [
+   "src/lib/profile/queries.ts",
+   "src/lib/marketing/intro-video.ts"
+  ],
+  "description": "Both files have zero importers: `grep -rn \"profile/queries\" src` (excluding the file itself) and `grep -rn \"marketing/intro-video\" src` each return nothing — they are also the ONLY file in their respective src/lib/profile and src/lib/marketing directories. profile/queries.ts (115 lines) defines ProfileRow/SocialSnapshotRow types and Supabase reads that the live profile page no longer uses. intro-video.ts (39 lines) uses createServiceClient (service-role key) to fetch the 'start-here-welcome' lesson video for the marketing hero, but src/components/marketing/hero.tsx no longer calls getIntroVideo — the hero was redesigned (hero-spotlight mouse-glow version). Dead service-role code paths are worth removing promptly: they invite future unauthenticated reuse without review of the RLS-bypass justification documented in the file's comment.",
+  "fix": "Delete src/lib/profile/queries.ts and src/lib/marketing/intro-video.ts (and the now-empty src/lib/profile and src/lib/marketing directories). Run `npm run typecheck`.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-7": {
+  "title": "class-variance-authority is an unused npm dependency",
+  "severity": "low",
+  "files": [
+   "package.json"
+  ],
+  "description": "`grep -rln \"class-variance-authority\" src` returns 0 files; no cva() usage anywhere in src (styling is done with the cn() helper in src/lib/cn.ts which uses clsx + tailwind-merge, both of which ARE used). All other runtime deps were verified in use: tus-js-client (src/app/admin/programs/[id]/curriculum/[lessonId]/video-lesson-editor.tsx), resend (12 files), stripe (17), @supabase/* and lucide-react (505 files). class-variance-authority is the only dead dependency — it adds install weight and a false signal that cva is the variant pattern of this codebase.",
+  "fix": "Remove \"class-variance-authority\" from dependencies in package.json and run `npm install` to update package-lock.json.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-8": {
+  "title": "One-off local re-implementations of shared Avatar and brand icons",
+  "severity": "low",
+  "files": [
+   "src/components/community/discussion-list.tsx",
+   "src/components/performance/connect-social-card.tsx",
+   "src/components/app-shell/avatar.tsx",
+   "src/components/brand-icons.tsx"
+  ],
+  "description": "src/components/community/discussion-list.tsx:940 defines a private `function Avatar(...)` (initials + image fallback) duplicating the shared src/components/app-shell/avatar.tsx, which is already imported by 10 other files including sibling community components (src/components/community/chat/message-bubble.tsx, mention-popover.tsx). Similarly src/components/performance/connect-social-card.tsx:346 defines a private FacebookIcon while the shared icon set lives in src/components/brand-icons.tsx (InstagramIcon line 8, YoutubeIcon line 44; 23 importers). Two small, contained divergences — visual drift risk only. (MockAvatar/HostAvatar inside src/components/marketing/stacked-features.tsx are intentionally fake decorative avatars AND that file is files-off-limits — owned by another active session — so it is excluded from this fix.)",
+  "fix": "In src/components/community/discussion-list.tsx, delete the local Avatar (line 940) and import { Avatar } from '@/components/app-shell/avatar', mapping props (name/src/size) to the shared component's API — check the shared component's prop names first and adjust call sites. Move FacebookIcon from src/components/performance/connect-social-card.tsx:346 into src/components/brand-icons.tsx as an export and import it back.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "code-cleanup-9": {
+  "title": "Two dead dev-console support components",
+  "severity": "low",
+  "files": [
+   "src/components/dev-dashboard/sections/support/communication-timeline-card.tsx",
+   "src/components/dev-dashboard/sections/support/ticket-reply-form.tsx"
+  ],
+  "description": "Zero importers for both, verified with `grep -rlnE \"from ['\\\"][^'\\\"]*/(communication-timeline-card|ticket-reply-form)['\\\"]\" src` (only the files themselves). They sit in src/components/dev-dashboard (component tree), not src/app/dev, so they are not part of the protected dev-console route surface — they were superseded by src/components/dev-dashboard/sections/support/ticket-details/reply-composer.tsx and live-relative-time.tsx which ARE imported. 262 lines combined. Low priority per the dev-console guidance, but the deletion is grep-proven zero-risk.",
+  "fix": "Delete src/components/dev-dashboard/sections/support/communication-timeline-card.tsx and src/components/dev-dashboard/sections/support/ticket-reply-form.tsx. Run `npm run typecheck`.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-1": {
+  "title": "Marketing landing page ships ~9.4 MB of unoptimized JPEGs via raw <img>",
+  "severity": "high",
+  "files": [
+   "src/components/marketing/proven-results.tsx",
+   "public/Posting.jpg",
+   "public/Users Img.jpg",
+   "public/Grow audience.jpg",
+   "public/Less time spent.jpg"
+  ],
+  "description": "proven-results.tsx renders four full-resolution local JPEGs with raw <img> (lines 132-137 desktop accordion, 203-208 mobile stack; STATS array lines 32-37). Measured file sizes: Posting.jpg 3,881,391 B, Users Img.jpg 2,849,818 B, Grow audience.jpg 2,148,882 B, Less time spent.jpg 944,796 B — ~9.4 MB total. Verified via curl that the rendered homepage HTML references each file twice (the lg:hidden mobile block AND the hidden-until-lg desktop block both emit <img>, and display:none images still download). The desktop images are also opacity:0 until hover but download eagerly. Every anonymous visitor to / pays ~9.4 MB; on a 10 Mbps connection that is ~8 s of image transfer for one section. By contrast cta.tsx (line 30-36) correctly uses next/image for the equally-large stephanie-berbec JPEG and gets resized/recompressed automatically.",
+  "fix": "In src/components/marketing/proven-results.tsx replace the two raw <img> usages (lines 132-137 and 203-208) with next/image: <Image src={s.img} alt=\"\" fill sizes=\"(min-width:1024px) 75vw, 100vw\" className=\"object-cover\" /> inside the existing relative containers (URLs are local /public paths, so no remotePatterns config is needed; remove the %20-encoding and pass the plain filename, e.g. \"/Users Img.jpg\"). Keep the opacity-fade wrapper span as-is. Components are client components — next/image works there. Optionally also re-export the four JPEGs at ~1600px/q75 to shrink the originals.",
+  "correctedFix": null,
+  "verdictReasoning": "Reproduced every element of the claim from the code. (1) src/components/marketing/proven-results.tsx renders raw <img> tags at lines 133-137 (desktop accordion) and 204-208 (mobile stack), each preceded by an explicit `eslint-disable-next-line @next/next/no-img-element` — the lint rule that exists to catch exactly this was deliberately suppressed. (2) STATS (lines 32-37) references the four %20-encoded /public JPEGs; measured sizes match the claim byte-for-byte: Posting.jpg 3,881,391 + Users Img.jpg 2,849,818 + Grow audience.jpg 2,148,882 + Less time spent.jpg 944,796 = 9,824,887 B (~9.37 MB). (3) The component is mounted on the public homepage (src/app/page.tsx:51). Both the `hidden lg:flex` desktop block and the `lg:hidden` mobile block render unconditionally (responsive via CSS only), and display:none <img> elements still download per standard browser behavior, with no loading=\"lazy\" attribute, so every visitor on every viewport eagerly downloads all ~9.4 MB. One small precision note: each file is referenced twice in the DOM but downloads once (browsers dedupe same-URL requests) — the claim's ~9.4 MB total is correct, it is not doubled. Refutation attempts all failed: next.config.ts has no images config (optimizer is available, not disabled); src/proxy.ts:40 explicitly excludes .jpg/_next/image from its matcher so it does nothing for these assets; Next 16.2.6's bundled docs (01-app/03-api-reference/02-components/image.md) confirm next/image with `fill` works exactly as the fix assumes (parent must be positioned — the desktop wrapper span is `absolute inset-0` and the mobile parent div has `relative`, both satisfied); and cta.tsx lines 30-36 confirms the project already uses next/image with fill+sizes for a comparable 3.4 MB JPEG, so the fix matches established project convention. The proposed fix is correct: fill + sizes inside the existing positioned containers, plain (unencoded) filenames — the default loader encodeURIComponent's src itself, so passing the pre-encoded %20 form would double-encode in the /_next/image?url= param. next/image's default lazy loading is an additional win since this section is below the fold. Severity high is justified: ~9.4 MB of eager image transfer on the anonymous marketing landing page is the dominant performance cost of the entire route and directly damages LCP and bandwidth for every prospective customer."
+ },
+ "performance-2": {
+  "title": "getShellContext runs 5 sequential Supabase round trips on every authenticated page",
+  "severity": "high",
+  "files": [
+   "src/lib/app-shell/get-shell-context.ts"
+  ],
+  "description": "getShellContext (lines 10-101) awaits, strictly in series: auth.getUser() → profiles select (line 17) → notifications count (line 41) → missions count (line 56) → social_accounts select (line 68). The last four are mutually independent (all only need user.id). This helper is called by src/app/(app)/layout.tsx line 17 and by every (app) page, so every dashboard/posting/programs/etc. render pays 4 unnecessary serial DB round trips (~100-300 ms of avoidable latency at typical 30-80 ms/query from a serverless region). It is React cache()-wrapped so it only runs once per request — the problem is purely the internal waterfall.",
+  "fix": "In src/lib/app-shell/get-shell-context.ts, after the auth.getUser() call, wrap the four independent queries in a single Promise.all: const [profileRes, notifCountRes, taskCountRes, socialRes] = await Promise.all([...]) preserving the existing try/catch fail-soft semantics (move each count query into a .then/.catch or a small helper that swallows errors and returns 0). No behavior change — same data, one round trip of latency instead of four.",
+  "correctedFix": null,
+  "verdictReasoning": "Verified in src/lib/app-shell/get-shell-context.ts: five strictly sequential awaits (auth.getUser line 14, profiles 17-23, notifications count 41-45, missions count 56-60, social_accounts 68-71); the last four depend only on user.id and are mutually independent, so the internal waterfall is real. src/app/(app)/layout.tsx line 17 awaits getShellContext with no Suspense boundary, so the waterfall blocks first paint of the entire shell on every authenticated page (~28 pages call it; React cache() dedupes to once per request as the claim concedes). src/proxy.ts only refreshes the auth cookie and cannot mitigate. The proposed Promise.all fix works: postgrest-js builders are lazy thenables so Promise.all parallelizes them, and I confirmed in node_modules/@supabase/postgrest-js/dist/index.mjs (v2.105.4) that builders never reject by default (fetch errors are converted to {error, count: null} responses; shouldThrowOnError defaults to false), so the existing try/catch blocks are dead code and plain Promise.all preserves the fail-soft behavior exactly — the suggested .catch helpers are harmless but unnecessary. Severity pushback: only 3 round trips of latency are avoidable, not 4 (the profile query still costs one RTT), giving roughly 20-90 ms same-region to ~100-240 ms worst case of constant per-request latency. No correctness, scaling, or N+1 dimension — it does not grow with data. A constant ~100-250 ms TTFB cost with a trivial safe fix is a medium-severity latency issue, not high."
+ },
+ "performance-3": {
+  "title": "Community feed page issues 7 sequential awaits that could be one parallel batch",
+  "severity": "high",
+  "files": [
+   "src/app/(app)/community/page.tsx"
+  ],
+  "description": "src/app/(app)/community/page.tsx (default 'feed' tab) awaits in series: listSpaces (line 80) → listRecentPosts (line 85) → listRepliesForPosts (line 90) → getPostVotes (line 94) → getPostReactions (line 98) → getPostAttachments (line 102) → getPostPolls (line 106) → is_admin RPC (line 119). After listRecentPosts returns post ids, the five per-post queries plus the is_admin RPC and listSpaces are all mutually independent, yet each waits for the previous. The underlying queries in src/lib/community/queries.ts are already bulk (.in()) — no N+1 — so the waterfall is purely page-level. This adds roughly 5-6 extra serial round trips (~200-450 ms) to the community landing view.",
+  "fix": "In src/app/(app)/community/page.tsx restructure the feed branch: keep `const posts = active === 'feed' ? await listRecentPosts(20) : []`, then when posts.length > 0 run `const [repliesByPost, votesByPost, reactionsByPost, attachmentsByPost, pollsByPost, isAdminRes, spaces] = await Promise.all([listRepliesForPosts(ids, ctx.user.id), getPostVotes(...), getPostReactions(...), getPostAttachments(ids), getPostPolls(...), (await createClient()).rpc('is_admin'), listSpaces()])`. Move listSpaces into the batch (it is currently awaited unconditionally at line 80 before anything else). Keep the existing fallbacks for non-feed tabs.",
+  "correctedFix": "The proposed fix gates the Promise.all batch — including listSpaces — behind posts.length > 0. That breaks the empty-feed case: with zero posts, spaces would be empty, so spaceOptions fed to InlineComposer (page.tsx line 138) would be empty and users in a brand-new community could not pick a space to create the first post (violates the project's \"do not remove existing functionality\" rule). The gate is also unnecessary: every per-post helper in src/lib/community/queries.ts already early-returns an empty Map with zero network calls when postIds.length === 0 (lines 192, 267, 298, 405-406, 461-462). Correct restructure for the feed branch, ungated: (1) Level 1 — `const supabase = await createClient(); const [spaces, posts, isAdminRes] = await Promise.all([listSpaces(), active === \"feed\" ? listRecentPosts(20) : Promise.resolve([]), active === \"feed\" ? supabase.rpc(\"is_admin\") : Promise.resolve(null)]); const isAdmin = isAdminRes?.data === true;` (2) Level 2 — `const ids = posts.map(p => p.id); const [repliesByPost, votesByPost, reactionsByPost, attachmentsByPost, pollsByPost] = active === \"feed\" ? await Promise.all([listRepliesForPosts(ids, ctx.user.id), getPostVotes(ids, ctx.user.id), getPostReactions(ids, ctx.user.id), getPostAttachments(ids), getPostPolls(ids, ctx.user.id)]) : [new Map(), ...empty maps];` Keep the existing conditional listAllEvents/listMemberSpotlight awaits for the other tabs. Also avoid the proposed inline `(await createClient()).rpc('is_admin')` inside the Promise.all array literal — the inner await suspends array construction and partially re-serializes elements after it; hoist the client (as above) or use createClient().then(c => c.rpc('is_admin')).",
+  "verdictReasoning": "Verified in src/app/(app)/community/page.tsx: eight sequential top-level awaits at lines 80 (listSpaces), 85 (listRecentPosts), 90 (listRepliesForPosts), 94 (getPostVotes), 98 (getPostReactions), 102 (getPostAttachments), 106 (getPostPolls), and 119 (is_admin RPC). Only the five per-post helpers depend on post ids from listRecentPosts; listSpaces and is_admin are fully independent, so the optimal shape is 2 serial levels, not 8. Nothing mitigates it: no `use cache`/revalidate/unstable_cache anywhere in the page or src/lib/community/queries.ts; the page is fully dynamic (cookie-bound Supabase server client created per call), each helper issues its own PostgREST HTTP round trip, and Next 16 does not auto-parallelize sequential awaits in a server component. getShellContext is React.cache'd but covers only the shell query. Severity downgraded: the helpers are already bulk (.in()) so there is no N+1 or scaling cliff — this is a fixed, bounded ~5-6 avoidable serial round trips (~150-450 ms depending on Supabase region) of blocking SSR latency on the default community tab. Real and worth fixing, but a bounded latency cost with no correctness/security/growth dimension is medium, not high."
+ },
+ "performance-4": {
+  "title": "Program detail page: 4 sequential awaits plus duplicated curriculum queries",
+  "severity": "high",
+  "files": [
+   "src/app/(app)/programs/[slug]/page.tsx",
+   "src/lib/programs/queries.ts"
+  ],
+  "description": "Two issues on /programs/[slug]: (1) after the Promise.all at lines 181-184, the page awaits four independent fetches strictly in series — getProgramUserTasks (line 213), the program_progress enrolled count (lines 219-224), getProgramNotes (line 229), getProgramLearningPoints (line 236). All four only need programUuid/ctx.user.id, adding ~4 serial round trips. (2) getCurriculumForProgram (queries.ts lines 41-142) and getProgramProgress (lines 144-221) each independently re-query programs-by-slug, lessons-by-program, auth.getUser and lesson_progress — six round trips where three would do; they run in Promise.all so the cost is duplicate DB load plus each helper's own 4-query internal waterfall.",
+  "fix": "Minimal fix in src/app/(app)/programs/[slug]/page.tsx: replace the sequential block at lines 210-237 with a single Promise.all over getProgramUserTasks(programUuid, ctx.user.id), the program_progress head-count query, getProgramNotes(programUuid), and getProgramLearningPoints(programUuid), guarded by `programUuid ? ... : fallback`. Optionally (second step) derive progress on this page from the modules returned by getCurriculumForProgram instead of also calling getProgramProgress — the completed/total/next-lesson data is already present in the modules' lesson statuses — eliminating 3 duplicate queries. No schema or route changes.",
+  "correctedFix": "Step 1 of the proposed fix is correct as written: wrap the four independent fetches (lines 210-237) in one Promise.all with programUuid-guarded fallbacks. Step 2 (derive progress from getCurriculumForProgram's modules) is NOT behavior-preserving and should not be done as proposed — three semantic differences: (a) in queries.ts line 116-122 the status ternary puts proGated before completed, so a non-pro user's completed pro lessons render as \"locked\"; deriving percent from lesson statuses undercounts vs getProgramProgress, which counts completion across all lessons regardless of plan; (b) when a program exists but lessons aren't seeded, getProgramProgress returns lessonsTotal = program.total_lessons (>0) so effectivePercent (page line 188-189) is the real 0, whereas empty modules would flip it to the demo 62%; (c) getProgramProgress.nextLesson is the first incomplete lesson even if pro-gated, while the curriculum \"current\" skips gated lessons, changing continueSlug for downgraded users. Safer dedupe: pass the already-fetched dbProgram.id and ctx.user.id into both helpers (eliminating the 3 redundant programs-by-slug lookups and the 3 redundant auth.getUser network calls), or merge them into one helper that fetches lessons + lesson_progress once and returns { modules, progress } using getProgramProgress's ungated counting semantics and total_lessons fallback.",
+  "verdictReasoning": "Both parts reproduce exactly. (1) page.tsx awaits four independent fetches strictly in series after the Promise.all: getProgramUserTasks (line 213, takes only programId/userId — verified in lesson-task-queries.ts), program_progress count (219-224), getProgramNotes (229), getProgramLearningPoints (236). None consumes another's output; ~5 serial round trips (getProgramNotes internally does auth.getUser then the query) that could run concurrently. (2) getCurriculumForProgram (queries.ts 41-142) and getProgramProgress (144-221) each run programs-by-slug, lessons-by-program, auth.getUser, and lesson_progress — and the page itself also queries programs by slug at lines 159-163, so the slug lookup happens 3x per render (claim slightly undercounts). However, the duplicated helper queries run inside Promise.all, so they cost duplicate DB/auth load, not latency; the serial block costs ~100-400ms TTFB depending on DB proximity. No correctness impact, no unbounded N+1. Real and worth fixing on a hot page, but 'high' overstates a bounded few-hundred-ms latency + redundant-load issue — medium is right."
+ },
+ "performance-5": {
+  "title": "getOnboardingGate adds up to 5 serial queries per request on programs/tutorials surfaces",
+  "severity": "medium",
+  "files": [
+   "src/lib/onboarding/gate.ts",
+   "src/app/(app)/programs/page.tsx",
+   "src/app/(app)/tutorials/page.tsx"
+  ],
+  "description": "getOnboardingGate (gate.ts lines 51-100) awaits in series: auth.getUser → admin_users (line 59) → programs by slug (line 68) → lessons (line 75) → lesson_progress (line 83). The admin_users and programs lookups are independent of each other; lessons could also be fetched in the same parallel batch as the admin check once program id is known via a single chained pair. On /programs (page.tsx line 30) and /tutorials (line 30 of tutorials/page.tsx) the gate also runs BEFORE the page's own data queries instead of alongside them, so a typical /programs render performs roughly 12-13 mostly-serial Supabase round trips (5 shell ctx + 4-5 gate + programs + 2 progress).",
+  "fix": "Two small changes in src/lib/onboarding/gate.ts: (a) run the admin_users and programs-by-slug selects in one Promise.all after getUser; (b) keep the lessons → lesson_progress chain but fetch them with one query each as today. Then in src/app/(app)/programs/page.tsx start the gate and the published-programs select concurrently: `const [gate, { data: dbPrograms }] = await Promise.all([getOnboardingGate(), supabase.from('programs')...])` (same pattern in tutorials/page.tsx with getAllTutorials). Cache() semantics are preserved.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-6": {
+  "title": "getAllTutorials waterfall: progress, notes and resources counts fetched serially",
+  "severity": "medium",
+  "files": [
+   "src/lib/programs/tutorial-queries.ts"
+  ],
+  "description": "getAllTutorials (tutorial-queries.ts lines 41-136) awaits lessons (line 49), then lesson_progress (line 63), then lesson_notes counts (line 79), then lesson_resources counts via service client (line 96) — strictly in series even though the last three only depend on the lesson ids from the first query. This powers the /tutorials library page for every user; the waterfall adds 2 unnecessary serial round trips on each render.",
+  "fix": "In src/lib/programs/tutorial-queries.ts, after the lessons select, compute lessonIds once and wrap the three follow-up queries (lesson_progress, lesson_notes, lesson_resources) in Promise.all, keeping the existing user guard for the first two and the try/catch fail-soft around the service-client resources query (e.g. Promise.all([user ? progQ : null, user ? notesQ : null, resQ.catch(() => null)])).",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-7": {
+  "title": "Full-size Supabase cover images rendered via raw <img> with no lazy loading across app grids",
+  "severity": "medium",
+  "files": [
+   "src/components/tutorials/library.tsx",
+   "src/components/programs/program-card.tsx",
+   "src/components/dashboard/programs-card.tsx",
+   "src/app/(app)/programs/[slug]/[lessonSlug]/page.tsx",
+   "src/components/community/discussion-list.tsx",
+   "src/components/tutorials/featured.tsx"
+  ],
+  "description": "Content images (lesson/program covers, feed attachments) are uploaded originals rendered through raw <img> with no loading=\"lazy\", no decoding=\"async\" and no responsive sizing: tutorials/library.tsx lines 330-337 (aspect-video grid tiles — a library of N tutorials downloads N full-size originals eagerly), program-card.tsx lines 192-197, dashboard/programs-card.tsx lines 60-66, lesson up-next rail at programs/[slug]/[lessonSlug]/page.tsx lines 589-596 (150 px wide thumbnails fetching full originals for every lesson in the module), community discussion-list.tsx lines 241-245 (size-16 thumb) and line 440 (h-44 attachment, full original). The raw <img> choice is deliberate (comment in program-card.tsx lines 186-188: covers can be data URLs and next/image has no remote domain config — next.config.ts has no images.remotePatterns), but the missing lazy/decoding attributes are pure loss: below-the-fold grid tiles all download at full size on page load.",
+  "fix": "Add loading=\"lazy\" decoding=\"async\" to every content-cover <img> listed (library.tsx:332, program-card.tsx:193, programs-card.tsx:62, lessonSlug page:591, discussion-list.tsx:241 and :440, featured.tsx cover). Keep above-the-fold heroes eager. As an optional follow-up, add images.remotePatterns for the Supabase storage hostname (from NEXT_PUBLIC_SUPABASE_URL) to next.config.ts and switch http(s) covers to next/image with fill + sizes, keeping the raw <img> branch only for data: URLs. Do not touch src/components/tutorials/lesson-tabs.tsx or src/components/marketing/stacked-features.tsx (owned by another active session).",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-8": {
+  "title": "Marketing sections hotlink Unsplash images at full quality with no optimization pipeline",
+  "severity": "medium",
+  "files": [
+   "src/components/marketing/designed-for.tsx",
+   "src/components/marketing/stacked-features.tsx"
+  ],
+  "description": "designed-for.tsx (NICHES array lines 24-31, rendered lines 130-141) loads six images.unsplash.com photos at w=900&q=80 via raw <img>; all six are absolutely stacked in the same visible panel, so the lazy attribute on indexes 1-5 has no effect once the section scrolls into view — ~6 third-party requests / roughly 0.5-1 MB and a hard runtime dependency on Unsplash availability for the landing page. stacked-features.tsx lines ~673-683 also hotlinks Unsplash avatars (w=160) — NOTE: stacked-features.tsx is owned by another active session (files-off-limits); report only, do not edit. The duplicate Unsplash hero photo is correctly self-hosted in /public, so the pattern is inconsistent.",
+  "fix": "For designed-for.tsx only (leave stacked-features.tsx alone): download the six Unsplash images once into /public (e.g. /niches/new-creators.jpg, pre-resized to ~900px), update the NICHES img paths, and render with next/image fill + sizes=\"(min-width:1024px) 400px, 100vw\". If self-hosting is not wanted, add images.remotePatterns for images.unsplash.com in next.config.ts and switch the <img> to next/image so they are resized/cached by the optimizer.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-9": {
+  "title": "Admin dashboard getAdminStats runs 5 sequential count queries",
+  "severity": "medium",
+  "files": [
+   "src/lib/admin/queries.ts"
+  ],
+  "description": "getAdminStats (src/lib/admin/queries.ts lines 21-~89) awaits five independent queries in series: total profiles count (line 25), onboarded count (line 29), plan groups select (line 35), new-this-week count (line 49), recent signups select (line 55). src/app/admin/page.tsx already parallelizes getAdminStats/getAdminMetricsSeries/getActiveProgramBuilds at the call site (line 27), but the internal waterfall still adds ~4 serial round trips to every admin dashboard load. getAdminMetricsSeries (line 276) already uses Promise.all correctly — this is the one straggler.",
+  "fix": "In src/lib/admin/queries.ts, refactor getAdminStats to issue the five supabase queries inside one Promise.all and destructure the results; preserve each query's exact filters and the existing null-coalescing defaults.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-10": {
+  "title": "Community feed 'Viewed by' row fetches fake avatars from i.pravatar.cc",
+  "severity": "medium",
+  "files": [
+   "src/components/community/discussion-list.tsx"
+  ],
+  "description": "discussion-list.tsx lines 883-891 renders 'Viewed by' avatar clusters by hot-linking `https://i.pravatar.cc/48?img=...` — a third-party placeholder-avatar service — once per post in the feed. This issues N external requests per feed render, depends on a hobby service's uptime for production UI, leaks user page-views to a third party (referrer), and shows fabricated people as 'viewers'. It is both a perf and a credibility issue on a primary app surface.",
+  "fix": "In src/components/community/discussion-list.tsx replace the pravatar <img> cluster (lines 883-891) with the local initials-avatar fallback already used elsewhere in the same file (the Avatar helper at ~line 947 renders an initial when src is null), or hide the 'Viewed by' cluster entirely when real viewer avatars are not available. No external requests.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-11": {
+  "title": "Layout-property animations: flex-basis accordion and height-based progress fill",
+  "severity": "low",
+  "files": [
+   "src/components/marketing/proven-results.tsx",
+   "src/app/globals.css"
+  ],
+  "description": "Two animations animate layout properties instead of transform: (1) proven-results.tsx lines 116-122 transitions flex-basis (16% ↔ 100%) on four 80vh panels over 0.6s — every hover re-runs full-section layout+paint each frame; the panels contain blurred decorations (blur-[90px] span at line 145) that repaint during the transition, which can visibly jank on mid-range laptops. (2) globals.css lines 519-522: @keyframes agent-progress-fill animates height 0%→100% on the agent-showcase tab progress bar, forcing continuous reflow for the whole auto-cycle duration. Most other animations in the codebase are correctly transform/opacity-based.",
+  "fix": "Low-risk targeted fix for (2): in globals.css change agent-progress-fill to animate transform: scaleY(0)→scaleY(1) with transform-origin: top on the .agent-progress element (update the element in src/components/marketing/agent-showcase.tsx to add origin-top and full height), keeping the reduced-motion override. For (1) leave the flex-basis mechanic (it is the design), but add will-change: flex-basis is NOT useful — instead add `contain: layout paint` to each accordion <button> so the per-frame reflow is scoped to the section rather than the document.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-12": {
+  "title": "Portal menus reposition via non-rAF scroll handlers that setState every scroll event",
+  "severity": "low",
+  "files": [
+   "src/components/posting/status-pill.tsx",
+   "src/components/posting/item-actions-menu.tsx"
+  ],
+  "description": "status-pill.tsx lines 93-94 and item-actions-menu.tsx lines 126-127 attach capture-phase window scroll + resize listeners (no passive flag, no rAF batching) whose handler (`place`/`reposition`) calls getBoundingClientRect and setState on every scroll event while a row menu is open. On the posting table this re-renders the menu component per scroll tick. Contrast with the marketing scroll sections (stacked-features.tsx lines 107-113, how-it-works.tsx lines 65-72) which correctly cancel/queue through requestAnimationFrame with passive listeners. Impact is small (only while a menu is open) but it is the one place in the app violating the pattern.",
+  "fix": "In both files wrap the reposition callback in a rAF gate (let raf=0; const onScroll=()=>{cancelAnimationFrame(raf); raf=requestAnimationFrame(place);}) and pass {passive:true} where capture isn't required (keep capture for the scroll listener since nested scroll containers are the target, but add passive:true alongside capture: addEventListener('scroll', onScroll, {capture:true, passive:true})). Cancel the pending frame in the cleanup.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "performance-13": {
+  "title": "/design route bundles ~800 KB of design-template source into a single client chunk",
+  "severity": "low",
+  "files": [
+   "src/app/design/design-gallery.tsx",
+   "src/design-templates/page-explorations.tsx",
+   "src/design-templates/page-designs.tsx"
+  ],
+  "description": "design-gallery.tsx (a 67 KB 'use client' file) statically imports the entire src/design-templates/ library, including page-explorations.tsx (431,395 B) and page-designs.tsx (235,069 B) plus ~30 more template modules (lines 121-205) — roughly 800 KB+ of component source compiled into one client bundle. Because Next code-splits per route this only affects the internal /design gallery itself, but that page parses/hydrates everything for whichever single section is being viewed. Internal-only surface, hence low severity.",
+  "fix": "In src/app/design/design-gallery.tsx convert the heaviest category modules (page-explorations, page-designs, page-designs-creator, tables, foundations) to next/dynamic() imports loaded when their gallery section/tab is first selected (ssr: false is fine for an internal gallery), keeping the light primitives (buttons, badges, inputs) static.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "logic-auth-security-1": {
+  "title": "Open redirect in /auth/callback via unvalidated ?next= param",
+  "severity": "medium",
+  "files": [
+   "src/app/auth/callback/route.ts"
+  ],
+  "description": "The OAuth/magic-link/recovery callback builds its post-exchange destination as `return NextResponse.redirect(`${origin}${next}`)` (lines 8-17) where `next` comes straight from the query string with no validation. Because `origin` already ends after `https://host`, an attacker-supplied `next` such as `@evil.com` resolves to `https://host@evil.com` (host=evil.com) and `.evil.com` resolves to `https://host.evil.com` — both are open redirects to an attacker domain. This is inconsistent with the rest of the auth flow: src/app/(auth)/actions.ts (safeInternalPath, lines 16-25) and src/app/(auth)/sign-in/page.tsx (lines 27-32) both validate the redirect target is a relative path. Exploitation requires a valid one-time auth `code` (so it pairs with a login-CSRF: attacker requests a reset on their own account, appends a malicious next, and lures a victim), which keeps it below critical, but the fix is trivial and the inconsistency is a real hole.",
+  "fix": "In src/app/auth/callback/route.ts, validate `next` the same way the sign-in flow does before using it: after computing `next`, replace it with a fallback unless it is a safe internal path, e.g. `const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : (type === 'recovery' ? '/reset-password' : '/dashboard');` and redirect to `${origin}${safeNext}`.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "logic-auth-security-2": {
+  "title": "Avatar/banner upload validated client-side only; saveAvatarUrl/saveBannerUrl trust an arbitrary URL",
+  "severity": "medium",
+  "files": [
+   "src/app/(app)/settings/settings-panel.tsx",
+   "src/app/(app)/settings/actions.ts"
+  ],
+  "description": "Avatar/banner files are uploaded directly from the browser to the public `community-media` Supabase bucket in uploadUserImage() (settings-panel.tsx lines 200-231), where the only type/size checks are `file.type.startsWith('image/')` and `file.size > 5MB` — both client-side and trivially bypassable by calling the storage API directly. The server actions saveAvatarUrl/saveBannerUrl (settings/actions.ts lines 95-141) then persist whatever URL string the client passes with no validation that it is a community-media URL inside the user's own folder. Migration 0050_community_post_media.sql scopes bucket WRITES to the user's own folder (storage.foldername(name)[1] = auth.uid()) but enforces no allowed_mime_types/size server-side, and SELECT is world-readable. Net effect: a user can store arbitrary file types/sizes (e.g. SVG/HTML) in a public bucket, and can set their stored avatar_url to any external URL (rendered as <img src> across the app and the public media-kit page).",
+  "fix": "Harden in two places: (1) In saveAvatarUrl/saveBannerUrl (settings/actions.ts), reject any URL that is not a community-media public URL under `${user.id}/` — parse the URL and require it to start with the project's Supabase storage public prefix and contain the caller's user id as the first path segment. (2) Configure allowed_mime_types and file_size_limit on the community-media bucket. Keep the existing client checks as UX only.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "logic-auth-security-3": {
+  "title": "Tasks cron route uses non-constant-time secret comparison",
+  "severity": "low",
+  "files": [
+   "src/app/api/tasks/run-scheduled/route.ts"
+  ],
+  "description": "The authorized() helper (lines 21-27) compares the bearer token with plain `===` (`header === `Bearer ${secret}` || header === secret`), which is not timing-safe. The sibling cron route src/app/api/admin/emails/run-scheduled/route.ts (lines 25-38) correctly uses node:crypto timingSafeEqual with a length check. This is a minor secret-comparison timing side-channel and an inconsistency between two endpoints that share the same CRON_SECRET.",
+  "fix": "Mirror the emails route: import { timingSafeEqual } from 'node:crypto', strip the optional 'Bearer ' prefix, build Buffers for the provided token and CRON_SECRET, length-check, then timingSafeEqual. Keep the existing 'no secret → refuse' behaviour.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "logic-auth-security-4": {
+  "title": "Raw Postgres/Supabase error messages surfaced to end users",
+  "severity": "low",
+  "files": [
+   "src/app/(app)/monetization/actions.ts",
+   "src/app/(app)/community/actions.ts",
+   "src/app/(app)/settings/actions.ts"
+  ],
+  "description": "Many user-facing server actions return `error.message` straight from PostgREST/Supabase to the client UI, leaking internal schema details (table/column names, constraint names, raw SQLSTATE wording). Examples: monetization/actions.ts returns `{ ok:false, error: error.message }` for every brand-deal/revenue/media-kit failure (e.g. lines 39, 110, 131, 149, 184, 202); community/actions.ts does the same on most inserts (e.g. lines 67, 110, 177); settings/actions.ts returns error.message on profile/pillar failures (lines 31-36, 68, 75, 86, 111, 136). Some sibling code already humanizes known codes (admin/posting/actions.ts humanize(), tasks/actions.ts MISSING_TABLE map), so the pattern is inconsistent. Low severity (info disclosure, no direct exploit) but pervasive and easy to tighten.",
+  "fix": "Introduce a small shared helper that maps known codes (42P01/42703/etc.) to friendly text and returns a generic 'Something went wrong, please try again.' for everything else, logging the raw error server-side with console.error. Apply it at the return sites in the cited files instead of passing error.message to the client.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "logic-auth-security-5": {
+  "title": "Support ticket reply ownership enforced only by RLS, not at the action layer",
+  "severity": "low",
+  "files": [
+   "src/lib/support/actions.ts"
+  ],
+  "description": "addTicketMessage (lines 171-194) inserts a message with a client-supplied `ticketId` and `author:'user'` after only checking that the caller is signed in — it does not verify the ticket belongs to the caller in code. This is currently SAFE because the RLS policy support_messages_insert_own (supabase/migrations/0013_support.sql lines 198-207) requires `author='user' AND the ticket's user_id = auth.uid()`, so a user cannot post on another user's ticket. Flagging as defense-in-depth only: closeTicket() in the same file (lines 200-215) does scope with .eq('user_id', user.id), so addTicketMessage is the odd one out and would silently become an IDOR if that RLS policy were ever dropped/modified.",
+  "fix": "Before inserting in addTicketMessage, look up the ticket by id and confirm its user_id === user.id (or pass ticket public_id and resolve with .eq('user_id', user.id)), returning a 'Ticket not found' error otherwise — matching the scoping already used in closeTicket.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "logic-auth-security-6": {
+  "title": "OAuth start redirects unauthenticated users with ?next= but sign-in reads ?redirect=",
+  "severity": "low",
+  "files": [
+   "src/app/api/oauth/[platform]/start/route.ts"
+  ],
+  "description": "When an unauthenticated request hits the OAuth start route it redirects to `/sign-in?next=/performance` (lines 75-77). The sign-in page and action only read the `redirect`/`redirect_to` param (src/app/(auth)/sign-in/page.tsx lines 27-32; src/app/(auth)/actions.ts line 33), and the middleware sets `?redirect=` (src/lib/supabase/middleware.ts line 56). So `next` is ignored and the user lands on /dashboard instead of returning to /performance to retry the connection. Low impact because /performance is auth-gated so this path is rarely reached unauthenticated, but it is a real param-name mismatch / dead post-login return.",
+  "fix": "In src/app/api/oauth/[platform]/start/route.ts change the sign-in redirect query key from `next` to `redirect` so it matches the sign-in flow: `new URL('/sign-in?redirect=/performance', ...)`.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-1": {
+  "title": "Stripe checkout success/cancel return URLs point at /billing, which 308-redirects and silently drops the ?status param",
+  "severity": "high",
+  "files": [
+   "src/app/api/billing/checkout/route.ts",
+   "src/app/(app)/billing/page.tsx",
+   "src/app/(app)/billing/billing-panel.tsx"
+  ],
+  "description": "checkout/route.ts sets success_url=`${appUrl}/billing?status=success` and cancel_url=`${appUrl}/billing?status=cancelled` (lines 66-67). But /billing is now a hard `redirect(\"/settings/payment-methods\")` (billing/page.tsx line 12), and BillingPageClient never reads a `status` searchParam anyway. After paying, the user lands on the billing settings page with NO success confirmation and a stale plan (the webhook may not have synced yet), so the page can still show 'Free'. The advertised post-checkout feedback loop is dead.",
+  "fix": "Change success_url/cancel_url in checkout/route.ts to `${appUrl}/settings/payment-methods?status=success` and `...?status=cancelled`. Then in billing-panel.tsx (or payment-methods/page.tsx) read the `status` searchParam and render a success/cancel banner. Keep the redirect target consistent with the real billing home.",
+  "correctedFix": "The proposed fix is directionally correct but needs two refinements. (1) Point success_url/cancel_url at `${appUrl}/settings/payment-methods?status=success|cancelled` (consider also appending `session_id={CHECKOUT_SESSION_ID}` for server-side verification). (2) Add the missing consumer — none exists today: read `searchParams` in settings/payment-methods/page.tsx (server side) and pass a `checkoutStatus` prop to BillingPageClient, or use useSearchParams in billing-panel.tsx wrapped in Suspense. (3) Word the success banner as 'Payment received — your plan will update in a moment' (and ideally trigger a refresh/poll or verify the checkout session server-side), NOT 'You are now on Pro', because the webhook race means the DB plan can still read Free at render time; a banner asserting the upgrade while the hero shows 'Free plan' would be contradictory. Note the claim's '308' detail is wrong — billing/page.tsx uses redirect() which is a 307 (the file comment saying 'permanent redirect' is also inaccurate) — but the query param is dropped either way.",
+  "verdictReasoning": "Verified in code: checkout/route.ts:66-67 sets success_url/cancel_url to `${appUrl}/billing?status=...`; src/app/(app)/billing/page.tsx:12 is `redirect(\"/settings/payment-methods\")`, which per this Next build's own docs (node_modules/next/dist/docs/01-app/03-api-reference/04-functions/redirect.md) emits a 307 (not 308 — minor claim error; permanentRedirect is the 308 variant) with a bare-path Location, so `?status=...` is dropped. src/proxy.ts does not handle /billing or preserve queries, and a repo-wide grep shows NO code anywhere reads a `status` search param — neither BillingPageClient (billing-panel.tsx) nor settings/payment-methods/page.tsx — so the post-checkout feedback loop is genuinely dead (in fact it was already dead before the /billing move, since the param never had a consumer). The stale-plan concern is also real: payment-methods/page.tsx renders ctx.plan from the DB, which only the Stripe webhook updates, so a paying user can land back on a page still showing 'Free' with a live 'Upgrade to Pro' button and zero confirmation. However, 'high' overstates it: the payment, webhook sync, and eventual plan display all work correctly; this is a confirmation/UX-trust gap (with some risk of a confused re-checkout attempt), not broken billing, data corruption, or security — medium severity."
+ },
+ "flows-forms-qa-3": {
+  "title": "Plan displayed in Settings/Billing reads profiles.plan, but the Stripe webhook only writes subscriptions.plan — plan badges can be permanently stale",
+  "severity": "high",
+  "files": [
+   "src/app/api/webhooks/stripe/route.ts",
+   "src/lib/app-shell/get-shell-context.ts",
+   "src/app/(app)/settings/settings-panel.tsx",
+   "supabase/migrations/0001_init.sql"
+  ],
+  "description": "The plan shown on the Settings profile card (settings-panel.tsx line 257, PLAN_META) and the sidebar/topbar all come from `profiles.plan` via getShellContext (get-shell-context.ts line 32). On upgrade/downgrade the Stripe webhook's syncSubscriptionRow only updates the `subscriptions` table (route.ts lines 186-199) and handleSubscriptionDeleted likewise resets only `subscriptions` (lines 83-91) — neither touches `profiles.plan`. The only code that writes profiles.plan is the admin action (admin/users/[id]/actions.ts). There is no DB trigger syncing subscriptions.plan→profiles.plan (grep of migrations finds none). Result: a real customer who upgrades to Pro via Stripe keeps showing 'Free plan' on their profile/sidebar indefinitely, while the /billing page (which reads getSubscription→subscriptions table) correctly shows Pro — an inconsistent, confusing split-brain. The billing-panel itself is fed `ctx.plan` (from profiles) for the hero/compare cards, so even the billing page's plan badge is wrong while invoices/status are right.",
+  "fix": "In webhooks/stripe/route.ts syncSubscriptionRow and handleSubscriptionDeleted, also update profiles.plan for the same user (e.g. add `await supabase.from('profiles').update({ plan }).eq('id', userId)` alongside the subscriptions update). This is a missing-write fix, not a schema change.",
+  "correctedFix": "The proposed dual-write is directionally correct (it mirrors the existing admin action in admin/users/[id]/actions.ts which already writes both tables), but as stated it is slightly incomplete: customer.subscription.updated also fires for non-entitled statuses (incomplete, incomplete_expired, unpaid), so unconditionally writing the paid plan to profiles.plan could grant Pro gating without a successful payment. In syncSubscriptionRow, derive the profile plan from status, e.g. const entitled = [\"active\",\"trialing\",\"past_due\"].includes(subscription.status); await supabase.from(\"profiles\").update({ plan: entitled ? plan : \"free\" }).eq(\"id\", userId); and in handleSubscriptionDeleted add await supabase.from(\"profiles\").update({ plan: \"free\" }).eq(\"id\", userId). (Service-role client bypasses RLS, so both writes succeed.) Longer term, consider making subscriptions the single source of truth and dropping profiles.plan reads, but the guarded dual-write is the right minimal fix.",
+  "verdictReasoning": "Every element of the claim reproduces in the code. (1) get-shell-context.ts:32 derives plan solely from profiles.plan; ctx.plan feeds the sidebar/topbar (src/app/(app)/layout.tsx:34,39), the Settings profile card (settings-panel.tsx:257 PLAN_META[profile?.plan ?? \"free\"]), and the billing UI itself (settings/payment-methods/page.tsx:31 passes plan={ctx.plan} to BillingPageClient, whose SubscriptionOverview and ComparePlansSection render from that prop while invoices/status come from the subscriptions table — the split-brain described). (2) The Stripe webhook writes only the subscriptions table: syncSubscriptionRow (route.ts:186-199) and handleSubscriptionDeleted (route.ts:82-91); the checkout route writes nothing plan-related to profiles. (3) Repo-wide grep confirms the only profiles.plan writer is the admin action (admin/users/[id]/actions.ts:34-42), which tellingly dual-writes both profiles AND subscriptions — proof the columns are intended to mirror each other. (4) Migrations 0001-0055 contain no trigger/function syncing subscriptions.plan → profiles.plan; the only triggers on public.subscriptions are touch_updated_at (0001_init.sql:292-294). No middleware/proxy or framework behavior is relevant. The impact is actually WORSE than claimed: ctx.plan also drives paid-content gating — tutorials/page.tsx:83 → library.tsx:315 (proLocked) and programs/[slug]/page.tsx:182 → programs/queries.ts:114 (proGated lessons marked \"locked\") — so a paying Stripe Pro customer is permanently locked out of Pro tutorials/lessons, not just shown a stale badge, until an admin manually edits their plan. The webhook uses createServiceClient (service role), so RLS does not block the proposed write. Severity high is justified (paid-feature denial for real customers); keeping rather than upgrading since an admin workaround exists and it only affects post-Stripe-checkout flows."
+ },
+ "flows-forms-qa-2": {
+  "title": "Onboarding completion screen can dead-end users who never finish (or whose browser cannot play) the intro video except via a graceful-fail path",
+  "severity": "medium",
+  "files": [
+   "src/components/onboarding/steps/complete.tsx",
+   "src/components/onboarding/intro-video.tsx"
+  ],
+  "description": "On the final onboarding step the 'Go to platform' button is hard-gated on `introWatched` (complete.tsx lines 118-120). `introWatched` only flips true when the video reaches its end OR onError fires (intro-video.tsx markComplete). The real asset is /onboarding-intro.mp4 which is not committed; if it 404s, onError unlocks the flow — fine. But if the asset IS present and the user simply pauses/abandons it, the ONLY way forward is to fully watch it (scrubbing past max-watched is blocked). There is no skip affordance and the profile is already saved (`onboarded:true`), so a user who closes the tab is now `onboarded` yet never reached the dashboard via this screen — on next login AppLayout sees onboarded=true and sends them to /dashboard, so they silently never see the celebration. The gate adds friction with no escape hatch for users who can't/won't watch.",
+  "fix": "Add a low-emphasis 'Skip intro' link next to the gated button in complete.tsx that calls router.push('/dashboard'), or unlock the button after a max wait. The profile is already persisted so skipping is safe.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-4": {
+  "title": "requestPasswordReset builds the reset link from NEXT_PUBLIC_APP_URL defaulting to localhost:3000, but the app runs on :8080",
+  "severity": "medium",
+  "files": [
+   "src/app/(auth)/actions.ts"
+  ],
+  "description": "requestPasswordReset (actions.ts lines 143-147) sets redirectTo=`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/auth/callback?type=recovery&next=/reset-password`. The onboarding welcome-email code (onboarding/actions.ts lines 107-110) instead derives the host from the request headers, and the billing routes also fall back to localhost:3000. If NEXT_PUBLIC_APP_URL is unset in this environment the password-reset email link points at :3000 while the dev server is :8080 — the reset link 404s/cannot reach the running app, breaking the forgot→reset flow end to end. The fallback is also inconsistent with the header-derived approach used elsewhere.",
+  "fix": "Either ensure NEXT_PUBLIC_APP_URL is set, or derive the origin from request headers (await headers()) as onboarding/actions.ts already does, instead of hardcoding localhost:3000. Confirm the configured value matches the runtime port.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-5": {
+  "title": "Settings 'Personal details' Save omits the displayed Email/Category/Handle and treats follower_base 'Select range…' (empty) as a deletion silently",
+  "severity": "medium",
+  "files": [
+   "src/app/(app)/settings/settings-panel.tsx",
+   "src/app/(app)/settings/actions.ts"
+  ],
+  "description": "saveProfileSettings only persists full_name, phone, follower_base (actions.ts lines 8-40). The follower_base Select includes an empty 'Select range…' option (settings-panel.tsx FOLLOWER_OPTIONS line 91). If a user with an existing follower_base accidentally re-selects the blank option and presses Save, follower_base is overwritten with '' — wiping their audience size and the 'X followers' line on the profile header with no warning. There's also no client-side validation gate; the Save button is always enabled. Minor data-loss footgun.",
+  "fix": "In settings-panel.tsx handleSave (or saveProfileSettings), skip writing follower_base when the value is '' (treat the placeholder as 'no change'), or remove the empty option from the editable Select. Keep the placeholder for display-only.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-6": {
+  "title": "CreatorBrand 'Platform & audience' Save re-writes ALL content pillars even though that section never edits pillars",
+  "severity": "medium",
+  "files": [
+   "src/app/(app)/settings/settings-panel.tsx",
+   "src/app/(app)/settings/actions.ts"
+  ],
+  "description": "Both the 'Creator brand' and 'Platform & audience' save buttons call the same handleSave→saveCreatorInfo with the full payload {bio, niche, primary_platform, pillars} (settings-panel.tsx lines 612-632; both SettingRow Save buttons at 805 and 904). saveCreatorInfo unconditionally DELETEs all content_pillars then re-inserts from the passed array (actions.ts lines 71-87). The two cards share one `pillars` state, so saving 'Platform & audience' is harmless when pillars are in sync — but because the delete+reinsert is not atomic and runs on every save of either section, an error between the delete and insert (insErr path) leaves the user with zero pillars and returns an error, with no rollback. Editing platform should not be able to nuke pillars.",
+  "fix": "Split saveCreatorInfo so the platform/niche save does NOT touch content_pillars (only update profiles), and only the brand/pillars save manages pillars. Alternatively wrap delete+insert in a single RPC/transaction so a mid-operation failure can't leave pillars empty.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-7": {
+  "title": "Language & region settings 'Save' persists region only to localStorage and is never read anywhere — the setting does nothing",
+  "severity": "medium",
+  "files": [
+   "src/app/(app)/settings/language/language-form.tsx"
+  ],
+  "description": "The Region & date format selector writes to localStorage key 'cgos:region' (language-form.tsx lines 12,38) and shows a 'Saved' confirmation, but a repo-wide grep shows 'cgos:region' is read by NOTHING else — no date/number formatting consumes it. The UI promises 'Controls how dates and numbers appear' (line 88) yet changing the region has zero effect anywhere in the app. The language half works (cookie + reload), but the region control is a button wired to a no-op store.",
+  "fix": "Either wire the region value into the date/number formatters that render throughout the app (read 'cgos:region' where toLocaleDateString is used), or remove the region selector and its 'Controls how dates and numbers appear' copy until it's implemented.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-8": {
+  "title": "Onboarding Pro→Stripe handoff swallows checkout failures and silently lands the user on the success screen as Free",
+  "severity": "medium",
+  "files": [
+   "src/components/onboarding/flow.tsx"
+  ],
+  "description": "In flow.tsx submit() (lines 69-88), when the user picked Pro and stripeReady is true, it POSTs /api/billing/checkout. If res is not ok or has no url, the code falls through to setStep('complete') with NO message — the button said 'Start 7-day free trial' / 'Starting your trial…', but the user silently ends up onboarded on Free with no indication checkout failed. The catch block is likewise empty (line 85). The user believes they started a Pro trial when they didn't.",
+  "fix": "In the non-ok / catch branches, surface a non-blocking notice (e.g. setSubmitError('We couldn’t start your Pro trial — you’re set up on Free; upgrade anytime from Billing.')) before falling through to the complete screen, so the user knows the trial didn't start.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-9": {
+  "title": "Community chat: failed sends surface a transient 4s toast but the typed message + pending image are discarded on the next attempt's success only — no optimistic echo, and reconnect refetch can drop the user's own un-acked message",
+  "severity": "medium",
+  "files": [
+   "src/components/community/chat/composer.tsx",
+   "src/components/community/chat/chat-room.tsx"
+  ],
+  "description": "Composer.submit() (composer.tsx lines 173-191) only clears the textarea/image AFTER a successful sendMessage; on failure it calls onError(result.error) which shows a 4-second auto-dismissing toast (chat-room.tsx showError, line 78-82) and keeps the text — that part is OK. The real gap: there is no optimistic message insert, so when the network is slow the user sees nothing happen until the round-trip + realtime INSERT lands. Worse, the send button is disabled while !isConnected (line 301) but if the socket drops mid-send and reconnects, the reconnect-recovery refetch (chat-room.tsx lines 201-209) only ADDS messages it doesn't already have — a message the server accepted during the gap will appear, but a message the client THINKS it sent (and cleared) but that errored will be silently lost with only a 4s toast as evidence. For a chat feature this is a fragile delivery story.",
+  "fix": "Add an optimistic pending-message bubble keyed by a client id, reconcile it against the realtime INSERT, and on send failure keep the draft AND show a persistent retry affordance instead of a 4s toast. At minimum, make the error toast persistent (not auto-dismiss) when a send fails so the user isn't misled into thinking it went through.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-10": {
+  "title": "Onboarding gate locks lessons but Pro-only lock CTA links to /billing?upgrade=pro, which redirects and drops the upgrade hint",
+  "severity": "low",
+  "files": [
+   "src/app/(app)/programs/[slug]/[lessonSlug]/page.tsx",
+   "src/app/(app)/billing/page.tsx",
+   "src/app/(app)/billing/billing-panel.tsx"
+  ],
+  "description": "The Pro-locked lesson CTA links to `/billing?upgrade=pro` (lessonSlug/page.tsx line 267). /billing 308-redirects to /settings/payment-methods (billing/page.tsx), dropping the `upgrade=pro` query param, and BillingPageClient never reads it anyway — so the deep-link intent (auto-scroll to / highlight the Pro upgrade) is lost. The user just lands on the generic billing page. Same pattern as the checkout return-URL issue.",
+  "fix": "Point the CTA at /settings/payment-methods (and optionally add ?upgrade=pro handling in billing-panel to expand/scroll the Compare plans section). Audit other `/billing?...` links (command palette, profile menu) for the same dropped-param problem.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-11": {
+  "title": "Support new-ticket page rejects topic 'other' that the server action and ticket-detail rendering both accept",
+  "severity": "low",
+  "files": [
+   "src/app/(app)/support/new/page.tsx",
+   "src/lib/support/actions.ts"
+  ],
+  "description": "new/page.tsx VALID_TOPIC_KEYS (lines 30-39) lists 8 topics and excludes 'other', so a deep-link like /support/new?topic=other is silently dropped to undefined. But the server action's VALID_TOPICS (actions.ts lines 24-27) DOES include 'other', and the ticket-detail page maps topics through SUPPORT_TOPICS. This is a minor inconsistency: 'other' is a first-class topic everywhere except the deep-link parser, so it can never be pre-selected via URL even though it's a valid value.",
+  "fix": "Add 'other' to VALID_TOPIC_KEYS in new/page.tsx to match the server action's VALID_TOPICS, keeping the topic list consistent across the wizard, the action, and the detail view.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ },
+ "flows-forms-qa-12": {
+  "title": "Profile/avatar saves call revalidatePath('/settings') but the billing & connected-accounts settings subpages won't reflect updated profile data until a hard reload",
+  "severity": "low",
+  "files": [
+   "src/app/(app)/settings/actions.ts",
+   "src/app/(app)/settings/payment-methods/page.tsx"
+  ],
+  "description": "saveProfileSettings/saveCreatorInfo/saveAvatarUrl/saveBannerUrl all revalidatePath('/settings') only (actions.ts lines 38,89,114,139). The settings live across multiple routes (/settings, /settings/payment-methods, /settings/connected-accounts, etc.) all wrapped by settings/layout.tsx, and the sidebar/topbar (driven by getShellContext) show name/avatar/plan. Updating the avatar revalidates /settings but not the shell layout, so the just-changed avatar in the topbar (Topbar uses ctx.topUser.avatar_url) won't update until a navigation/reload — the local component state updates the on-page avatar but the chrome lags. Cosmetic staleness rather than data loss.",
+  "fix": "Add `revalidatePath('/', 'layout')` (or revalidate the relevant settings subpaths) to the avatar/banner/profile save actions so the app-shell topbar avatar refreshes in step with the on-page change.",
+  "correctedFix": null,
+  "verdictReasoning": null
+ }
+}

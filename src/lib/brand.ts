@@ -1,5 +1,8 @@
-// Brand string of record per V3 brief; visual logo is the M-crown mark from the design comps.
-export const BRAND_NAME = "Creator Growth OS";
+// Brand string of record — "Profluencer" is the customer-facing product name
+// (it is what the marketing site renders and what Google OAuth verification
+// checks against the homepage; "Creator Growth OS" remains the internal
+// codename only). Visual logo is the M-crown mark from the design comps.
+export const BRAND_NAME = "Profluencer";
 export const BRAND_TAGLINE = "How To Become A Successful Social Media Influencer";
 
 export const PLAN_PRICES = {

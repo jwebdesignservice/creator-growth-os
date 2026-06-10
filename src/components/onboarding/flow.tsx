@@ -19,6 +19,12 @@ import { saveOnboarding } from "@/app/onboarding/actions";
 type StepKey = "stage" | "platform" | "goals" | "content" | "plan";
 const STEPS: StepKey[] = ["stage", "platform", "goals", "content", "plan"];
 
+/** Shown when the Pro→Stripe handoff fails — onboarding is already saved, so
+ *  the user lands on the success screen on Free and must know the trial
+ *  didn't start. */
+const CHECKOUT_FAILED_MESSAGE =
+  "We couldn’t start your Pro trial — your account is set up on the Free plan for now. You can upgrade anytime from Billing.";
+
 type Props = {
   initialDraft?: Partial<OnboardingDraft>;
   firstName?: string;
@@ -81,9 +87,12 @@ export function OnboardingFlow({ initialDraft, firstName, stripeReady }: Props) 
             window.location.href = body.url;
             return; // navigating away — keep the spinner up
           }
-          // Couldn't start checkout — fall through to the success screen on Free.
+          // Couldn't start checkout — surface a notice, then fall through to
+          // the success screen on Free.
+          setSubmitError(CHECKOUT_FAILED_MESSAGE);
         } catch {
-          // Network error — fall through; the user is onboarded on Free.
+          // Network error — same outcome: onboarded on Free, with a notice.
+          setSubmitError(CHECKOUT_FAILED_MESSAGE);
         }
       }
 

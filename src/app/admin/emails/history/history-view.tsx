@@ -16,7 +16,6 @@ import {
   Eye,
   MousePointerClick,
   AlertTriangle,
-  ExternalLink,
   MoreHorizontal,
   Type,
   Clock,
@@ -104,7 +103,7 @@ export function HistoryView({
   const [subjectQuery, setSubjectQuery] = useState("");
   const [recipientQuery, setRecipientQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | EmailStatus>("all");
-  const [verifyDismissed, setVerifyDismissed] = useState(false);
+  const [verifyDismissed] = useState(false);
   const [page, setPage] = useState(1);
   const [refreshing, startRefresh] = useTransition();
   const [preview, setPreview] = useState<EmailHistoryRow | null>(null);

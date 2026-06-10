@@ -24,7 +24,7 @@ import {
   type WorkspaceTab,
 } from "@/components/app-shell/workspace-shell";
 
-export const metadata = { title: "Posting Plans · Creator Growth OS" };
+export const metadata = { title: "Posting Plans · Profluencer" };
 
 type PostingTab = "my_plans" | "calendar" | "insights";
 

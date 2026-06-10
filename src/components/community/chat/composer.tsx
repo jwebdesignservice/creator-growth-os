@@ -141,6 +141,7 @@ export function Composer({
     setBody(val);
     const q = detectMentionQuery(val, e.target.selectionStart ?? val.length);
     setMentionQuery(q);
+    if (q === null) setCandidates([]);
     setSelectedIndex(0);
     if (q === null) setCandidates([]);
   }

@@ -223,8 +223,12 @@ export function NotifDropdown({
       </button>
 
       {/* ── Dropdown panel ────────────────────────────────────────────────── */}
+      {/* Mobile (<sm): the bell sits ~66px from the viewport's right edge
+          (avatar + gap + padding), so anchor the panel -50px right and cap its
+          width to the viewport so it never clips off-screen. sm+ keeps the
+          original right-0 / 380px geometry. */}
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] w-[380px] bg-white rounded-[16px] border border-ink-100 shadow-2xl z-50 overflow-hidden">
+        <div className="absolute -right-[50px] sm:right-0 top-[calc(100%+8px)] w-[380px] max-w-[calc(100vw-2rem)] bg-white rounded-[16px] border border-ink-100 shadow-2xl z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-ink-100">
             <div className="flex items-center gap-2">

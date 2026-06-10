@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -65,11 +65,14 @@ export function TemplatesView({ templates }: { templates: TemplateRow[] }) {
   }, [toast]);
 
   const q = query.trim().toLowerCase();
-  const match = (t: TemplateRow) =>
-    !q || t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q);
+  const match = useCallback(
+    (t: TemplateRow) =>
+      !q || t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q),
+    [q],
+  );
 
-  const active = useMemo(() => templates.filter((t) => !t.archived && match(t)), [templates, q]);
-  const archived = useMemo(() => templates.filter((t) => t.archived && match(t)), [templates, q]);
+  const active = useMemo(() => templates.filter((t) => !t.archived && match(t)), [templates, match]);
+  const archived = useMemo(() => templates.filter((t) => t.archived && match(t)), [templates, match]);
 
   function afterChange(msg: string) {
     setToast(msg);

@@ -1,15 +1,16 @@
 import { notFound, redirect } from "next/navigation";
 import { Crown, CreditCard, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { BRAND_NAME } from "@/lib/brand";
 import { InvoiceActions } from "./invoice-actions";
 
-export const metadata = { title: "Invoice · Profluencer" };
+export const metadata = { title: `Invoice · ${BRAND_NAME}` };
 
 /* Billing entity (issuer). These are the same business details Stripe prints
    on the hosted invoice; kept here so the in-app premium invoice matches.
    Move to env/config if the entity ever changes. */
 const ISSUER = {
-  brand: "Profluencer",
+  brand: BRAND_NAME,
   tagline: "Create. Grow. Monetize.",
   legalName: "Borealis Webstudio",
   address: ["Stardalen 89", "6843 Skei i Jølster", "Norway"],

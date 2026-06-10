@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowRight, ShieldAlert, TriangleAlert, Info } from "lucide-react";
+import { ShieldAlert, TriangleAlert, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { DevSectionCard } from "../../dev-section-card";
 import { DB_INTEGRITY_WARNINGS } from "@/lib/dev-dashboard/mock-data";
@@ -20,18 +19,7 @@ const TONE_COLOR: Record<DbIntegrityTone, string> = {
 export function IntegrityWarningsCard({ data }: { data?: DbIntegrityWarning[] }) {
   const rows = data ?? DB_INTEGRITY_WARNINGS;
   return (
-    <DevSectionCard
-      title="Database Integrity Warnings"
-      trailing={
-        <Link
-          href="/dev/data-integrity"
-          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--dev-accent-text)] hover:text-[var(--dev-accent)] transition-colors"
-        >
-          View integrity report
-          <ArrowRight className="size-3.5" strokeWidth={2} />
-        </Link>
-      }
-    >
+    <DevSectionCard title="Database Integrity Warnings">
       <ul className="space-y-2.5">
         {rows.map((item) => {
           const Icon = TONE_ICON[item.tone];

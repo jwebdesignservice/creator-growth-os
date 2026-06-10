@@ -9,6 +9,8 @@ import { MobileDrawer } from "./mobile-drawer";
 import { Avatar } from "./avatar";
 import { CommandPalette, openCommandPalette } from "./command-palette";
 import { BrandMark } from "@/components/brand-mark";
+import { BRAND_NAME } from "@/lib/brand";
+import { useT } from "@/lib/i18n/client";
 
 export { Avatar } from "./avatar";
 
@@ -39,9 +41,11 @@ export function Topbar({
   useEffect(() => {
     if (typeof navigator === "undefined") return;
     const isMac = navigator.platform.toLowerCase().includes("mac");
-    const t = window.setTimeout(() => setModKey(isMac ? "⌘" : "Ctrl"), 0);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setModKey(isMac ? "⌘" : "Ctrl"), 0);
+    return () => window.clearTimeout(timer);
   }, []);
+
+  const t = useT();
 
   return (
     <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100 lg:h-[var(--topbar-height)] lg:box-border">
@@ -61,7 +65,7 @@ export function Topbar({
         >
           <BrandMark size={28} />
           <span className="text-[16px] font-semibold tracking-tight text-ink-900 leading-none truncate">
-            profluencer
+            {BRAND_NAME}
           </span>
         </Link>
 
@@ -69,7 +73,7 @@ export function Topbar({
           <NotifDropdown initialUnreadCount={unreadNotificationCount} userId={user.id} />
           <Link
             href="/settings"
-            aria-label="Account settings"
+            aria-label={t("Account settings")}
             className="inline-flex items-center justify-center p-1 rounded-full hover:bg-cream-200 active:bg-cream-300 transition-colors"
           >
             <Avatar
@@ -91,7 +95,7 @@ export function Topbar({
           <button
             type="button"
             onClick={openCommandPalette}
-            aria-label="Open search"
+            aria-label={t("Open search")}
             aria-haspopup="dialog"
             className="group relative w-full h-11 pl-11 pr-3 rounded-[14px] bg-white border border-ink-100 text-left text-[13.5px] text-ink-400 hover:border-ink-200 hover:bg-white focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-colors flex items-center"
           >
@@ -100,7 +104,7 @@ export function Topbar({
               strokeWidth={2}
               aria-hidden
             />
-            <span className="flex-1 truncate">Search programs, tutorials, pages…</span>
+            <span className="flex-1 truncate">{t("Search programs, tutorials, pages…")}</span>
             <span
               aria-hidden
               className="ml-2 inline-flex items-center gap-1 shrink-0"
@@ -122,14 +126,14 @@ export function Topbar({
           <NotifDropdown initialUnreadCount={unreadNotificationCount} userId={user.id} />
           <Link
             href="/support"
-            aria-label="Support"
+            aria-label={t("Support")}
             className="relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors"
           >
             <Headset className="size-[18px] text-ink-700" strokeWidth={1.8} />
           </Link>
           <Link
             href="/posting"
-            aria-label="Calendar"
+            aria-label={t("Calendar")}
             className="relative inline-flex items-center justify-center size-10 rounded-full bg-white border border-ink-100 hover:bg-cream-200 transition-colors"
           >
             <CalendarDays className="size-[18px] text-ink-700" strokeWidth={1.8} />
@@ -142,8 +146,8 @@ export function Topbar({
         {isAdmin && (
           <Link
             href="/admin"
-            aria-label="Admin Console"
-            title="Admin Console"
+            aria-label={t("Admin Console")}
+            title={t("Admin Console")}
             className="relative inline-flex items-center justify-center size-10 rounded-full bg-rose-600 text-white hover:bg-rose-700 transition-colors"
           >
             <ShieldCheck className="size-[18px] text-white" strokeWidth={1.8} />

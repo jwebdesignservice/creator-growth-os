@@ -10,10 +10,14 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
+import { createClient } from "@/lib/supabase/server";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
 import { getLessonNotes } from "@/lib/programs/queries";
-import { getLessonChapters } from "@/app/admin/tutorials/[id]/lesson-chapters-actions";
+import {
+  getLessonChapters,
+  getLinkedVideoNavTargets,
+} from "@/app/admin/tutorials/[id]/lesson-chapters-actions";
 import { getLessonResources } from "@/app/admin/tutorials/[id]/resources-actions";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
@@ -41,7 +45,7 @@ export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
   const t = await getTutorialDetail(slug);
   return {
-    title: t ? `${t.title} · Creator Growth OS` : "Tutorial · Creator Growth OS",
+    title: t ? `${t.title} · Profluencer` : "Tutorial · Profluencer",
   };
 }
 
@@ -95,6 +99,48 @@ export default async function TutorialDetailPage({
     getLessonResources(lesson.id),
     getLessonNotes(lesson.slug),
   ]);
+
+  // Resolve linked video steps to navigable tutorials (published only) so
+  // the Lesson Path tab can send the learner straight to the next video.
+  const navTargets = await getLinkedVideoNavTargets(
+    chapters.map((c) => c.linkedLessonId),
+  );
+  const targetById = new Map(navTargets.map((t) => [t.id, t]));
+
+  // Which of the linked videos has this learner already finished? Lets the
+  // path mark watched steps and point "Up next" at the first unseen one.
+  const completedLinked = new Set<string>();
+  if (navTargets.length > 0) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: prog } = await supabase
+        .from("lesson_progress")
+        .select("lesson_id, completed")
+        .eq("user_id", user.id)
+        .in(
+          "lesson_id",
+          navTargets.map((t) => t.id),
+        );
+      for (const p of prog ?? []) {
+        if (p.completed) completedLinked.add(p.lesson_id as string);
+      }
+    }
+  }
+
+  const pathSteps = chapters.map((c) => ({
+    ...c,
+    linked: c.linkedLessonId ? (targetById.get(c.linkedLessonId) ?? null) : null,
+    linkedCompleted: c.linkedLessonId
+      ? completedLinked.has(c.linkedLessonId)
+      : false,
+  }));
+  // The authored path beats library order: the first linked video step is
+  // what "Complete & continue" should lead to.
+  const authoredNext =
+    pathSteps.find((c) => c.type === "video" && c.linked)?.linked ?? null;
 
   const proLocked = lesson.planAccess === "pro" && ctx.plan !== "pro";
 
@@ -221,11 +267,11 @@ export default async function TutorialDetailPage({
               lessonSlug={lesson.slug}
               initialCompleted={lesson.completed}
               lessonTitle={lesson.title}
-              // Standalone tutorials advance through the Tutorial Library in
-              // sort order: Complete & continue → next tutorial in line,
-              // Go back → previous one. (prev/next come from getTutorialDetail.)
+              // Complete & continue follows the admin-authored lesson path
+              // first (the first linked video step); when the path doesn't
+              // link a next video it falls back to Tutorial Library order.
               basePath="/tutorials"
-              nextSlug={lesson.next?.slug ?? null}
+              nextSlug={authoredNext?.slug ?? lesson.next?.slug ?? null}
               prevSlug={lesson.prev?.slug ?? null}
             />
           )}
@@ -234,7 +280,7 @@ export default async function TutorialDetailPage({
           <LessonContent
             active={active}
             description={lesson.description}
-            chapters={chapters}
+            chapters={pathSteps}
             resources={resources}
             notes={notes}
             lessonSlug={lesson.slug}
