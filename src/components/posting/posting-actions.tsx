@@ -630,15 +630,15 @@ export function NewItemForm({
   if (isIdea) {
     return (
       <div
-        className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
+        className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4"
         onClick={onClose}
       >
         <div
-          className="bg-white rounded-[20px] shadow-xl border border-ink-100 w-full max-w-[760px] my-6 overflow-hidden"
+          className="bg-white rounded-[20px] shadow-xl border border-ink-100 w-full max-w-[760px] max-h-[calc(100vh-32px)] flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* top bar */}
-          <header className="flex items-center gap-2 px-5 sm:px-6 py-4">
+          <header className="flex shrink-0 items-center gap-2 px-5 sm:px-6 py-4">
             <h3 className="text-[22px] font-bold text-ink-900 tracking-[-0.01em]">
               New Idea
             </h3>
@@ -757,8 +757,8 @@ export function NewItemForm({
             </button>
           </header>
 
-          {/* body */}
-          <div className="px-5 sm:px-6 pb-4">
+          {/* body — scrolls inside the sheet; header/footer stay pinned */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 pb-4">
             <input
               type="text"
               value={topic}
@@ -913,7 +913,7 @@ export function NewItemForm({
           </div>
 
           {/* footer */}
-          <footer className="flex items-center justify-end gap-2.5 px-5 sm:px-6 py-4 border-t border-ink-100">
+          <footer className="flex shrink-0 items-center justify-end gap-2.5 px-5 sm:px-6 py-4 border-t border-ink-100">
             <button
               type="button"
               onClick={() => save("planned")}
@@ -951,18 +951,18 @@ export function NewItemForm({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
         className={cn(
-          "bg-white rounded-[20px] shadow-xl border border-ink-100 w-full my-6 overflow-hidden transition-[max-width] duration-200",
+          "bg-white rounded-[20px] shadow-xl border border-ink-100 w-full max-h-[calc(100vh-32px)] flex flex-col overflow-hidden transition-[max-width] duration-200",
           expanded ? "max-w-[1280px]" : "max-w-[1040px]",
         )}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Top bar ─────────────────────────────────────────────────── */}
-        <header className="flex items-center gap-2.5 px-5 sm:px-6 py-3.5 border-b border-ink-100">
+        <header className="flex shrink-0 items-center gap-2.5 px-5 sm:px-6 py-3.5 border-b border-ink-100">
           <h3 className="text-[19px] font-bold text-ink-900 tracking-[-0.01em] shrink-0">
             {isEdit ? "Edit Post" : isIdea ? "Capture Idea" : "Create Post"}
           </h3>
@@ -1104,7 +1104,7 @@ export function NewItemForm({
         {/* ── Body: composer · live preview ───────────────────────────── */}
         <div
           className={cn(
-            "grid grid-cols-1",
+            "grid grid-cols-1 flex-1 min-h-0 overflow-y-auto",
             showPreview && "lg:grid-cols-[minmax(0,1fr)_350px]",
           )}
         >
@@ -1626,7 +1626,7 @@ export function NewItemForm({
         </div>
 
         {/* ── Footer ──────────────────────────────────────────────────── */}
-        <footer className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-ink-100">
+        <footer className="flex shrink-0 flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-ink-100">
           <div className="flex items-center gap-4">
             {isEdit && (
               <button
