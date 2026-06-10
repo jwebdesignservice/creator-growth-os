@@ -3,7 +3,7 @@ import { DevShell } from "@/components/dev-dashboard/dev-shell";
 import { getDevContext } from "@/lib/dev-dashboard/dev-access";
 
 export const metadata = {
-  title: "Dev Dashboard · Profluencer",
+  title: "Dev Dashboard",
   robots: { index: false, follow: false },
 };
 

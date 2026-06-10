@@ -4,7 +4,7 @@ import { getMyTickets } from "@/lib/support/queries";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { TicketsTable } from "./tickets-table";
 
-export const metadata = { title: "Your Tickets · Profluencer" };
+export const metadata = { title: "Your Tickets" };
 
 /**
  * "My tickets" page — premium table linked from the Settings → Security card.

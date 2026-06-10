@@ -61,7 +61,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
-  return { title: `#${id} · Support · Profluencer` };
+  return { title: `#${id} · Support` };
 }
 
 /* ─── Visual mappings ─────────────────────────────────────────────────── */

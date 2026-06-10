@@ -4,7 +4,10 @@ import { BrandMark } from "@/components/brand-mark";
 import { BRAND_NAME } from "@/lib/brand";
 import { ResendForm } from "./resend-form";
 
-export const metadata = { title: "Verify your email · Profluencer" };
+export const metadata = {
+  title: "Verify your email",
+  robots: { index: false, follow: false },
+};
 
 type SearchParams = Promise<{ email?: string; from?: string }>;
 

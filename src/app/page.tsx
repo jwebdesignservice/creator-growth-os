@@ -10,8 +10,10 @@
  * Signed-in users skip the marketing surface and land on /dashboard.
  */
 
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { SITE_URL } from "@/lib/seo";
 import { Hero } from "@/components/marketing/hero";
 import { ProvenResults } from "@/components/marketing/proven-results";
 import { HowItWorks } from "@/components/marketing/how-it-works";
@@ -21,21 +23,74 @@ import { AgentShowcase } from "@/components/marketing/agent-showcase";
 import { Cta } from "@/components/marketing/cta";
 import { Footer } from "@/components/marketing/footer";
 
-export const metadata = {
-  title: "Profluencer — Creator Growth Platform",
+export const metadata: Metadata = {
+  // Root layout's template would render "… · Profluencer"; the homepage
+  // carries the full brand title itself.
+  title: { absolute: "Profluencer — Creator Growth Platform" },
   description:
-    "Profluencer is a creator growth platform that tracks weekly performance " +
-    "across Instagram, TikTok, YouTube and more so creators can see what's " +
-    "working and grow consistently.",
-  applicationName: "Profluencer",
+    "Profluencer is a white-label creator growth platform: programs, " +
+    "community, content planning, daily missions and performance tracking " +
+    "across Instagram, TikTok and YouTube — branded as your own, with no " +
+    "upfront cost.",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Profluencer — Creator Growth Platform",
     description:
-      "Track weekly performance across your connected social accounts. See " +
-      "what's working. Grow consistently.",
+      "Programs, community, content planning and performance tracking in " +
+      "one platform — branded as your own.",
+    url: "/",
     siteName: "Profluencer",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Profluencer — Creator Growth Platform",
+    description:
+      "Programs, community, content planning and performance tracking in " +
+      "one platform — branded as your own.",
+  },
+};
+
+/* Structured data — tells Google + AI answer engines what this site IS.
+   Organization (brand identity), WebSite (sitelinks), SoftwareApplication
+   (product card: category + free-entry pricing). */
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Profluencer",
+      url: SITE_URL,
+      email: "hello@profluencer.com",
+      logo: `${SITE_URL}/opengraph-image`,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "Profluencer",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Profluencer",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      url: SITE_URL,
+      description:
+        "White-label creator growth platform — programs, community, " +
+        "content planning, daily missions and performance tracking, " +
+        "branded as your own.",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "GBP",
+        description: "Free to start — paid community plans available.",
+      },
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
 };
 
 export default async function HomePage() {
@@ -47,6 +102,11 @@ export default async function HomePage() {
 
   return (
     <main className="bg-ink-900">
+      <script
+        type="application/ld+json"
+        // Static, build-time JSON — no user input flows in.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <Hero />
       <ProvenResults />
       <HowItWorks />

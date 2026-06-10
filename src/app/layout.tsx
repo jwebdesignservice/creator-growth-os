@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, Caveat } from "next/font/google";
 import { BRAND_NAME } from "@/lib/brand";
+import { SITE_URL, SITE_DESCRIPTION, SITE_KEYWORDS } from "@/lib/seo";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -25,9 +26,43 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: BRAND_NAME,
-  description:
-    "Become a successful social media influencer. Your daily creator command center — programs, missions, posting plans, performance and monetization.",
+  // Absolute base for every relative OG/canonical URL below + in child pages.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${BRAND_NAME} — Creator Growth Platform`,
+    template: `%s · ${BRAND_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  applicationName: BRAND_NAME,
+  category: "technology",
+  // Site-wide defaults; public pages refine these, private surfaces
+  // (app shell, admin, dev) override robots with noindex.
+  openGraph: {
+    type: "website",
+    siteName: BRAND_NAME,
+    locale: "en_US",
+    url: "/",
+    title: `${BRAND_NAME} — Creator Growth Platform`,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${BRAND_NAME} — Creator Growth Platform`,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  formatDetection: { telephone: false },
 };
 
 export default function RootLayout({

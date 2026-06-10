@@ -2,7 +2,7 @@ import { getAdminPostingOverview } from "@/lib/admin/posting-queries";
 import { PostingOverview } from "@/components/admin/posting-overview";
 
 export const metadata = {
-  title: "Content Planning Overview · Admin · Profluencer",
+  title: "Content Planning Overview · Admin",
 };
 
 export default async function AdminPostingPage() {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { CreateProgramForm } from "../create-form";
 
-export const metadata = { title: "New Program · Admin · Profluencer" };
+export const metadata = { title: "New Program · Admin" };
 
 /**
  * Standalone "create program" route, reached via the "+ New program" button

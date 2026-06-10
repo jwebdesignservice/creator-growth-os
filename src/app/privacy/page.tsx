@@ -3,8 +3,11 @@ import { BrandMark } from "@/components/brand-mark";
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: "Privacy Policy · Profluencer",
-  description: "Privacy Policy for Profluencer.",
+  title: "Privacy Policy",
+  description:
+    "How Profluencer collects, uses and protects your data across the " +
+    "creator growth platform.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

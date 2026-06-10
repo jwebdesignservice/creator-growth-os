@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin/is-admin";
 import { DesignGalleryLazy } from "./design-gallery-lazy";
 
-export const metadata = { title: "Design system · Profluencer" };
+export const metadata = { title: "Design system" };
 
 export default async function DesignGalleryPage() {
   const { isAdmin } = await getAdminContext();

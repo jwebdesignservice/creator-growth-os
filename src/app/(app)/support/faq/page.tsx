@@ -16,7 +16,7 @@ import {
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { PageShell } from "@/components/app-shell/page-shell";
 
-export const metadata = { title: "FAQ · Help & Support · Profluencer" };
+export const metadata = { title: "FAQ · Help & Support" };
 
 /**
  * Frequently Asked Questions.

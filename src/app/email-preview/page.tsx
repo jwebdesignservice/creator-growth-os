@@ -3,7 +3,7 @@ import { getAllPreviewTemplates } from "./templates";
 import { SendForm } from "./send-form";
 
 export const metadata = {
-  title: "Email preview · Profluencer",
+  title: "Email preview",
   robots: { index: false, follow: false },
 };
 

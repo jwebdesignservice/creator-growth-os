@@ -10,7 +10,7 @@ import { DmRoom } from "@/components/community/dm/dm-room";
 import { createClient } from "@/lib/supabase/server";
 import type { DmReaction } from "@/lib/community/dm/types";
 
-export const metadata = { title: "Messages · Creator Growth OS" };
+export const metadata = { title: "Messages" };
 
 export default async function MessageThreadPage({
   params,

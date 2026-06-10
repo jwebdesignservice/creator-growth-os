@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
   const t = await getTutorialDetail(slug);
   return {
-    title: t ? `${t.title} · Profluencer` : "Tutorial · Profluencer",
+    title: t ? `${t.title}` : "Tutorial",
   };
 }
 

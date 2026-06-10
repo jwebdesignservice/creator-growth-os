@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Workflow, ArrowRight } from "lucide-react";
 
 export const metadata = {
-  title: "Automations · Email · Admin · Profluencer",
+  title: "Automations · Email · Admin",
 };
 
 /**

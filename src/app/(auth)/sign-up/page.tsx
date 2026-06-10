@@ -9,7 +9,13 @@ import {
 import { REF_COOKIE, sanitizeReferralCode } from "@/lib/referrals/cookie";
 import { SignUpForm } from "./sign-up-form";
 
-export const metadata = { title: "Create account · Profluencer" };
+export const metadata = {
+  title: "Create account",
+  description:
+    "Create your free Profluencer account — programs, community, content " +
+    "planning and performance tracking for creators.",
+  alternates: { canonical: "/sign-up" },
+};
 
 type SearchParams = Promise<{ ref?: string }>;
 

@@ -9,7 +9,7 @@ import {
 } from "./history-view";
 
 export const metadata = {
-  title: "History · Email · Admin · Profluencer",
+  title: "History · Email · Admin",
 };
 
 type DbRow = {

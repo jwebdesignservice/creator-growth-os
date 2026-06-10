@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { OnboardingFlow } from "@/components/onboarding/flow";
 import { isStripeConfigured } from "@/lib/stripe/client";
 
-export const metadata = { title: "Welcome · Profluencer" };
+export const metadata = {
+  title: "Welcome",
+  robots: { index: false, follow: false },
+};
 
 export default async function OnboardingPage() {
   const supabase = await createClient();

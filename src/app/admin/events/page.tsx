@@ -5,7 +5,7 @@ import { EVENT_KIND_VALUES } from "@/lib/community/event-kinds";
 import { EventsToolbar } from "./events-toolbar";
 import { EventAdminRow, type EventRowData } from "./event-admin-row";
 
-export const metadata = { title: "Events · Admin · Profluencer" };
+export const metadata = { title: "Events · Admin" };
 
 type SearchParams = Promise<{
   status?: string;

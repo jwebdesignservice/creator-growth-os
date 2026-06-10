@@ -3,7 +3,7 @@ import { getAnnouncements } from "@/lib/admin/queries";
 import { ComposeForm } from "./compose-form";
 import { DeleteButton } from "./delete-button";
 
-export const metadata = { title: "Announcements · Admin · Profluencer" };
+export const metadata = { title: "Announcements · Admin" };
 
 const CATEGORY_LABEL: Record<string, string> = {
   starter: "Starter",

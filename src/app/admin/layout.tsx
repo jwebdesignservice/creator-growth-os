@@ -4,6 +4,11 @@ import { TopbarSearch } from "@/components/admin/topbar-search";
 import { ProfileMenu } from "@/components/app-shell/profile-menu";
 import { getAdminContext } from "@/lib/admin/is-admin";
 
+// Admin console is private — never index (also disallowed in robots.ts).
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 export default async function AdminLayout({
   children,
 }: {

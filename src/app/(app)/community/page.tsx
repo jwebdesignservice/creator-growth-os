@@ -34,7 +34,7 @@ import {
   type WorkspaceTab,
 } from "@/components/app-shell/workspace-shell";
 
-export const metadata = { title: "Community · Profluencer" };
+export const metadata = { title: "Community" };
 
 type CommunityTab = "feed" | "chat" | "events" | "members";
 
