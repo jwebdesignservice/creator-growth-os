@@ -29,6 +29,8 @@ import {
   Star,
   Link2,
   Search,
+  Tag,
+  Pin,
   Heart,
   MessageCircle,
   Bookmark,
@@ -540,7 +542,8 @@ export function NewItemForm({
   const goalLabel = GOALS.find((g) => g.value === goal && g.value)?.label ?? null;
   const scheduleLabel = date
     ? new Date(`${date}T${time || nowTimeHHMM()}`).toLocaleString(undefined, {
-        weekday: "short",
+        // Edit mode mirrors the reference chip ("Jun 11, 9:42 PM" — no weekday).
+        ...(isEdit ? {} : { weekday: "short" as const }),
         month: "short",
         day: "numeric",
         hour: "numeric",
@@ -574,6 +577,22 @@ export function NewItemForm({
     now: "Now",
     custom: scheduleLabel ?? "Set Date and Time",
   };
+
+  // Edit mode: park the post back in the idea/draft stage (reference's
+  // "Move to Drafts") and close.
+  function moveToDrafts() {
+    if (!editItem) return;
+    setErr(null);
+    startTransition(async () => {
+      const res = await updatePostingItemDetail(editItem.id, { status: "idea" });
+      if (!res.ok) {
+        setErr(res.error);
+        return;
+      }
+      router.refresh();
+      onClose();
+    });
+  }
 
   function save(status: "idea" | "planned") {
     setErr(null);
@@ -842,8 +861,8 @@ export function NewItemForm({
             <div className="relative mt-2">
               <textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value.slice(0, 500))}
-                maxLength={500}
+                onChange={(e) => setNotes(e.target.value.slice(0, 4000))}
+                maxLength={4000}
                 rows={10}
                 spellCheck
                 className="w-full min-h-[300px] resize-none border-0 bg-transparent text-[15px] leading-relaxed text-ink-900 focus:outline-none"
@@ -975,7 +994,7 @@ export function NewItemForm({
               <span aria-hidden className="w-px h-5 bg-ink-200 mx-1.5" />
               <button
                 type="button"
-                onClick={() => setNotes((t) => (t + "🙂").slice(0, 500))}
+                onClick={() => setNotes((t) => (t + "🙂").slice(0, 4000))}
                 title="Add emoji"
                 aria-label="Add emoji"
                 className="inline-flex size-9 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
@@ -1053,27 +1072,86 @@ export function NewItemForm({
           <h3 className="text-[19px] font-bold text-ink-900 tracking-[-0.01em] shrink-0">
             {isEdit ? "Edit Post" : isIdea ? "Capture Idea" : "Create Post"}
           </h3>
-          {/* content type — the reference's Tags-style pill */}
-          <div className="relative shrink-0">
-            <Clapperboard
-              className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-ink-500 pointer-events-none"
-              strokeWidth={2}
-            />
-            <select
-              value={contentType}
-              onChange={(e) => setContentType(e.target.value)}
-              aria-label="Content type"
-              className="h-9 pl-8 pr-8 rounded-full border border-ink-200 bg-white text-[13px] font-medium text-ink-700 appearance-none cursor-pointer hover:bg-cream-100 focus:outline-none focus:border-rose-300 transition-colors"
-            >
-              {CONTENT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-            <ChevronDown
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
-              strokeWidth={2}
-            />
-          </div>
+          {/* content type — the reference's Tags pill (labeled "Tags" while
+              editing, exactly like the reference's Edit Post header) */}
+          {isEdit ? (
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setTagsOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={tagsOpen}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-ink-200 bg-white pl-3 pr-2.5 text-[13px] font-medium text-ink-700 hover:bg-cream-100 transition-colors focus:outline-none focus:border-rose-300"
+              >
+                <Tag className="size-3.5 text-ink-500" strokeWidth={2} />
+                Tags
+                <ChevronDown className="size-3.5 text-ink-400" strokeWidth={2} />
+              </button>
+              {tagsOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setTagsOpen(false)}
+                    className="fixed inset-0 z-40 cursor-default"
+                  />
+                  <div
+                    role="menu"
+                    className="absolute left-0 top-[calc(100%+8px)] z-50 w-[210px] rounded-[14px] border border-ink-100 bg-white py-1.5 shadow-card"
+                  >
+                    <div className="px-3.5 py-1 text-[10px] uppercase tracking-wide text-ink-400 font-semibold">
+                      Content type
+                    </div>
+                    {CONTENT_TYPES.map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={contentType === t.value}
+                        onClick={() => {
+                          setContentType(t.value);
+                          setTagsOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-3.5 py-2 text-left text-[13px] hover:bg-cream-100 transition-colors",
+                          contentType === t.value
+                            ? "font-semibold text-ink-900"
+                            : "text-ink-700",
+                        )}
+                      >
+                        {t.label}
+                        {contentType === t.value && (
+                          <Check className="size-3.5 ml-auto" strokeWidth={2.5} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="relative shrink-0">
+              <Clapperboard
+                className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-ink-500 pointer-events-none"
+                strokeWidth={2}
+              />
+              <select
+                value={contentType}
+                onChange={(e) => setContentType(e.target.value)}
+                aria-label="Content type"
+                className="h-9 pl-8 pr-8 rounded-full border border-ink-200 bg-white text-[13px] font-medium text-ink-700 appearance-none cursor-pointer hover:bg-cream-100 focus:outline-none focus:border-rose-300 transition-colors"
+              >
+                {CONTENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <ChevronDown
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
+                strokeWidth={2}
+              />
+            </div>
+          )}
 
           <span className="flex-1" />
 
@@ -1102,7 +1180,7 @@ export function NewItemForm({
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors",
               showPreview
-                ? "bg-rose-100 text-rose-700"
+                ? "bg-emerald-100 text-emerald-700"
                 : "text-ink-600 hover:bg-cream-100",
             )}
           >
@@ -1175,8 +1253,8 @@ export function NewItemForm({
                 </span>
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value.slice(0, 500))}
-                  maxLength={500}
+                  onChange={(e) => setNotes(e.target.value.slice(0, 4000))}
+                  maxLength={4000}
                   rows={5}
                   spellCheck
                   placeholder="Start writing or get inspired with Templates"
@@ -1293,7 +1371,7 @@ export function NewItemForm({
                 <span aria-hidden className="w-px h-4 bg-ink-200 mx-1" />
                 <button
                   type="button"
-                  onClick={() => setNotes((t) => (t + "🙂").slice(0, 500))}
+                  onClick={() => setNotes((t) => (t + "🙂").slice(0, 4000))}
                   title="Add emoji"
                   aria-label="Add emoji"
                   className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
@@ -1302,7 +1380,7 @@ export function NewItemForm({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setNotes((t) => (t + "#").slice(0, 500))}
+                  onClick={() => setNotes((t) => (t + "#").slice(0, 4000))}
                   title="Add hashtag"
                   aria-label="Add hashtag"
                   className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
@@ -1320,7 +1398,7 @@ export function NewItemForm({
                   className="rounded-[8px] border border-ink-200 px-2 py-0.5 text-[11.5px] tabular-nums text-ink-500"
                   title="Characters left"
                 >
-                  {500 - notes.length}
+                  {4000 - notes.length}
                 </span>
               </div>
 
@@ -1645,6 +1723,16 @@ export function NewItemForm({
         {/* ── Footer ──────────────────────────────────────────────────── */}
         <footer className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-ink-100">
           <div className="flex items-center gap-4">
+            {isEdit && (
+              <button
+                type="button"
+                onClick={moveToDrafts}
+                disabled={pending}
+                className="text-[14px] font-medium text-ink-800 hover:text-ink-900 disabled:opacity-50 transition-colors"
+              >
+                Move to Drafts
+              </button>
+            )}
             {!isEdit && (
               <label className="inline-flex items-center gap-2 text-[13.5px] font-medium text-ink-700 cursor-pointer select-none">
                 <input
@@ -1681,7 +1769,11 @@ export function NewItemForm({
                 aria-expanded={schedOpen}
                 className="inline-flex h-11 items-center gap-1.5 rounded-l-[12px] border border-ink-200 bg-white px-4 text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
               >
-                <CalendarDays className="size-4 text-ink-500" strokeWidth={2} />
+                {isEdit ? (
+                  <Pin className="size-4 text-ink-500" strokeWidth={2} />
+                ) : (
+                  <CalendarDays className="size-4 text-ink-500" strokeWidth={2} />
+                )}
                 {SCHED_MODE_LABEL[schedMode]}
                 <ChevronDown
                   className={cn(
@@ -1987,16 +2079,21 @@ export function NewItemForm({
               type="button"
               onClick={() => save(isIdea ? "idea" : "planned")}
               disabled={pending}
-              className="-ml-px inline-flex h-11 items-center gap-1.5 rounded-r-[12px] bg-rose-600 px-5 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
+              className={cn(
+                "-ml-px inline-flex h-11 items-center gap-1.5 rounded-r-[12px] px-5 text-[14px] font-semibold text-white shadow-sm transition-colors",
+                isEdit
+                  ? "bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300"
+                  : "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300",
+              )}
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" strokeWidth={2} />
-              ) : isIdea ? (
+              ) : isEdit ? null : isIdea ? (
                 <Lightbulb className="size-4" strokeWidth={2} />
               ) : (
                 <CalendarCheck className="size-4" strokeWidth={2} />
               )}
-              {isEdit ? "Save Changes" : isIdea ? "Save Idea" : "Schedule Post"}
+              {isEdit ? "Save" : isIdea ? "Save Idea" : "Schedule Post"}
             </button>
           </div>
         </footer>
