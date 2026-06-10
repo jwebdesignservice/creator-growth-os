@@ -89,3 +89,53 @@ export async function saveCreatorInfo(data: {
   revalidatePath("/settings");
   return { ok: true };
 }
+
+// ── Avatar ──────────────────────────────────────────────────────────────────
+
+export async function saveAvatarUrl(
+  avatarUrl: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const userClient = await createClient();
+  const { data: { user } } = await userClient.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthenticated" };
+
+  // Service-role update, bounded to the caller's own row via .eq("id", user.id).
+  const admin = createServiceClient();
+  const { data: updated, error } = await admin
+    .from("profiles")
+    .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+    .eq("id", user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!updated) return { ok: false, error: "Profile not found." };
+
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+// ── Banner ────────────────────────────────────────────────────────────────────
+
+export async function saveBannerUrl(
+  bannerUrl: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const userClient = await createClient();
+  const { data: { user } } = await userClient.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthenticated" };
+
+  // Service-role update, bounded to the caller's own row via .eq("id", user.id).
+  const admin = createServiceClient();
+  const { data: updated, error } = await admin
+    .from("profiles")
+    .update({ banner_url: bannerUrl, updated_at: new Date().toISOString() })
+    .eq("id", user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!updated) return { ok: false, error: "Profile not found." };
+
+  revalidatePath("/settings");
+  return { ok: true };
+}

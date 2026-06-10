@@ -12,6 +12,7 @@ import {
   CommunityCard,
 } from "@/components/dashboard/launcher-tiles";
 import { getProgressForPrograms } from "@/lib/programs/queries";
+import { getLang, getT } from "@/lib/i18n/server";
 
 export const metadata = { title: "Dashboard | Creator Growth OS" };
 
@@ -32,6 +33,8 @@ export default async function DashboardPage() {
   if (!ctx) redirect("/sign-in");
   const { user, profile } = ctx;
   const supabase = await createClient();
+  const lang = await getLang();
+  const t = await getT();
 
   const firstName = (
     profile?.display_name ??
@@ -200,7 +203,7 @@ export default async function DashboardPage() {
 
   const hour = now.getHours();
   const partOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
-  const greeting = `${now.toLocaleDateString("en-US", { weekday: "long" })} ${partOfDay}`;
+  const greeting = `${now.toLocaleDateString(lang, { weekday: "long" })} ${t(partOfDay)}`;
 
   const fmtClock = (s: number) => {
     const m = Math.floor(s / 60);
@@ -226,9 +229,9 @@ export default async function DashboardPage() {
     const dur = recent?.lessons?.duration_seconds ?? 0;
     const watched = recent?.watched_seconds ?? 0;
     hero = {
-      headline: `Welcome back, ${firstName}.`,
-      subline: "Pick up where you left off — or explore somewhere new.",
-      primaryLabel: "Continue program",
+      headline: t("Welcome back, {name}.", { name: firstName }),
+      subline: t("Pick up where you left off — or explore somewhere new."),
+      primaryLabel: t("Continue program"),
       primaryHref: journey.primaryHref,
       resume: {
         programTitle: journey.programTitle,
@@ -236,31 +239,33 @@ export default async function DashboardPage() {
         lessonTitle: sameProgram ? recent?.lessons?.title ?? null : null,
         lessonMeta:
           sameProgram && dur > 0
-            ? `${fmtClock(Math.max(0, dur - watched))} left`
+            ? t("{time} left", { time: fmtClock(Math.max(0, dur - watched)) })
             : null,
       },
     };
   } else if (journey.stage === "next") {
     hero = {
-      headline: `Welcome back, ${firstName}.`,
-      subline: `Ready for your next program? ${journey.programTitle} is up.`,
-      primaryLabel: "Start next program",
+      headline: t("Welcome back, {name}.", { name: firstName }),
+      subline: t("Ready for your next program? {title} is up.", {
+        title: journey.programTitle,
+      }),
+      primaryLabel: t("Start next program"),
       primaryHref: journey.primaryHref,
       resume: null,
     };
   } else if (journey.stage === "done") {
     hero = {
-      headline: `Nice work, ${firstName}.`,
-      subline: "You've completed every program — keep sharpening with tutorials.",
-      primaryLabel: "Explore tutorials",
+      headline: t("Nice work, {name}.", { name: firstName }),
+      subline: t("You've completed every program — keep sharpening with tutorials."),
+      primaryLabel: t("Explore tutorials"),
       primaryHref: journey.primaryHref,
       resume: null,
     };
   } else {
     hero = {
-      headline: `Welcome, ${firstName}.`,
-      subline: "Start your first program — we'll guide you step by step.",
-      primaryLabel: "Browse programs",
+      headline: t("Welcome, {name}.", { name: firstName }),
+      subline: t("Start your first program — we'll guide you step by step."),
+      primaryLabel: t("Browse programs"),
       primaryHref: journey.primaryHref,
       resume: null,
     };
@@ -291,7 +296,7 @@ export default async function DashboardPage() {
     const d = new Date(now);
     d.setDate(d.getDate() + i);
     return {
-      letter: d.toLocaleDateString("en-US", { weekday: "short" }).charAt(0),
+      letter: d.toLocaleDateString(lang, { weekday: "short" }).charAt(0),
       count: dayCounts[i],
       isToday: i === 0,
     };
@@ -309,11 +314,11 @@ export default async function DashboardPage() {
       );
       const day =
         idx === 0
-          ? "Today"
+          ? t("Today")
           : idx === 1
-            ? "Tomorrow"
-            : when.toLocaleDateString("en-US", { weekday: "short" });
-      const time = when.toLocaleTimeString("en-US", {
+            ? t("Tomorrow")
+            : when.toLocaleDateString(lang, { weekday: "short" });
+      const time = when.toLocaleTimeString(lang, {
         hour: "numeric",
         minute: "2-digit",
       });

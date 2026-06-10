@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowRight, Crown, Sparkles, type LucideIcon } from "lucide-react";
 import { Avatar } from "@/components/app-shell/topbar";
 import { cn } from "@/lib/cn";
+import { getT } from "@/lib/i18n/server";
+import type { TFn } from "@/lib/i18n/dictionary";
 
 export type HeroJourney =
   | { stage: "start"; primaryHref: string; secondaryHref: string }
@@ -74,7 +76,7 @@ const PLAN_CFG: Record<
   },
 };
 
-function PlanBadge({ plan }: { plan: Plan }) {
+function PlanBadge({ plan, t }: { plan: Plan; t: TFn }) {
   const cfg = PLAN_CFG[plan];
   const Icon = cfg.Icon;
   return (
@@ -100,11 +102,11 @@ function PlanBadge({ plan }: { plan: Plan }) {
             cfg.eyebrow,
           )}
         >
-          Your plan
+          {t("Your plan")}
         </span>
         <span className="block whitespace-nowrap text-[13px] font-bold">
           {cfg.label}
-          {plan !== "pro" && <span className="opacity-60"> · Upgrade</span>}
+          {plan !== "pro" && <span className="opacity-60"> · {t("Upgrade")}</span>}
         </span>
       </span>
     </Link>
@@ -115,7 +117,7 @@ function PlanBadge({ plan }: { plan: Plan }) {
  * Dashboard welcome hero — greeting + progress on the left, a plan badge
  * (top-right) and two stacked CTAs on the right.
  */
-export function DashboardHero({
+export async function DashboardHero({
   firstName,
   greeting,
   avatarUrl,
@@ -126,6 +128,7 @@ export function DashboardHero({
   primaryHref,
   resume,
 }: Props) {
+  const t = await getT();
   const pct = resume
     ? Math.min(100, Math.max(0, Math.round(resume.percent)))
     : 0;
@@ -164,7 +167,7 @@ export function DashboardHero({
                 </div>
                 {resume.lessonTitle && (
                   <div className="mt-2 truncate text-[12px] text-ink-500">
-                    <span className="font-semibold text-rose-700">Up next</span>
+                    <span className="font-semibold text-rose-700">{t("Up next")}</span>
                     {" · "}
                     {resume.lessonTitle}
                     {resume.lessonMeta ? ` · ${resume.lessonMeta}` : ""}
@@ -180,7 +183,7 @@ export function DashboardHero({
 
         {/* ── Plan badge (top) + CTA (bottom) ─────────────────────────── */}
         <div className="flex flex-col gap-3 lg:w-[200px]">
-          <PlanBadge plan={plan} />
+          <PlanBadge plan={plan} t={t} />
           <Link
             href={primaryHref}
             className="mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-rose-600 px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700"
