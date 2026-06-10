@@ -1179,7 +1179,7 @@ export function NewItemForm({
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors",
               showPreview
-                ? "bg-emerald-100 text-emerald-700"
+                ? "bg-rose-100 text-rose-700"
                 : "text-ink-600 hover:bg-cream-100",
             )}
           >
@@ -1215,34 +1215,53 @@ export function NewItemForm({
         >
           {/* LEFT — composer */}
           <div className="px-5 sm:px-6 py-5">
-            {/* channel picker — the reference's avatar row, one per platform */}
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              {PLATFORMS.map((p) => {
-                const active = platform === p.value;
-                return (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => setPlatform(p.value)}
-                    aria-pressed={active}
-                    title={p.label}
-                    className={cn(
-                      "relative size-12 rounded-[14px] inline-flex items-center justify-center transition-all",
-                      PLATFORM_TILE[p.value],
-                      active
-                        ? "ring-2 ring-ink-900 ring-offset-2"
-                        : "opacity-40 saturate-50 hover:opacity-80",
-                    )}
-                  >
-                    <PlatformTileGlyph platform={p.value} />
-                    {/* corner channel badge, like the reference avatar */}
-                    <span className="absolute -bottom-1 -right-1 size-5 rounded-full bg-ink-900 text-white ring-2 ring-white inline-flex items-center justify-center">
-                      <PlatformBadgeGlyph platform={p.value} />
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            {/* channel row — a picker when creating; read-only when editing
+                (the post's channel is fixed once it exists, like the
+                reference's Edit Post) */}
+            {isEdit ? (
+              <div className="flex items-center gap-3 mb-4">
+                <span
+                  className={cn(
+                    "relative size-12 rounded-[14px] inline-flex items-center justify-center",
+                    PLATFORM_TILE[platform],
+                  )}
+                  title={PLATFORMS.find((p) => p.value === platform)?.label ?? platform}
+                >
+                  <PlatformTileGlyph platform={platform} />
+                  <span className="absolute -bottom-1 -right-1 size-5 rounded-full bg-ink-900 text-white ring-2 ring-white inline-flex items-center justify-center">
+                    <PlatformBadgeGlyph platform={platform} />
+                  </span>
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                {PLATFORMS.map((p) => {
+                  const active = platform === p.value;
+                  return (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => setPlatform(p.value)}
+                      aria-pressed={active}
+                      title={p.label}
+                      className={cn(
+                        "relative size-12 rounded-[14px] inline-flex items-center justify-center transition-all",
+                        PLATFORM_TILE[p.value],
+                        active
+                          ? "ring-2 ring-ink-900 ring-offset-2"
+                          : "opacity-40 saturate-50 hover:opacity-80",
+                      )}
+                    >
+                      <PlatformTileGlyph platform={p.value} />
+                      {/* corner channel badge, like the reference avatar */}
+                      <span className="absolute -bottom-1 -right-1 size-5 rounded-full bg-ink-900 text-white ring-2 ring-white inline-flex items-center justify-center">
+                        <PlatformBadgeGlyph platform={p.value} />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* composer card — caption · media · toolbar · publish mode · title */}
             <div className="rounded-[16px] border border-ink-200 bg-white focus-within:border-ink-300 transition-shadow">
@@ -2081,7 +2100,7 @@ export function NewItemForm({
               className={cn(
                 "-ml-px inline-flex h-11 items-center gap-1.5 rounded-r-[12px] px-5 text-[14px] font-semibold text-white shadow-sm transition-colors",
                 isEdit
-                  ? "bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300"
+                  ? "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300"
                   : "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300",
               )}
             >
