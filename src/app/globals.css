@@ -453,3 +453,89 @@ select.input {
   .spark-fade { animation: none; opacity: 1; }
   .spark-pulse { animation: none; opacity: 0; }
 }
+
+/* ── Marketing: integrations orbit + scroll reveal (super-smooth) ───────────
+   Continuous, GPU-accelerated rotation (reuses the brand-orbit keyframe) plus
+   an expo-eased reveal that plays when the section scrolls into view. Per-group
+   speed via the --orbit-dur custom property (inherited by counter-rotating
+   icons so logos stay upright). All motion is disabled under reduced-motion.
+   ─────────────────────────────────────────────────────────────────────────── */
+.orbit-spin {
+  animation: brand-orbit var(--orbit-dur, 60s) linear infinite;
+  will-change: transform;
+}
+.orbit-spin-rev {
+  animation: brand-orbit var(--orbit-dur, 60s) linear infinite reverse;
+  will-change: transform;
+}
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition:
+    opacity 1s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.is-visible .reveal-up,
+.is-visible .reveal-scale {
+  opacity: 1;
+  transform: none;
+}
+.is-visible .reveal-up.delay-1 { transition-delay: 0.08s; }
+.is-visible .reveal-up.delay-2 { transition-delay: 0.16s; }
+.is-visible .reveal-up.delay-3 { transition-delay: 0.24s; }
+
+/* Integrations "current flow" — a short bright segment streams along each
+   connector path toward the hub. Paths set pathLength="100" so one dash rule
+   fits any length; per-line animation-delay staggers the pulses. */
+@keyframes flow-dash { to { stroke-dashoffset: -100; } }
+.flow-line {
+  stroke-dasharray: 10 90;
+  animation: flow-dash 6s linear infinite;
+  will-change: stroke-dashoffset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-spin,
+  .orbit-spin-rev { animation: none; }
+  .flow-line { animation: none; opacity: 0; }
+  .reveal-up,
+  .reveal-scale {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Agent showcase — the active tab-row's vertical progress bar fills top→bottom
+   over the auto-cycle duration. Re-keyed per active row so it restarts. */
+@keyframes agent-progress-fill {
+  from { height: 0%; }
+  to { height: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-progress { animation: none !important; height: 100% !important; }
+}
+
+/* "How It Works" supporting paragraph — each word slides + fades in from the
+   left in sequence (staggered via inline animation-delay), for a smooth
+   left-to-right reveal. Re-keyed per active keyword so it replays on change. */
+@keyframes hiw-word {
+  from { opacity: 0; transform: translateX(-0.5em); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.hiw-word {
+  display: inline-block;
+  animation: hiw-word 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hiw-word { animation: none; }
+}

@@ -7,8 +7,8 @@ import Image from "next/image";
  * our warm rose / ink language:
  *
  *   • a tall, full-bleed cinematic image area (a creator filming content),
- *     colour-graded dark with a warm rose glow + a faint grid overlay — the
- *     brand equivalent of the reference's blue/cyan gradient image
+ *     colour-graded dark with a warm rose glow — the brand equivalent of the
+ *     reference's blue/cyan gradient image
  *   • an oversized two-line headline pinned bottom-left, line 1 white,
  *     line 2 in the brand accent
  *   • a bottom split CTA bar: left = a low-friction "try" action (email +
@@ -53,17 +53,6 @@ export function Cta() {
               "radial-gradient(88% 72% at 93% 6%, rgba(224,168,158,0.26), transparent 56%)," +
               "radial-gradient(120% 120% at 0% 104%, rgba(20,17,15,0.82), transparent 56%)," +
               "linear-gradient(180deg, rgba(20,17,15,0.30) 0%, rgba(20,17,15,0.26) 48%, rgba(20,17,15,0.80) 100%)",
-          }}
-        />
-        {/* faint grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #ffffff 1px, transparent 1px)," +
-              "linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-            backgroundSize:
-              "clamp(58px, 5.4vw, 92px) clamp(58px, 5.4vw, 92px)",
           }}
         />
       </div>

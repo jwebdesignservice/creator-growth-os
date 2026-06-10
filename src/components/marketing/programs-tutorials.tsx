@@ -8,6 +8,7 @@ import {
   Film,
   Lock,
   Clock,
+  Crown,
 } from "lucide-react";
 
 /**
@@ -69,7 +70,7 @@ function FeatureCard({
 }) {
   return (
     <div className="flex flex-col rounded-[24px] bg-cream-100 p-5 ring-1 ring-ink-100 sm:p-6">
-      <div className="overflow-hidden rounded-[18px] bg-white ring-1 ring-ink-100 shadow-[0_1px_3px_rgba(26,24,22,0.04),0_12px_28px_rgba(26,24,22,0.06)] lg:h-[384px]">
+      <div className="overflow-hidden rounded-[18px] bg-white ring-1 ring-ink-100 shadow-[0_1px_3px_rgba(26,24,22,0.04),0_12px_28px_rgba(26,24,22,0.06)] lg:h-[448px]">
         {children}
       </div>
       <h3 className="mt-7 px-1 text-[22px] font-bold tracking-tight text-ink-900">
@@ -97,7 +98,7 @@ function ProgramsMockup() {
   return (
     <div className="flex h-full flex-col p-5">
       {/* Header + overall progress */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex shrink-0 items-center gap-2.5">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-rose-100 text-rose-600">
           <GraduationCap className="size-[18px]" strokeWidth={2} />
         </span>
@@ -106,22 +107,22 @@ function ProgramsMockup() {
             Start Here: Platform Intro
           </div>
           <div className="text-[11px] text-ink-400">
-            A guided program · 8 video lessons
+            A guided program · 5 modules
           </div>
         </div>
         <span className="shrink-0 text-[15px] font-bold tabular-nums text-ink-900">
           62%
         </span>
       </div>
-      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-cream-200">
+      <div className="mt-2.5 h-2 shrink-0 overflow-hidden rounded-full bg-cream-200">
         <div className="h-full w-[62%] rounded-full bg-gradient-to-r from-rose-400 to-rose-600" />
       </div>
-      <div className="mt-1.5 text-[10.5px] text-ink-400">
+      <div className="mt-1.5 shrink-0 text-[10.5px] text-ink-400">
         5 of 8 lessons complete
       </div>
 
       {/* Modules — flex-1 so they fill + center within the card height */}
-      <div className="flex flex-1 flex-col justify-center gap-2 py-4">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 py-3">
         {/* Completed */}
         <div className="flex items-center gap-2.5 rounded-[12px] border border-ink-100 bg-white px-3 py-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white">
@@ -161,22 +162,43 @@ function ProgramsMockup() {
           </div>
         </div>
 
-        {/* Locked */}
-        <div className="flex items-center gap-2.5 rounded-[12px] border border-ink-100 bg-white px-3 py-2.5 opacity-60">
+        {/* Upcoming — locked (compact roadmap rows) */}
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-ink-100 bg-white px-3 py-2 opacity-60">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cream-200 text-ink-400">
             <Lock className="size-3" strokeWidth={2.5} />
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[12.5px] font-semibold text-ink-400">
-              Module 3 · Grow Consistently
-            </div>
-            <div className="text-[10.5px] text-ink-400">Locked · 3 lessons</div>
-          </div>
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-ink-400">
+            Module 3 · Grow Consistently
+          </span>
+          <span className="shrink-0 text-[10.5px] text-ink-400">3 lessons</span>
+        </div>
+
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-ink-100 bg-white px-3 py-2 opacity-60">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cream-200 text-ink-400">
+            <Lock className="size-3" strokeWidth={2.5} />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-ink-400">
+            Module 4 · Monetize Your Audience
+          </span>
+          <span className="shrink-0 text-[10.5px] text-ink-400">2 lessons</span>
+        </div>
+
+        {/* Bonus — Pro-only premium module */}
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-amber-200 bg-amber-50/70 px-3 py-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+            <Crown className="size-3.5" strokeWidth={2} />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-ink-800">
+            Module 5 · Pro Masterclass
+          </span>
+          <span className="inline-flex shrink-0 items-center rounded-full bg-amber-500 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-white">
+            Pro
+          </span>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-ink-100 pt-3">
+      <div className="flex shrink-0 items-center justify-between border-t border-ink-100 pt-3">
         <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-400">
           <Clock className="size-3" strokeWidth={2} /> ~18 min left
         </span>

@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
-  Sparkles,
   Play,
   Images,
   Film,
@@ -11,6 +10,8 @@ import {
   CalendarClock,
   Radio,
   Users,
+  Check,
+  Lock,
 } from "lucide-react";
 import {
   InstagramIcon,
@@ -27,11 +28,14 @@ import { cn } from "@/lib/cn";
  * section, rebuilt in the Profluencer rose / ink / cream system:
  *   • a light (cream) intro: top-left label · oversized headline · top-right
  *     index marker — mirroring "Our Products / Scheduling Agent / #1".
- *   • a sequence of dark (ink-900) numbered cards that PIN (position: sticky) at
- *     the SAME top offset and stack as you scroll. As the next card slides up to
- *     cover the active one, the covered card eases back + lightens (a scroll-
- *     driven `--recede` var, 0→1). At rest only the active card shows; during a
- *     transition the previous card peeks above it — exactly like the reference.
+ *   • a sequence of dark (ink-900) numbered cards that PIN (position: sticky) in
+ *     a fanned stack — each card pins PEEK px LOWER than the one before it, so
+ *     every covered card keeps a thin sliver showing at the top and has its own
+ *     distinct final resting spot (no two cards fight for the same position). As
+ *     the next card slides up to cover the active one, the covered card lightens
+ *     + insets a touch, progressively by how deep it sits (scroll-driven
+ *     `--depth` / `--dim`). The active card stays full-size and fully dark on
+ *     top — exactly like the reference.
  *   • each card: left number · centre title + bottom-anchored paragraph · right
  *     product mockup that bleeds off the card's right edge.
  *
@@ -40,8 +44,11 @@ import { cn } from "@/lib/cn";
  * fall back to a clean vertical stack).
  */
 
-const STICK_TOP = 76; // px — where every card pins (the page has no fixed nav)
+const STICK_TOP = 76; // px — where the FIRST card pins (the page has no fixed nav)
+const PEEK = 14; // px — sliver each covered card keeps at the top (the stack offset)
 const RECEDE_DISTANCE = 460; // px of approach over which a covered card recedes
+const DIM_STEP = 0.5; // lighten added to a card per level it sits back in the stack
+const DIM_MAX = 0.7; // ceiling on that lighten overlay
 const CARD_H = "lg:h-[clamp(460px,62vh,544px)]";
 
 type Feature = { n: string; title: string; body: string; mockup: ReactNode };
@@ -55,27 +62,46 @@ export function StackedFeatures() {
 
     const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const wideMq = window.matchMedia("(min-width: 1024px)");
-    const cards = Array.from(
-      el.querySelectorAll<HTMLElement>("[data-stack-card]"),
+    const items = Array.from(
+      el.querySelectorAll<HTMLElement>("[data-stack-item]"),
     );
 
     let raf = 0;
     const clear = () =>
-      cards.forEach((c) => c.style.setProperty("--recede", "0"));
+      items.forEach((it) => {
+        it.style.setProperty("--depth", "0");
+        it.style.setProperty("--dim", "0");
+      });
 
     const update = () => {
       if (motionMq.matches || !wideMq.matches) {
         clear();
         return;
       }
-      for (let i = 0; i < cards.length - 1; i++) {
-        const top = cards[i].getBoundingClientRect().top;
-        const nextTop = cards[i + 1].getBoundingClientRect().top;
-        const recede = Math.min(
-          1,
-          Math.max(0, 1 - (nextTop - top) / RECEDE_DISTANCE),
+      const n = items.length;
+      // a[j] ∈ [0,1] — how fully card j+1 has slid up to cover card j: 0 while it
+      // is still a full RECEDE_DISTANCE below, 1 once it pins in its final spot
+      // (a pinned card sits exactly PEEK px below the card it covers).
+      const a = new Array(n).fill(0);
+      for (let j = 0; j < n - 1; j++) {
+        const top = items[j].getBoundingClientRect().top;
+        const nextTop = items[j + 1].getBoundingClientRect().top;
+        const gap = nextTop - top;
+        a[j] = Math.min(1, Math.max(0, 1 - (gap - PEEK) / RECEDE_DISTANCE));
+      }
+      // depth_i = a[i] + a[i+1] + … = how many cards are stacked over card i.
+      // Walk back→front so every covered card lightens + insets a touch more
+      // than the one in front of it (a deterministic fan); the active card
+      // (depth 0) stays full-size and fully dark on top.
+      let deeper = 0;
+      for (let i = n - 1; i >= 0; i--) {
+        const depth = i === n - 1 ? 0 : a[i] + deeper;
+        deeper = depth;
+        items[i].style.setProperty("--depth", depth.toFixed(3));
+        items[i].style.setProperty(
+          "--dim",
+          Math.min(DIM_MAX, DIM_STEP * depth).toFixed(3),
         );
-        cards[i].style.setProperty("--recede", recede.toFixed(3));
       }
     };
     const onScroll = () => {
@@ -111,20 +137,29 @@ export function StackedFeatures() {
         {FEATURES.map((f, i) => (
           <div
             key={f.n}
+            data-stack-item
             className="mb-6 last:mb-0 lg:sticky lg:mb-36 lg:last:mb-0"
-            style={{ top: `${STICK_TOP}px`, zIndex: i + 1 } as CSSProperties}
+            style={
+              {
+                top: `${STICK_TOP + i * PEEK}px`,
+                zIndex: i + 1,
+              } as CSSProperties
+            }
           >
             <article
-              data-stack-card
               className={cn(
                 "relative isolate overflow-hidden rounded-[26px] border border-white/[0.12] bg-ink-900",
-                "shadow-[0_40px_90px_-50px_rgba(26,24,22,0.7)]",
                 CARD_H,
               )}
               style={
                 {
-                  transform: "scale(calc(1 - 0.035 * var(--recede, 0)))",
+                  // depth 0 = active (full size); each level behind insets ~2%.
+                  transform: "scale(calc(1 - 0.02 * var(--depth, 0)))",
                   transformOrigin: "center top",
+                  // upward shadow separates each card from the sliver above it;
+                  // downward shadow grounds the active card.
+                  boxShadow:
+                    "0 -14px 34px -22px rgba(0,0,0,0.5), 0 40px 90px -50px rgba(26,24,22,0.72)",
                 } as CSSProperties
               }
             >
@@ -172,11 +207,12 @@ export function StackedFeatures() {
                 </div>
               </div>
 
-              {/* recede lighten overlay */}
+              {/* recede lighten overlay — fades the card toward cream as it
+                  settles behind the stack (driven by --dim, capped at DIM_MAX) */}
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 rounded-[26px] bg-cream-100"
-                style={{ opacity: "calc(0.82 * var(--recede, 0))" }}
+                style={{ opacity: "var(--dim, 0)" }}
               />
             </article>
           </div>
@@ -334,7 +370,21 @@ const WEEK: { day: string; days: { n: number; events: Ev[] }[] }[] = [
 function CalendarMock() {
   return (
     <Panel title="Calendar" right={<ScheduledBy />}>
-      <div className="grid flex-1 grid-cols-2 border-t border-white/10">
+      <div className="relative grid flex-1 grid-cols-2 border-t border-white/10">
+        {/* depth — header elevation shadow + faint warm glows grounding the grid */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3 bg-gradient-to-b from-black/[0.18] to-transparent"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(46% 40% at 8% 104%, rgba(185,72,92,0.10), transparent 62%)," +
+              "radial-gradient(38% 34% at 98% 106%, rgba(201,161,74,0.06), transparent 60%)",
+          }}
+        />
         {WEEK.map((col, ci) => (
           <div
             key={col.day}
@@ -349,15 +399,24 @@ function CalendarMock() {
               return (
                 <div
                   key={d.n}
-                  className="border-t border-white/[0.06] px-3.5 pb-3 pt-2.5"
+                  className={cn(
+                    "border-t border-white/[0.06] px-3.5 pb-3 pt-2.5",
+                    isToday &&
+                      "bg-gradient-to-b from-rose-400/[0.05] via-rose-400/[0.02] to-transparent",
+                  )}
                 >
                   {/* day number + a live "Today" marker on the current day */}
-                  <div className="mb-2.5 flex items-center gap-2 px-1">
+                  <div className="mb-2.5 flex items-center gap-2">
                     <span
                       className={cn(
-                        "text-[13px] font-medium tabular-nums",
-                        isToday ? "text-white" : "text-white/40",
+                        "grid size-[22px] place-items-center rounded-full text-[12.5px] font-semibold tabular-nums",
+                        isToday ? "bg-rose-400 text-ink-900" : "text-white/40",
                       )}
+                      style={
+                        isToday
+                          ? { boxShadow: "0 0 16px 0 rgba(208,129,113,0.45)" }
+                          : undefined
+                      }
                     >
                       {d.n}
                     </span>
@@ -374,7 +433,11 @@ function CalendarMock() {
                     {d.events.map((e, i) => (
                       <div
                         key={i}
-                        className="relative overflow-hidden rounded-[12px] bg-gradient-to-b from-white/[0.09] to-white/[0.025] py-2.5 pl-5 pr-4 ring-1 ring-inset ring-white/[0.07] shadow-[0_4px_14px_-6px_rgba(0,0,0,0.75)]"
+                        className="relative overflow-hidden rounded-[12px] bg-gradient-to-b from-white/[0.10] to-white/[0.02] py-2.5 pl-5 pr-4 ring-1 ring-inset ring-white/[0.08]"
+                        style={{
+                          boxShadow:
+                            "0 6px 18px -8px rgba(0,0,0,0.8), 0 1px 0 0 rgba(255,255,255,0.045)",
+                        }}
                       >
                         {/* glowing tone bar (full height, soft bleed into the card) */}
                         <span
@@ -385,10 +448,18 @@ function CalendarMock() {
                           )}
                           style={{ boxShadow: `0 0 12px 0 ${TONE[e.tone].glow}` }}
                         />
+                        {/* tinted wash bleeding from the accent edge */}
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 opacity-[0.15]"
+                          style={{
+                            backgroundImage: `linear-gradient(95deg, ${TONE[e.tone].glow}, transparent 44%)`,
+                          }}
+                        />
                         {/* faint inner top highlight for glass depth */}
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10"
+                          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/[0.16] via-white/[0.06] to-transparent"
                         />
                         <div className="relative flex items-center justify-between gap-2.5">
                           <span className="min-w-0 leading-tight">
@@ -404,7 +475,7 @@ function CalendarMock() {
                               {e.who}
                             </span>
                           </span>
-                          <span className="shrink-0 text-[11.5px] font-medium tabular-nums text-white/45">
+                          <span className="shrink-0 text-[11.5px] font-medium tabular-nums text-white/50">
                             {e.t}
                           </span>
                         </div>
@@ -743,76 +814,98 @@ function StatRow({
   );
 }
 
-/* ── 04 · AI Coach → chat ───────────────────────────────────────────────── */
+/* ── 04 · Programs & Tutorials → guided course ──────────────────────────── */
 
-function CoachChatMock() {
+function ProgramsMock() {
+  const lessons: {
+    title: string;
+    dur: string;
+    state: "done" | "current" | "locked";
+  }[] = [
+    { title: "Find your content angle", dur: "6 min", state: "done" },
+    { title: "Hooks that stop the scroll", dur: "8 min", state: "done" },
+    { title: "Plan a week of content", dur: "10 min", state: "done" },
+    { title: "Batch a week in 2 hours", dur: "11 min", state: "current" },
+    { title: "Repurpose to every platform", dur: "9 min", state: "locked" },
+  ];
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.035] shadow-[0_40px_90px_-45px_rgba(0,0,0,0.85)] backdrop-blur-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
-        <span className="flex items-center gap-2.5">
-          <MockAvatar name="Maya Rivers" size={38} />
-          <span className="leading-tight">
-            <span className="block text-[13.5px] font-semibold text-white">
-              Maya Rivers
-            </span>
-            <span className="block text-[11.5px] text-white/40">Creator</span>
+      {/* header — instructor · program · progress */}
+      <div className="flex items-center gap-3 border-b border-white/10 px-6 py-4">
+        <MockAvatar name="Priya Shah" size={40} />
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block truncate text-[14px] font-semibold text-white">
+            Grow to 10K Followers
+          </span>
+          <span className="block truncate text-[11.5px] text-white/40">
+            Priya Shah · 12 video lessons
           </span>
         </span>
-        <span className="flex items-end gap-[3px]" aria-hidden>
-          {[8, 13, 18, 11, 16, 9, 14].map((h, i) => (
+        <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-400/12 px-2.5 py-1 text-[11.5px] font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
+          60%
+        </span>
+      </div>
+
+      {/* progress */}
+      <div className="px-6 pt-4">
+        <div className="mb-2 flex items-center justify-between text-[11.5px]">
+          <span className="font-medium text-white/55">
+            3 of 5 lessons complete
+          </span>
+          <span className="text-white/35">2 lessons left</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-300"
+            style={{ width: "60%" }}
+          />
+        </div>
+      </div>
+
+      {/* lessons */}
+      <div className="flex flex-1 flex-col justify-center gap-2.5 px-6 py-5">
+        {lessons.map((l) => (
+          <div
+            key={l.title}
+            className={cn(
+              "flex items-center gap-3 rounded-[13px] px-3.5 py-2.5 ring-1 ring-inset",
+              l.state === "current"
+                ? "bg-rose-500/[0.12] ring-rose-400/25"
+                : "bg-white/[0.025] ring-white/[0.06]",
+            )}
+          >
             <span
-              key={i}
-              className="w-[3px] rounded-full bg-emerald-400/70"
-              style={{ height: h }}
-            />
-          ))}
-        </span>
-        <span className="flex items-center gap-2.5">
-          <span className="text-right leading-tight">
-            <span className="block text-[13.5px] font-semibold text-white">
-              AI Coach
+              className={cn(
+                "inline-flex size-8 shrink-0 items-center justify-center rounded-full",
+                l.state === "done"
+                  ? "bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/20"
+                  : l.state === "current"
+                    ? "bg-rose-400 text-ink-900"
+                    : "bg-white/[0.05] text-white/35 ring-1 ring-white/10",
+              )}
+            >
+              {l.state === "done" ? (
+                <Check className="size-4" strokeWidth={3} />
+              ) : l.state === "current" ? (
+                <Play className="size-3.5" strokeWidth={2.5} />
+              ) : (
+                <Lock className="size-3.5" strokeWidth={2.2} />
+              )}
             </span>
-            <span className="block text-[11.5px] text-emerald-300">Online</span>
-          </span>
-          <span className="inline-flex size-9 items-center justify-center rounded-full bg-rose-500/15 ring-1 ring-rose-400/25">
-            <Sparkles className="size-4 text-rose-300" strokeWidth={2} />
-          </span>
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col justify-end space-y-3 p-6">
-        <Bubble side="in">What should I post tomorrow?</Bubble>
-        <Bubble side="out">
-          Try a Reel: &ldquo;3 mistakes I made at 1K followers.&rdquo; Hook in the
-          first 2 seconds.
-        </Bubble>
-        <Bubble side="in">Can you write the hook?</Bubble>
-        <Bubble side="out">
-          &ldquo;Nobody tells you this about going from 1K to 10K…&rdquo; Want 3
-          variations?
-        </Bubble>
-        <Bubble side="in">Yes please 🙌</Bubble>
-        <Bubble side="out">
-          On it. Want me to schedule the Reel for tomorrow at 9 AM?
-        </Bubble>
-        <Bubble side="in">Perfect — do it 🚀</Bubble>
-      </div>
-    </div>
-  );
-}
-
-function Bubble({ side, children }: { side: "in" | "out"; children: ReactNode }) {
-  return (
-    <div className={cn("flex", side === "out" ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[74%] rounded-[16px] px-3.5 py-2.5 text-[13.5px] leading-snug",
-          side === "out"
-            ? "bg-rose-600 text-white"
-            : "bg-white/[0.07] text-white/85",
-        )}
-      >
-        {children}
+            <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-white">
+              {l.title}
+            </span>
+            {l.state === "current" ? (
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-rose-400/15 px-2 py-[3px] text-[10px] font-bold uppercase tracking-[0.1em] text-rose-200 ring-1 ring-rose-400/25">
+                Now
+              </span>
+            ) : (
+              <span className="shrink-0 whitespace-nowrap text-[11.5px] tabular-nums text-white/35">
+                {l.dur}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -841,8 +934,8 @@ const FEATURES: Feature[] = [
   },
   {
     n: "04",
-    title: "Always-On AI Growth Coach",
-    body: "Ask anything — hooks, captions, what to post next — and get instant, on-brand answers tailored to your niche and your goals.",
-    mockup: <CoachChatMock />,
+    title: "Guided Programs & Tutorials",
+    body: "Follow guided, step-by-step growth programs and short, searchable tutorials — built by creators who've done it — so you always know exactly what to do next.",
+    mockup: <ProgramsMock />,
   },
 ];

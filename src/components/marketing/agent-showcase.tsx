@@ -20,9 +20,10 @@ import { cn } from "@/lib/cn";
  *     stacked list of rows. One row is active at a time (light-grey bg + a 6px
  *     vertical progress bar on its far-left edge that fills top→bottom over the
  *     cycle). Thin dividers between inactive rows.
- *   • right: a request card → glowing brand node (with a glowing vertical
- *     connection line) → a result card, plus a supporting description. The
- *     whole right visual swaps with the active row.
+ *   • right: a request card → glowing brand node (a glassy app-icon with a
+ *     light beam + flares running through it) → a result card, on a depth-
+ *     layered stage (warm bloom · masked grid · vignette). The visual swaps with
+ *     the active row.
  *
  * Auto-cycles every 5s (reference cadence); clicking a row jumps to it and the
  * timer restarts cleanly. Reference blue (#0033CC) → our rose accent.
@@ -162,7 +163,9 @@ export function AgentShowcase() {
                   <span
                     className={cn(
                       "block font-sans text-[clamp(1.4rem,2.2vw,1.9rem)] font-medium tracking-[-0.01em] transition-colors",
-                      on ? "text-ink-900" : "text-ink-900/85 group-hover:text-ink-900",
+                      on
+                        ? "text-ink-900"
+                        : "text-ink-900/85 group-hover:text-ink-900",
                     )}
                   >
                     {s.title}
@@ -175,54 +178,48 @@ export function AgentShowcase() {
 
         {/* ── RIGHT (dark) ──────────────────────────────────────────── */}
         <div className="relative isolate min-h-[600px] overflow-hidden bg-ink-900 lg:min-h-screen">
-          {/* texture + node glow */}
+          {/* depth — warm node bloom (two tones for a fuller falloff) */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0"
             style={{
               backgroundImage:
-                "radial-gradient(40% 32% at 50% 50%, rgba(208,129,113,0.18), transparent 70%)",
+                "radial-gradient(30% 24% at 50% 49%, rgba(208,129,113,0.26), transparent 70%)," +
+                "radial-gradient(44% 32% at 50% 60%, rgba(201,161,74,0.11), transparent 72%)",
             }}
           />
+          {/* faint grid, masked so it dissolves toward the edges */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.05]"
+            className="pointer-events-none absolute inset-0 opacity-[0.06]"
             style={{
               backgroundImage:
                 "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
-              backgroundSize: "clamp(54px,5vw,88px) clamp(54px,5vw,88px)",
+              backgroundSize: "clamp(52px,5vw,82px) clamp(52px,5vw,82px)",
+              maskImage:
+                "radial-gradient(72% 62% at 50% 47%, #000 26%, transparent 82%)",
+              WebkitMaskImage:
+                "radial-gradient(72% 62% at 50% 47%, #000 26%, transparent 82%)",
             }}
+          />
+          {/* inner vignette — sinks the corners for depth */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{ boxShadow: "inset 0 0 160px 48px rgba(7,6,5,0.7)" }}
           />
 
           {/* visual stack */}
           <div className="relative flex h-full flex-col justify-center px-6 py-14 sm:px-10 lg:px-12">
             <div className="relative mx-auto w-full max-w-[440px]">
-              {/* glowing vertical connection line (behind everything) */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute left-1/2 top-[12%] bottom-[12%] w-px -translate-x-1/2"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(to bottom, transparent, rgba(224,168,158,0.7) 22%, rgba(217,182,107,0.7) 78%, transparent)",
-                  boxShadow: "0 0 14px 1px rgba(208,129,113,0.5)",
-                }}
-              />
+              {/* light beam running through the stack (behind everything) */}
+              <Beam />
 
               {/* request card (top) */}
               <RequestCard slide={slide} keyId={active} />
 
               {/* brand node (center) */}
-              <div className="relative my-7 flex justify-center">
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute left-1/2 top-1/2 size-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-400/25 blur-3xl"
-                />
-                <span className="relative rounded-[26px] bg-gradient-to-br from-rose-400 via-rose-500 to-gold-400 p-[1.5px] shadow-[0_0_40px_-6px_rgba(208,129,113,0.6)]">
-                  <span className="flex size-[clamp(84px,9vw,110px)] items-center justify-center rounded-[25px] bg-ink-900">
-                    <BrandMark className="size-[46%] text-rose-300" />
-                  </span>
-                </span>
-              </div>
+              <LogoNode />
 
               {/* result card (bottom) */}
               <ResultCard slide={slide} keyId={active} />
@@ -240,6 +237,132 @@ export function AgentShowcase() {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ── Stage pieces ────────────────────────────────────────────────────────── */
+
+// Layered drop shadow (near + far) plus inner top highlight + soft inner sheen —
+// gives the glassy cards real depth. Inline (not a Tailwind class) so the inset
+// layers render reliably.
+const CARD_SHADOW =
+  "0 26px 55px -28px rgba(0,0,0,0.92), 0 4px 12px -6px rgba(0,0,0,0.55), inset 0 1px 0 0 rgba(255,255,255,0.10), inset 0 0 26px -12px rgba(255,255,255,0.07)";
+
+/** Vertical light beam + a flare where it enters / leaves the node. */
+function Beam() {
+  return (
+    <>
+      {/* soft glow column */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute bottom-[14%] left-1/2 top-[14%] w-[5px] -translate-x-1/2 rounded-full"
+        style={{
+          background:
+            "linear-gradient(to bottom, transparent, rgba(224,168,158,0.5) 26%, rgba(217,182,107,0.45) 74%, transparent)",
+          filter: "blur(6px)",
+        }}
+      />
+      {/* crisp centre line */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute bottom-[14%] left-1/2 top-[14%] w-px -translate-x-1/2"
+        style={{
+          background:
+            "linear-gradient(to bottom, transparent, rgba(244,214,204,0.85) 28%, rgba(232,202,142,0.78) 72%, transparent)",
+        }}
+      />
+    </>
+  );
+}
+
+function Flare({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute left-1/2 z-20 size-14 -translate-x-1/2 -translate-y-1/2",
+        className,
+      )}
+    >
+      <span
+        className="absolute inset-0 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(224,168,158,0.55), transparent 62%)",
+        }}
+      />
+      <span
+        className="absolute left-1/2 top-1/2 h-px w-11 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          background:
+            "linear-gradient(to right, transparent, rgba(255,238,228,0.9), transparent)",
+        }}
+      />
+      <span
+        className="absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+        style={{ boxShadow: "0 0 7px 1px rgba(255,235,225,0.9)" }}
+      />
+    </span>
+  );
+}
+
+/** The glassy brand app-icon at the centre of the stack. */
+function LogoNode() {
+  return (
+    <div className="relative my-9 flex h-[clamp(84px,9vw,108px)] items-center justify-center">
+      {/* layered ambient glow */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 size-56 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(208,129,113,0.3), transparent 60%)",
+          filter: "blur(30px)",
+        }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[64%] size-40 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(217,182,107,0.24), transparent 62%)",
+          filter: "blur(26px)",
+        }}
+      />
+
+      {/* beam flares where it meets the icon */}
+      <Flare className="top-0" />
+      <Flare className="top-full" />
+
+      {/* gradient-ringed glassy icon */}
+      <span
+        className="relative z-10 rounded-[27px] p-px"
+        style={{
+          background:
+            "linear-gradient(150deg, rgba(224,168,158,0.95), rgba(185,72,92,0.9) 46%, rgba(201,161,74,0.92))",
+          boxShadow: "0 0 50px -8px rgba(208,129,113,0.55)",
+        }}
+      >
+        <span
+          className="relative flex size-[clamp(82px,9vw,106px)] items-center justify-center overflow-hidden rounded-[26px] bg-ink-900"
+          style={{
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255,255,255,0.16), inset 0 -16px 30px -12px rgba(0,0,0,0.7)",
+          }}
+        >
+          {/* inner top glow on the icon face */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+            style={{
+              background:
+                "radial-gradient(62% 80% at 50% 0%, rgba(224,168,158,0.24), transparent 70%)",
+            }}
+          />
+          <BrandMark className="relative size-[44%] text-rose-200" />
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -263,9 +386,17 @@ function Waveform() {
 function RequestCard({ slide, keyId }: { slide: Slide; keyId: number }) {
   const { initials, name, role, msg } = slide.request;
   return (
-    <div className="relative z-10 rounded-[20px] border border-white/10 bg-white/[0.045] p-5 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)] backdrop-blur-sm">
+    <div
+      className="relative z-10 rounded-[22px] border border-white/[0.08] bg-gradient-to-b from-white/[0.075] to-white/[0.02] p-5 backdrop-blur-md"
+      style={{ boxShadow: CARD_SHADOW }}
+    >
+      {/* top edge highlight */}
+      <span
+        aria-hidden
+        className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+      />
       <div className="flex items-center gap-3">
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-rose-600 text-[12px] font-semibold uppercase text-white">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-rose-600 text-[12px] font-semibold uppercase text-white shadow-[0_4px_12px_-4px_rgba(185,72,92,0.6)] ring-1 ring-white/15">
           {initials.slice(0, 2)}
         </span>
         <span className="min-w-0 leading-tight">
@@ -276,7 +407,7 @@ function RequestCard({ slide, keyId }: { slide: Slide; keyId: number }) {
         </span>
         <span className="ml-auto flex items-center gap-3">
           <Waveform />
-          <span className="inline-flex size-9 items-center justify-center rounded-full bg-rose-400 text-ink-900">
+          <span className="inline-flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-rose-300 to-rose-500 text-ink-900 shadow-[0_4px_12px_-3px_rgba(208,129,113,0.7)] ring-1 ring-white/20">
             <Mic className="size-4" strokeWidth={2.2} />
           </span>
         </span>
@@ -297,10 +428,14 @@ function ResultCard({ slide, keyId }: { slide: Slide; keyId: number }) {
   return (
     <div
       key={keyId}
-      className="relative z-10 flex items-center gap-3 rounded-[20px] border border-white/10 bg-white/[0.045] p-5 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)] backdrop-blur-sm"
-      style={{ animation: "brand-fade-in 0.4s ease both" }}
+      className="relative z-10 flex items-center gap-3 rounded-[22px] border border-white/[0.08] bg-gradient-to-b from-white/[0.075] to-white/[0.02] p-5 backdrop-blur-md"
+      style={{ boxShadow: CARD_SHADOW, animation: "brand-fade-in 0.4s ease both" }}
     >
-      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-[13px] bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/25">
+      <span
+        aria-hidden
+        className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+      />
+      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-rose-400/30 to-rose-600/10 text-rose-200 ring-1 ring-inset ring-rose-300/25">
         <Icon className="size-[22px]" strokeWidth={2} />
       </span>
       <span className="min-w-0 leading-tight">
@@ -309,7 +444,7 @@ function ResultCard({ slide, keyId }: { slide: Slide; keyId: number }) {
         </span>
         <span className="block text-[12.5px] text-white/45">{sub}</span>
       </span>
-      <span className="ml-auto inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-white py-2 pl-3.5 pr-2 text-[13px] font-semibold text-ink-900">
+      <span className="ml-auto inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-white py-2 pl-3.5 pr-2 text-[13px] font-semibold text-ink-900 shadow-[0_6px_16px_-6px_rgba(0,0,0,0.6)]">
         {pill}
         <span
           className={cn(

@@ -2,11 +2,9 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 
 const NAV = [
-  { label: "Home", href: "/" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Events", href: "#events" },
-  { label: "Contact", href: "#contact" },
-  { label: "Resources", href: "#resources" },
+  { label: "Features", href: "#features" },
+  { label: "Integrations", href: "#integrations" },
+  { label: "FAQ", href: "#faq" },
 ];
 
 /**
@@ -38,12 +36,20 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <Link
-          href="/sign-up"
-          className="inline-flex h-11 items-center rounded-[12px] bg-rose-600 px-5 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 justify-self-end"
-        >
-          Book a Call
-        </Link>
+        <div className="flex items-center gap-4 justify-self-end">
+          <Link
+            href="/sign-in"
+            className="hidden text-[14px] font-medium text-ink-700 transition-colors hover:text-ink-900 sm:inline"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/sign-up"
+            className="inline-flex h-11 items-center rounded-[12px] bg-rose-600 px-5 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700"
+          >
+            Start free
+          </Link>
+        </div>
       </div>
     </header>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -41,54 +41,17 @@ const FOLLOW = [
 ];
 
 export function Footer() {
-  const wordRef = useRef<HTMLSpanElement>(null);
-  const wordWrapRef = useRef<HTMLDivElement>(null);
-
-  // Fit the oversized wordmark to the content width (responsive + crisp).
-  // Mutates font-size directly — no state, so it never re-renders.
-  useEffect(() => {
-    const word = wordRef.current;
-    const wrap = wordWrapRef.current;
-    if (!word || !wrap) return;
-    const fit = () => {
-      const avail = wrap.clientWidth;
-      if (avail <= 0) return;
-      const base = 140;
-      word.style.fontSize = `${base}px`;
-      const w = word.scrollWidth;
-      if (w > 0) word.style.fontSize = `${base * (avail / w)}px`;
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(wrap);
-    window.addEventListener("resize", fit);
-    if (document.fonts?.ready) void document.fonts.ready.then(fit);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", fit);
-    };
-  }, []);
-
   return (
     <footer className="relative isolate overflow-hidden bg-ink-900 text-white">
-      {/* depth — rose glow + faint grid, echoing the closing CTA */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(70% 55% at 50% 0%, rgba(208,129,113,0.12), transparent 62%)",
-          }}
-        />
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-            backgroundSize: "clamp(58px, 5.4vw, 92px) clamp(58px, 5.4vw, 92px)",
-          }}
-        />
-      </div>
+      {/* depth — soft rose glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(70% 55% at 50% 0%, rgba(208,129,113,0.12), transparent 62%)",
+        }}
+      />
 
       <div className="relative mx-auto max-w-[1600px] px-6 sm:px-9">
         {/* ── TOP: statement · nav columns · utility ───────────────── */}
@@ -116,16 +79,15 @@ export function Footer() {
 
         {/* ── oversized contact email ──────────────────────────────── */}
         <div className="py-[clamp(1.6rem,3vw,2.6rem)]">
-          <div ref={wordWrapRef} className="w-full">
+          <div className="w-full" style={{ containerType: "inline-size" }}>
             <a
               href="mailto:hello@profluencer.com"
               className="inline-block text-white transition-colors hover:text-rose-200"
             >
               <span
-                ref={wordRef}
                 aria-label="hello@profluencer.com"
                 className="inline-flex items-start whitespace-nowrap font-sans font-semibold leading-[0.9] tracking-[-0.03em]"
-                style={{ fontSize: "140px" }}
+                style={{ fontSize: "9.2cqw" }}
               >
                 hello@profluencer.com
               </span>

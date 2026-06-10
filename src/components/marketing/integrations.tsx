@@ -163,7 +163,7 @@ export function Integrations() {
   }, []);
 
   return (
-    <section ref={ref} className="bg-cream-50">
+    <section ref={ref} id="integrations" className="scroll-mt-24 bg-cream-50">
       <div className="mx-auto max-w-[1120px] px-6 py-20 lg:py-28">
         {/* ── Header ─────────────────────────────────────────────── */}
         <div className="mx-auto max-w-[640px] text-center">
