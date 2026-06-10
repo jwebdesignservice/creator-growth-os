@@ -5,12 +5,16 @@ import {
   CalendarRange,
   ClipboardList,
   BarChart3,
+  FileText,
+  Lightbulb,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { ActivePlanCard } from "@/components/posting/active-plan-card";
+import { IdeasBoard } from "@/components/posting/ideas-board";
 import { PostingPlatformCards } from "@/components/posting/platform-cards";
 import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
+import { PostQueue } from "@/components/posting/post-queue";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
 import { InsightsDashboard } from "@/components/posting/insights-dashboard";
@@ -27,10 +31,22 @@ import {
 
 export const metadata = { title: "Posting Plans · Profluencer" };
 
-type PostingTab = "my_plans" | "calendar" | "insights";
+type PostingTab = "my_plans" | "posts" | "ideas" | "calendar" | "insights";
 
 const POSTING_TABS: WorkspaceTab[] = [
   { key: "my_plans", label: "My Plans", icon: ClipboardList, href: "/posting" },
+  {
+    key: "posts",
+    label: "Posts",
+    icon: FileText,
+    href: "/posting?view=posts",
+  },
+  {
+    key: "ideas",
+    label: "Ideas",
+    icon: Lightbulb,
+    href: "/posting?view=ideas",
+  },
   {
     key: "calendar",
     label: "Calendar",
@@ -57,7 +73,15 @@ export default async function PostingPage({
 
   const { view } = await searchParams;
   const active: PostingTab =
-    view === "calendar" ? "calendar" : view === "insights" ? "insights" : "my_plans";
+    view === "calendar"
+      ? "calendar"
+      : view === "insights"
+        ? "insights"
+        : view === "posts"
+          ? "posts"
+          : view === "ideas"
+            ? "ideas"
+            : "my_plans";
 
   const activePlan = await getActivePlan();
 
@@ -102,6 +126,18 @@ export default async function PostingPage({
               />
             </div>
           </div>
+        ) : active === "posts" ? (
+          <div className="space-y-4">
+            <WorkspaceHeader title="Posts">
+              <PostingActions activePlanId={activePlan.id} />
+            </WorkspaceHeader>
+            {/* Queue — posts on a day-by-day timeline with "+ New" slots. */}
+            <div className="pt-1">
+              <PostQueue items={items} planId={activePlan.id} />
+            </div>
+          </div>
+        ) : active === "ideas" ? (
+          <IdeasBoard />
         ) : active === "calendar" ? (
           <ContentCalendar
             items={items}
