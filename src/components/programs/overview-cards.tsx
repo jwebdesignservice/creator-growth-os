@@ -159,6 +159,14 @@ function CurriculumCard({
   lessons: LessonPeek[];
 }) {
   const rows = lessons.length > 0 ? lessons.slice(0, 3) : DEMO_LESSONS;
+  // Keep the trail's story open-ended: when the shown milestones are all
+  // done, the last one renders as "up next" (play) instead of a third check —
+  // an all-check trail reads finished and stops inviting the next watch.
+  const display = rows.map((r, i) =>
+    i === rows.length - 1 && r.status === "completed"
+      ? { ...r, status: "current" as const }
+      : r,
+  );
   return (
     <SectionTile
       href={href}
@@ -186,7 +194,7 @@ function CurriculumCard({
           />
         </svg>
         {NODE_POS.map((pos, i) => {
-          const status = rows[i]?.status ?? "locked";
+          const status = display[i]?.status ?? "locked";
           const isCurrent = status === "current";
           return (
             <span
@@ -202,11 +210,12 @@ function CurriculumCard({
                 transitionDelay: `${i * 50}ms`,
               }}
             >
-              {/* pulsing halo around the lesson you're on */}
+              {/* pulsing halo around the lesson you're on — only while the
+                  card is hovered (sits exactly behind the node at rest) */}
               {isCurrent && (
                 <span
                   aria-hidden
-                  className="absolute inset-0 rounded-full bg-rose-400/50 motion-safe:animate-ping"
+                  className="absolute inset-0 rounded-full bg-rose-400/50 motion-safe:group-hover:animate-ping"
                 />
               )}
               <span
