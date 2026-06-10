@@ -2,15 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { SmilePlus } from "lucide-react";
-import { addReaction, removeReaction } from "@/lib/community/chat/actions";
 import { cn } from "@/lib/cn";
-import type { ReactionGroup } from "@/lib/community/chat/types";
+import type { ReactionGroup, ChatActionResult } from "@/lib/community/chat/types";
+
+type ReactFn = (messageId: string, emoji: string) => Promise<ChatActionResult>;
 
 type Props = {
   messageId: string;
   currentUserId: string;
   reactions: ReactionGroup[];
   onError: (msg: string) => void;
+  addReaction: ReactFn;
+  removeReaction: ReactFn;
 };
 
 const COMMON_EMOJIS = ["👍", "❤️", "😂", "🎉", "🔥", "🙏", "👏", "😮"];
@@ -20,6 +23,8 @@ export function MessageReactions({
   currentUserId,
   reactions,
   onError,
+  addReaction,
+  removeReaction,
 }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [, startTransition] = useTransition();
@@ -77,11 +82,15 @@ export function AddReactionButton({
   reactions,
   currentUserId,
   onError,
+  addReaction,
+  removeReaction,
 }: {
   messageId: string;
   reactions: ReactionGroup[];
   currentUserId: string;
   onError: (msg: string) => void;
+  addReaction: ReactFn;
+  removeReaction: ReactFn;
 }) {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();

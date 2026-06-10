@@ -327,7 +327,7 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
               type="button"
               onClick={complete}
               disabled={pending}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13.5px] font-semibold shadow-sm shadow-rose-600/10 transition-colors cursor-pointer"
+              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 text-[13.5px] font-semibold transition-colors cursor-pointer"
             >
               <CheckCircle2 className="size-4" strokeWidth={2} />
               {pending ? "Saving…" : "Mark complete"}

@@ -3,33 +3,38 @@
 import { useEffect, useRef, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { MessageBubble } from "./message-bubble";
-import { loadOlderMessages } from "@/lib/community/chat/actions";
-import type { ChatMessage, ReactionGroup } from "@/lib/community/chat/types";
+import type { ReactionGroup } from "@/lib/community/chat/types";
+import type { ChatApi, RoomMessage } from "@/lib/community/shared";
 
 type Props = {
-  channelId: string;
-  messages: ChatMessage[];
+  parentId: string;
+  messages: RoomMessage[];
   currentUserId: string;
   isAdmin: boolean;
+  api: ChatApi;
   onDeleted: (id: string) => void;
-  onPinChanged: (id: string, pinned: boolean) => void;
+  onPinChanged?: (id: string, pinned: boolean) => void;
   onError: (msg: string) => void;
-  onOlderLoaded: (older: ChatMessage[]) => void;
-  onReply: (message: ChatMessage) => void;
+  onOlderLoaded: (older: RoomMessage[]) => void;
+  onReply: (message: RoomMessage) => void;
   reactions: ReactionGroup[];
+  /** Empty-state copy (channel vs DM differ). */
+  emptyLabel?: string;
 };
 
 export function MessageList({
-  channelId,
+  parentId,
   messages,
   currentUserId,
   isAdmin,
+  api,
   onDeleted,
   onPinChanged,
   onError,
   onOlderLoaded,
   onReply,
   reactions,
+  emptyLabel = "No messages yet — say hello! 👋",
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -55,7 +60,7 @@ export function MessageList({
     const oldest = messages[0];
     if (!oldest) return;
     startLoadingOlder(async () => {
-      const older = await loadOlderMessages(channelId, oldest.created_at, 50);
+      const older = await api.loadOlder(parentId, oldest.created_at, 50);
       onOlderLoaded(older);
     });
   }
@@ -66,25 +71,25 @@ export function MessageList({
       className="flex-1 overflow-y-auto overscroll-contain min-h-0 px-2 py-3 space-y-4"
     >
       {/* Load older button */}
-      <div className="flex justify-center py-2">
-        <button
-          type="button"
-          onClick={loadOlder}
-          disabled={loadingOlder}
-          className="text-[12px] text-ink-500 hover:text-ink-700 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-ink-100 hover:border-ink-200 bg-white transition-colors disabled:opacity-50"
-        >
-          {loadingOlder ? (
-            <Loader2 className="size-3 animate-spin" strokeWidth={2} />
-          ) : null}
-          Load older messages
-        </button>
-      </div>
+      {messages.length > 0 && (
+        <div className="flex justify-center py-2">
+          <button
+            type="button"
+            onClick={loadOlder}
+            disabled={loadingOlder}
+            className="text-[12px] text-ink-500 hover:text-ink-700 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-ink-100 hover:border-ink-200 bg-white transition-colors disabled:opacity-50"
+          >
+            {loadingOlder ? (
+              <Loader2 className="size-3 animate-spin" strokeWidth={2} />
+            ) : null}
+            Load older messages
+          </button>
+        </div>
+      )}
 
       {messages.length === 0 && (
         <div className="flex flex-col items-center justify-center h-32 text-center">
-          <p className="text-[13px] text-ink-400">
-            No messages yet — say hello! 👋
-          </p>
+          <p className="text-[13px] text-ink-400">{emptyLabel}</p>
         </div>
       )}
 
@@ -94,6 +99,7 @@ export function MessageList({
           message={msg}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
+          api={api}
           reactions={reactions.filter((r) => r.message_id === msg.id)}
           onDeleted={onDeleted}
           onPinChanged={onPinChanged}

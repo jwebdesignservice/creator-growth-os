@@ -48,7 +48,7 @@ export function Topbar({
   const t = useT();
 
   return (
-    <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100">
+    <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur supports-[backdrop-filter]:bg-cream-100/70 border-b border-ink-100 lg:h-[var(--topbar-height)] lg:box-border">
       {/* ── Mobile bar (< lg) ────────────────────────────────────────────── */}
       <div
         className="lg:hidden flex items-center gap-2"
@@ -86,7 +86,7 @@ export function Topbar({
       </div>
 
       {/* ── Desktop bar (lg+) ────────────────────────────────────────────── */}
-      <div className="hidden lg:flex items-center gap-4 h-[var(--topbar-height)] px-6 lg:px-8">
+      <div className="hidden lg:flex items-center gap-4 h-full px-6 lg:px-8">
         {/* Search trigger — opens the global command palette.
             Renders as an input-shaped button so it visually matches the
             previous search field, but it's a real <button> so keyboard +

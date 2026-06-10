@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
-  GraduationCap,
   CheckSquare,
   Users,
+  MessageCircle,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -18,18 +18,27 @@ type NavItem = {
   icon: LucideIcon;
   /** Treated as the elevated center action */
   center?: boolean;
+  /** Unread count — renders a small dot on the icon when > 0. */
+  badge?: number;
 };
 
 const ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutGrid },
-  { label: "Programs",  href: "/programs",  icon: GraduationCap },
-  { label: "Tasks",     href: "/missions",  icon: CheckSquare, center: true },
   { label: "Community", href: "/community", icon: Users },
+  { label: "Tasks",     href: "/missions",  icon: CheckSquare, center: true },
+  { label: "Messages",  href: "/messages",  icon: MessageCircle },
   { label: "Settings",  href: "/settings",  icon: Settings },
 ];
 
-export function BottomNav() {
+export function BottomNav({ messageCount = 0 }: { messageCount?: number }) {
   const pathname = usePathname();
+
+  // Stamp the unread-DM count onto the Messages tab so it shows a dot.
+  const items = ITEMS.map((item) =>
+    item.href === "/messages" && messageCount > 0
+      ? { ...item, badge: messageCount }
+      : item,
+  );
 
   return (
     <nav
@@ -41,7 +50,7 @@ export function BottomNav() {
       }}
     >
       <ul className="relative grid grid-cols-5 h-[var(--mobile-bottomnav-height)] items-stretch px-1">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           if (item.center) {
             return (
@@ -63,6 +72,7 @@ export function BottomNav() {
 
 function SideItem({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
+  const hasBadge = typeof item.badge === "number" && item.badge > 0;
   return (
     <Link
       href={item.href}
@@ -72,10 +82,17 @@ function SideItem({ item, active }: { item: NavItem; active: boolean }) {
         active ? "text-rose-600" : "text-ink-500 hover:text-ink-700",
       )}
     >
-      <Icon
-        className={cn("size-[22px] shrink-0", active && "text-rose-600")}
-        strokeWidth={active ? 2 : 1.8}
-      />
+      <span className="relative inline-flex shrink-0">
+        <Icon
+          className={cn("size-[22px] shrink-0", active && "text-rose-600")}
+          strokeWidth={active ? 2 : 1.8}
+        />
+        {hasBadge && (
+          <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-semibold leading-none ring-2 ring-white">
+            {item.badge! > 9 ? "9+" : item.badge}
+          </span>
+        )}
+      </span>
       <span className={cn("text-[11px] leading-none font-medium", active && "text-rose-600")}>
         {item.label}
       </span>

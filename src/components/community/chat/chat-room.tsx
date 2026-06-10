@@ -5,7 +5,18 @@ import { createClient } from "@/lib/supabase/client";
 import { MessageList } from "./message-list";
 import { PinnedBanner } from "./pinned-banner";
 import { Composer } from "./composer";
-import { fetchRecentMessages } from "@/lib/community/chat/actions";
+import {
+  fetchRecentMessages,
+  sendMessage,
+  editMessage,
+  softDeleteMessage,
+  addReaction,
+  removeReaction,
+  searchHandles,
+  loadOlderMessages,
+  pinMessage,
+  unpinMessage,
+} from "@/lib/community/chat/actions";
 import type {
   ChatChannel,
   ChatMessage,
@@ -13,6 +24,7 @@ import type {
   PresenceUser,
   ReactionGroup,
 } from "@/lib/community/chat/types";
+import type { ChatApi } from "@/lib/community/shared";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type Props = {
@@ -73,6 +85,23 @@ export function ChatRoom({
     }
     return [...map.values()];
   }, [reactions]);
+
+  // Server actions injected into the shared message components.
+  const chatApi: ChatApi = useMemo(
+    () => ({
+      send: sendMessage,
+      edit: editMessage,
+      remove: softDeleteMessage,
+      addReaction,
+      removeReaction,
+      searchHandles,
+      loadOlder: loadOlderMessages,
+      uploadBucket: "chat-images",
+      pin: pinMessage,
+      unpin: unpinMessage,
+    }),
+    [],
+  );
 
   const showError = useCallback((message: string) => {
     const id = Date.now();
@@ -287,7 +316,6 @@ export function ChatRoom({
             <div className="flex items-center gap-2" title={presence.map((p) => p.name).join(", ")}>
               <div className="flex -space-x-2">
                 {presence.slice(0, 3).map((p) => (
-                   
                   <div
                     key={p.user_id}
                     className="size-6 rounded-full ring-2 ring-white bg-cream-200 overflow-hidden flex items-center justify-center text-[10px] font-semibold text-ink-700"
@@ -322,7 +350,8 @@ export function ChatRoom({
 
       {/* Message list */}
       <MessageList
-        channelId={channel.id}
+        parentId={channel.id}
+        api={chatApi}
         messages={messages}
         reactions={reactionGroups}
         currentUserId={currentUserId}
@@ -330,20 +359,22 @@ export function ChatRoom({
         onDeleted={handleDeleted}
         onPinChanged={handlePinChanged}
         onError={showError}
-        onOlderLoaded={handleOlderLoaded}
-        onReply={setReplyTo}
+        onOlderLoaded={(older) => handleOlderLoaded(older as ChatMessage[])}
+        onReply={(m) => setReplyTo(m as ChatMessage)}
       />
 
       {/* Composer — disabled with notice if channel is admin-only and user is not admin */}
       {canPostInChannel ? (
         <Composer
-          channelId={channel.id}
+          parentId={channel.id}
+          api={chatApi}
           replyTo={replyTo}
           onCancelReply={() => setReplyTo(null)}
           onSent={() => {/* scroll handled by MessageList useEffect */}}
           onError={showError}
           isConnected={isConnected}
           currentUserId={currentUserId}
+          placeholder="Message the community… (Enter to send, Shift+Enter for new line)"
         />
       ) : (
         <div className="border-t border-ink-100 bg-cream-50 px-4 py-4 text-center">
