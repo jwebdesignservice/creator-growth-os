@@ -1104,12 +1104,15 @@ export function NewItemForm({
         {/* ── Body: composer · live preview ───────────────────────────── */}
         <div
           className={cn(
-            "grid grid-cols-1 flex-1 min-h-0 overflow-y-auto",
+            // Mobile: the whole body scrolls. Desktop: the row is capped and
+            // each column scrolls on its own — the preview panel carries the
+            // scrollbar (reference behavior) while the composer stays put.
+            "grid grid-cols-1 flex-1 min-h-0 overflow-y-auto lg:overflow-hidden lg:grid-rows-[minmax(0,1fr)]",
             showPreview && "lg:grid-cols-[minmax(0,1fr)_350px]",
           )}
         >
           {/* LEFT — composer */}
-          <div className="px-5 sm:px-6 py-5">
+          <div className="px-5 sm:px-6 py-5 lg:min-h-0 lg:overflow-y-auto">
             {/* channel row — a picker when creating; read-only when editing
                 (the post's channel is fixed once it exists, like the
                 reference's Edit Post) */}
@@ -1473,7 +1476,7 @@ export function NewItemForm({
 
           {/* RIGHT — live preview (reference panel) */}
           {showPreview && (
-            <aside className="border-t lg:border-t-0 lg:border-l border-ink-100 bg-cream-50/70 px-5 sm:px-6 py-5">
+            <aside className="border-t lg:border-t-0 lg:border-l border-ink-100 bg-cream-50/70 px-5 sm:px-6 py-5 lg:min-h-0 lg:overflow-y-auto">
               <div className="flex items-center gap-1.5 mb-4">
                 <span className="text-[15px] font-bold text-ink-900">
                   {platformLabel} Preview
