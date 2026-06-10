@@ -127,6 +127,28 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
           </span>
         )}
 
+        {/* Completion pill (bottom-left) — the % at a glance */}
+        {!isLocked && !isPro && (
+          <span
+            className={cn(
+              "absolute left-2.5 inline-flex items-center gap-1.5 rounded-[7px] bg-ink-900/75 px-2 py-[3px] text-[11px] font-semibold tabular-nums tracking-[0.01em] text-white backdrop-blur-sm",
+              isInProgress || isCompleted ? "bottom-3.5" : "bottom-2.5",
+            )}
+          >
+            <span
+              className={cn(
+                "size-1.5 rounded-full",
+                isCompleted
+                  ? "bg-emerald-400"
+                  : isInProgress
+                    ? "bg-rose-400"
+                    : "bg-white/40",
+              )}
+            />
+            {isCompleted ? 100 : progress}%
+          </span>
+        )}
+
         {/* Duration pill (bottom-right, YouTube-style) */}
         {duration && !isLocked && (
           <span
