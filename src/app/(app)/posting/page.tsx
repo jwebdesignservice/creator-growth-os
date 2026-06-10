@@ -9,6 +9,7 @@ import {
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { ActivePlanCard } from "@/components/posting/active-plan-card";
+import { PostingPlatformCards } from "@/components/posting/platform-cards";
 import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
@@ -60,9 +61,10 @@ export default async function PostingPage({
 
   const activePlan = await getActivePlan();
 
-  // Calendar needs the full week; the table previews fewer. Insights uses
+  // Calendar needs the full week; My Plans needs it too (the platform cards
+  // count posts per platform) while its table previews fewer. Insights uses
   // sample visualisations, so it needs no items.
-  const itemLimit = active === "calendar" ? 100 : active === "my_plans" ? 8 : 0;
+  const itemLimit = active === "insights" ? 0 : 100;
   const items =
     activePlan && itemLimit > 0
       ? await getPlannedItems(activePlan.id, itemLimit)
@@ -89,12 +91,13 @@ export default async function PostingPage({
             <WorkspaceHeader title="My Plans">
               <PostingActions activePlanId={activePlan.id} />
             </WorkspaceHeader>
-            {/* Two clearly separate cards — plan summary, then the posts
-                table — floating on the cream page background. */}
+            {/* Three sections — plan summary, the per-platform nav cards,
+                then the posts table — floating on the cream page background. */}
             <div className="space-y-5 pt-1 pb-4">
               <ActivePlanCard plan={activePlan} />
+              <PostingPlatformCards items={items} />
               <PlannedPostsTable
-                items={items}
+                items={items.slice(0, 8)}
                 addPostSlot={<PostingActions activePlanId={activePlan.id} />}
               />
             </div>

@@ -68,7 +68,6 @@ export function LessonActionRow({
   programSlug,
   nextSlug,
   prevSlug,
-  nextTitle,
   basePath,
 }: Props) {
   const router = useRouter();
@@ -107,80 +106,45 @@ export function LessonActionRow({
   }
 
   const ghostBtn =
-    "inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[13px] font-medium transition-all duration-150 hover:bg-cream-100 hover:border-ink-300 hover:text-ink-900 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1 cursor-pointer";
+    "inline-flex items-center justify-center gap-1.5 h-11 px-3.5 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[13px] font-medium transition-all duration-150 hover:bg-cream-100 hover:border-ink-300 hover:text-ink-900 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1 cursor-pointer";
 
   return (
-    <div className="relative overflow-hidden rounded-[16px] bg-gradient-to-b from-white to-cream-50/70 ring-1 ring-ink-100 shadow-card p-4 sm:px-5">
-      {/* top edge light */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
-      />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Status cluster — where the learner stands + what comes next */}
-        <div className="flex items-center gap-3 min-w-0">
-          <span
-            className={cn(
-              "size-10 rounded-full inline-flex items-center justify-center shrink-0 transition-colors duration-300",
-              completed
-                ? "bg-success-bg text-success ring-1 ring-success/25"
-                : "bg-cream-200 text-ink-400 ring-1 ring-ink-200/60",
-            )}
-          >
-            <CheckCircle2
-              // Re-keyed on state so completing replays the pop-in.
-              key={completed ? "done" : "todo"}
-              className={cn("size-5", completed && "anim-pop-in")}
-              strokeWidth={2}
-            />
-          </span>
-          <div className="min-w-0">
-            <div className="text-[13.5px] font-semibold text-ink-900 leading-tight">
-              {completed ? "Lesson completed" : "Finish this lesson"}
-            </div>
-            <div className="text-[12px] text-ink-500 mt-0.5 truncate">
-              {nextSlug
-                ? nextTitle
-                  ? `Up next: ${nextTitle}`
-                  : "Up next: the following lesson"
-                : completed
-                  ? "You're all caught up."
-                  : "This is the last lesson in this track."}
-            </div>
-          </div>
-        </div>
-
-        {/* Actions — one primary, quiet secondaries */}
-        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-          <button type="button" onClick={() => setNoteOpen(true)} className={ghostBtn}>
-            <NotebookPen className="size-4" strokeWidth={1.8} />
-            Add note
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(siblingHref(prevSlug))}
-            className={ghostBtn}
-          >
-            <ArrowLeft className="size-4" strokeWidth={2} />
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={completeAndContinue}
-            disabled={pending}
-            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-[10px] bg-rose-600 text-white text-[13.5px] font-semibold shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:shadow-[0_10px_24px_-8px_rgba(185,72,92,0.7)] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)]"
-          >
-            {pending ? (
-              <Loader2 className="size-4 animate-spin" strokeWidth={2} />
-            ) : (
-              <CheckCircle2 className="size-4" strokeWidth={2} />
-            )}
-            {completed ? "Continue" : "Complete & continue"}
-          </button>
-        </div>
+    <>
+      {/* Standalone action row — no card surface, buttons share the width
+          (primary first on mobile via column-reverse). */}
+      <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-stretch">
+        <button
+          type="button"
+          onClick={() => setNoteOpen(true)}
+          className={cn(ghostBtn, "sm:flex-1")}
+        >
+          <NotebookPen className="size-4" strokeWidth={1.8} />
+          Add note
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(siblingHref(prevSlug))}
+          className={cn(ghostBtn, "sm:flex-1")}
+        >
+          <ArrowLeft className="size-4" strokeWidth={2} />
+          Previous
+        </button>
+        <button
+          type="button"
+          onClick={completeAndContinue}
+          disabled={pending}
+          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] bg-rose-600 text-white text-[13.5px] font-semibold shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:shadow-[0_10px_24px_-8px_rgba(185,72,92,0.7)] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] sm:flex-1"
+        >
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+          ) : (
+            <CheckCircle2 className="size-4" strokeWidth={2} />
+          )}
+          {completed ? "Continue" : "Complete & continue"}
+        </button>
       </div>
 
-      {err && <div className="relative mt-3 text-[12px] text-rose-700">{err}</div>}
+      {err && <div className="mt-3 text-[12px] text-rose-700">{err}</div>}
 
       {noteOpen && (
         <CreateNoteModal
@@ -190,7 +154,7 @@ export function LessonActionRow({
           onClose={() => setNoteOpen(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 
