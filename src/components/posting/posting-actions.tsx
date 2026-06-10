@@ -41,7 +41,6 @@ import {
   Cloud,
   Aperture,
   Package,
-  Tag,
 } from "lucide-react";
 import {
   InstagramIcon,
