@@ -10,7 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { WorkspaceHeader } from "@/components/app-shell/workspace-shell";
 import type {
@@ -35,10 +35,10 @@ type Props = {
   addPostSlot?: ReactNode;
 };
 
-// The calendar shows a sliding window of days (not a fixed Mon–Sun week): the
-// ‹ / › controls nudge it STEP_DAYS at a time, which keeps the columns wide and
-// readable and lets you slide through dates smoothly.
-// NOTE: keep VISIBLE_DAYS in sync with the `lg:grid-cols-N` class on the grid.
+// The calendar shows a sliding 5-day strip: the ‹ / › controls nudge it
+// STEP_DAYS at a time. Phased posts render as detailed spanning bars across the
+// strip; single-day posts sit in their day column.
+// NOTE: keep VISIBLE_DAYS in sync with the `grid-cols-N` classes on the strip.
 const VISIBLE_DAYS = 5;
 const STEP_DAYS = 2;
 
@@ -69,14 +69,13 @@ export function ContentCalendar({
         i.id === move.id ? { ...i, scheduled_for: move.scheduled_for } : i,
       ),
   );
-  // Open with today centered in the visible strip (rather than anchored at the
-  // plan's first day), so users land on "now" with the surrounding days in view.
+  // Open with today as the FIRST column of the strip, so users land on "now"
+  // with the upcoming days to its right.
   const [dayOffset, setDayOffset] = useState(() => {
     const b = startOfDay(weekStart ? new Date(weekStart) : new Date());
-    const todayOff = Math.round(
+    return Math.round(
       (startOfDay(new Date()).getTime() - b.getTime()) / 86_400_000,
     );
-    return todayOff - Math.floor(VISIBLE_DAYS / 2);
   });
   // Which day a per-column "Add post" was clicked for (YYYY-MM-DD) → opens the
   // create-post modal pre-filled to that day. null = closed.
@@ -85,8 +84,18 @@ export function ContentCalendar({
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   // Months away from the current month shown in the month grid (0 = this month).
   const [monthOffset, setMonthOffset] = useState(0);
-  // Which post's detail popup is open (from a month-grid bar). null = closed.
+  // Which post's detail popup is open (from a bar/card). null = closed.
   const [openId, setOpenId] = useState<string | null>(null);
+  // Whether to open that popup straight into edit mode (from a card's Edit btn).
+  const [openEditMode, setOpenEditMode] = useState(false);
+  const openDetail = (id: string) => {
+    setOpenId(id);
+    setOpenEditMode(false);
+  };
+  const openDetailEdit = (id: string) => {
+    setOpenId(id);
+    setOpenEditMode(true);
+  };
   // While a post is dragged over the ‹ / › buttons we auto-slide the window, so
   // a post can be dropped onto ANY date — not just the days currently shown.
   const [flipHover, setFlipHover] = useState<"prev" | "next" | null>(null);
@@ -136,11 +145,10 @@ export function ContentCalendar({
 
   // dayOffset that places today as the first column — the "Today" button jumps
   // straight there even when the plan starts on a different date.
+  // Offset that places today as the FIRST column (what "Today" jumps to).
   const todayOffset = Math.round(
     (startOfDay(new Date()).getTime() - base.getTime()) / 86_400_000,
   );
-  // Offset that places today in the CENTER column (what "Today" jumps to).
-  const centerOffset = todayOffset - Math.floor(VISIBLE_DAYS / 2);
 
   // A card is "saving" while its optimistic day differs from the persisted day
   // (its reschedule hasn't round-tripped yet) — derived, so no effect is needed.
@@ -151,11 +159,29 @@ export function ContentCalendar({
     if (persistedDates.get(oi.id) !== oi.scheduled_for) savingIds.add(oi.id);
   }
 
-  // Bucket items by ISO date string (optimistic list so a just-moved card shows
-  // in its new day immediately, before the server round-trip finishes).
+  // Per-post phases (sorted) — drive both the week-view phase chips and the
+  // month-grid bars.
+  const phasesByItem = new Map<
+    string,
+    { stage: ContentStatus; scheduled_for: string }[]
+  >();
+  for (const p of phases ?? []) {
+    if (!p.scheduled_for) continue;
+    const arr = phasesByItem.get(p.item_id) ?? [];
+    arr.push({ stage: p.stage, scheduled_for: p.scheduled_for });
+    phasesByItem.set(p.item_id, arr);
+  }
+  for (const arr of phasesByItem.values()) {
+    arr.sort((a, b) => a.scheduled_for.localeCompare(b.scheduled_for));
+  }
+
+  // Day columns hold single-day posts; phased posts render as spanning bars in
+  // the band above the columns (so a multi-day plan reads as one row).
+  // Unscheduled posts go to their own row.
   const byDay = new Map<string, PostingItem[]>();
   const unscheduled: PostingItem[] = [];
   for (const item of optimisticItems) {
+    if ((phasesByItem.get(item.id)?.length ?? 0) > 0) continue; // → band
     if (!item.scheduled_for) {
       unscheduled.push(item);
       continue;
@@ -200,27 +226,23 @@ export function ContentCalendar({
     return d;
   });
 
-  // Phases grouped per post (sorted) → the month grid draws each phased post as
-  // a bar spanning its days, with a marker per phase. Single-day posts stay one
-  // pill. Computed here so the layout (lanes, spans) is ready for the grid.
-  const phasesByItem = new Map<
-    string,
-    { stage: PostingItem["status"]; scheduled_for: string }[]
-  >();
-  for (const p of phases ?? []) {
-    if (!p.scheduled_for) continue;
-    const arr = phasesByItem.get(p.item_id) ?? [];
-    arr.push({ stage: p.stage, scheduled_for: p.scheduled_for });
-    phasesByItem.set(p.item_id, arr);
-  }
-  for (const arr of phasesByItem.values()) {
-    arr.sort((a, b) => a.scheduled_for.localeCompare(b.scheduled_for));
-  }
+  // The month grid draws each phased post as a bar spanning its days (phasesByItem
+  // is computed above, shared with the week strip).
   const monthLayout = buildMonthLayout(
     monthDays,
     optimisticItems,
     phasesByItem,
   );
+
+  // Phased posts as detailed spanning bars across the visible strip — one row
+  // each, stacked into lanes. Single-day posts aren't included (columns hold
+  // those).
+  const phasedItems = optimisticItems.filter(
+    (i) => (phasesByItem.get(i.id)?.length ?? 0) > 0,
+  );
+  const weekStrip = buildStripSegments(days, phasedItems, phasesByItem);
+  const weekBars = weekStrip.segments;
+  const weekBandH = WEEK_TOP_PAD + weekStrip.laneCount * WEEK_LANE_STEP;
 
   const openItem = openId
     ? optimisticItems.find((i) => i.id === openId) ?? null
@@ -320,12 +342,12 @@ export function ContentCalendar({
             onClick={() =>
               viewMode === "month"
                 ? setMonthOffset(0)
-                : setDayOffset(centerOffset)
+                : setDayOffset(todayOffset)
             }
             disabled={
               viewMode === "month"
                 ? monthOffset === 0
-                : dayOffset === centerOffset
+                : dayOffset === todayOffset
             }
             className="h-9 px-2.5 text-[12px] font-medium border-x border-ink-200 text-ink-700 hover:bg-cream-100 disabled:text-ink-300 disabled:hover:bg-transparent transition-colors"
           >
@@ -373,97 +395,156 @@ export function ContentCalendar({
     </WorkspaceHeader>
     <div className="flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       {viewMode === "week" && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-1 flex-1 min-h-0 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-ink-100">
-        {days.map((d) => {
-          const key = isoDateOf(d);
-          const dayItems = byDay.get(key) ?? [];
-          const isToday = key === today;
-          const isOver = overKey === key;
-          return (
-            <div
-              key={key}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                if (overKey !== key) setOverKey(key);
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setOverKey((k) => (k === key ? null : k));
-                }
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                dropOnDay(d, e);
-              }}
-              className={cn(
-                "flex flex-col min-h-[200px] lg:min-h-0 overflow-y-auto p-3 transition-colors",
-                isToday && !isOver && "bg-rose-50 ring-1 ring-rose-200 ring-inset",
-                isOver && "bg-rose-100/60 ring-1 ring-rose-300 ring-inset",
-              )}
-            >
-              <header className="mb-2 flex items-start justify-between gap-1.5">
-                <div>
+        <div className="flex-1 min-h-0 overflow-auto">
+          <div className="flex h-full min-w-[760px] flex-col">
+            {/* Day headers */}
+            <div className="grid grid-cols-5 divide-x divide-ink-100 border-b border-ink-100">
+              {days.map((d) => {
+                const key = isoDateOf(d);
+                const isToday = key === today;
+                const isPast = key < today;
+                return (
                   <div
+                    key={key}
                     className={cn(
-                      "text-[10px] uppercase tracking-wide font-semibold",
-                      isToday ? "text-rose-600" : "text-ink-500",
+                      "flex items-center justify-between gap-1.5 px-2.5 py-2",
+                      isPast && !isToday && "bg-[#F4F4F6]",
+                      isToday && "bg-rose-50",
                     )}
                   >
-                    {d.toLocaleDateString("en-US", { weekday: "short" })}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-[18px] font-display leading-none mt-0.5",
-                      isToday ? "text-rose-600" : "text-ink-900",
+                    <div>
+                      <div
+                        className={cn(
+                          "text-[10px] font-semibold uppercase tracking-wide",
+                          isToday ? "text-rose-600" : "text-ink-500",
+                        )}
+                      >
+                        {d.toLocaleDateString("en-US", { weekday: "short" })}
+                      </div>
+                      <div
+                        className={cn(
+                          "mt-0.5 text-[18px] font-display leading-none",
+                          isToday ? "text-rose-600" : "text-ink-900",
+                        )}
+                      >
+                        {d.getDate()}
+                      </div>
+                    </div>
+                    {isToday && (
+                      <span className="shrink-0 rounded-full bg-rose-600 px-2 py-1 text-[9px] font-bold uppercase leading-none tracking-wide text-white">
+                        Today
+                      </span>
                     )}
-                  >
-                    {d.getDate()}
                   </div>
-                </div>
-                {isToday && (
-                  <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-white bg-rose-600 rounded-full px-2 py-1 leading-none">
-                    Today
-                  </span>
-                )}
-              </header>
-
-              {dayItems.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center min-h-[56px]">
-                  <span className="text-[11px] text-ink-300">
-                    {isOver ? "Drop here" : "—"}
-                  </span>
-                </div>
-              ) : (
-                <ul className="space-y-2 flex-1">
-                  {dayItems.map((item) => (
-                    <li key={item.id}>
-                      <DraggableCard
-                        item={item}
-                        dragging={draggingId === item.id}
-                        loading={savingIds.has(item.id)}
-                        onDragStart={() => setDraggingId(item.id)}
-                        onDragEnd={endDrag}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {planId && (
-                <button
-                  type="button"
-                  onClick={() => setAddDate(key)}
-                  className="mt-2 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-dashed border-ink-200 text-[12px] font-medium text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50 transition-colors shrink-0"
-                >
-                  <Plus className="size-3.5" strokeWidth={2.2} />
-                  Add post
-                </button>
-              )}
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+
+            {/* Phased plans — spanning bars across the days, one row each */}
+            {weekBars.length > 0 && (
+              <div
+                className="relative border-b border-ink-100"
+                style={{ height: weekBandH }}
+              >
+                <div className="pointer-events-none absolute inset-0 grid grid-cols-5 divide-x divide-ink-100/70">
+                  {days.map((d) => {
+                    const k = isoDateOf(d);
+                    return (
+                      <div
+                        key={k}
+                        className={cn(
+                          k < today && "bg-[#F4F4F6]/80",
+                          k === today && "bg-rose-50/60",
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="absolute inset-0">
+                  {weekBars.map((seg) => (
+                    <WeekBar
+                      key={`${seg.item.id}-${seg.startCol}`}
+                      seg={seg}
+                      cols={VISIBLE_DAYS}
+                      laneTop={WEEK_TOP_PAD + seg.lane * WEEK_LANE_STEP}
+                      onOpenId={openDetail}
+                      onEdit={openDetailEdit}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Single-day posts in their day columns */}
+            <div className="grid grid-cols-5 flex-1 min-h-0 divide-x divide-ink-100">
+              {days.map((d) => {
+                const key = isoDateOf(d);
+                const dayItems = byDay.get(key) ?? [];
+                const isToday = key === today;
+                const isPast = key < today;
+                const isOver = overKey === key;
+                return (
+                  <div
+                    key={key}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (overKey !== key) setOverKey(key);
+                    }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        setOverKey((k) => (k === key ? null : k));
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      dropOnDay(d, e);
+                    }}
+                    className={cn(
+                      "flex flex-col min-h-[200px] lg:min-h-0 overflow-y-auto p-2.5 transition-colors",
+                      isPast && !isToday && !isOver && "bg-[#F4F4F6]/80",
+                      isToday && !isOver && "bg-rose-50/60",
+                      isOver && "bg-rose-100/60 ring-1 ring-rose-300 ring-inset",
+                    )}
+                  >
+                    {dayItems.length === 0 ? (
+                      <div className="flex-1 flex items-center justify-center min-h-[56px]">
+                        <span className="text-[11px] text-ink-300">
+                          {isOver ? "Drop here" : "—"}
+                        </span>
+                      </div>
+                    ) : (
+                      <ul className="space-y-2 flex-1">
+                        {dayItems.map((item) => (
+                          <li key={item.id}>
+                            <DraggableCard
+                              item={item}
+                              dragging={draggingId === item.id}
+                              loading={savingIds.has(item.id)}
+                              onDragStart={() => setDraggingId(item.id)}
+                              onDragEnd={endDrag}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {planId && (
+                      <button
+                        type="button"
+                        onClick={() => setAddDate(key)}
+                        className="mt-2 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-dashed border-ink-200 text-[12px] font-medium text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50 transition-colors shrink-0"
+                      >
+                        <Plus className="size-3.5" strokeWidth={2.2} />
+                        Add post
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {viewMode === "month" && (
@@ -525,7 +606,7 @@ export function ContentCalendar({
                           "group relative flex flex-col border-r border-b border-ink-100 p-1.5 transition-colors",
                           "bg-white",
                           !inMonth && "bg-cream-100/50",
-                          inMonth && isPast && "bg-cream-200/50",
+                          inMonth && isPast && "bg-[#F4F4F6]",
                           isToday &&
                             "bg-rose-100 ring-1 ring-rose-400 ring-inset z-[1]",
                           isOver &&
@@ -584,7 +665,7 @@ export function ContentCalendar({
                         seg={seg}
                         laneTop={headerOffset + seg.lane * MONTH_LANE_STEP}
                         dragging={draggingId === seg.item.id}
-                        onOpenId={setOpenId}
+                        onOpenId={openDetail}
                         onDragStart={() => setDraggingId(seg.item.id)}
                         onDragEnd={endDrag}
                       />
@@ -630,7 +711,14 @@ export function ContentCalendar({
       )}
 
       {openItem && (
-        <PostDetailModal item={openItem} onClose={() => setOpenId(null)} />
+        <PostDetailModal
+          item={openItem}
+          initialEdit={openEditMode}
+          onClose={() => {
+            setOpenId(null);
+            setOpenEditMode(false);
+          }}
+        />
       )}
     </>
   );
@@ -842,7 +930,6 @@ function MonthBar({
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
-  const accent = accentOf(seg.item.content_type);
   const leftPct = (seg.startCol / 7) * 100;
   const widthPct = ((seg.endCol - seg.startCol + 1) / 7) * 100;
   const span = seg.endCol - seg.startCol + 1;
@@ -872,9 +959,8 @@ function MonthBar({
         onDragEnd={seg.phased ? undefined : onDragEnd}
         onClick={() => onOpenId(seg.item.id)}
         title={label}
-        style={{ backgroundColor: accent.color }}
         className={cn(
-          "absolute inset-x-0 top-0 flex h-[18px] items-center justify-center px-3 text-[10.5px] font-semibold text-white shadow-sm",
+          "absolute inset-x-0 top-0 flex h-[18px] items-center justify-center px-3 text-[10.5px] font-semibold bg-rose-50 border border-rose-300 text-rose-700",
           seg.isStart ? "rounded-l-[5px]" : "rounded-l-none",
           seg.isEnd ? "rounded-r-[5px]" : "rounded-r-none",
           seg.phased ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
@@ -882,15 +968,11 @@ function MonthBar({
         )}
       >
         {!seg.isStart && (
-          <span className="absolute left-1 opacity-80 leading-none">‹</span>
+          <span className="absolute left-1 text-rose-400 leading-none">‹</span>
         )}
-        {seg.isStart && (
-          <span className="truncate [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
-            {label}
-          </span>
-        )}
+        {seg.isStart && <span className="truncate">{label}</span>}
         {!seg.isEnd && (
-          <span className="absolute right-1 opacity-80 leading-none">›</span>
+          <span className="absolute right-1 text-rose-400 leading-none">›</span>
         )}
       </button>
 
@@ -905,13 +987,257 @@ function MonthBar({
               style={{ left: `${posPct}%`, top: MONTH_BAR_H / 2 }}
               onClick={() => onOpenId(seg.item.id)}
             >
-              <span className="block size-[7px] -translate-y-1/2 rotate-45 rounded-[1px] bg-white shadow-sm ring-1 ring-black/10" />
+              <span className="block size-[7px] -translate-y-1/2 rotate-45 rounded-[1px] bg-rose-600 ring-2 ring-rose-50" />
               <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-ink-900 px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover/ph:opacity-100">
                 {PHASE_LABEL[m.stage]} · {fmtPhaseDate(m.date)}
               </div>
             </div>
           );
         })}
+    </div>
+  );
+}
+
+/* ── Week strip: detailed phased bars ──────────────────────────────────────
+   Wider columns than the month grid, so each phase diamond carries an
+   always-visible stage label + date beneath it (vs. the month bar's hover
+   tooltip). buildStripSegments lays the visible days out as a single N-column
+   row with lane stacking. */
+
+const WEEK_LANE_STEP = 112; // px per lane (card ~98px + gap, so it never spills)
+const WEEK_TOP_PAD = 10; // px above the first lane
+
+const PLATFORM_NAME: Record<string, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  snapchat: "Snapchat",
+  linkedin: "LinkedIn",
+  multiple: "Multiple",
+  other: "Other",
+};
+
+type StripSeg = {
+  item: PostingItem;
+  startCol: number;
+  endCol: number;
+  isStart: boolean;
+  isEnd: boolean;
+  marks: PhaseMark[];
+  lane: number;
+};
+
+function buildStripSegments(
+  days: Date[],
+  items: PostingItem[],
+  phasesByItem: Map<string, { stage: ContentStatus; scheduled_for: string }[]>,
+): { segments: StripSeg[]; laneCount: number } {
+  const gridStart = startOfDay(days[0]);
+  const n = days.length;
+  const gidx = (iso: string) =>
+    Math.round(
+      (startOfDay(new Date(iso)).getTime() - gridStart.getTime()) / DAY_MS,
+    );
+
+  const raw: StripSeg[] = [];
+  for (const item of items) {
+    const ph = phasesByItem.get(item.id) ?? [];
+    if (!ph.length) continue;
+    const all = ph.map((p) => ({
+      g: gidx(p.scheduled_for),
+      stage: p.stage,
+      date: p.scheduled_for,
+    }));
+    const gis = all.map((m) => m.g);
+    const startIdx = Math.min(...gis);
+    const endIdx = Math.max(...gis);
+    const segS = Math.max(startIdx, 0);
+    const segE = Math.min(endIdx, n - 1);
+    if (segS > segE) continue; // wholly outside the visible window
+    raw.push({
+      item,
+      startCol: segS,
+      endCol: segE,
+      isStart: segS === startIdx,
+      isEnd: segE === endIdx,
+      marks: all
+        .filter((m) => m.g >= segS && m.g <= segE)
+        .map((m) => ({ col: m.g, stage: m.stage, date: m.date })),
+      lane: 0,
+    });
+  }
+  raw.sort(
+    (a, b) =>
+      a.startCol - b.startCol ||
+      b.endCol - b.startCol - (a.endCol - a.startCol),
+  );
+  const laneEnds: number[] = [];
+  for (const seg of raw) {
+    let lane = 0;
+    while (lane < laneEnds.length && laneEnds[lane] >= seg.startCol) lane++;
+    seg.lane = lane;
+    laneEnds[lane] = seg.endCol;
+  }
+  return { segments: raw, laneCount: laneEnds.length };
+}
+
+/** A multi-day phased plan rendered as a card spanning its days: a header with
+ *  the title, platform and type, then a phase-timeline row — a diamond on each
+ *  phase's day with the stage name + date labelled beneath. Click opens the
+ *  post. The title (header) and the diamonds (timeline) are on separate rows so
+ *  they never overlap. */
+function WeekBar({
+  seg,
+  cols,
+  laneTop,
+  onOpenId,
+  onEdit,
+}: {
+  seg: StripSeg;
+  cols: number;
+  laneTop: number;
+  onOpenId: (id: string) => void;
+  onEdit: (id: string) => void;
+}) {
+  const leftPct = (seg.startCol / cols) * 100;
+  const widthPct = ((seg.endCol - seg.startCol + 1) / cols) * 100;
+  const span = seg.endCol - seg.startCol + 1;
+  const label = seg.item.topic ?? "Untitled post";
+  const typeLabel = seg.item.content_type
+    ? CONTENT_TYPE_LABEL[seg.item.content_type] ??
+      prettyType(seg.item.content_type)
+    : null;
+  const platformLabel = seg.item.platform
+    ? PLATFORM_NAME[seg.item.platform] ?? seg.item.platform
+    : null;
+  const statusLabel = PHASE_LABEL[seg.item.status];
+  const curIdx = STATUS_ORDER.indexOf(seg.item.status);
+  // Group phases that share a day so their labels merge into one comma list
+  // (e.g. "Scripted, Filmed") instead of overlapping.
+  const groups: { col: number; date: string; stages: ContentStatus[] }[] = [];
+  const colIndex = new Map<number, number>();
+  for (const m of seg.marks) {
+    const gi = colIndex.get(m.col);
+    if (gi === undefined) {
+      colIndex.set(m.col, groups.length);
+      groups.push({ col: m.col, date: m.date, stages: [m.stage] });
+    } else {
+      groups[gi].stages.push(m.stage);
+    }
+  }
+  const firstPos =
+    groups.length > 0
+      ? ((groups[0].col - seg.startCol + 0.5) / span) * 100
+      : 0;
+  const lastPos =
+    groups.length > 0
+      ? ((groups[groups.length - 1].col - seg.startCol + 0.5) / span) * 100
+      : 0;
+  // The connecting line runs between the diamonds, but extends to the card edge
+  // on any side where the plan continues past the visible window (‹ / ›).
+  const lineLeft = seg.isStart ? firstPos : 0;
+  const lineRight = seg.isEnd ? lastPos : 100;
+  return (
+    <div
+      className="pointer-events-auto absolute"
+      style={{
+        left: `calc(${leftPct}% + 5px)`,
+        width: `calc(${widthPct}% - 10px)`,
+        top: laneTop,
+      }}
+    >
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpenId(seg.item.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onOpenId(seg.item.id);
+        }}
+        title={label}
+        className="block w-full overflow-hidden rounded-[12px] border border-ink-100 border-l-[3px] border-l-rose-500 bg-white text-left shadow-[0_2px_8px_-3px_rgba(15,23,42,0.14)] transition-shadow hover:shadow-[0_10px_22px_-8px_rgba(15,23,42,0.22)] cursor-pointer"
+      >
+        {/* Header — platform + title + edit */}
+        <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-0.5">
+          {!seg.isStart && (
+            <span className="text-ink-400 leading-none">‹</span>
+          )}
+          <PlatformGlyph
+            platform={seg.item.platform}
+            className="size-3.5 shrink-0"
+          />
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-ink-900">
+            {label}
+          </span>
+          {!seg.isEnd && <span className="text-ink-400 leading-none">›</span>}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(seg.item.id);
+            }}
+            aria-label="Edit plan"
+            title="Edit plan"
+            className="ml-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+          >
+            <Pencil className="size-3.5" strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Meta — plan type details: platform · type · current stage */}
+        <div className="flex items-center gap-1.5 px-2.5 pb-1.5 text-[10.5px] text-ink-400">
+          {platformLabel && <span>{platformLabel}</span>}
+          {platformLabel && typeLabel && (
+            <span className="text-ink-300">·</span>
+          )}
+          {typeLabel && (
+            <span className="font-medium text-ink-500">{typeLabel}</span>
+          )}
+          <span className="text-ink-300">·</span>
+          <span className="inline-flex items-center gap-1 font-medium text-ink-500">
+            <span className="size-1.5 rounded-full bg-rose-500" />
+            {statusLabel}
+          </span>
+        </div>
+
+        {/* Phase timeline — diamond per day with stage + date beneath */}
+        <div className="relative mx-2.5 mb-2 h-[42px]">
+          {lineRight > lineLeft && (
+            <div
+              className="absolute top-[5px] h-px bg-ink-200"
+              style={{ left: `${lineLeft}%`, width: `${lineRight - lineLeft}%` }}
+            />
+          )}
+          {groups.map((g, i) => {
+            const posPct = ((g.col - seg.startCol + 0.5) / span) * 100;
+            const maxIdx = Math.max(
+              ...g.stages.map((s) => STATUS_ORDER.indexOf(s)),
+            );
+            const reached = maxIdx <= curIdx;
+            const text = g.stages.map((s) => PHASE_LABEL[s]).join(", ");
+            return (
+              <div
+                key={i}
+                className="absolute flex -translate-x-1/2 flex-col items-center"
+                style={{ left: `${posPct}%`, top: 0 }}
+              >
+                <span
+                  className="size-[11px] rotate-45 rounded-[2px]"
+                  style={{
+                    backgroundColor: reached ? "var(--rose-600)" : "#fff",
+                    boxShadow: "0 0 0 2px var(--rose-600)",
+                  }}
+                />
+                <span className="mt-[7px] whitespace-nowrap text-[10px] font-semibold leading-none text-ink-700">
+                  {text}
+                </span>
+                <span className="mt-[2px] whitespace-nowrap text-[9px] leading-none tabular-nums text-ink-400">
+                  {fmtPhaseDate(g.date)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

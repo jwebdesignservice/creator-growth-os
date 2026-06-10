@@ -63,6 +63,18 @@ export const getShellContext = cache(async () => {
     // missions table may not exist yet; safe to ignore
   }
 
+  // Unread direct-message count for the sidebar "Messages" badge — number of
+  // conversations whose latest message came from the other person after the
+  // user last opened that thread. Defaults to 0 on error so a missing
+  // read-state migration never breaks the shell.
+  let unreadMessageCount = 0;
+  try {
+    const { data } = await supabase.rpc("dm_unread_count");
+    unreadMessageCount = (data as number | null) ?? 0;
+  } catch {
+    // dm read-state functions may not exist yet (pre-migration); safe to ignore
+  }
+
   // Real per-platform follower counts from social_accounts.
   // Platforms not yet connected render as undefined (shown as — in the UI).
   const { data: socialRows } = await supabase
@@ -97,7 +109,7 @@ export const getShellContext = cache(async () => {
     socials,
   };
 
-  return { user, profile, name, plan, unreadNotificationCount, openTaskCount, topUser, railProfile };
+  return { user, profile, name, plan, unreadNotificationCount, openTaskCount, unreadMessageCount, topUser, railProfile };
 });
 
 function computeProfileCompletion(

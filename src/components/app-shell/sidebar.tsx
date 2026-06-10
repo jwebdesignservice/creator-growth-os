@@ -11,6 +11,7 @@ import {
   CheckSquare,
   BarChart3,
   Users,
+  MessageCircle,
   Settings,
   Sparkles,
   Wallet,
@@ -37,6 +38,7 @@ const PRIMARY: NavItem[] = [
   { label: "Performance", href: "/performance", icon: BarChart3 },
   { label: "Monetization", href: "/monetization", icon: Wallet },
   { label: "Community", href: "/community", icon: Users },
+  { label: "Messages", href: "/messages", icon: MessageCircle },
 ];
 
 const SECONDARY: NavItem[] = [
@@ -53,19 +55,25 @@ const EASE = "ease-in-out";
 export function Sidebar({
   plan = "free",
   taskCount = 0,
+  messageCount = 0,
 }: {
   plan?: "free" | "basic" | "pro";
   taskCount?: number;
+  messageCount?: number;
 }) {
   const pathname = usePathname();
 
-  // Stamp the live open-task count onto the Tasks nav row so the
-  // expanded label gets a badge.
-  const primary = PRIMARY.map((item) =>
-    item.href === "/missions" && taskCount > 0
-      ? { ...item, badge: taskCount }
-      : item,
-  );
+  // Stamp the live counts onto their nav rows so the expanded labels get a
+  // badge: open tasks on "Tasks", unread DMs on "Messages".
+  const primary = PRIMARY.map((item) => {
+    if (item.href === "/missions" && taskCount > 0) {
+      return { ...item, badge: taskCount };
+    }
+    if (item.href === "/messages" && messageCount > 0) {
+      return { ...item, badge: messageCount };
+    }
+    return item;
+  });
 
   // Three logical states represented by two booleans:
   // - collapsed = false, hoverExpanded = *      → expanded (initial 2.5s on mount)

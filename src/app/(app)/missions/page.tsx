@@ -157,7 +157,6 @@ export default async function MissionsPage({
     .reduce((sum, m) => sum + m.points, 0);
   const todayFocus = missions.filter((m) => !m.completed).slice(0, 6);
 
-  const firstName = ctx.name.split(" ")[0];
   const formattedDate = today.toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
@@ -174,7 +173,6 @@ export default async function MissionsPage({
       >
         {active === "overview" && (
           <MissionsOverview
-            firstName={firstName}
             formattedDate={formattedDate}
             completedCount={completedCount}
             totalCount={totalCount}

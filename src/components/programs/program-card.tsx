@@ -55,10 +55,11 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
   return (
     <Link
       href={href}
-      className="group flex flex-col gap-3 rounded-[18px] border border-ink-100 bg-white p-3 transition-shadow hover:shadow-[0_14px_32px_-20px_rgba(26,24,22,0.45)]"
+      className="group flex flex-col rounded-[18px] border border-ink-100 bg-white overflow-hidden transition-shadow hover:shadow-[0_14px_32px_-20px_rgba(26,24,22,0.45)]"
     >
-      {/* ── Thumbnail ─────────────────────────────────────────────── */}
-      <div className="relative aspect-video rounded-xl overflow-hidden">
+      {/* ── Thumbnail — full-bleed: spans the card's full width, flush to the
+          top/side edges (no padding gap), taller 4:3 frame. ──────────── */}
+      <div className="relative aspect-[4/3] overflow-hidden">
         <CoverArt
           hue={program.cover_hue}
           status={program.status}
@@ -87,8 +88,8 @@ export function ProgramCard({ program }: { program: ProgramRow }) {
         )}
       </div>
 
-      {/* ── Meta (borderless, on the page background) ─────────────────── */}
-      <div className="flex flex-col gap-2.5 px-0.5">
+      {/* ── Meta (padded section below the full-bleed image) ─────────────── */}
+      <div className="flex flex-col gap-2.5 p-3.5">
         {/* Title + category */}
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-[15px] font-semibold text-ink-900 leading-snug line-clamp-2 group-hover:text-rose-700 transition-colors">

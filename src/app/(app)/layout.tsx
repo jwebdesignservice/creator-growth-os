@@ -27,7 +27,11 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen bg-cream-100 text-ink-900">
-      <Sidebar plan={ctx.plan} taskCount={ctx.openTaskCount} />
+      <Sidebar
+        plan={ctx.plan}
+        taskCount={ctx.openTaskCount}
+        messageCount={ctx.unreadMessageCount}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar
           user={ctx.topUser}
@@ -39,7 +43,7 @@ export default async function AppLayout({
         <MobileSearch />
         {children}
       </div>
-      <BottomNav />
+      <BottomNav messageCount={ctx.unreadMessageCount} />
     </div>
   );
 }

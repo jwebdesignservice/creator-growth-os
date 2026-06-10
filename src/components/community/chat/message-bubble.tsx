@@ -3,25 +3,21 @@
 import { Fragment, useState, useTransition } from "react";
 import { MoreHorizontal, Trash2, Pin, PinOff, CornerUpLeft, Reply, Pencil, X, Check } from "lucide-react";
 import { Avatar } from "@/components/app-shell/avatar";
-import {
-  softDeleteMessage,
-  pinMessage,
-  unpinMessage,
-  editMessage,
-} from "@/lib/community/chat/actions";
 import { cn } from "@/lib/cn";
-import type { ChatMessage, ReactionGroup } from "@/lib/community/chat/types";
+import type { ReactionGroup } from "@/lib/community/chat/types";
+import type { ChatApi, RoomMessage } from "@/lib/community/shared";
 import { MessageReactions, AddReactionButton } from "./message-reactions";
 
 type Props = {
-  message: ChatMessage;
+  message: RoomMessage;
   currentUserId: string;
   isAdmin: boolean;
   reactions: ReactionGroup[];
+  api: ChatApi;
   onDeleted: (id: string) => void;
-  onPinChanged: (id: string, pinned: boolean) => void;
+  onPinChanged?: (id: string, pinned: boolean) => void;
   onError: (msg: string) => void;
-  onReply: (message: ChatMessage) => void;
+  onReply: (message: RoomMessage) => void;
 };
 
 /**
@@ -63,6 +59,7 @@ export function MessageBubble({
   currentUserId,
   isAdmin,
   reactions,
+  api,
   onDeleted,
   onPinChanged,
   onError,
@@ -75,7 +72,7 @@ export function MessageBubble({
 
   const isOwn = message.user_id === currentUserId;
   const canDelete = isOwn || isAdmin;
-  const canPin = isAdmin;
+  const canPin = isAdmin && !!api.pin && !!api.unpin;
   const canEdit = isOwn;
 
   function handleEditSave() {
@@ -86,16 +83,14 @@ export function MessageBubble({
       return;
     }
     startTransition(async () => {
-      const result = await editMessage(message.id, trimmed);
+      const result = await api.edit(message.id, trimmed);
       if (!result.ok) onError(result.error);
       else setEditing(false);
     });
   }
 
   // Pin locale + hour12 so the server (often en-US 12-hour) and the client
-  // (whatever the user's browser locale is) render the same string. Without
-  // this, en-US server → "10:31 PM" mismatches an en-GB client → "22:31"
-  // and React triggers a hydration error on every message.
+  // (whatever the user's browser locale is) render the same string.
   const time = new Date(message.created_at).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
@@ -105,7 +100,7 @@ export function MessageBubble({
   function handleDelete() {
     setMenuOpen(false);
     startTransition(async () => {
-      const result = await softDeleteMessage(message.id);
+      const result = await api.remove(message.id);
       if (!result.ok) onError(result.error);
       else onDeleted(message.id);
     });
@@ -113,12 +108,13 @@ export function MessageBubble({
 
   function handlePin() {
     setMenuOpen(false);
+    if (!api.pin || !api.unpin) return;
     startTransition(async () => {
       const result = message.pinned
-        ? await unpinMessage(message.id)
-        : await pinMessage(message.id);
+        ? await api.unpin!(message.id)
+        : await api.pin!(message.id);
       if (!result.ok) onError(result.error);
-      else onPinChanged(message.id, !message.pinned);
+      else onPinChanged?.(message.id, !message.pinned);
     });
   }
 
@@ -313,6 +309,8 @@ export function MessageBubble({
                 currentUserId={currentUserId}
                 reactions={reactions}
                 onError={onError}
+                addReaction={api.addReaction}
+                removeReaction={api.removeReaction}
               />
             </div>
           </>
@@ -326,6 +324,8 @@ export function MessageBubble({
           reactions={reactions}
           currentUserId={currentUserId}
           onError={onError}
+          addReaction={api.addReaction}
+          removeReaction={api.removeReaction}
         />
         <button
           type="button"
