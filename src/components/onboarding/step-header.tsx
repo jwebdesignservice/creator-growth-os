@@ -2,13 +2,14 @@ import { Sparkles, Clock, CheckCircle2 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/cn";
 
-type StepKey = "stage" | "platform" | "goals" | "content" | "complete";
+type StepKey = "stage" | "platform" | "goals" | "content" | "plan" | "complete";
 
 const STEPS: { key: StepKey; label: string }[] = [
   { key: "stage", label: "Stage" },
   { key: "platform", label: "Platform" },
   { key: "goals", label: "Goals" },
   { key: "content", label: "Content" },
+  { key: "plan", label: "Plan" },
 ];
 
 type Props = {
@@ -58,7 +59,7 @@ export function StepHeader({ current }: Props) {
       </div>
 
       {/* Step indicator */}
-      <ol className="grid grid-cols-4 gap-2 relative">
+      <ol className="grid grid-cols-5 gap-2 relative">
         {STEPS.map((step, idx) => {
           const isCurrent = current === step.key;
           const isComplete = idx < currentIndex || current === "complete";

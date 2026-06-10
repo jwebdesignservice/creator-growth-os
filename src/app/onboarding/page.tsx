@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingFlow } from "@/components/onboarding/flow";
+import { isStripeConfigured } from "@/lib/stripe/client";
 
 export const metadata = { title: "Welcome · Creator Growth OS" };
 
@@ -32,6 +33,7 @@ export default async function OnboardingPage() {
   return (
     <OnboardingFlow
       firstName={firstName}
+      stripeReady={isStripeConfigured()}
       initialDraft={{
         // Pre-fill draft from anything captured at signup, so users don't re-pick.
         primary_platform: (profile?.primary_platform as never) ?? null,

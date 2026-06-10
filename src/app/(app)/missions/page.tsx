@@ -13,8 +13,9 @@ import {
 } from "@/components/missions/mission-activity";
 import type { Mission } from "@/components/missions/mission-card";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
+import { getAdminContext } from "@/lib/admin/is-admin";
 import { createClient } from "@/lib/supabase/server";
-import { toggleMissionComplete } from "./actions";
+import { toggleMissionComplete, deleteMission } from "./actions";
 import { getUserTasks } from "@/lib/tasks/queries";
 
 export const metadata = { title: "Tasks · Creator Growth OS" };
@@ -46,6 +47,8 @@ export default async function MissionsPage({
 }) {
   const ctx = await getShellContext();
   if (!ctx) redirect("/sign-in");
+
+  const { isAdmin } = await getAdminContext();
 
   const { tab } = await searchParams;
   const active: MissionsTab = VALID_TABS.includes(tab as MissionsTab)
@@ -184,7 +187,12 @@ export default async function MissionsPage({
         )}
 
         {active === "tasks" && (
-          <TasksList missions={missions} onToggle={toggleMissionComplete} />
+          <TasksList
+            missions={missions}
+            onToggle={toggleMissionComplete}
+            onDelete={deleteMission}
+            canDelete={isAdmin}
+          />
         )}
 
         {active === "activity" && (

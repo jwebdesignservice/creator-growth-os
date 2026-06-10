@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Bookmark,
   MoreHorizontal,
+  Trash2,
   Send,
   ListChecks,
   Target,
@@ -151,9 +152,12 @@ const DIFFICULTY_LABEL: Record<Difficulty, string> = {
 type Props = {
   mission: Mission;
   onToggle: (id: string, next: boolean) => Promise<unknown> | void;
+  /** Admin-only: permanently delete the task. */
+  onDelete?: (id: string) => Promise<unknown> | void;
+  canDelete?: boolean;
 };
 
-export function MissionCard({ mission, onToggle }: Props) {
+export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   const meta = TYPE_META[mission.type];
   const colors = TYPE_COLORS[mission.type];
   const Icon = meta.icon;
@@ -161,6 +165,7 @@ export function MissionCard({ mission, onToggle }: Props) {
   const MetaIcon = meta.metaIcon;
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const completed = mission.completed;
   const progressCurrent = mission.progressCurrent ?? 0;
@@ -176,6 +181,19 @@ export function MissionCard({ mission, onToggle }: Props) {
   const complete = () => {
     startTransition(async () => {
       await onToggle(mission.id, !completed);
+    });
+  };
+
+  const handleDelete = () => {
+    setMenuOpen(false);
+    if (!onDelete) return;
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Delete this task? This can't be undone.")
+    )
+      return;
+    startTransition(async () => {
+      await onDelete(mission.id);
     });
   };
 
@@ -332,13 +350,54 @@ export function MissionCard({ mission, onToggle }: Props) {
                 fill={saved ? "currentColor" : "none"}
               />
             </button>
-            <button
-              type="button"
-              aria-label="More options"
-              className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
-            >
-              <MoreHorizontal className="size-4" strokeWidth={2} />
-            </button>
+            {canDelete && onDelete ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label="More options"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((o) => !o)}
+                  className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
+                >
+                  <MoreHorizontal className="size-4" strokeWidth={2} />
+                </button>
+                {menuOpen && (
+                  <>
+                    <button
+                      type="button"
+                      aria-hidden
+                      tabIndex={-1}
+                      onClick={() => setMenuOpen(false)}
+                      className="fixed inset-0 z-40 cursor-default"
+                    />
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-[calc(100%+6px)] z-50 w-[168px] overflow-hidden rounded-[12px] border border-ink-100 bg-white py-1.5 shadow-card"
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={handleDelete}
+                        disabled={pending}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="size-4" strokeWidth={2} />
+                        Delete task
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                aria-label="More options"
+                className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
+              >
+                <MoreHorizontal className="size-4" strokeWidth={2} />
+              </button>
+            )}
           </>
         )}
       </div>

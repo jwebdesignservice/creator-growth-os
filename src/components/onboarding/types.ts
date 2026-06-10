@@ -16,6 +16,8 @@ export type PrimaryGoal =
   | "improve_consistency"
   | "build_authority"
   | "monetize";
+/** Plan picked in the final onboarding step. "pro" routes into Stripe checkout. */
+export type PlanChoice = "free" | "pro";
 
 export type OnboardingDraft = {
   // Step 1 — Stage
@@ -35,6 +37,9 @@ export type OnboardingDraft = {
   content_pillars: string[];
   focus_formats: string[];
   help_needs: string[];
+
+  // Step 5 — Plan
+  selected_plan: PlanChoice | null;
 };
 
 export const EMPTY_DRAFT: OnboardingDraft = {
@@ -48,6 +53,7 @@ export const EMPTY_DRAFT: OnboardingDraft = {
   content_pillars: [],
   focus_formats: [],
   help_needs: [],
+  selected_plan: null,
 };
 
 /**
@@ -55,7 +61,7 @@ export const EMPTY_DRAFT: OnboardingDraft = {
  * to advance.
  */
 export function isStepComplete(
-  step: "stage" | "platform" | "goals" | "content",
+  step: "stage" | "platform" | "goals" | "content" | "plan",
   d: OnboardingDraft,
 ): boolean {
   switch (step) {
@@ -67,5 +73,7 @@ export function isStepComplete(
       return Boolean(d.main_goal && d.weekly_pace);
     case "content":
       return d.content_pillars.length > 0;
+    case "plan":
+      return Boolean(d.selected_plan);
   }
 }

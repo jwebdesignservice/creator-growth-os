@@ -7,6 +7,7 @@ import { StageStep } from "./steps/stage";
 import { PlatformStep } from "./steps/platform";
 import { GoalsStep } from "./steps/goals";
 import { ContentStep } from "./steps/content";
+import { PlanStep } from "./steps/plan";
 import { CompleteStep } from "./steps/complete";
 import {
   EMPTY_DRAFT,
@@ -15,15 +16,17 @@ import {
 } from "./types";
 import { saveOnboarding } from "@/app/onboarding/actions";
 
-type StepKey = "stage" | "platform" | "goals" | "content";
-const STEPS: StepKey[] = ["stage", "platform", "goals", "content"];
+type StepKey = "stage" | "platform" | "goals" | "content" | "plan";
+const STEPS: StepKey[] = ["stage", "platform", "goals", "content", "plan"];
 
 type Props = {
   initialDraft?: Partial<OnboardingDraft>;
   firstName?: string;
+  /** Whether Stripe is configured — gates the Pro checkout redirect. */
+  stripeReady?: boolean;
 };
 
-export function OnboardingFlow({ initialDraft, firstName }: Props) {
+export function OnboardingFlow({ initialDraft, firstName, stripeReady }: Props) {
   const [draft, setDraft] = useState<OnboardingDraft>({
     ...EMPTY_DRAFT,
     ...initialDraft,
@@ -44,7 +47,7 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
 
   const goBack = useCallback(() => {
     if (step === "complete") {
-      setStep("content");
+      setStep("plan");
       return;
     }
     const i = STEPS.indexOf(step);
@@ -59,9 +62,34 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
         setSubmitError(result.error);
         return;
       }
+
+      // Pro choice → hand off to Stripe checkout (7-day trial). Onboarding is
+      // already saved, so if they bail out of checkout they simply stay on the
+      // Free plan — Pro is only granted once payment succeeds (via webhook).
+      if (draft.selected_plan === "pro" && stripeReady) {
+        try {
+          const res = await fetch("/api/billing/checkout", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ plan: "pro" }),
+          });
+          const body = (await res.json().catch(() => ({}))) as {
+            url?: string;
+            error?: string;
+          };
+          if (res.ok && body.url) {
+            window.location.href = body.url;
+            return; // navigating away — keep the spinner up
+          }
+          // Couldn't start checkout — fall through to the success screen on Free.
+        } catch {
+          // Network error — fall through; the user is onboarded on Free.
+        }
+      }
+
       setStep("complete");
     });
-  }, [draft]);
+  }, [draft, stripeReady]);
 
   const canAdvance =
     step === "complete" ? true : isStepComplete(step, draft);
@@ -87,6 +115,7 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
           {step === "platform" && <PlatformStep draft={draft} onChange={onChange} />}
           {step === "goals" && <GoalsStep draft={draft} onChange={onChange} />}
           {step === "content" && <ContentStep draft={draft} onChange={onChange} />}
+          {step === "plan" && <PlanStep draft={draft} onChange={onChange} />}
           {step === "complete" && (
             <CompleteStep firstName={firstName} onBack={goBack} />
           )}
@@ -109,7 +138,7 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
                 Back
               </button>
 
-              {step !== "content" ? (
+              {step !== "plan" ? (
                 <button
                   type="button"
                   onClick={goNext}
@@ -126,7 +155,13 @@ export function OnboardingFlow({ initialDraft, firstName }: Props) {
                   disabled={!canAdvance || pending}
                   className="inline-flex items-center gap-2 h-12 px-8 rounded-[14px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 disabled:cursor-not-allowed text-white text-[15px] font-semibold transition-colors shadow-sm"
                 >
-                  {pending ? "Personalizing…" : "Finish & Personalize Dashboard"}
+                  {pending
+                    ? draft.selected_plan === "pro"
+                      ? "Starting your trial…"
+                      : "Personalizing…"
+                    : draft.selected_plan === "pro"
+                      ? "Start 7-day free trial"
+                      : "Finish & Personalize Dashboard"}
                   {!pending && <ArrowRight className="size-4" strokeWidth={2} />}
                 </button>
               )}

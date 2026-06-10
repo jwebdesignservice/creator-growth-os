@@ -35,9 +35,11 @@ const TYPE_FILTERS: (MissionType | "all")[] = [
 type Props = {
   missions: Mission[];
   onToggle: (id: string, completed: boolean) => Promise<unknown>;
+  onDelete?: (id: string) => Promise<unknown>;
+  canDelete?: boolean;
 };
 
-export function TasksList({ missions, onToggle }: Props) {
+export function TasksList({ missions, onToggle, onDelete, canDelete }: Props) {
   const [time, setTime] = useState<TimeFilter>("today");
   const [typeFilter, setTypeFilter] = useState<MissionType | "all">("all");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -144,7 +146,13 @@ export function TasksList({ missions, onToggle }: Props) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
           {visible.map((m) => (
-            <MissionCard key={m.id} mission={m} onToggle={onToggle} />
+            <MissionCard
+              key={m.id}
+              mission={m}
+              onToggle={onToggle}
+              onDelete={onDelete}
+              canDelete={canDelete}
+            />
           ))}
         </div>
       )}
