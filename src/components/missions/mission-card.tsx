@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Camera,
   CalendarDays,
@@ -19,6 +19,7 @@ import {
   Target,
   Users,
   Star,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -149,6 +150,31 @@ const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   hard: "Hard",
 };
 
+const DIFFICULTY_LEVEL: Record<Difficulty, 1 | 2 | 3> = {
+  easy: 1,
+  medium: 2,
+  hard: 3,
+};
+
+/** Tiny 3-bar effort meter — fills by difficulty (1–3). Neutral ink tone so it
+    reads as a quiet, scannable signal without competing with the type colour. */
+function EffortMeter({ level }: { level: 1 | 2 | 3 }) {
+  return (
+    <span className="inline-flex items-end gap-[2px]" aria-hidden>
+      {([1, 2, 3] as const).map((i) => (
+        <span
+          key={i}
+          className={cn(
+            "w-[2.5px] rounded-[1px]",
+            i <= level ? "bg-ink-500" : "bg-ink-200",
+          )}
+          style={{ height: `${3 + i * 2}px` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 type Props = {
   mission: Mission;
   onToggle: (id: string, next: boolean) => Promise<unknown> | void;
@@ -161,7 +187,6 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   const meta = TYPE_META[mission.type];
   const colors = TYPE_COLORS[mission.type];
   const Icon = meta.icon;
-  const ProgressIcon = meta.progressIcon;
   const MetaIcon = meta.metaIcon;
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -177,6 +202,14 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
     100,
     Math.round((progressCurrent / Math.max(1, progressTarget)) * 100),
   );
+
+  // Fill the bar 0 → target on mount (and when it changes) for a calm, one-shot
+  // reveal. rAF defers the set out of the effect body (react-hooks lint-safe).
+  const [barWidth, setBarWidth] = useState(0);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setBarWidth(progressPct));
+    return () => cancelAnimationFrame(raf);
+  }, [progressPct]);
 
   const complete = () => {
     startTransition(async () => {
@@ -200,114 +233,137 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   return (
     <div
       className={cn(
-        "group card rounded-[20px] border border-ink-100 p-5 sm:p-6 flex flex-col transition-all duration-200 hover:border-ink-200 hover:shadow-card",
-        completed && "bg-cream-50",
+        "group relative flex flex-col rounded-[22px] border p-5 sm:p-6 transition-[transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        completed
+          ? "border-ink-100 bg-cream-50/70 shadow-[0_1px_2px_rgba(26,24,22,0.03)]"
+          : "border-ink-100/90 bg-gradient-to-b from-white to-cream-50/40 shadow-[0_1px_2px_rgba(26,24,22,0.04),0_10px_30px_-16px_rgba(26,24,22,0.13)] hover:-translate-y-1 hover:border-ink-200/70 hover:shadow-[0_3px_6px_rgba(26,24,22,0.05),0_22px_48px_-20px_rgba(26,24,22,0.20)]",
       )}
     >
-      {/* Header — icon tile · category/meta line · points */}
-      <div className="flex items-start gap-3.5">
-        <span
-          className={cn(
-            "size-12 rounded-[14px] inline-flex items-center justify-center shrink-0",
-            colors.tile,
-          )}
-        >
-          <Icon className="size-[22px]" strokeWidth={1.9} />
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            {/* Category · time · difficulty — one quiet line, no chip clutter */}
-            <div className="flex items-center gap-2 min-w-0 text-[11.5px] leading-none">
-              <span
-                className={cn(
-                  "font-semibold uppercase tracking-[0.07em]",
-                  completed ? "text-ink-400" : colors.text,
-                )}
-              >
-                {meta.label}
-              </span>
-              <span className="size-[3px] rounded-full bg-ink-300 shrink-0" />
-              <span className="inline-flex items-center gap-1 text-ink-500 whitespace-nowrap">
-                <Clock className="size-3 text-ink-400" strokeWidth={2} />
-                {mission.minutes} min
-              </span>
-              <span className="size-[3px] rounded-full bg-ink-300 shrink-0" />
-              <span className="text-ink-500 whitespace-nowrap">
-                {DIFFICULTY_LABEL[mission.difficulty]}
-              </span>
-            </div>
-
-            {/* Points */}
-            <span className="shrink-0 inline-flex items-baseline gap-1 text-[13px] font-bold text-ink-800 tabular-nums leading-none">
-              <Star
-                className="size-3.5 self-center text-amber-400"
-                fill="currentColor"
-                strokeWidth={0}
-              />
-              {mission.points}
-              <span className="text-[11px] font-medium text-ink-400">pts</span>
-            </span>
-          </div>
-
-          <h3
+      {/* ── Category + reward ─────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
             className={cn(
-              "mt-2 text-[17px] sm:text-[18px] font-bold tracking-[-0.01em] text-ink-900 leading-snug",
-              completed && "line-through text-ink-400",
+              "relative inline-flex size-11 shrink-0 items-center justify-center rounded-[13px] shadow-[0_2px_5px_-2px_rgba(26,24,22,0.20)] ring-1 ring-inset ring-black/[0.04] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.05]",
+              completed ? "bg-cream-200 text-ink-400" : colors.tile,
             )}
           >
-            {mission.title}
-          </h3>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[13px] bg-gradient-to-b from-white/50 to-transparent"
+            />
+            {completed ? (
+              <Check className="relative size-[22px]" strokeWidth={2.6} />
+            ) : (
+              <Icon className="relative size-[21px]" strokeWidth={1.9} />
+            )}
+          </span>
+          <span
+            className={cn(
+              "truncate text-[11.5px] font-bold uppercase tracking-[0.08em]",
+              completed ? "text-ink-400" : colors.text,
+            )}
+          >
+            {meta.label}
+          </span>
         </div>
+
+        {/* reward — quiet amber chip */}
+        <span
+          className={cn(
+            "inline-flex h-[27px] shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] font-bold tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] ring-1",
+            completed
+              ? "bg-cream-100 text-ink-400 ring-ink-100"
+              : "bg-gradient-to-b from-amber-50 to-amber-100/70 text-amber-700 ring-amber-200/70",
+          )}
+          title={`${mission.points} points`}
+        >
+          <Star className="-ml-0.5 size-3.5" fill="currentColor" strokeWidth={0} />
+          {mission.points}
+          <span className="font-medium opacity-70">pts</span>
+        </span>
       </div>
 
-      {/* Description */}
+      {/* ── Title + description ───────────────────────────────────────── */}
+      <h3
+        className={cn(
+          "mt-4 text-[17px] font-bold leading-snug tracking-[-0.012em] sm:text-[18px]",
+          completed
+            ? "text-ink-400 line-through decoration-ink-300"
+            : "text-ink-900",
+        )}
+      >
+        {mission.title}
+      </h3>
       <p
         className={cn(
-          "mt-3 text-[13px] text-ink-500 leading-relaxed line-clamp-2",
-          completed && "text-ink-300",
+          "mt-1.5 line-clamp-2 text-[13px] leading-relaxed",
+          completed ? "text-ink-300" : "text-ink-500",
         )}
       >
         {mission.description}
       </p>
 
-      {/* Progress */}
-      <div className="mt-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-600">
-            <ProgressIcon className="size-3.5 text-ink-400" strokeWidth={2} />
-            {progressLabel}
-          </span>
-          <span className="text-[12.5px] font-semibold text-ink-900 tabular-nums">
-            {progressCurrent}
-            <span className="text-ink-400 font-normal"> / {progressTarget}</span>
-          </span>
-        </div>
-        <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden">
-          <div
-            className={cn("h-full rounded-full transition-all", colors.accent)}
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
+      {/* ── Meta: time · effort ───────────────────────────────────────── */}
+      <div className="mt-4 flex items-center gap-3.5 text-[12px] text-ink-500">
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <Clock className="size-3.5 text-ink-400" strokeWidth={2} />
+          {mission.minutes} min
+        </span>
+        <span className="h-3 w-px bg-ink-200" aria-hidden />
+        <span
+          className="inline-flex items-center gap-1.5 whitespace-nowrap"
+          title={`Effort: ${DIFFICULTY_LABEL[mission.difficulty]}`}
+        >
+          <EffortMeter level={DIFFICULTY_LEVEL[mission.difficulty]} />
+          {DIFFICULTY_LABEL[mission.difficulty]}
+        </span>
       </div>
 
-      {/* Goal / focus — quiet footnote */}
-      <div className="mt-3 flex items-center gap-1.5 text-[11.5px] text-ink-400 min-w-0">
-        <MetaIcon className="size-3.5 shrink-0" strokeWidth={1.9} />
-        <span className="font-medium text-ink-500 shrink-0">{metaLabel}</span>
-        <span className="text-ink-300 shrink-0">·</span>
-        <span className="truncate">{metaValue}</span>
-      </div>
+      {/* ── Progress + goal (active tasks only) ───────────────────────── */}
+      {!completed && (
+        <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className="text-[12px] font-medium text-ink-600">
+              {progressLabel}
+            </span>
+            <span className="text-[12.5px] font-semibold tabular-nums text-ink-900">
+              {progressCurrent}
+              <span className="font-normal text-ink-400"> / {progressTarget}</span>
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-cream-200 shadow-[inset_0_1px_2px_rgba(26,24,22,0.09)] ring-1 ring-inset ring-ink-100/50">
+            <div
+              className={cn(
+                "relative h-full rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                colors.accent,
+              )}
+              style={{ width: `${barWidth}%` }}
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/35 to-transparent"
+              />
+            </div>
+          </div>
+          <div className="mt-2.5 flex min-w-0 items-center gap-1.5 text-[11.5px] text-ink-400">
+            <MetaIcon className="size-3.5 shrink-0" strokeWidth={1.9} />
+            <span className="shrink-0 font-medium text-ink-500">{metaLabel}</span>
+            <span className="shrink-0 text-ink-300">·</span>
+            <span className="truncate">{metaValue}</span>
+          </div>
+        </div>
+      )}
 
-      {/* Actions — pinned to the bottom so cards align in a grid */}
-      <div className="mt-auto pt-5 flex items-center gap-2">
+      {/* ── Footer: primary action + quiet secondaries ────────────────── */}
+      <div className="mt-auto flex items-center gap-2 border-t border-ink-100 pt-5">
         {completed ? (
           <>
-            <span className="flex-1 inline-flex items-center justify-center gap-1.5 h-11 rounded-[12px] bg-success-bg text-success text-[13px] font-semibold">
+            <span className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] bg-success-bg text-[13px] font-semibold text-success">
               <Check className="size-4" strokeWidth={3} />
               Completed
               {mission.completed_at && (
-                <span className="font-normal text-success/75">
+                <span className="font-normal text-success/70">
                   · {mission.completed_at}
                 </span>
               )}
@@ -316,7 +372,7 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
               type="button"
               onClick={complete}
               disabled={pending}
-              className="h-11 px-4 rounded-[12px] border border-ink-200 hover:bg-cream-100 text-[12.5px] font-medium text-ink-600 hover:text-ink-900 transition-colors disabled:opacity-50 cursor-pointer"
+              className="h-11 cursor-pointer rounded-[12px] border border-ink-200 px-4 text-[12.5px] font-medium text-ink-500 transition-colors hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:ring-offset-2 disabled:opacity-50"
             >
               Undo
             </button>
@@ -327,30 +383,48 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
               type="button"
               onClick={complete}
               disabled={pending}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13.5px] font-semibold shadow-sm shadow-rose-600/10 transition-colors cursor-pointer"
+              className="relative inline-flex h-11 flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-[12px] bg-gradient-to-b from-rose-500 to-rose-600 px-5 text-[13.5px] font-semibold text-white shadow-[0_1px_2px_rgba(151,56,74,0.45),0_10px_20px_-8px_rgba(185,72,92,0.55)] ring-1 ring-inset ring-white/15 transition-[transform,box-shadow,filter] duration-200 ease-out hover:-translate-y-px hover:brightness-[1.05] hover:shadow-[0_2px_4px_rgba(151,56,74,0.45),0_16px_28px_-10px_rgba(185,72,92,0.7)] active:translate-y-0 active:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 disabled:opacity-70 disabled:saturate-[0.85]"
             >
-              <CheckCircle2 className="size-4" strokeWidth={2} />
-              {pending ? "Saving…" : "Mark complete"}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"
+              />
+              <span className="relative inline-flex items-center gap-2">
+                {pending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" strokeWidth={2.2} />
+                    Marking…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="size-4" strokeWidth={2} />
+                    Mark complete
+                  </>
+                )}
+              </span>
             </button>
+
             <button
               type="button"
               onClick={() => setSaved((v) => !v)}
               aria-pressed={saved}
-              aria-label={saved ? "Remove from saved" : "Save mission for later"}
+              aria-label={saved ? "Remove from saved" : "Save for later"}
+              title={saved ? "Saved" : "Save for later"}
               className={cn(
-                "size-11 rounded-[12px] border inline-flex items-center justify-center transition-colors cursor-pointer",
+                "inline-flex size-11 cursor-pointer items-center justify-center rounded-[12px] border shadow-[0_1px_2px_rgba(26,24,22,0.05)] transition-[transform,box-shadow,background-color,color,border-color] duration-200 ease-out hover:-translate-y-px hover:shadow-[0_4px_10px_-4px_rgba(26,24,22,0.20)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2",
                 saved
                   ? "border-rose-200 bg-rose-50 text-rose-600"
-                  : "border-ink-200 hover:bg-cream-100 text-ink-400 hover:text-rose-600",
+                  : "border-ink-200 bg-gradient-to-b from-white to-cream-50/60 text-ink-400 hover:border-rose-200/70 hover:text-rose-600",
               )}
             >
               <Bookmark
                 className="size-4"
-                strokeWidth={1.8}
+                strokeWidth={1.9}
                 fill={saved ? "currentColor" : "none"}
               />
             </button>
-            {canDelete && onDelete ? (
+
+            {canDelete && onDelete && (
               <div className="relative">
                 <button
                   type="button"
@@ -358,7 +432,7 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
                   aria-haspopup="menu"
                   aria-expanded={menuOpen}
                   onClick={() => setMenuOpen((o) => !o)}
-                  className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
+                  className="inline-flex size-11 cursor-pointer items-center justify-center rounded-[12px] border border-ink-200 bg-gradient-to-b from-white to-cream-50/60 text-ink-400 shadow-[0_1px_2px_rgba(26,24,22,0.05)] transition-[transform,box-shadow,background-color,color,border-color] duration-200 ease-out hover:-translate-y-px hover:text-ink-700 hover:shadow-[0_4px_10px_-4px_rgba(26,24,22,0.20)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:ring-offset-2"
                 >
                   <MoreHorizontal className="size-4" strokeWidth={2} />
                 </button>
@@ -389,14 +463,6 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
                   </>
                 )}
               </div>
-            ) : (
-              <button
-                type="button"
-                aria-label="More options"
-                className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
-              >
-                <MoreHorizontal className="size-4" strokeWidth={2} />
-              </button>
             )}
           </>
         )}
