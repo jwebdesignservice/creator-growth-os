@@ -160,6 +160,19 @@ export function ContentCalendar({
     return Math.round((sun.getTime() - base.getTime()) / 86_400_000);
   })();
 
+  // "June 7 – 13, 2026" (month repeated when the week spans two months).
+  const weekFirst = days[0];
+  const weekLast = days[days.length - 1];
+  const weekLabel = `${weekFirst.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+  })} – ${weekLast.toLocaleDateString("en-US", {
+    ...(weekFirst.getMonth() === weekLast.getMonth()
+      ? {}
+      : { month: "long" as const }),
+    day: "numeric",
+  })}, ${weekLast.getFullYear()}`;
+
   // A card is "saving" while its optimistic day differs from the persisted day
   // (its reschedule hasn't round-tripped yet) — derived, so no effect is needed.
   const persistedDates = new Map<string, string | null>();
@@ -372,118 +385,191 @@ export function ContentCalendar({
     </WorkspaceHeader>
     <div className="flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       {viewMode === "week" && (
-        <div className="flex-1 min-h-0 overflow-auto">
-          <div className="flex h-full min-w-[760px] flex-col">
-            {/* Day headers */}
-            <div className="grid grid-cols-5 divide-x divide-ink-100 border-b border-ink-100">
-              {days.map((d) => {
-                const key = isoDateOf(d);
-                const isToday = key === today;
-                const isPast = key < today;
-                return (
-                  <div
-                    key={key}
-                    className={cn(
-                      "flex items-center justify-between gap-1.5 px-2.5 py-2",
-                      isPast && !isToday && "bg-[#F4F4F6]",
-                      isToday && "bg-rose-50",
-                    )}
-                  >
-                    <div>
-                      <div
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 lg:p-6">
+          <div className="mb-3 text-[15px] font-semibold text-ink-900">
+            {weekLabel}
+          </div>
+          {/* Reference-style week grid — the month system at one-week zoom:
+              "Sunday 7 … Saturday 13" header with today underlined, muted past
+              columns, time-band rows, and the same chip → peek → drag system. */}
+          <div className="overflow-x-auto">
+            <div className="min-w-[840px] overflow-hidden rounded-[14px] border border-ink-100 bg-white">
+              {/* Header — weekday + day number; today gets the brand underline */}
+              <div className="grid grid-cols-7 border-b border-ink-100">
+                {days.map((d) => {
+                  const key = isoDateOf(d);
+                  const isToday = key === today;
+                  return (
+                    <div
+                      key={key}
+                      className="relative flex items-baseline justify-center gap-2 px-2 py-3"
+                    >
+                      <span
                         className={cn(
-                          "text-[10px] font-semibold uppercase tracking-wide",
-                          isToday ? "text-rose-600" : "text-ink-500",
+                          "text-[13.5px]",
+                          isToday
+                            ? "font-semibold text-rose-700"
+                            : "font-medium text-ink-500",
                         )}
                       >
-                        {d.toLocaleDateString("en-US", { weekday: "short" })}
-                      </div>
-                      <div
+                        {d.toLocaleDateString("en-US", { weekday: "long" })}
+                      </span>
+                      <span
                         className={cn(
-                          "mt-0.5 text-[18px] font-display leading-none",
-                          isToday ? "text-rose-600" : "text-ink-900",
+                          "text-[13.5px] font-semibold tabular-nums",
+                          isToday ? "text-rose-700" : "text-ink-700",
                         )}
                       >
                         {d.getDate()}
-                      </div>
-                    </div>
-                    {isToday && (
-                      <span className="shrink-0 rounded-full bg-rose-600 px-2 py-1 text-[9px] font-bold uppercase leading-none tracking-wide text-white">
-                        Today
                       </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      {isToday && (
+                        <span
+                          aria-hidden
+                          className="absolute inset-x-0 bottom-0 h-[2px] bg-rose-600"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
 
-            {/* Posts in their day columns */}
-            <div className="grid grid-cols-5 flex-1 min-h-0 divide-x divide-ink-100">
-              {days.map((d) => {
-                const key = isoDateOf(d);
-                const dayItems = byDay.get(key) ?? [];
-                const isToday = key === today;
-                const isPast = key < today;
-                const isOver = overKey === key;
-                return (
-                  <div
-                    key={key}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                      if (overKey !== key) setOverKey(key);
-                    }}
-                    onDragLeave={(e) => {
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        setOverKey((k) => (k === key ? null : k));
-                      }
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      dropOnDay(d, e);
-                    }}
-                    className={cn(
-                      "flex flex-col min-h-[200px] lg:min-h-0 overflow-y-auto p-2.5 transition-colors",
-                      isPast && !isToday && !isOver && "bg-[#F4F4F6]/80",
-                      isToday && !isOver && "bg-rose-50/60",
-                      isOver && "bg-rose-100/60 ring-1 ring-rose-300 ring-inset",
-                    )}
-                  >
-                    {dayItems.length === 0 ? (
-                      <div className="flex-1 flex items-center justify-center min-h-[56px]">
-                        <span className="text-[11px] text-ink-300">
-                          {isOver ? "Drop here" : "—"}
-                        </span>
-                      </div>
-                    ) : (
-                      <ul className="space-y-2 flex-1">
-                        {dayItems.map((item) => (
-                          <li key={item.id}>
-                            <DraggableCard
-                              item={item}
-                              dragging={draggingId === item.id}
-                              loading={savingIds.has(item.id)}
-                              onDragStart={() => setDraggingId(item.id)}
-                              onDragEnd={endDrag}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+              {/* Day columns — time bands hold the chips by hour */}
+              <div className="grid grid-cols-7">
+                {days.map((d, di) => {
+                  const key = isoDateOf(d);
+                  const isToday = key === today;
+                  const isPast = key < today;
+                  const isOver = overKey === key;
+                  const muted = isPast && !isToday;
+                  const dayItems = byDay.get(key) ?? [];
+                  return (
+                    <div
+                      key={key}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (overKey !== key) setOverKey(key);
+                      }}
+                      onDragLeave={(e) => {
+                        if (
+                          !e.currentTarget.contains(e.relatedTarget as Node)
+                        ) {
+                          setOverKey((k) => (k === key ? null : k));
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        dropOnDay(d, e);
+                      }}
+                      className={cn(
+                        "group relative flex flex-col transition-colors",
+                        di < 6 && "border-r border-ink-100",
+                        muted ? "bg-cream-100/70" : "bg-white",
+                        isOver &&
+                          "bg-rose-50/60 ring-2 ring-rose-400 ring-inset",
+                      )}
+                    >
+                      {WEEK_BANDS.map(([from, to], bi) => {
+                        const bandItems = dayItems.filter((item) => {
+                          const h = new Date(
+                            item.scheduled_for!,
+                          ).getHours();
+                          return h >= from && h < to;
+                        });
+                        return (
+                          <div
+                            key={bi}
+                            className={cn(
+                              "flex min-h-[108px] flex-col gap-1.5 p-1.5",
+                              bi > 0 && "border-t border-ink-100",
+                            )}
+                          >
+                            {bandItems.map((item) => {
+                              const pm = platformMeta(
+                                item.platform ?? "other",
+                              );
+                              const saving = savingIds.has(item.id);
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  draggable={!saving}
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.effectAllowed = "move";
+                                    e.dataTransfer.setData(
+                                      "text/plain",
+                                      item.id,
+                                    );
+                                    setDraggingId(item.id);
+                                  }}
+                                  onDragEnd={endDrag}
+                                  onClick={(e) =>
+                                    setPeek({
+                                      id: item.id,
+                                      anchor:
+                                        e.currentTarget.getBoundingClientRect(),
+                                    })
+                                  }
+                                  title={item.topic ?? "Untitled post"}
+                                  className={cn(
+                                    "flex w-full cursor-grab flex-col gap-1 rounded-[10px] border border-ink-100 bg-white p-1.5 text-left shadow-[0_1px_2px_rgba(26,24,22,0.06)] transition-all active:cursor-grabbing hover:border-ink-200 hover:shadow-[0_3px_8px_-3px_rgba(26,24,22,0.3)]",
+                                    draggingId === item.id && "opacity-40",
+                                    saving &&
+                                      "pointer-events-none opacity-60",
+                                  )}
+                                >
+                                  <span className="flex items-center gap-1.5">
+                                    <span
+                                      className={cn(
+                                        "inline-flex size-6 shrink-0 items-center justify-center rounded-[7px]",
+                                        pm.tile,
+                                      )}
+                                    >
+                                      {pm.icon}
+                                    </span>
+                                    <span className="truncate text-[11.5px] font-semibold tabular-nums text-ink-800">
+                                      {fmtChipTime(item.scheduled_for!)}
+                                    </span>
+                                  </span>
+                                  <span className="flex items-start gap-1.5">
+                                    <span
+                                      className={cn(
+                                        "min-w-0 flex-1 text-[11.5px] leading-snug line-clamp-2",
+                                        item.topic
+                                          ? "text-ink-700"
+                                          : "italic text-ink-400",
+                                      )}
+                                    >
+                                      {item.topic ?? "Untitled post"}
+                                    </span>
+                                    <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
+                                      <ImagePlus
+                                        className="size-3.5 text-ink-300"
+                                        strokeWidth={1.8}
+                                      />
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
 
-                    {planId && (
-                      <button
-                        type="button"
-                        onClick={() => setAddDate(key)}
-                        className="mt-2 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] border border-dashed border-ink-200 text-[12px] font-medium text-ink-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50 transition-colors shrink-0"
-                      >
-                        <Plus className="size-3.5" strokeWidth={2.2} />
-                        Add post
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                      {planId && (
+                        <button
+                          type="button"
+                          onClick={() => setAddDate(key)}
+                          aria-label={`Add a post on ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                          className="absolute right-1.5 top-1.5 z-20 inline-flex size-6 scale-90 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white opacity-0 shadow-sm transition-all duration-150 hover:bg-rose-700 focus-visible:scale-100 focus-visible:opacity-100 group-hover:scale-100 group-hover:opacity-100"
+                        >
+                          <Plus className="size-3.5" strokeWidth={2.6} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
