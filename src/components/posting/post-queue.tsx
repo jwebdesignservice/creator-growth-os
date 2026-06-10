@@ -19,7 +19,6 @@ import { contentTypeLabel } from "@/lib/posting/content-type-accent";
 import { updateItemStatus } from "@/app/(app)/posting/actions";
 import { StatusPill } from "./status-pill";
 import { ItemActionsMenu } from "./item-actions-menu";
-import { PostDetailModal } from "./post-detail-modal";
 import { NewItemForm } from "./posting-actions";
 
 /* Per-type glyph for the platform avatar's corner badge. */
@@ -131,7 +130,11 @@ export function PostQueue({
       )}
 
       {editItem && (
-        <PostDetailModal item={editItem} onClose={() => setEditItem(null)} />
+        <NewItemForm
+          planId={planId}
+          editItem={editItem}
+          onClose={() => setEditItem(null)}
+        />
       )}
       {composeDay && (
         <NewItemForm

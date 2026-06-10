@@ -478,6 +478,17 @@ export function NewItemForm({
     });
   }
 
+
+  // Production schedule: single day (uses the date above) vs phases spread
+  // across days. phaseDates holds a YYYY-MM-DD per stage (absent = skipped).
+  const [phased, setPhased] = useState(false);
+  const [phaseDates, setPhaseDates] = useState<
+    Partial<Record<ContentStatus, string>>
+  >({});
+  // Remember the created row id so a retry (e.g. after a phase-save hiccup)
+  // re-uses it instead of inserting a duplicate post.
+  const createdId = useRef<string | null>(null);
+
   // Edit mode: pull the fields the list rows don't carry (goal, notes,
   // phased flag) plus any production-phase dates, and prefill the form.
   useEffect(() => {
@@ -510,16 +521,6 @@ export function NewItemForm({
       cancelled = true;
     };
   }, [editItem]);
-
-  // Production schedule: single day (uses the date above) vs phases spread
-  // across days. phaseDates holds a YYYY-MM-DD per stage (absent = skipped).
-  const [phased, setPhased] = useState(false);
-  const [phaseDates, setPhaseDates] = useState<
-    Partial<Record<ContentStatus, string>>
-  >({});
-  // Remember the created row id so a retry (e.g. after a phase-save hiccup)
-  // re-uses it instead of inserting a duplicate post.
-  const createdId = useRef<string | null>(null);
 
   // Spread the phases over consecutive days, "Posted" on the chosen date.
   function autoSpacePhases() {

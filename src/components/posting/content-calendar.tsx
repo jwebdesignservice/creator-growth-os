@@ -20,7 +20,6 @@ import type {
 } from "@/lib/posting/queries";
 import { PlatformGlyph } from "./platform-glyphs";
 import { NewItemForm } from "./posting-actions";
-import { PostDetailModal } from "./post-detail-modal";
 import { rescheduleItem } from "@/app/(app)/posting/actions";
 import { ItemActionsMenu } from "./item-actions-menu";
 import { StatusPill } from "./status-pill";
@@ -84,18 +83,10 @@ export function ContentCalendar({
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   // Months away from the current month shown in the month grid (0 = this month).
   const [monthOffset, setMonthOffset] = useState(0);
-  // Which post's detail popup is open (from a bar/card). null = closed.
+  // Which post's edit composer is open (from a bar/card). null = closed.
   const [openId, setOpenId] = useState<string | null>(null);
-  // Whether to open that popup straight into edit mode (from a card's Edit btn).
-  const [openEditMode, setOpenEditMode] = useState(false);
-  const openDetail = (id: string) => {
-    setOpenId(id);
-    setOpenEditMode(false);
-  };
-  const openDetailEdit = (id: string) => {
-    setOpenId(id);
-    setOpenEditMode(true);
-  };
+  const openDetail = (id: string) => setOpenId(id);
+  const openDetailEdit = (id: string) => setOpenId(id);
   // While a post is dragged over the ‹ / › buttons we auto-slide the window, so
   // a post can be dropped onto ANY date — not just the days currently shown.
   const [flipHover, setFlipHover] = useState<"prev" | "next" | null>(null);
@@ -711,14 +702,7 @@ export function ContentCalendar({
       )}
 
       {openItem && (
-        <PostDetailModal
-          item={openItem}
-          initialEdit={openEditMode}
-          onClose={() => {
-            setOpenId(null);
-            setOpenEditMode(false);
-          }}
-        />
+        <NewItemForm editItem={openItem} onClose={() => setOpenId(null)} />
       )}
     </>
   );
@@ -775,7 +759,7 @@ function DraggableCard({
         )}
       </div>
       {detailOpen && (
-        <PostDetailModal item={item} onClose={() => setDetailOpen(false)} />
+        <NewItemForm editItem={item} onClose={() => setDetailOpen(false)} />
       )}
     </>
   );

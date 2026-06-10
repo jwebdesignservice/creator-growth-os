@@ -26,7 +26,7 @@ import type { PostingItem, PlatformKey } from "@/lib/posting/queries";
 import { contentTypeAccent } from "@/lib/posting/content-type-accent";
 import { ItemActionsMenu } from "./item-actions-menu";
 import { StatusPill } from "./status-pill";
-import { PostDetailModal } from "./post-detail-modal";
+import { NewItemForm } from "./posting-actions";
 
 type Props = {
   items: PostingItem[];
@@ -194,7 +194,7 @@ export function PlannedPostsTable({
       )}
     </section>
       {editItem && (
-        <PostDetailModal item={editItem} onClose={() => setEditItem(null)} />
+        <NewItemForm editItem={editItem} onClose={() => setEditItem(null)} />
       )}
     </>
   );
