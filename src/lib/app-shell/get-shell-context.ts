@@ -19,7 +19,7 @@ export const getShellContext = cache(async () => {
   // Supabase builders never reject (errors come back as { data: null,
   // count: null }), so the count fallbacks below keep the shell fail-soft
   // even if a table is missing (pre-migration).
-  const [profileRes, notifRes, taskRes, socialRes] = await Promise.all([
+  const [profileRes, notifRes, taskRes, socialRes, dmRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -46,6 +46,8 @@ export const getShellContext = cache(async () => {
       .from("social_accounts")
       .select("platform, follower_count")
       .eq("user_id", user.id),
+    // Unread DM conversations for the "Messages" badge (RPC from 0057).
+    supabase.rpc("dm_unread_count"),
   ]);
 
   const profile = profileRes.data;
@@ -65,6 +67,11 @@ export const getShellContext = cache(async () => {
   // Defaults to 0 on error so a missing table never breaks the shell.
   const unreadNotificationCount = notifRes.count ?? 0;
   const openTaskCount = taskRes.count ?? 0;
+  // Unread DM conversations for the sidebar "Messages" badge — conversations
+  // whose latest message came from the other person after the user last
+  // opened the thread. The RPC may not exist pre-migration (0057); builders
+  // resolve with { data: null } instead of throwing, so this stays fail-soft.
+  const unreadMessageCount = (dmRes.data as number | null) ?? 0;
   const socialRows = socialRes.data;
 
   const socials: { instagram?: number; tiktok?: number; youtube?: number } = {};
@@ -94,7 +101,7 @@ export const getShellContext = cache(async () => {
     socials,
   };
 
-  return { user, profile, name, plan, unreadNotificationCount, openTaskCount, topUser, railProfile };
+  return { user, profile, name, plan, unreadNotificationCount, openTaskCount, unreadMessageCount, topUser, railProfile };
 });
 
 function computeProfileCompletion(

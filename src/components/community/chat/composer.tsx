@@ -9,19 +9,21 @@ import {
 } from "react";
 import { Send, Loader2, X, CornerUpLeft, Paperclip } from "lucide-react";
 import { MentionPopover } from "./mention-popover";
-import { sendMessage, searchHandles } from "@/lib/community/chat/actions";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
-import type { ChatMessage, MentionCandidate } from "@/lib/community/chat/types";
+import type { MentionCandidate } from "@/lib/community/chat/types";
+import type { ChatApi, RoomMessage } from "@/lib/community/shared";
 
 type Props = {
-  channelId: string;
+  parentId: string;
+  api: ChatApi;
   onSent: () => void;
   onError: (msg: string) => void;
   isConnected: boolean;
-  replyTo: ChatMessage | null;
+  replyTo: RoomMessage | null;
   onCancelReply: () => void;
   currentUserId: string;
+  placeholder?: string;
 };
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -30,7 +32,17 @@ const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif
 const MAX_CHARS = 2000;
 const WARN_CHARS = 1900;
 
-export function Composer({ channelId, onSent, onError, isConnected, replyTo, onCancelReply, currentUserId }: Props) {
+export function Composer({
+  parentId,
+  api,
+  onSent,
+  onError,
+  isConnected,
+  replyTo,
+  onCancelReply,
+  currentUserId,
+  placeholder = "Write a message… (Enter to send, Shift+Enter for new line)",
+}: Props) {
   const [body, setBody] = useState("");
   const [sending, startSending] = useTransition();
   const [uploading, setUploading] = useState(false);
@@ -53,13 +65,13 @@ export function Composer({ channelId, onSent, onError, isConnected, replyTo, onC
       const ext = file.name.split(".").pop() ?? "png";
       const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error } = await supabase.storage
-        .from("chat-images")
+        .from(api.uploadBucket)
         .upload(path, file, { cacheControl: "3600", upsert: false });
       if (error) {
         onError(error.message);
         return;
       }
-      const { data } = supabase.storage.from("chat-images").getPublicUrl(path);
+      const { data } = supabase.storage.from(api.uploadBucket).getPublicUrl(path);
       setPendingImage({ url: data.publicUrl, name: file.name });
     } finally {
       setUploading(false);
@@ -105,13 +117,18 @@ export function Composer({ channelId, onSent, onError, isConnected, replyTo, onC
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [body]);
 
-  // Fetch mention candidates when query changes. Clearing the list when the
-  // query goes away happens in the event handlers that reset the query, so
-  // this effect only ever sets state asynchronously (fetch result).
+  // Fetch mention candidates when query changes (clearing is handled in the
+  // change/keydown handlers so we never setState synchronously in the effect).
   useEffect(() => {
     if (mentionQuery === null) return;
-    searchHandles(mentionQuery).then(setCandidates);
-  }, [mentionQuery]);
+    let alive = true;
+    api.searchHandles(mentionQuery).then((r) => {
+      if (alive) setCandidates(r);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [mentionQuery, api]);
 
   function detectMentionQuery(value: string, cursor: number): string | null {
     const textBeforeCursor = value.slice(0, cursor);
@@ -126,6 +143,7 @@ export function Composer({ channelId, onSent, onError, isConnected, replyTo, onC
     setMentionQuery(q);
     if (q === null) setCandidates([]);
     setSelectedIndex(0);
+    if (q === null) setCandidates([]);
   }
 
   function insertMention(candidate: MentionCandidate) {
@@ -176,7 +194,7 @@ export function Composer({ channelId, onSent, onError, isConnected, replyTo, onC
     const replyId = replyTo?.id;
     const imageUrl = pendingImage?.url;
     startSending(async () => {
-      const result = await sendMessage(channelId, trimmed, replyId, imageUrl);
+      const result = await api.send(parentId, trimmed, replyId, imageUrl);
       if (!result.ok) {
         onError(result.error);
       } else {
@@ -283,7 +301,7 @@ export function Composer({ channelId, onSent, onError, isConnected, replyTo, onC
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={pendingImage ? "Add a caption… (optional)" : "Message the community… (Enter to send, Shift+Enter for new line)"}
+          placeholder={pendingImage ? "Add a caption… (optional)" : placeholder}
           rows={1}
           maxLength={MAX_CHARS}
           disabled={sending || !isConnected}

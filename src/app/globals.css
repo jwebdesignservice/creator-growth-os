@@ -605,3 +605,18 @@ select.input {
   .ob-sheen { animation: none; opacity: 0; }
   .ob-float { animation: none; }
 }
+
+/* ── Posting plan hero (progress ring + pipeline bar) ──────────────── */
+@keyframes plan-ring-fill { from { stroke-dashoffset: var(--ring-circ); } }
+@keyframes plan-bar-grow  { from { transform: scaleX(0); } }
+.plan-ring-arc {
+  animation: plan-ring-fill 1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s backwards;
+}
+.plan-bar-fill {
+  transform-origin: left;
+  animation: plan-bar-grow 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .plan-ring-arc { animation: none; }
+  .plan-bar-fill { animation: none; }
+}

@@ -158,7 +158,7 @@ export default async function ProgramDetailPage({
   const supabase = await createClient();
   const { data: dbProgram } = await supabase
     .from("programs")
-    .select("id, slug, title, description, total_lessons, total_tasks, estimated_days, plan_access")
+    .select("id, slug, title, description, total_lessons, total_tasks, estimated_days, plan_access, cover_image_url, cover_hue")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -172,6 +172,8 @@ export default async function ProgramDetailPage({
     total_tasks: 18,
     estimated_days: 42,
     plan_access: "basic",
+    cover_image_url: null as string | null,
+    cover_hue: null as string | null,
   };
 
   if (!program) notFound();
@@ -333,6 +335,8 @@ export default async function ProgramDetailPage({
                 progress={effectivePercent}
                 continueHref={continueHref}
                 enrolledCount={enrolledCount}
+                coverImageUrl={program.cover_image_url ?? null}
+                coverHue={program.cover_hue ?? null}
               />
               <WhatYoullLearn
                 outcomes={learnOutcomes}
@@ -366,6 +370,14 @@ export default async function ProgramDetailPage({
   );
 }
 
+/**
+ * Program hero — a cover-art banner, deliberately distinct from the white
+ * ring-strip hero used on Posting and Tasks. It extends the premium program
+ * card's language onto the page the card opens into: the same gradient/photo
+ * cover surface, glassy status pill, oversized monogram, dark completion
+ * pill, and a rose progress strip sweeping along the banner's bottom edge
+ * (`.program-bar`, reduced-motion safe).
+ */
 function ProgramHero({
   title,
   description,
@@ -374,6 +386,8 @@ function ProgramHero({
   progress,
   continueHref,
   enrolledCount,
+  coverImageUrl,
+  coverHue,
 }: {
   title: string;
   description: string;
@@ -382,40 +396,99 @@ function ProgramHero({
   progress: number;
   continueHref: string;
   enrolledCount: number;
+  coverImageUrl: string | null;
+  coverHue: string | null;
 }) {
+  const completedLessons = Math.min(
+    totalLessons,
+    Math.round((progress / 100) * totalLessons),
+  );
+  const palette =
+    coverHue === "rose"
+      ? "from-rose-100/70 via-rose-50 to-cream-200"
+      : coverHue === "warm"
+        ? "from-cream-200 via-rose-100/40 to-cream-300"
+        : "from-cream-200 via-cream-100 to-rose-100/40";
+
   return (
-    <section className="rounded-[24px] bg-cream-200 overflow-hidden relative">
-      <div className="grid lg:grid-cols-[1fr_360px] gap-6 p-8 lg:p-10">
-        <div className="max-w-2xl relative z-10">
-          <h1 className="text-h1 lg:text-[40px] text-ink-900 leading-tight mb-3">
+    <section className="relative overflow-hidden rounded-[20px] border border-ink-100 shadow-[0_1px_2px_rgba(26,24,22,0.04),0_10px_28px_-18px_rgba(26,24,22,0.10)]">
+      {/* ── Cover surface — real photo, or the card-family gradient ──── */}
+      {coverImageUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={coverImageUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* left→right cream scrim so the text column reads on any photo */}
+          <span
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-r from-cream-50/95 via-cream-50/80 to-cream-50/25"
+          />
+        </>
+      ) : (
+        <div className={`absolute inset-0 bg-gradient-to-br ${palette}`}>
+          {/* soft radial light source + warm corner answer (card family) */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(60% 75% at 78% 18%, rgba(255,255,255,0.55), transparent 62%)," +
+                "radial-gradient(45% 60% at 12% 92%, rgba(225,118,132,0.14), transparent 60%)",
+            }}
+          />
+        </div>
+      )}
+
+      {/* ── Content ───────────────────────────────────────────────────── */}
+      <div className="relative p-5 sm:p-6 pb-7 sm:pb-8 flex items-start justify-between gap-x-6 gap-y-4 flex-wrap">
+        <div className="min-w-0 max-w-2xl">
+          {/* Glassy status pill — same one that sits on the card thumbnail */}
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-800 shadow-[0_2px_10px_-2px_rgba(26,24,22,0.32)] ring-1 ring-ink-900/[0.06] backdrop-blur-sm">
+            {progress >= 100 ? (
+              <>
+                <Check className="size-3 text-success" strokeWidth={2.5} />
+                Completed
+              </>
+            ) : progress > 0 ? (
+              <>
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex size-full rounded-full bg-rose-400 opacity-60 motion-safe:animate-ping" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-rose-500" />
+                </span>
+                In progress
+              </>
+            ) : (
+              "Not started"
+            )}
+          </span>
+
+          <h1 className="font-display text-[26px] sm:text-[30px] text-ink-900 leading-tight mt-2">
             {title}
           </h1>
-          <p className="text-ink-700 text-[14.5px] leading-relaxed max-w-md mb-5">
-            {description}
-          </p>
+          {description && (
+            <p className="text-[12.5px] text-ink-600 mt-1 line-clamp-1">
+              {description}
+            </p>
+          )}
 
-          {/* Coach chip */}
-          <div className="inline-flex items-center gap-3 mb-5">
-            <Avatar name="Sophie Carter" size={44} />
-            <div>
-              <div className="text-[13px] font-semibold text-ink-900 leading-tight">
-                Your Coach: Sophie Carter
-              </div>
-              <div className="text-[11.5px] text-ink-500">
-                Growth & Brand Strategist
-              </div>
-            </div>
-          </div>
-
-          {/* Stats row */}
-          <div className="flex flex-wrap items-center gap-5 text-[12.5px] text-ink-700 mb-5">
+          {/* One quiet meta line — coach + the old stats row */}
+          <div className="flex items-center gap-x-3.5 gap-y-1 flex-wrap mt-2.5 text-[12.5px] text-ink-600">
+            <span className="inline-flex items-center gap-1.5">
+              <Avatar name="Sophie Carter" size={20} />
+              <span>
+                Coach <span className="font-semibold text-ink-800">Sophie Carter</span>
+              </span>
+            </span>
             <span className="inline-flex items-center gap-1.5">
               <Users className="size-3.5 text-rose-500" strokeWidth={2} />
-              {Math.ceil(totalLessons / 4)} Modules
+              {Math.ceil(totalLessons / 4)} Module{Math.ceil(totalLessons / 4) === 1 ? "" : "s"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <BookOpen className="size-3.5 text-rose-500" strokeWidth={2} />
-              {totalLessons} Lessons
+              {totalLessons} Lesson{totalLessons === 1 ? "" : "s"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <BarChart3 className="size-3.5 text-rose-500" strokeWidth={2} />
@@ -426,84 +499,49 @@ function ProgramHero({
               {Math.ceil(estimatedDays / 7)} Weeks
             </span>
           </div>
-
-          {/* Progress */}
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[12px] text-ink-500 font-medium">
-                Program Progress
-              </span>
-              <span className="text-[12.5px] text-ink-900 font-semibold tabular-nums">
-                {progress}%
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-cream-300 overflow-hidden">
-              <div
-                className="h-full bg-rose-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* CTAs */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={continueHref}
-              className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-medium shadow-sm transition-colors"
-            >
-              <Play className="size-4" fill="currentColor" />
-              Continue Program
-            </Link>
-
-            {/* Social proof — real enrolled-learner count (decorative avatars) */}
-            <div className="inline-flex items-center gap-2.5 pl-1">
-              <div className="flex -space-x-2.5" aria-hidden>
-                <span className="size-8 rounded-full bg-gradient-to-br from-rose-300 to-rose-500 ring-2 ring-cream-200" />
-                <span className="size-8 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 ring-2 ring-cream-200" />
-                <span className="size-8 rounded-full bg-gradient-to-br from-emerald-300 to-emerald-500 ring-2 ring-cream-200" />
-              </div>
-              <span className="text-[14px] text-ink-700 leading-tight">
-                <span className="font-bold text-ink-900 tabular-nums">
-                  {enrolledCount.toLocaleString()}
-                </span>{" "}
-                learner{enrolledCount === 1 ? "" : "s"} enrolled
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* Decorative right */}
-        <div className="relative hidden lg:block">
-          <div className="absolute right-0 top-0 w-80 h-80 rounded-full bg-rose-100/70 -translate-y-8 translate-x-12 blur-2xl" />
-          <NotebookOrnament />
+        {/* CTA + social proof, stacked on the banner's right */}
+        <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
+          <Link
+            href={continueHref}
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold shadow-sm transition-colors"
+          >
+            <Play className="size-4" fill="currentColor" />
+            {progress > 0 ? "Continue Program" : "Start Program"}
+          </Link>
+          <span className="inline-flex items-center gap-2">
+            <span className="flex -space-x-1.5" aria-hidden>
+              <span className="size-5 rounded-full bg-gradient-to-br from-rose-300 to-rose-500 ring-2 ring-white/80" />
+              <span className="size-5 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 ring-2 ring-white/80" />
+              <span className="size-5 rounded-full bg-gradient-to-br from-emerald-300 to-emerald-500 ring-2 ring-white/80" />
+            </span>
+            <span className="text-[11.5px] text-ink-600 leading-none">
+              <span className="font-bold text-ink-900 tabular-nums">
+                {enrolledCount.toLocaleString()}
+              </span>{" "}
+              learner{enrolledCount === 1 ? "" : "s"} enrolled
+            </span>
+          </span>
         </div>
       </div>
+
+      {/* ── Completion pill + progress strip on the bottom edge ───────── */}
+      <span className="hidden sm:inline-flex absolute bottom-3 right-3 items-center gap-1.5 rounded-[7px] bg-ink-900/75 px-2 py-[3px] text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+        <span
+          className={`size-1.5 rounded-full ${
+            progress >= 100 ? "bg-emerald-400" : progress > 0 ? "bg-rose-400" : "bg-white/40"
+          }`}
+        />
+        {progress}% · {completedLessons}/{totalLessons} lessons
+      </span>
+      <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] bg-ink-900/[0.07]">
+        <span
+          className="program-bar block h-full origin-left bg-rose-500"
+          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+        />
+      </span>
     </section>
-  );
-}
-
-function NotebookOrnament() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="w-44 h-56 rounded-[14px] bg-white border border-cream-300 rotate-[-3deg] shadow-card p-4">
-        <div className="font-script text-[18px] text-ink-700 mb-1 underline decoration-rose-300/70 underline-offset-4">
-          Focus
-        </div>
-        <div className="font-script text-[18px] text-ink-700 mb-1 underline decoration-rose-300/70 underline-offset-4">
-          Plan
-        </div>
-        <div className="font-script text-[18px] text-ink-700 mb-3 underline decoration-rose-300/70 underline-offset-4">
-          Grow
-        </div>
-        <div className="space-y-1.5">
-          <div className="h-1.5 rounded bg-cream-200 w-full" />
-          <div className="h-1.5 rounded bg-cream-200 w-4/5" />
-          <div className="h-1.5 rounded bg-cream-200 w-3/4" />
-          <div className="h-1.5 rounded bg-cream-200 w-2/3" />
-        </div>
-        <div className="mt-3 text-right text-rose-400 text-[14px]">♥</div>
-      </div>
-    </div>
   );
 }
 

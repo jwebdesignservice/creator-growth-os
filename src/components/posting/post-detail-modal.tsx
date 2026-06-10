@@ -147,9 +147,12 @@ const selectCls =
 export function PostDetailModal({
   item,
   onClose,
+  initialEdit = false,
 }: {
   item: PostingItem;
   onClose: () => void;
+  /** Open straight into the inline edit form (from a card's Edit button). */
+  initialEdit?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -223,6 +226,16 @@ export function PostDetailModal({
         setPlatform((d.platform as PlatformKey | null) ?? null);
         setContentType(d.content_type ?? null);
         setPhased(d.is_phased);
+        // Opened via a card's Edit button → seed the draft + show the edit form.
+        if (initialEdit) {
+          setDraftTopic(d.topic ?? "");
+          setDraftGoal(d.goal ?? "");
+          setDraftNotes(d.notes ?? "");
+          setDraftStatus(d.status);
+          setDraftPlatform((d.platform as PlatformKey | null) ?? null);
+          setDraftContentType(d.content_type ?? null);
+          setMode("edit");
+        }
       }
       const map: Partial<Record<ContentStatus, string>> = {};
       for (const p of phases) {
@@ -234,7 +247,7 @@ export function PostDetailModal({
     return () => {
       alive = false;
     };
-  }, [item.id]);
+  }, [item.id, initialEdit]);
 
   const time = item.scheduled_for
     ? new Date(item.scheduled_for).toLocaleTimeString("en-US", {
@@ -301,24 +314,37 @@ export function PostDetailModal({
 
   // Quick status change from view mode — tap a pipeline stage and it saves
   // immediately (optimistic, reverts on failure). In edit mode the chips still
-  // just stage the draft until "Save changes".
+  // just stage the draft until "Save changes". The loading state is held until
+  // the calendar (server components) re-render: savingStatus stays set through
+  // the whole transition and is cleared by the effect below when `pending`
+  // settles after router.refresh().
   function changeStatus(s: ContentStatus) {
-    if (s === status || pending) return;
+    if (s === status || pending || savingStatus) return;
     setError(null);
     const prev = status;
     setStatus(s); // optimistic
     setSavingStatus(s);
     startTransition(async () => {
       const res = await updatePostingItemDetail(item.id, { status: s });
-      setSavingStatus(null);
       if (!res.ok) {
         setStatus(prev); // revert
+        setSavingStatus(null);
         setError(res.error);
         return;
       }
       router.refresh();
     });
   }
+
+  // Hold the per-stage spinner until the save + calendar refresh have settled
+  // (router.refresh keeps `pending` true through the re-render). Clearing the
+  // flag once the transition resolves is a valid effect use here.
+  useEffect(() => {
+    if (!pending && savingStatus !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSavingStatus(null);
+    }
+  }, [pending, savingStatus]);
 
   // Persist the production schedule (single-day flag + per-phase dates).
   function savePhases() {
@@ -718,11 +744,17 @@ export function PostDetailModal({
                 );
               })}
             </div>
-            {!editing && (
-              <p className="mt-2 text-[11px] text-ink-400">
-                Tap a stage to update the status.
-              </p>
-            )}
+            {!editing &&
+              (savingStatus ? (
+                <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-rose-600">
+                  <Loader2 className="size-3 animate-spin" strokeWidth={2.5} />
+                  Updating the calendar…
+                </p>
+              ) : (
+                <p className="mt-2 text-[11px] text-ink-400">
+                  Tap a stage to update the status.
+                </p>
+              ))}
           </div>
 
           {error && (
