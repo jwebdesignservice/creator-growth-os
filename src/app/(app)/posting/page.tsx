@@ -13,7 +13,6 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { ActivePlanCard } from "@/components/posting/active-plan-card";
 import { IdeasBoard } from "@/components/posting/ideas-board";
 import { PostingPlatformCards } from "@/components/posting/platform-cards";
-import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
 import { PostQueue } from "@/components/posting/post-queue";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
@@ -105,15 +104,11 @@ export default async function PostingPage({
             <WorkspaceHeader title="My Plans">
               <PostingActions activePlanId={activePlan.id} />
             </WorkspaceHeader>
-            {/* Three sections — plan summary, the per-platform nav cards,
-                then the posts table — floating on the cream page background. */}
+            {/* Two sections — plan summary + the per-platform nav cards.
+                (The post list lives in the Posts tab's queue.) */}
             <div className="space-y-5 pt-1 pb-4">
               <ActivePlanCard plan={activePlan} />
               <PostingPlatformCards items={items} planId={activePlan.id} />
-              <PlannedPostsTable
-                items={items.slice(0, 8)}
-                addPostSlot={<PostingActions activePlanId={activePlan.id} />}
-              />
             </div>
           </div>
         ) : active === "posts" ? (
