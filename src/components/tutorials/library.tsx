@@ -430,25 +430,6 @@ function TutorialCard({
           </span>
         </div>
 
-        {/* Completion pill (bottom-left) — lesson progress is binary, so
-            this honestly reads 0% or 100% */}
-        {!proLocked && (
-          <span
-            className={cn(
-              "absolute left-2.5 inline-flex items-center gap-1.5 rounded-[7px] bg-ink-900/75 px-2 py-[3px] text-[11px] font-semibold tabular-nums tracking-[0.01em] text-white backdrop-blur-sm",
-              tutorial.completed ? "bottom-3.5" : "bottom-2.5",
-            )}
-          >
-            <span
-              className={cn(
-                "size-1.5 rounded-full",
-                tutorial.completed ? "bg-emerald-400" : "bg-white/40",
-              )}
-            />
-            {tutorial.completed ? 100 : 0}%
-          </span>
-        )}
-
         {/* Duration pill (bottom-right, YouTube-style) */}
         {hasDuration && (
           <span
