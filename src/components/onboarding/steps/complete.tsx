@@ -139,7 +139,15 @@ export function CompleteStep({ firstName, onBack }: Props) {
           </button>
           {!introWatched && (
             <span className="text-[11.5px] text-ink-500 text-center sm:text-right">
-              The button unlocks the moment the intro finishes.
+              The button unlocks the moment the intro finishes — or{" "}
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="underline underline-offset-2 hover:text-ink-700 transition-colors"
+              >
+                skip the intro for now
+              </button>
+              .
             </span>
           )}
         </div>

@@ -3,6 +3,40 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
+// Log the raw Supabase/Postgres failure server-side and hand the client a
+// generic message — raw error.message leaks schema internals (table/column/
+// constraint names) to the UI.
+function friendlyDbError(context: string, error: { message: string }): string {
+  console.error(`[settings/actions] ${context}:`, error.message);
+  return "Something went wrong. Please try again.";
+}
+
+// Accept only public URLs that point at our own Supabase storage, inside the
+// `community-media` bucket and the signed-in user's own folder. Anything else
+// (external hosts, other buckets, other users' folders) is rejected.
+function isOwnCommunityMediaUrl(rawUrl: string, userId: string): boolean {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return false;
+  try {
+    const parsed = new URL(rawUrl);
+    return (
+      parsed.origin === new URL(base).origin &&
+      parsed.pathname.startsWith(
+        `/storage/v1/object/public/community-media/${userId}/`,
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
+// After a profile write, refresh every surface that renders profile data: the
+// settings subpages and the app-shell chrome (topbar/sidebar avatar + name).
+function revalidateProfileSurfaces() {
+  revalidatePath("/settings");
+  revalidatePath("/", "layout");
+}
+
 // ── Profile Settings ──────────────────────────────────────────────────────────
 
 export async function saveProfileSettings(data: {
@@ -23,19 +57,28 @@ export async function saveProfileSettings(data: {
 
   const { data: updated, error } = await admin
     .from("profiles")
-    .update({ ...data, updated_at: new Date().toISOString() })
+    .update({
+      full_name: data.full_name,
+      phone:     data.phone,
+      // "" is the "Select range…" placeholder — treat it as "no change" so an
+      // accidental re-select + save can't silently wipe the stored range.
+      ...(data.follower_base !== ""
+        ? { follower_base: data.follower_base }
+        : {}),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", user.id)
     .select("id")
     .maybeSingle();
 
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: friendlyDbError("saveProfileSettings", error) };
   }
   if (!updated) {
     return { ok: false, error: "Profile not found." };
   }
 
-  revalidatePath("/settings");
+  revalidateProfileSurfaces();
   return { ok: true };
 }
 
@@ -65,14 +108,24 @@ export async function saveCreatorInfo(data: {
       updated_at:       new Date().toISOString(),
     })
     .eq("id", user.id);
-  if (profileErr) return { ok: false, error: profileErr.message };
+  if (profileErr) {
+    return {
+      ok: false,
+      error: friendlyDbError("saveCreatorInfo profile update", profileErr),
+    };
+  }
 
   // Replace content pillars atomically
   const { error: delErr } = await admin
     .from("content_pillars")
     .delete()
     .eq("user_id", user.id);
-  if (delErr) return { ok: false, error: delErr.message };
+  if (delErr) {
+    return {
+      ok: false,
+      error: friendlyDbError("saveCreatorInfo pillars delete", delErr),
+    };
+  }
 
   if (data.pillars.length > 0) {
     const { error: insErr } = await admin.from("content_pillars").insert(
@@ -83,10 +136,15 @@ export async function saveCreatorInfo(data: {
         weight:     Math.floor(100 / data.pillars.length),
       })),
     );
-    if (insErr) return { ok: false, error: insErr.message };
+    if (insErr) {
+      return {
+        ok: false,
+        error: friendlyDbError("saveCreatorInfo pillars insert", insErr),
+      };
+    }
   }
 
-  revalidatePath("/settings");
+  revalidateProfileSurfaces();
   return { ok: true };
 }
 
@@ -99,6 +157,12 @@ export async function saveAvatarUrl(
   const { data: { user } } = await userClient.auth.getUser();
   if (!user) return { ok: false, error: "Unauthenticated" };
 
+  // `null` clears the photo; any other value must be one of our own
+  // community-media public URLs inside the caller's folder.
+  if (avatarUrl !== null && !isOwnCommunityMediaUrl(avatarUrl, user.id)) {
+    return { ok: false, error: "Invalid image URL." };
+  }
+
   // Service-role update, bounded to the caller's own row via .eq("id", user.id).
   const admin = createServiceClient();
   const { data: updated, error } = await admin
@@ -108,10 +172,10 @@ export async function saveAvatarUrl(
     .select("id")
     .maybeSingle();
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: friendlyDbError("saveAvatarUrl", error) };
   if (!updated) return { ok: false, error: "Profile not found." };
 
-  revalidatePath("/settings");
+  revalidateProfileSurfaces();
   return { ok: true };
 }
 
@@ -124,6 +188,12 @@ export async function saveBannerUrl(
   const { data: { user } } = await userClient.auth.getUser();
   if (!user) return { ok: false, error: "Unauthenticated" };
 
+  // `null` clears the banner; any other value must be one of our own
+  // community-media public URLs inside the caller's folder.
+  if (bannerUrl !== null && !isOwnCommunityMediaUrl(bannerUrl, user.id)) {
+    return { ok: false, error: "Invalid image URL." };
+  }
+
   // Service-role update, bounded to the caller's own row via .eq("id", user.id).
   const admin = createServiceClient();
   const { data: updated, error } = await admin
@@ -133,9 +203,9 @@ export async function saveBannerUrl(
     .select("id")
     .maybeSingle();
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: friendlyDbError("saveBannerUrl", error) };
   if (!updated) return { ok: false, error: "Profile not found." };
 
-  revalidatePath("/settings");
+  revalidateProfileSurfaces();
   return { ok: true };
 }

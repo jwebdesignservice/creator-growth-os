@@ -7,7 +7,7 @@ import { ArrowLeft, Compass } from "lucide-react";
  * full reload.
  */
 export const metadata = {
-  title: "Page not found · Creator Growth OS",
+  title: "Page not found · Profluencer",
 };
 
 export default function AppNotFound() {

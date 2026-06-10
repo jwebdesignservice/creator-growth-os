@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { formatDuration } from "@/lib/format";
 import type { Module, Lesson as UILesson } from "@/components/programs/curriculum-accordion";
 import { normalizeLearningPoints, type LearningPoint } from "./learning-content";
 
@@ -41,17 +42,24 @@ export type ProgramProgress = {
 export async function getCurriculumForProgram(
   programSlug: string,
   userPlan: "free" | "basic" | "pro",
+  /** Optional pre-fetched context — callers that already resolved the program
+      row and/or auth user can pass them to skip the redundant lookups. */
+  prefetched?: { programId?: string | null; userId?: string | null },
 ): Promise<Module[]> {
   const supabase = await createClient();
 
-  // Find program id by slug
-  const { data: program } = await supabase
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .maybeSingle();
+  // Find program id by slug (skipped when the caller already has it)
+  let programId = prefetched?.programId ?? null;
+  if (!programId) {
+    const { data: program } = await supabase
+      .from("programs")
+      .select("id")
+      .eq("slug", programSlug)
+      .maybeSingle();
 
-  if (!program) return [];
+    if (!program) return [];
+    programId = program.id;
+  }
 
   // Fetch lessons
   const { data: lessons } = await supabase
@@ -59,23 +67,28 @@ export async function getCurriculumForProgram(
     .select(
       "id, slug, title, duration_seconds, module_number, module_title, plan_access, sort_order, cover_image_url",
     )
-    .eq("program_id", program.id)
+    .eq("program_id", programId)
     .order("sort_order", { ascending: true });
 
   if (!lessons || lessons.length === 0) return [];
 
-  // Fetch user's progress for these lessons
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Fetch user's progress for these lessons (auth lookup skipped when the
+  // caller already knows the user id)
+  let userId = prefetched?.userId ?? null;
+  if (!userId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  }
 
   let progressByLesson = new Map<string, boolean>();
-  if (user) {
+  if (userId) {
     const lessonIds = lessons.map((l) => l.id);
     const { data: progress } = await supabase
       .from("lesson_progress")
       .select("lesson_id, completed")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .in("lesson_id", lessonIds);
     progressByLesson = new Map(
       (progress ?? []).map((p: RawProgress) => [p.lesson_id, p.completed]),
@@ -143,14 +156,25 @@ export async function getCurriculumForProgram(
 
 export async function getProgramProgress(
   programSlug: string,
+  /** Optional pre-fetched context — callers that already resolved the program
+      row and/or auth user can pass them to skip the redundant lookups. */
+  prefetched?: {
+    program?: { id: string; total_lessons: number | null };
+    userId?: string | null;
+  },
 ): Promise<ProgramProgress> {
   const supabase = await createClient();
 
-  const { data: program } = await supabase
-    .from("programs")
-    .select("id, total_lessons")
-    .eq("slug", programSlug)
-    .maybeSingle();
+  // Program lookup skipped when the caller already has the row.
+  let program = prefetched?.program ?? null;
+  if (!program) {
+    const { data } = await supabase
+      .from("programs")
+      .select("id, total_lessons")
+      .eq("slug", programSlug)
+      .maybeSingle();
+    program = data;
+  }
 
   if (!program) {
     return {
@@ -161,10 +185,15 @@ export async function getProgramProgress(
     };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  // Auth lookup skipped when the caller already knows the user id.
+  let userId = prefetched?.userId ?? null;
+  if (!userId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  }
+  if (!userId) {
     return {
       percent: 0,
       lessonsCompleted: 0,
@@ -192,7 +221,7 @@ export async function getProgramProgress(
   const { data: progress } = await supabase
     .from("lesson_progress")
     .select("lesson_id, completed")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .in(
       "lesson_id",
       lessons.map((l) => l.id),
@@ -294,13 +323,6 @@ export async function getProgressForPrograms(
     });
   }
   return out;
-}
-
-function formatDuration(seconds: number): string {
-  if (!seconds) return "—";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 /**

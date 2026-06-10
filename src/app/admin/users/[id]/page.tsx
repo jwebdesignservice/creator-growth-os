@@ -13,7 +13,7 @@ import {
 import { getUserDetail } from "@/lib/admin/queries";
 import { UserEditForms } from "./edit-forms";
 
-export const metadata = { title: "User · Admin · Creator Growth OS" };
+export const metadata = { title: "User · Admin · Profluencer" };
 
 type Params = Promise<{ id: string }>;
 

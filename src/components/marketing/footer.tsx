@@ -28,16 +28,8 @@ const PRODUCT = [
   { label: "Performance", href: "/sign-up" },
 ];
 const COMPANY = [
-  { label: "About", href: "#" },
-  { label: "Pricing", href: "#" },
-  { label: "Blog", href: "#" },
-  { label: "Contact", href: "#" },
-];
-const FOLLOW = [
-  { label: "Instagram", href: "#" },
-  { label: "X", href: "#" },
-  { label: "LinkedIn", href: "#" },
-  { label: "YouTube", href: "#" },
+  { label: "Pricing", href: "/sign-up" },
+  { label: "Contact", href: "/book-a-demo" },
 ];
 
 export function Footer() {
@@ -55,7 +47,7 @@ export function Footer() {
 
       <div className="relative mx-auto max-w-[1600px] px-6 sm:px-9">
         {/* ── TOP: statement · nav columns · utility ───────────────── */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-12 pt-[clamp(4.5rem,9vw,7.5rem)] sm:grid-cols-3 lg:grid-cols-[minmax(220px,1.7fr)_repeat(3,minmax(110px,1fr))_auto] lg:gap-x-[clamp(28px,3vw,56px)]">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-12 pt-[clamp(4.5rem,9vw,7.5rem)] sm:grid-cols-3 lg:grid-cols-[minmax(220px,1.7fr)_repeat(2,minmax(110px,1fr))_auto] lg:gap-x-[clamp(28px,3vw,56px)]">
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Link href="/" className="inline-flex items-center gap-2">
               <BrandMark size={24} className="text-white" />
@@ -71,7 +63,12 @@ export function Footer() {
 
           <FooterColumn title="Product" links={PRODUCT} />
           <FooterColumn title="Company" links={COMPANY} />
-          <FooterColumn title="Follow" links={FOLLOW} />
+
+          {/* top-right utility links (per the reference composition) */}
+          <nav aria-label="Utility" className="flex items-start gap-6 lg:justify-end">
+            <FooterLink href="/sign-in">Login</FooterLink>
+            <FooterLink href="/book-a-demo">Book a Demo</FooterLink>
+          </nav>
         </div>
 
         {/* ── divider ──────────────────────────────────────────────── */}

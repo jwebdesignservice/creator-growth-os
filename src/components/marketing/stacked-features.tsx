@@ -268,14 +268,22 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-[18px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] shadow-[0_40px_90px_-45px_rgba(0,0,0,0.85)] backdrop-blur-sm">
+    <div
+      className="relative flex h-full flex-col overflow-hidden rounded-[18px] border border-white/[0.12] bg-gradient-to-b from-white/[0.07] to-white/[0.02] backdrop-blur-sm"
+      style={{
+        // crisp double edge: dark hairline outside the light border, a tight
+        // contact shadow, then the long soft drop
+        boxShadow:
+          "0 0 0 1px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.35), 0 40px 90px -45px rgba(0,0,0,0.85)",
+      }}
+    >
       {/* glassy top highlight — a hairline of light along the top edge */}
       <span
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
       />
       <div className="relative flex items-center justify-between gap-3 px-6 py-4">
-        <span className="text-[17px] font-bold tracking-[-0.01em] text-white">{title}</span>
+        <span className="text-[16.5px] font-semibold tracking-[-0.01em] text-white">{title}</span>
         {right}
       </div>
       {/* body grows to fill the card so all four mockups share one height */}
@@ -370,7 +378,7 @@ const WEEK: { day: string; days: { n: number; events: Ev[] }[] }[] = [
 function CalendarMock() {
   return (
     <Panel title="Calendar" right={<ScheduledBy />}>
-      <div className="relative grid flex-1 grid-cols-2 border-t border-white/10">
+      <div className="relative grid flex-1 grid-cols-2 border-t border-white/[0.08] bg-black/[0.16]">
         {/* depth — header elevation shadow + faint warm glows grounding the grid */}
         <span
           aria-hidden
@@ -388,9 +396,13 @@ function CalendarMock() {
         {WEEK.map((col, ci) => (
           <div
             key={col.day}
-            className={cn("flex flex-col", ci === 0 && "border-r border-white/10")}
+            className={cn(
+              "flex flex-col",
+              ci === 0 && "border-r border-white/[0.08]",
+            )}
           >
-            <div className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+            {/* weekday band — its own faintly-lit zone above the recessed grid */}
+            <div className="bg-white/[0.02] px-4 py-3 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white/40">
               {col.day}
             </div>
             <div className="flex flex-1 flex-col justify-between">
@@ -400,7 +412,7 @@ function CalendarMock() {
                 <div
                   key={d.n}
                   className={cn(
-                    "border-t border-white/[0.06] px-3.5 pb-3 pt-2.5",
+                    "border-t border-white/[0.06] px-4 pb-3 pt-2.5",
                     isToday &&
                       "bg-gradient-to-b from-rose-400/[0.05] via-rose-400/[0.02] to-transparent",
                   )}
@@ -410,11 +422,14 @@ function CalendarMock() {
                     <span
                       className={cn(
                         "grid size-[22px] place-items-center rounded-full text-[12.5px] font-semibold tabular-nums",
-                        isToday ? "bg-rose-400 text-ink-900" : "text-white/40",
+                        isToday ? "bg-rose-400 text-ink-900" : "text-white/35",
                       )}
                       style={
                         isToday
-                          ? { boxShadow: "0 0 16px 0 rgba(208,129,113,0.45)" }
+                          ? {
+                              boxShadow:
+                                "0 0 14px 0 rgba(208,129,113,0.35), 0 1px 2px rgba(0,0,0,0.4)",
+                            }
                           : undefined
                       }
                     >
@@ -433,17 +448,17 @@ function CalendarMock() {
                     {d.events.map((e, i) => (
                       <div
                         key={i}
-                        className="relative overflow-hidden rounded-[12px] bg-gradient-to-b from-white/[0.10] to-white/[0.02] py-2.5 pl-5 pr-4 ring-1 ring-inset ring-white/[0.08]"
+                        className="relative overflow-hidden rounded-[10px] bg-gradient-to-b from-white/[0.11] to-white/[0.03] py-2.5 pl-5 pr-4 ring-1 ring-inset ring-white/[0.09]"
                         style={{
                           boxShadow:
-                            "0 6px 18px -8px rgba(0,0,0,0.8), 0 1px 0 0 rgba(255,255,255,0.045)",
+                            "0 5px 16px -8px rgba(0,0,0,0.85), 0 1px 0 0 rgba(255,255,255,0.05)",
                         }}
                       >
                         {/* glowing tone bar (full height, soft bleed into the card) */}
                         <span
                           aria-hidden
                           className={cn(
-                            "absolute inset-y-[3px] left-[3px] w-[3px] rounded-full",
+                            "absolute inset-y-1 left-1 w-[3px] rounded-full",
                             TONE[e.tone].bar,
                           )}
                           style={{ boxShadow: `0 0 12px 0 ${TONE[e.tone].glow}` }}
@@ -471,7 +486,7 @@ function CalendarMock() {
                             >
                               {e.type}
                             </span>
-                            <span className="mt-0.5 block text-[12px] text-white/50">
+                            <span className="mt-0.5 block text-[12px] text-white/45">
                               {e.who}
                             </span>
                           </span>

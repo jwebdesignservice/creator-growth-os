@@ -64,7 +64,8 @@ export async function createPost(
         error:
           "This needs a database update that's still pending — run the latest migrations (0050 for media, 0053 for polls) and try again.",
       };
-    return { ok: false, error: error.message };
+    console.error("[community/actions] createPost failed:", error);
+    return { ok: false, error: "Couldn't publish your post. Please try again." };
   }
 
   revalidatePath("/community");
@@ -107,7 +108,8 @@ export async function createReply(
         error:
           "Replying to a comment isn't available yet — the database update (migration 0049) is still pending.",
       };
-    return { ok: false, error: error.message };
+    console.error("[community/actions] createReply failed:", error);
+    return { ok: false, error: "Couldn't post your reply. Please try again." };
   }
 
   if (post.user_id !== user.id) {
@@ -174,7 +176,8 @@ export async function votePost(
 
   if (error) {
     if (error.code === "42P01") return { ok: false, error: VOTES_UNAVAILABLE };
-    return { ok: false, error: error.message };
+    console.error("[community/actions] votePost failed:", error);
+    return { ok: false, error: "Couldn't save your vote. Please try again." };
   }
 
   revalidatePath("/community");
@@ -234,7 +237,8 @@ export async function reactToPost(
   if (error) {
     if (error.code === "42P01")
       return { ok: false, error: REACTIONS_UNAVAILABLE };
-    return { ok: false, error: error.message };
+    console.error("[community/actions] reactToPost failed:", error);
+    return { ok: false, error: "Couldn't save your reaction. Please try again." };
   }
 
   revalidatePath("/community");
@@ -293,7 +297,8 @@ export async function reactToReply(
   if (error) {
     if (error.code === "42P01")
       return { ok: false, error: REPLY_REACTIONS_UNAVAILABLE };
-    return { ok: false, error: error.message };
+    console.error("[community/actions] reactToReply failed:", error);
+    return { ok: false, error: "Couldn't save your reaction. Please try again." };
   }
 
   revalidatePath("/community");
@@ -336,7 +341,8 @@ export async function votePoll(
   );
   if (error) {
     if (error.code === "42P01") return { ok: false, error: POLLS_UNAVAILABLE };
-    return { ok: false, error: error.message };
+    console.error("[community/actions] votePoll failed:", error);
+    return { ok: false, error: "Couldn't save your poll vote. Please try again." };
   }
 
   revalidatePath("/community");
@@ -364,7 +370,11 @@ export async function setPostPinned(
         ok: false,
         error: "Pinning needs migration 0054 — run it in the SQL editor first.",
       };
-    return { ok: false, error: error.message };
+    console.error("[community/actions] setPostPinned failed:", error);
+    return {
+      ok: false,
+      error: "Couldn't update the pinned status. Please try again.",
+    };
   }
 
   revalidatePath("/community");

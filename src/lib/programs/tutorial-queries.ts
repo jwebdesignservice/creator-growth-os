@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { formatDuration } from "@/lib/format";
 
 export type TutorialRow = {
   slug: string;
@@ -57,52 +58,60 @@ export async function getAllTutorials(): Promise<TutorialRow[]> {
 
   if (!lessons || lessons.length === 0) return [];
 
-  let progressByLesson = new Map<string, boolean>();
-  if (user) {
-    const ids = lessons.map((l) => l.id);
-    const { data: prog } = await supabase
-      .from("lesson_progress")
-      .select("lesson_id, completed")
-      .eq("user_id", user.id)
-      .in("lesson_id", ids);
-    progressByLesson = new Map(
-      (prog ?? []).map((p) => [p.lesson_id, p.completed]),
-    );
-  }
-
   const lessonIds = lessons.map((l) => l.id);
 
-  // Per-lesson count of the current user's saved notes (owner-scoped via RLS).
-  // Fail-soft if lesson_notes (migration 0043) isn't applied yet.
+  // The three follow-up reads (progress, note counts, resource counts) only
+  // depend on the lesson ids — run them in parallel instead of in series.
+  const [progRes, noteRes, resRows] = await Promise.all([
+    // Current user's completion state (owner-scoped via RLS).
+    user
+      ? supabase
+          .from("lesson_progress")
+          .select("lesson_id, completed")
+          .eq("user_id", user.id)
+          .in("lesson_id", lessonIds)
+      : Promise.resolve(null),
+    // Per-lesson count of the current user's saved notes (owner-scoped via
+    // RLS). Fail-soft if lesson_notes (migration 0043) isn't applied yet.
+    user
+      ? supabase
+          .from("lesson_notes")
+          .select("lesson_id")
+          .eq("user_id", user.id)
+          .in("lesson_id", lessonIds)
+      : Promise.resolve(null),
+    // Per-lesson count of attached resources. lesson_resources (migration
+    // 0037) isn't user-scoped, so read it with the service client like the
+    // lesson page does; fail-soft if the service client or table is
+    // unavailable.
+    (async () => {
+      try {
+        const svc = createServiceClient();
+        const { data } = await svc
+          .from("lesson_resources")
+          .select("lesson_id")
+          .in("lesson_id", lessonIds);
+        return data;
+      } catch {
+        return null; // leave resource counts at 0
+      }
+    })(),
+  ]);
+
+  const progressByLesson = new Map<string, boolean>(
+    (progRes?.data ?? []).map((p) => [p.lesson_id, p.completed]),
+  );
+
   const notesByLesson = new Map<string, number>();
-  if (user) {
-    const { data: noteRows } = await supabase
-      .from("lesson_notes")
-      .select("lesson_id")
-      .eq("user_id", user.id)
-      .in("lesson_id", lessonIds);
-    for (const r of noteRows ?? []) {
-      const lid = r.lesson_id as string | null;
-      if (lid) notesByLesson.set(lid, (notesByLesson.get(lid) ?? 0) + 1);
-    }
+  for (const r of noteRes?.data ?? []) {
+    const lid = r.lesson_id as string | null;
+    if (lid) notesByLesson.set(lid, (notesByLesson.get(lid) ?? 0) + 1);
   }
 
-  // Per-lesson count of attached resources. lesson_resources (migration 0037)
-  // isn't user-scoped, so read it with the service client like the lesson page
-  // does; fail-soft if the service client or table is unavailable.
   const resourcesByLesson = new Map<string, number>();
-  try {
-    const svc = createServiceClient();
-    const { data: resRows } = await svc
-      .from("lesson_resources")
-      .select("lesson_id")
-      .in("lesson_id", lessonIds);
-    for (const r of resRows ?? []) {
-      const lid = r.lesson_id as string | null;
-      if (lid) resourcesByLesson.set(lid, (resourcesByLesson.get(lid) ?? 0) + 1);
-    }
-  } catch {
-    // leave resource counts at 0
+  for (const r of resRows ?? []) {
+    const lid = r.lesson_id as string | null;
+    if (lid) resourcesByLesson.set(lid, (resourcesByLesson.get(lid) ?? 0) + 1);
   }
 
   return lessons.map((l): TutorialRow => {
@@ -269,11 +278,4 @@ export async function getTutorialDetail(
 
 function CATEGORY_LABEL_MAP(key: string) {
   return CATEGORY_LABEL[key] ?? key;
-}
-
-function formatDuration(seconds: number): string {
-  if (!seconds) return "—";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }

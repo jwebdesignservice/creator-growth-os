@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Media Kit · Creator Growth OS" };
+export const metadata = { title: "Media Kit · Profluencer" };
 
 type MediaKitPublic = {
   user_id: string;
@@ -166,7 +166,7 @@ export default async function MediaKitPublicPage({
         </div>
       </div>
       <div className="text-center mt-6 text-[11.5px] text-ink-500">
-        Built with Creator Growth OS
+        Built with Profluencer
       </div>
     </main>
   );

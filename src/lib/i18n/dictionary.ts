@@ -126,6 +126,7 @@ const NB: Record<string, string> = {
   "members": "medlemmer",
   "Join the community": "Bli med i fellesskapet",
   "Creators online now": "Skapere på nett nå",
+  "Join the conversation": "Bli med i samtalen",
 };
 
 export function translate(

@@ -3,8 +3,8 @@ import { BrandMark } from "@/components/brand-mark";
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: "Terms of Service · Creator Growth OS",
-  description: "Terms of Service for Creator Growth OS.",
+  title: "Terms of Service · Profluencer",
+  description: "Terms of Service for Profluencer.",
 };
 
 export default function TermsPage() {
@@ -40,7 +40,7 @@ export default function TermsPage() {
               1. Acceptance of Terms
             </h2>
             <p>
-              By creating an account or using Creator Growth OS (&quot;the
+              By creating an account or using Profluencer (&quot;the
               Service&quot;), you agree to be bound by these Terms of Service.
               If you do not agree, please do not use the Service.
             </p>
@@ -139,14 +139,14 @@ export default function TermsPage() {
               >
                 hei@bwstudio.no
               </a>
-              . Signed-in users can also reach us from the in-app{" "}
+              . You can also{" "}
               <Link
-                href="/support"
+                href="/book-a-demo"
                 className="text-rose-600 font-medium hover:text-rose-700"
               >
-                Support
+                book a call
               </Link>{" "}
-              page.
+              with our team.
             </p>
           </section>
         </div>

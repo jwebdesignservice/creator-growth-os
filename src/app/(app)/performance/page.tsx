@@ -17,7 +17,7 @@ import {
   type WorkspaceTab,
 } from "@/components/app-shell/workspace-shell";
 
-export const metadata = { title: "Performance · Creator Growth OS" };
+export const metadata = { title: "Performance · Profluencer" };
 
 type PerformanceTab = "overview" | "accounts";
 

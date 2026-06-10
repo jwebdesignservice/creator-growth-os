@@ -9,6 +9,7 @@ import { MobileDrawer } from "./mobile-drawer";
 import { Avatar } from "./avatar";
 import { CommandPalette, openCommandPalette } from "./command-palette";
 import { BrandMark } from "@/components/brand-mark";
+import { BRAND_NAME } from "@/lib/brand";
 import { useT } from "@/lib/i18n/client";
 
 export { Avatar } from "./avatar";
@@ -64,7 +65,7 @@ export function Topbar({
         >
           <BrandMark size={28} />
           <span className="text-[16px] font-semibold tracking-tight text-ink-900 leading-none truncate">
-            profluencer
+            {BRAND_NAME}
           </span>
         </Link>
 

@@ -17,7 +17,7 @@ import { PitchTemplates } from "@/components/monetization/pitch-templates";
 import { DealTracker } from "@/components/monetization/deal-tracker";
 import { RevenueTracker } from "@/components/monetization/revenue-tracker";
 
-export const metadata = { title: "Monetization Path · Creator Growth OS" };
+export const metadata = { title: "Monetization Path · Profluencer" };
 
 export default async function MonetizationPage() {
   const ctx = await getShellContext();

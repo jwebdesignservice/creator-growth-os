@@ -102,7 +102,7 @@ const PROGRAM_TAB_KEYS: ProgramTab[] = [
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
-  return { title: `${prettySlug(slug)} · Creator Growth OS` };
+  return { title: `${prettySlug(slug)} · Profluencer` };
 }
 
 function prettySlug(slug: string) {
@@ -177,10 +177,19 @@ export default async function ProgramDetailPage({
   if (!program) notFound();
 
   // Read curriculum + progress from DB; both gracefully fall back when
-  // the lessons table hasn't been seeded yet.
+  // the lessons table hasn't been seeded yet. The program row and auth user
+  // are already resolved above, so pass them in to skip duplicate lookups.
   const [modules, progress] = await Promise.all([
-    getCurriculumForProgram(slug, ctx.plan),
-    getProgramProgress(slug),
+    getCurriculumForProgram(slug, ctx.plan, {
+      programId: dbProgram?.id,
+      userId: ctx.user.id,
+    }),
+    getProgramProgress(slug, {
+      program: dbProgram
+        ? { id: dbProgram.id, total_lessons: dbProgram.total_lessons }
+        : undefined,
+      userId: ctx.user.id,
+    }),
   ]);
 
   // Effective progress %: use computed value when lessons are seeded;
@@ -207,34 +216,37 @@ export default async function ProgramDetailPage({
     ? `/programs/${slug}/${continueSlug}`
     : `/programs/${slug}`;
 
-  // ── Real user tasks for this program (from generated missions) ───────
+  // ── Tasks, enrolled count, notes + learning points ────────────────────
+  // All four reads only need the program uuid (+ user id), so they run in
+  // one parallel batch instead of four serial awaits.
   const programUuid = dbProgram?.id ?? null;
-  const programTasks: ProgramUserTask[] = programUuid
-    ? await getProgramUserTasks(programUuid, ctx.user.id)
-    : [];
-
-  // Real enrolled-learner count for this program — one program_progress row
-  // per enrolled user (same source as the admin "members" count). No
-  // fabricated number; reflects actual enrollment.
-  const { count: enrolledCountRaw } = programUuid
-    ? await supabase
-        .from("program_progress")
-        .select("*", { count: "exact", head: true })
-        .eq("program_id", programUuid)
-    : { count: 0 };
+  const [programTasks, { count: enrolledCountRaw }, programNotes, aggregatedPoints] =
+    await Promise.all([
+      // Real user tasks for this program (from generated missions)
+      programUuid
+        ? getProgramUserTasks(programUuid, ctx.user.id)
+        : Promise.resolve([] as ProgramUserTask[]),
+      // Real enrolled-learner count for this program — one program_progress
+      // row per enrolled user (same source as the admin "members" count). No
+      // fabricated number; reflects actual enrollment.
+      programUuid
+        ? supabase
+            .from("program_progress")
+            .select("*", { count: "exact", head: true })
+            .eq("program_id", programUuid)
+        : Promise.resolve({ count: 0 }),
+      // Learner-authored notes for this program (Resources → My Notes)
+      programUuid
+        ? getProgramNotes(programUuid)
+        : Promise.resolve([] as ProgramNote[]),
+      // Program "What You'll Learn" — aggregated from every lesson's authored
+      // learning points (admin section C). Falls back to the static outcomes
+      // when no lesson has any yet, so the section is never empty.
+      programUuid
+        ? getProgramLearningPoints(programUuid)
+        : Promise.resolve([]),
+    ]);
   const enrolledCount = enrolledCountRaw ?? 0;
-
-  // ── Learner-authored notes for this program (Resources → My Notes) ───
-  const programNotes: ProgramNote[] = programUuid
-    ? await getProgramNotes(programUuid)
-    : [];
-
-  // Program "What You'll Learn" — aggregated from every lesson's authored
-  // learning points (admin section C). Falls back to the static outcomes when
-  // no lesson has any yet, so the section is never empty.
-  const aggregatedPoints = programUuid
-    ? await getProgramLearningPoints(programUuid)
-    : [];
   const learnOutcomes =
     aggregatedPoints.length > 0
       ? aggregatedPoints.map((lp) => ({
@@ -317,7 +329,6 @@ export default async function ProgramDetailPage({
                 title={program.title}
                 description={program.description ?? ""}
                 totalLessons={effectiveTotal}
-                totalTasks={program.total_tasks ?? 18}
                 estimatedDays={program.estimated_days ?? 42}
                 progress={effectivePercent}
                 continueHref={continueHref}
@@ -359,7 +370,6 @@ function ProgramHero({
   title,
   description,
   totalLessons,
-  totalTasks,
   estimatedDays,
   progress,
   continueHref,
@@ -368,7 +378,6 @@ function ProgramHero({
   title: string;
   description: string;
   totalLessons: number;
-  totalTasks: number;
   estimatedDays: number;
   progress: number;
   continueHref: string;

@@ -16,7 +16,7 @@ import { getEmailSafetyConfig } from "@/lib/email/safety";
 import { ClientCopy } from "./client-copy";
 
 export const metadata = {
-  title: "Settings · Email · Admin · Creator Growth OS",
+  title: "Settings · Email · Admin · Profluencer",
 };
 
 /**

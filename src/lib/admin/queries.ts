@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/server";
+import { relativeTime } from "@/lib/format";
 
 export type AdminStats = {
   totalUsers: number;
@@ -21,20 +22,36 @@ export type AdminStats = {
 export async function getAdminStats(): Promise<AdminStats> {
   const supabase = createServiceClient();
 
-  // Count total users (profiles)
-  const { count: totalUsers } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true });
+  // New-this-week cutoff
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
 
-  const { count: onboardedUsers } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("onboarded", true);
-
-  // By category + by plan
-  const { data: groups } = await supabase
-    .from("profiles")
-    .select("category, plan");
+  // All five reads are independent — issue them in parallel:
+  // total users, onboarded count, category/plan groups, new this week,
+  // recent signups (10).
+  const [
+    { count: totalUsers },
+    { count: onboardedUsers },
+    { data: groups },
+    { count: newThisWeek },
+    { data: recent },
+  ] = await Promise.all([
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("onboarded", true),
+    supabase.from("profiles").select("category, plan"),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", weekAgo.toISOString()),
+    supabase
+      .from("profiles")
+      .select("id, email, full_name, created_at, plan, category, onboarded")
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
   const byCategory: Record<string, number> = {};
   const byPlan: Record<string, number> = {};
@@ -42,21 +59,6 @@ export async function getAdminStats(): Promise<AdminStats> {
     byCategory[r.category ?? "starter"] = (byCategory[r.category ?? "starter"] ?? 0) + 1;
     byPlan[r.plan ?? "free"] = (byPlan[r.plan ?? "free"] ?? 0) + 1;
   }
-
-  // New this week
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  const { count: newThisWeek } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", weekAgo.toISOString());
-
-  // Recent signups (10)
-  const { data: recent } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, created_at, plan, category, onboarded")
-    .order("created_at", { ascending: false })
-    .limit(10);
 
   return {
     totalUsers: totalUsers ?? 0,
@@ -457,19 +459,4 @@ function computeBuildCta(
   if (status === "ready_to_publish") return { label: "Finish pricing", href };
   if (status === "draft") return { label: "Continue building", href };
   return { label: "Continue curriculum", href };
-}
-
-function relativeTime(iso: string): string {
-  const created = new Date(iso).getTime();
-  const diffMs = Date.now() - created;
-  const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
 }

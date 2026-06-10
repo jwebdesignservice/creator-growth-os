@@ -432,8 +432,13 @@ export async function PerformanceCard({
               {followers > 0 ? fmtNum(followers) : "—"}
             </span>
             {hasData && (
-              <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-emerald-600">
-                ▲ {Math.abs(deltaPct).toFixed(1)}%
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 text-[12px] font-semibold",
+                  deltaPct >= 0 ? "text-emerald-600" : "text-rose-600",
+                )}
+              >
+                {deltaPct >= 0 ? "▲" : "▼"} {Math.abs(deltaPct).toFixed(1)}%
               </span>
             )}
           </div>
@@ -579,9 +584,8 @@ export async function CommunityCard({
             </span>
           )}
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-semibold text-emerald-600 shadow-[0_2px_8px_-3px_rgba(26,24,22,0.3)]">
-          <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-          {t("Creators online now")}
+        <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-[10.5px] font-semibold text-rose-700 shadow-[0_2px_8px_-3px_rgba(26,24,22,0.3)]">
+          {t("Join the conversation")}
         </span>
       </div>
     </LauncherTile>

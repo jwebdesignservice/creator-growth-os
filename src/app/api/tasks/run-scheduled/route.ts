@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { runDueScheduledAssignments } from "@/lib/tasks/schedule";
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -23,7 +24,17 @@ function authorized(req: NextRequest): boolean {
   // No secret configured → refuse. Never leave the trigger open.
   if (!secret) return false;
   const header = req.headers.get("authorization") ?? "";
-  return header === `Bearer ${secret}` || header === secret;
+  // Timing-safe compare (mirrors /api/admin/emails/run-scheduled). Accepts
+  // `Bearer <secret>` or the raw secret, as before.
+  const token = header.startsWith("Bearer ") ? header.slice(7) : header;
+  const a = Buffer.from(token);
+  const b = Buffer.from(secret);
+  if (a.length !== b.length) return false;
+  try {
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }
 
 async function handle(req: NextRequest) {

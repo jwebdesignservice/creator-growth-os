@@ -3,7 +3,7 @@ import { getAllPreviewTemplates } from "./templates";
 import { SendForm } from "./send-form";
 
 export const metadata = {
-  title: "Email preview · Creator Growth OS",
+  title: "Email preview · Profluencer",
   robots: { index: false, follow: false },
 };
 

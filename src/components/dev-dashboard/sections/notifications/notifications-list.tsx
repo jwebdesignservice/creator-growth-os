@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
-  AlertOctagon, AlertTriangle, Info, ShieldAlert, Rocket, DollarSign,
+  AlertOctagon, Info, ShieldAlert, Rocket, DollarSign,
   Activity, ScrollText, ArrowRight, Archive, Check, Bell,
 } from "lucide-react";
 import {

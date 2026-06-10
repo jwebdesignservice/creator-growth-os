@@ -119,7 +119,7 @@ function PlatformRow({
     });
   }
 
-  const Icon = iconFor(conn.platform);
+  const Icon = PLATFORM_ICON[conn.platform];
   const brand = BRAND[conn.platform];
 
   // Build the subtitle line (under the platform name).
@@ -309,22 +309,19 @@ const REQUIREMENT_HINT: Partial<Record<SocialConnection["platform"], string>> = 
 
 // ── Icon lookup ──────────────────────────────────────────────────────
 
-function iconFor(key: SocialConnection["platform"]) {
-  switch (key) {
-    case "instagram":
-      return InstagramIcon;
-    case "tiktok":
-      return TiktokIcon;
-    case "youtube":
-      return YoutubeIcon;
-    case "snapchat":
-      return SnapchatIcon;
-    case "facebook":
-      return FacebookIcon;
-    case "linkedin":
-      return LinkedinIcon;
-  }
-}
+/* Module-scope map so each row references a stable component identity
+   instead of deriving one during render. */
+const PLATFORM_ICON: Record<
+  SocialConnection["platform"],
+  React.ComponentType<{ className?: string; size?: number }>
+> = {
+  instagram: InstagramIcon,
+  tiktok: TiktokIcon,
+  youtube: YoutubeIcon,
+  snapchat: SnapchatIcon,
+  facebook: FacebookIcon,
+  linkedin: LinkedinIcon,
+};
 
 /* ── Inline brand icons (kept inside the card for self-containment) ─── */
 

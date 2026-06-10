@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   Bell, Loader2,
-  AlertOctagon, AlertTriangle, Info, ShieldAlert, Rocket, DollarSign,
+  AlertOctagon, Info, ShieldAlert, Rocket, DollarSign,
   Activity, ScrollText, ArrowRight,
 } from "lucide-react";
 import {

@@ -3,7 +3,7 @@ import { getAdminContext } from "@/lib/admin/is-admin";
 import { CreateWizard } from "./wizard";
 import { WIZARD_TYPES, type WizardType } from "./types";
 
-export const metadata = { title: "Create new · Creator Growth OS" };
+export const metadata = { title: "Create new · Profluencer" };
 
 type Params = Promise<{ type: string }>;
 

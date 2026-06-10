@@ -50,7 +50,9 @@ export default async function HomePage() {
       <Hero />
       <ProvenResults />
       <HowItWorks />
-      <StackedFeatures />
+      <div id="features" className="scroll-mt-24">
+        <StackedFeatures />
+      </div>
       <DesignedFor />
       <AgentShowcase />
       <Cta />

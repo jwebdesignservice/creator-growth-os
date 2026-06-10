@@ -9,13 +9,13 @@
 
 import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin/is-admin";
-import { DesignGallery } from "./design-gallery";
+import { DesignGalleryLazy } from "./design-gallery-lazy";
 
-export const metadata = { title: "Design system · Creator Growth OS" };
+export const metadata = { title: "Design system · Profluencer" };
 
 export default async function DesignGalleryPage() {
   const { isAdmin } = await getAdminContext();
   if (!isAdmin) redirect("/dashboard");
 
-  return <DesignGallery />;
+  return <DesignGalleryLazy />;
 }

@@ -362,6 +362,8 @@ export function CoverArt({
         <img
           src={coverImageUrl}
           alt=""
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]"
         />
         {/* bottom scrim so the duration pill + progress strip read on photos */}

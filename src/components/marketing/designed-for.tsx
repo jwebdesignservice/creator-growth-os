@@ -15,19 +15,26 @@ import { useEffect, useRef, useState } from "react";
 
 type Niche = { name: string; tag: string; img: string };
 
-const U =
-  "?auto=format&fit=crop&w=900&q=80";
+// High-res portrait crop (4:5) — sharp on retina, premium editorial feel.
+const U = "?auto=format&fit=crop&w=1600&h=2000&q=82";
 
 // Who actually uses Profluencer — creator personas across the whole journey,
-// from a first post to a full-time creator business. The active row's image +
-// caption reinforce "built for *this* kind of creator".
+// from a first post to a full-time creator business. Each row swaps to a
+// hand-picked, premium creator-workspace photo (no faces, strong composition,
+// consistent grading) so it reads as "built for *this* kind of creator".
+//   New        → a clean, minimal first-setup desk
+//   UGC        → a phone-on-gimbal mobile content rig
+//   Influencer → a bright desk with a camera on a tripod (on-camera brand)
+//   Full-time  → a cinematic editing station (the craft as a job)
+//   Coaches    → a podcast / course recording desk (mixer + mic)
+//   Side-hustle→ a moody after-hours desk with a studio mic
 const NICHES: Niche[] = [
-  { name: "New creators",            tag: "Starting out", img: `https://images.unsplash.com/photo-1598550880863-4e8aa3d0edb4${U}` },
-  { name: "UGC creators",            tag: "UGC",          img: `https://images.unsplash.com/photo-1556745757-8d76bdb6984b${U}` },
-  { name: "Influencers",             tag: "Audience",     img: `https://images.unsplash.com/photo-1611162616475-46b635cb6868${U}` },
-  { name: "Full-time creators",      tag: "Full-time",    img: `https://images.unsplash.com/photo-1517245386807-bb43f82c33c4${U}` },
-  { name: "Coaches & educators",     tag: "Educators",    img: `https://images.unsplash.com/photo-1522202176988-66273c2fd55f${U}` },
-  { name: "Side-hustle creators",    tag: "Part-time",    img: `https://images.unsplash.com/photo-1499951360447-b19be8fe80f5${U}` },
+  { name: "New creators",            tag: "Starting out", img: `https://images.unsplash.com/photo-1611096002616-763f16ef15f3${U}` },
+  { name: "UGC creators",            tag: "UGC",          img: `https://images.unsplash.com/photo-1697649272441-be6e4a563e9b${U}` },
+  { name: "Influencers",             tag: "Audience",     img: `https://images.unsplash.com/photo-1616412875447-096e932d893c${U}` },
+  { name: "Full-time creators",      tag: "Full-time",    img: `https://images.unsplash.com/photo-1627244714766-94dab62ed964${U}` },
+  { name: "Coaches & educators",     tag: "Educators",    img: `https://images.unsplash.com/photo-1615458318132-1f151a3d18f4${U}` },
+  { name: "Side-hustle creators",    tag: "Part-time",    img: `https://images.unsplash.com/photo-1659958661414-59d7bd483853${U}` },
 ];
 
 export function DesignedFor() {
@@ -126,7 +133,7 @@ export function DesignedFor() {
         </div>
 
         {/* ── Right: image panel that swaps with the active row ──────── */}
-        <div className="reveal-scale relative h-[64vw] max-h-[420px] self-stretch overflow-hidden rounded-[20px] bg-[#0E0D0C] ring-1 ring-white/10 lg:h-auto lg:max-h-none">
+        <div className="reveal-scale relative h-[68vw] max-h-[440px] self-stretch overflow-hidden rounded-[24px] bg-[#0E0D0C] shadow-[0_34px_80px_-34px_rgba(0,0,0,0.9)] ring-1 ring-white/12 lg:h-auto lg:max-h-none">
           {NICHES.map((n, i) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -134,21 +141,40 @@ export function DesignedFor() {
               src={n.img}
               alt=""
               loading={i === 0 ? "eager" : "lazy"}
-              className={`absolute inset-0 size-full object-cover transition-[opacity,transform] duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                i === active ? "scale-100 opacity-100" : "scale-[1.05] opacity-0"
+              className={`absolute inset-0 size-full object-cover contrast-[1.04] saturate-[1.03] transition-[opacity,transform] duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                i === active ? "scale-100 opacity-100" : "scale-[1.06] opacity-0"
               }`}
             />
           ))}
+
+          {/* Consistent colour grade + legibility: a warm rose corner tint, a
+              slight top darken for depth, and a strong base gradient so the
+              caption always reads cleanly — unifying six different photos into
+              one cohesive, on-brand treatment. */}
           <div
             aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-ink-900/75 via-transparent to-ink-900/10"
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(115% 80% at 0% 0%, rgba(185,72,92,0.18), transparent 52%)," +
+                "linear-gradient(180deg, rgba(26,24,22,0.22) 0%, transparent 26%, transparent 50%, rgba(26,24,22,0.62) 78%, rgba(26,24,22,0.95) 100%)",
+            }}
           />
-          <div className="absolute bottom-5 left-5 border-l-2 border-rose-400 pl-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
-              Built for
-            </div>
-            <div className="mt-0.5 text-[15px] font-semibold text-white">
-              {NICHES[active].name}
+          {/* inner hairline seats the image on the dark section */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[24px] ring-1 ring-inset ring-white/10"
+          />
+
+          {/* caption */}
+          <div className="absolute inset-x-0 bottom-0 p-6 sm:p-7">
+            <div className="border-l-2 border-rose-400 pl-3.5">
+              <div className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-white/65">
+                Built for
+              </div>
+              <div className="mt-1 text-[17px] font-semibold tracking-[-0.012em] text-white">
+                {NICHES[active].name}
+              </div>
             </div>
           </div>
         </div>

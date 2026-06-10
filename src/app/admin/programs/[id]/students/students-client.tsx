@@ -149,7 +149,7 @@ export function StudentsClient({
   function viewReports()                 { router.push(`/admin/programs/${programId}/reports`); }
   function viewProgress(memberId: string){ router.push(`/admin/users/${memberId}`); }
   function composeEmail()                { router.push("/admin/emails"); }
-  function messageMember(email: string)  { if (email) window.location.href = `mailto:${email}`; }
+  function messageMember(email: string)  { if (email) window.location.assign(`mailto:${email}`); }
   function reviewCompletions()           { applyStatusTab("completed"); }
 
   useEffect(() => {

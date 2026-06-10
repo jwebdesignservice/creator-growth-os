@@ -49,17 +49,14 @@ export function TutorialUploadForm() {
   const [uploading, setUploading] = useState(false);
   const [stage, setStage] = useState<string>("");
 
-  // Object URL for the in-browser preview; revoked when the file changes/clears.
+  // Object URL for the in-browser preview — created alongside `file` in the
+  // event handlers; the cleanup-only effect below revokes it when it's
+  // replaced/cleared or on unmount.
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    if (!previewUrl) return;
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   function pickFiles() {
     inputRef.current?.click();
@@ -69,6 +66,7 @@ export function TutorialUploadForm() {
     setError(null);
     if (!f) {
       setFile(null);
+      setPreviewUrl(null);
       return;
     }
     if (f.size > MAX_BYTES) {
@@ -81,6 +79,7 @@ export function TutorialUploadForm() {
       return;
     }
     setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
   }
 
   function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -253,6 +252,7 @@ export function TutorialUploadForm() {
                     type="button"
                     onClick={() => {
                       setFile(null);
+                      setPreviewUrl(null);
                       setError(null);
                     }}
                     aria-label="Remove video"

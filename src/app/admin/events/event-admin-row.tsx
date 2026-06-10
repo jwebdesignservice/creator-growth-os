@@ -51,6 +51,8 @@ export function EventAdminRow({ event: e }: { event: EventRowData }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
+  // Clock read once per mount (lazy initializer) so render stays pure.
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -62,7 +64,7 @@ export function EventAdminRow({ event: e }: { event: EventRowData }) {
   }, [menuOpen]);
 
   const date = new Date(e.starts_at);
-  const isPast = date.getTime() < Date.now();
+  const isPast = date.getTime() < now;
   const kindCls = KIND_STYLES[e.kind ?? "other"] ?? KIND_STYLES.other;
 
   const copyLink = () => {

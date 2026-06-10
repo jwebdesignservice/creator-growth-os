@@ -55,6 +55,11 @@ export function MissionActivity({
   totalCount,
   progressPct,
 }: Props) {
+  // Challenge progress — derived from the real daily-completion streak
+  // (consecutive active days, capped at the challenge length), not a
+  // hardcoded placeholder.
+  const challengeDays = Math.min(streakCurrent, CHALLENGE_TOTAL_DAYS);
+
   return (
     <div className="space-y-5">
       <WorkspaceHeader title="Mission Activity" />
@@ -158,7 +163,7 @@ export function MissionActivity({
         >
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <span className="text-[26px] font-bold text-rose-600 leading-none">
-              {CHALLENGE_COMPLETED_DAYS} / {CHALLENGE_TOTAL_DAYS}
+              {challengeDays} / {CHALLENGE_TOTAL_DAYS}
             </span>
             <span className="text-[11.5px] text-ink-500 mt-1">days completed</span>
           </div>
@@ -168,7 +173,7 @@ export function MissionActivity({
                 className="h-full rounded-full bg-rose-500"
                 style={{
                   width: `${Math.round(
-                    (CHALLENGE_COMPLETED_DAYS / CHALLENGE_TOTAL_DAYS) * 100,
+                    (challengeDays / CHALLENGE_TOTAL_DAYS) * 100,
                   )}%`,
                 }}
               />
@@ -180,7 +185,7 @@ export function MissionActivity({
         </StatCard>
       </section>
 
-      <ChallengeBanner />
+      <ChallengeBanner completedDays={challengeDays} />
     </div>
   );
 }
@@ -307,11 +312,10 @@ function StatCard({
 /* ─── 7-Day Challenge banner (moved from the missions board) ──────────── */
 
 const CHALLENGE_TOTAL_DAYS = 7;
-const CHALLENGE_COMPLETED_DAYS = 3;
 
-function ChallengeBanner() {
+function ChallengeBanner({ completedDays }: { completedDays: number }) {
   const total = CHALLENGE_TOTAL_DAYS;
-  const completed = CHALLENGE_COMPLETED_DAYS;
+  const completed = completedDays;
   const daysLeft = Math.max(0, total - completed);
   const days = Array.from({ length: total }, (_, i) => ({
     n: i + 1,
@@ -324,7 +328,7 @@ function ChallengeBanner() {
         <div className="min-w-0">
           <span className="chip chip-rose inline-flex items-center gap-1.5">
             <span className="size-1.5 rounded-full bg-rose-500" aria-hidden />
-            Active Challenge · Day {completed} of {total}
+            Active Challenge · {completed} of {total} days
           </span>
 
           <h3 className="text-h2 sm:text-[32px] text-ink-900 leading-tight mt-3 mb-2">

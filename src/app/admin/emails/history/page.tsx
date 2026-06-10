@@ -9,7 +9,7 @@ import {
 } from "./history-view";
 
 export const metadata = {
-  title: "History · Email · Admin · Creator Growth OS",
+  title: "History · Email · Admin · Profluencer",
 };
 
 type DbRow = {
@@ -110,7 +110,7 @@ export default async function EmailHistoryPage() {
   ];
 
   /* ── Usage (last 24h delivery vs daily cap) ────────────────────────── */
-  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const sinceIso = isoHoursAgo(24);
   const used = sentRows
     .filter((r) => r.sent_at && r.sent_at >= sinceIso)
     .reduce((s, r) => s + (r.recipients_delivered ?? 0), 0);
@@ -123,6 +123,12 @@ export default async function EmailHistoryPage() {
       usage={{ used, limit: 250, safeMode: safety.safeMode }}
     />
   );
+}
+
+/** ISO timestamp `hours` ago — the per-request clock read lives outside the
+ *  component body so the render itself stays pure. */
+function isoHoursAgo(hours: number): string {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 }
 
 function formatDateTime(iso: string): string {

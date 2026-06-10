@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronDown, RotateCcw, Pause } from "lucide-react";
 import {
@@ -70,10 +70,13 @@ export function LogsFilterBar({ filters }: { filters: LogsFilters }) {
   const [paused, setPaused] = useState(false);
 
   // Keep local mirror in sync if the URL changes from elsewhere
-  // (e.g. clicking a saved view, "Clear filters", or back/forward).
-  useEffect(() => {
+  // (e.g. clicking a saved view, "Clear filters", or back/forward) —
+  // adjust state during render (recommended pattern) instead of an effect.
+  const [prevQ, setPrevQ] = useState(filters.q);
+  if (filters.q !== prevQ) {
+    setPrevQ(filters.q);
     setQ(filters.q);
-  }, [filters.q]);
+  }
 
   function navigate(next: Partial<LogsFilters>) {
     const merged = { ...filters, ...next, page: 1, selectedId: null };

@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import { MessageList } from "./message-list";
 import { PinnedBanner } from "./pinned-banner";
 import { Composer } from "./composer";
-import { MessageSquare } from "lucide-react";
 import { fetchRecentMessages } from "@/lib/community/chat/actions";
 import type {
   ChatChannel,
@@ -288,7 +287,7 @@ export function ChatRoom({
             <div className="flex items-center gap-2" title={presence.map((p) => p.name).join(", ")}>
               <div className="flex -space-x-2">
                 {presence.slice(0, 3).map((p) => (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <div
                     key={p.user_id}
                     className="size-6 rounded-full ring-2 ring-white bg-cream-200 overflow-hidden flex items-center justify-center text-[10px] font-semibold text-ink-700"

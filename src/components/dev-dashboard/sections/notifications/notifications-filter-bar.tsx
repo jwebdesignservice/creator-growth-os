@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronDown, RotateCcw, Loader2, Check } from "lucide-react";
 import { markAllDevNotificationsRead } from "@/lib/dev-dashboard/dev-notifications-actions";
@@ -50,7 +50,13 @@ export function NotificationsFilterBar({
   const [isPending, startMarkAll] = useTransition();
   const [q, setQ] = useState(filters.q);
 
-  useEffect(() => { setQ(filters.q); }, [filters.q]);
+  // Keep the local mirror in sync if the URL changes from elsewhere —
+  // adjust state during render (recommended pattern) instead of an effect.
+  const [prevQ, setPrevQ] = useState(filters.q);
+  if (filters.q !== prevQ) {
+    setPrevQ(filters.q);
+    setQ(filters.q);
+  }
 
   function buildHref(next: Partial<DevNotificationFilters>): string {
     const merged = { ...filters, ...next };

@@ -9,7 +9,7 @@ import {
 import { REF_COOKIE, sanitizeReferralCode } from "@/lib/referrals/cookie";
 import { SignUpForm } from "./sign-up-form";
 
-export const metadata = { title: "Create account · Creator Growth OS" };
+export const metadata = { title: "Create account · Profluencer" };
 
 type SearchParams = Promise<{ ref?: string }>;
 

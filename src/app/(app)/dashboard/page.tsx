@@ -14,7 +14,7 @@ import {
 import { getProgressForPrograms } from "@/lib/programs/queries";
 import { getLang, getT } from "@/lib/i18n/server";
 
-export const metadata = { title: "Dashboard | Creator Growth OS" };
+export const metadata = { title: "Dashboard | Profluencer" };
 
 type ProgressLessonShape = {
   watched_seconds: number;
@@ -337,13 +337,13 @@ export default async function DashboardPage() {
     performanceRows && performanceRows.length > 0
       ? [...performanceRows].reverse().map((r) => r.followers ?? 0)
       : [];
-  // Recent momentum (week-over-week), shown as positive growth on the tile.
+  // Recent momentum (week-over-week), signed — the tile renders direction.
   const perfDelta = (() => {
     const s = followersSeries;
     if (s.length < 2) return 0;
     const last = s[s.length - 1];
     const prev = s[s.length - 2] || last || 1;
-    return Math.abs(((last - prev) / Math.max(1, Math.abs(prev))) * 100);
+    return ((last - prev) / Math.max(1, Math.abs(prev))) * 100;
   })();
 
   // ── Community ─────────────────────────────────────────────────────────

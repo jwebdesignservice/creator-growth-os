@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { toggleMissionComplete, deleteMission } from "./actions";
 import { getUserTasks } from "@/lib/tasks/queries";
 
-export const metadata = { title: "Tasks · Creator Growth OS" };
+export const metadata = { title: "Tasks · Profluencer" };
 
 type MissionsTab = "overview" | "tasks" | "activity";
 

@@ -1182,7 +1182,6 @@ function SupportRail({
   // but intentionally not rendered during the active creation flow — it gets
   // cut off below the fold and isn't contextually useful while submitting.
   // Users still reach tickets via /support/tickets and the success card link.
-  recentTickets: _recentTickets,
   helpArticles,
 }: {
   recentTickets: RecentTicket[];
@@ -1317,60 +1316,6 @@ function HelpArticlesCard({ articles }: { articles: DbHelpArticle[] }) {
   );
 }
 
-const TICKET_PILL: Record<TicketStatus, string> = {
-  Open:          "bg-rose-100 text-rose-700",
-  Waiting:       "bg-[#FBE5C7] text-[#9A6A22]",
-  "In Progress": "bg-rose-100 text-rose-700",
-  Resolved:      "bg-success-bg text-success",
-  Closed:        "bg-ink-100 text-ink-500",
-};
-
-function RecentTicketsCard({ tickets }: { tickets: RecentTicket[] }) {
-  return (
-    <section className="card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[14px] font-semibold text-ink-900">Recent tickets</h3>
-        <Link
-          href="/support/tickets"
-          className="text-[12px] font-semibold text-rose-700 hover:text-rose-600 transition-colors"
-        >
-          View all
-        </Link>
-      </div>
-      {tickets.length === 0 ? (
-        <p className="text-[12.5px] text-ink-500 leading-snug">
-          You haven’t submitted any tickets yet. When you do, they’ll show up here.
-        </p>
-      ) : (
-        <ul className="space-y-3.5">
-          {tickets.map((t) => (
-            <li key={t.id} className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <Link
-                  href={`/support/tickets/${t.id.replace(/^#/, "")}`}
-                  className="text-[12.5px] font-semibold text-ink-900 truncate hover:text-rose-700 transition-colors block"
-                >
-                  {t.title}
-                </Link>
-                <div className="mt-0.5 text-[11.5px] text-ink-500 truncate tabular-nums">
-                  {t.id} <span className="text-ink-300">•</span> {t.meta}
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "inline-flex items-center px-2 h-[20px] rounded-full text-[10.5px] font-semibold whitespace-nowrap shrink-0",
-                  TICKET_PILL[t.status],
-                )}
-              >
-                {t.status}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
 
 /* ─────────────────────────────────────────────────────────────────────────
    DB → UI mapping helpers

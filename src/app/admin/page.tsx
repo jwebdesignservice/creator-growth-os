@@ -8,7 +8,7 @@ import {
   getActiveProgramBuilds,
 } from "@/lib/admin/queries";
 
-export const metadata = { title: "Admin · Creator Growth OS" };
+export const metadata = { title: "Admin · Profluencer" };
 
 const CATEGORY_LABEL: Record<string, string> = {
   starter: "Starter Creator",

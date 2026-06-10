@@ -3,7 +3,7 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsPageClient } from "./settings-panel";
 
-export const metadata = { title: "Settings | Creator Growth OS" };
+export const metadata = { title: "Settings | Profluencer" };
 
 export default async function SettingsPage() {
   const ctx = await getShellContext();

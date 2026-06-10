@@ -77,8 +77,8 @@ export async function generateMetadata({ params }: { params: Params }) {
   const lesson = await getTutorialDetail(lessonSlug);
   return {
     title: lesson
-      ? `${lesson.title} · Creator Growth OS`
-      : "Lesson · Creator Growth OS",
+      ? `${lesson.title} · Profluencer`
+      : "Lesson · Profluencer",
   };
 }
 
@@ -591,6 +591,8 @@ function ProgramPathRail({
                   <img
                     src={l.coverUrl}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 )}

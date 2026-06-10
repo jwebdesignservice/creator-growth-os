@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -9,8 +9,10 @@ import type { InvoiceRow, SubscriptionRow } from "@/lib/billing/queries";
 import {
   Crown,
   Check,
+  CheckCircle2,
   Download,
   CreditCard,
+  Info,
   ShieldCheck,
   ExternalLink,
   HelpCircle,
@@ -74,12 +76,18 @@ export function BillingPageClient({
   invoices,
   stripeReady,
   firstName,
+  checkoutStatus,
+  highlightPlan,
 }: {
   plan: Plan;
   subscription: SubscriptionRow | null;
   invoices: InvoiceRow[];
   stripeReady: boolean;
   firstName?: string;
+  /** Stripe Checkout return state (?status=success|cancelled). */
+  checkoutStatus?: "success" | "cancelled" | null;
+  /** Upgrade intent (?upgrade=pro|basic) — opens & scrolls to the plan grid. */
+  highlightPlan?: "basic" | "pro" | null;
 }) {
   const hasSubscription = Boolean(subscription?.stripe_subscription_id);
 
@@ -107,6 +115,40 @@ export function BillingPageClient({
           )}
         </header>
 
+        {/* ── Post-checkout feedback (?status=success|cancelled) ────────── */}
+        {/* Success copy is deliberately race-safe: the Stripe webhook may not
+            have synced yet, so the plan shown below can briefly lag behind. */}
+        {checkoutStatus === "success" && (
+          <div
+            role="status"
+            className="flex items-start gap-2.5 rounded-[12px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800"
+          >
+            <CheckCircle2
+              className="size-4 text-emerald-600 mt-0.5 shrink-0"
+              strokeWidth={2}
+            />
+            <span>
+              Payment received — thank you! Your plan will update here in a
+              moment once Stripe confirms the subscription.
+            </span>
+          </div>
+        )}
+        {checkoutStatus === "cancelled" && (
+          <div
+            role="status"
+            className="flex items-start gap-2.5 rounded-[12px] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700"
+          >
+            <Info
+              className="size-4 text-amber-600 mt-0.5 shrink-0"
+              strokeWidth={2}
+            />
+            <span>
+              Checkout cancelled — you haven&apos;t been charged. You can
+              upgrade anytime below.
+            </span>
+          </div>
+        )}
+
         {/* ── Subscription overview (plan + status + key billing facts) ── */}
         <SubscriptionHero
           plan={plan}
@@ -125,7 +167,11 @@ export function BillingPageClient({
         <RecentInvoicesCard invoices={invoices} />
 
         {/* ── Compare plans (secondary, collapsible) ───────────────────── */}
-        <ComparePlansSection plan={plan} stripeReady={stripeReady} />
+        <ComparePlansSection
+          plan={plan}
+          stripeReady={stripeReady}
+          highlightPlan={highlightPlan}
+        />
 
         {/* ── Support line (replaces the standalone "Need help?" card) ──── */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-x-2.5 gap-y-1.5 pt-1 text-body-sm text-ink-500">
@@ -439,11 +485,23 @@ function PaymentMethodCard({
 function ComparePlansSection({
   plan,
   stripeReady,
+  highlightPlan,
 }: {
   plan: Plan;
   stripeReady: boolean;
+  highlightPlan?: Plan | null;
 }) {
-  const [open, setOpen] = useState(plan === "free");
+  // An explicit upgrade intent (?upgrade=pro) forces the section open even
+  // on a paid plan, so the CTA the user clicked actually shows them plans.
+  const [open, setOpen] = useState(plan === "free" || Boolean(highlightPlan));
+
+  // …and scrolls the plan grid into view once mounted.
+  useEffect(() => {
+    if (!highlightPlan) return;
+    document
+      .getElementById("plans")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [highlightPlan]);
 
   return (
     <section id="plans" className="card overflow-hidden scroll-mt-6">
@@ -497,6 +555,7 @@ function ComparePlansSection({
                 planKey={key}
                 currentPlan={plan}
                 stripeReady={stripeReady}
+                highlighted={highlightPlan === key}
               />
             ))}
           </div>
@@ -514,10 +573,12 @@ function PlanCard({
   planKey,
   currentPlan,
   stripeReady,
+  highlighted,
 }: {
   planKey: Plan;
   currentPlan: Plan;
   stripeReady: boolean;
+  highlighted?: boolean;
 }) {
   const info = PLAN_INFO[planKey];
   const isCurrent = planKey === currentPlan;
@@ -531,9 +592,11 @@ function PlanCard({
         "relative rounded-[14px] p-[var(--space-stack-lg)] flex flex-col border transition-all",
         isCurrent
           ? "border-rose-300 bg-cream-50/60 shadow-sm"
-          : isPro
-            ? "border-2 border-rose-500 bg-white shadow-card ring-4 ring-rose-100"
-            : "border-ink-100 bg-white",
+          : highlighted
+            ? "border-2 border-rose-500 bg-white shadow-card ring-4 ring-rose-200"
+            : isPro
+              ? "border-2 border-rose-500 bg-white shadow-card ring-4 ring-rose-100"
+              : "border-ink-100 bg-white",
       )}
     >
       {/* Floating "Most Popular" badge — overlaps card top edge for premium lift */}
