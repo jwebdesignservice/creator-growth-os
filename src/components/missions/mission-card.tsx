@@ -359,7 +359,7 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
       <div className="mt-auto flex items-center gap-2 border-t border-ink-100 pt-5">
         {completed ? (
           <>
-            <span className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] bg-success-bg text-[13px] font-semibold text-success">
+            <span className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] bg-success-bg text-[13px] font-semibold text-success shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] ring-1 ring-inset ring-success/15">
               <Check className="size-4" strokeWidth={3} />
               Completed
               {mission.completed_at && (
@@ -372,7 +372,7 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
               type="button"
               onClick={complete}
               disabled={pending}
-              className="h-11 cursor-pointer rounded-[12px] border border-ink-200 px-4 text-[12.5px] font-medium text-ink-500 transition-colors hover:bg-cream-100 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:ring-offset-2 disabled:opacity-50"
+              className="h-11 cursor-pointer rounded-[12px] border border-ink-200 bg-gradient-to-b from-white to-cream-50/60 px-4 text-[12.5px] font-medium text-ink-500 shadow-[0_1px_2px_rgba(26,24,22,0.05)] transition-[transform,box-shadow,background-color,color,border-color] duration-200 ease-out hover:-translate-y-px hover:text-ink-900 hover:shadow-[0_4px_10px_-4px_rgba(26,24,22,0.20)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:ring-offset-2 disabled:opacity-50"
             >
               Undo
             </button>
