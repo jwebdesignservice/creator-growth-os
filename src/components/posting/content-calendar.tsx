@@ -10,7 +10,15 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ImagePlus,
+  Loader2,
+  Pencil,
+  Plus,
+} from "lucide-react";
+import { platformMeta } from "@/lib/posting/platform-meta";
 import { cn } from "@/lib/cn";
 import { WorkspaceHeader } from "@/components/app-shell/workspace-shell";
 import type {
@@ -543,128 +551,148 @@ export function ContentCalendar({
           <div className="mb-3 text-[15px] font-semibold text-ink-900">
             {monthLabel}
           </div>
-          <div className="rounded-[14px] border-l border-t border-ink-100 overflow-hidden bg-white">
-            {monthLayout.map((week, wi) => {
-              const hasToday = week.days.some((d) => isoDateOf(d) === today);
-              const headerOffset =
-                MONTH_HEADER_BASE +
-                (wi === 0 ? MONTH_WEEKDAY_H : 0) +
-                (hasToday ? MONTH_TODAY_H : 0);
-              const rowH = Math.max(
-                120,
-                headerOffset + week.laneCount * MONTH_LANE_STEP + 10,
-              );
-              return (
+          {/* Reference-style month grid: weekday header row, white cells with
+              hairline dividers, muted past/out-of-month days, the brand circle
+              on today, and per-day post chips (platform · time · media). */}
+          <div className="overflow-hidden rounded-[14px] border border-ink-100 bg-white">
+            {/* Weekday header — full names, like the reference */}
+            <div className="grid grid-cols-7 border-b border-ink-100">
+              {WEEKDAY_NAMES.map((w) => (
                 <div
-                  key={wi}
-                  className="relative grid grid-cols-7"
-                  style={{ minHeight: rowH }}
+                  key={w}
+                  className="px-2 py-3 text-center text-[13px] font-medium text-ink-500"
                 >
-                  {/* Day cells: date, shading, hover "+", drop target */}
-                  {week.days.map((d) => {
-                    const key = isoDateOf(d);
-                    const inMonth = d.getMonth() === monthBase.getMonth();
-                    const isToday = key === today;
-                    const isPast = key < today;
-                    const isOver = overKey === key;
-                    const isFirst = d.getDate() === 1;
-                    const dateLabel = isFirst
-                      ? d.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : String(d.getDate());
-                    return (
-                      <div
-                        key={key}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = "move";
-                          if (overKey !== key) setOverKey(key);
-                        }}
-                        onDragLeave={(e) => {
-                          if (
-                            !e.currentTarget.contains(e.relatedTarget as Node)
-                          ) {
-                            setOverKey((k) => (k === key ? null : k));
-                          }
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          dropOnDay(d, e);
-                        }}
-                        className={cn(
-                          "group relative flex flex-col border-r border-b border-ink-100 p-1.5 transition-colors",
-                          "bg-white",
-                          !inMonth && "bg-cream-100/50",
-                          inMonth && isPast && "bg-[#F4F4F6]",
-                          isToday &&
-                            "bg-rose-100 ring-1 ring-rose-400 ring-inset z-[1]",
-                          isOver &&
-                            "bg-rose-100/60 ring-2 ring-rose-400 ring-inset",
-                        )}
-                      >
-                        <div className="flex flex-col items-center">
-                          {wi === 0 && (
-                            <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-400">
-                              {d.toLocaleDateString("en-US", {
-                                weekday: "short",
-                              })}
-                            </span>
+                  <span className="hidden md:inline">{w}</span>
+                  <span className="md:hidden">{w.slice(0, 3)}</span>
+                </div>
+              ))}
+            </div>
+
+            {monthLayout.map((week, wi) => (
+              <div key={wi} className="grid grid-cols-7">
+                {week.days.map((d, di) => {
+                  const key = isoDateOf(d);
+                  const inMonth = d.getMonth() === monthBase.getMonth();
+                  const isToday = key === today;
+                  const isPast = key < today;
+                  const isOver = overKey === key;
+                  const muted = !isToday && (!inMonth || isPast);
+                  const dayItems = optimisticItems
+                    .filter(
+                      (i) =>
+                        i.scheduled_for &&
+                        isoDateOf(new Date(i.scheduled_for)) === key,
+                    )
+                    .sort(
+                      (a, b) =>
+                        new Date(a.scheduled_for!).getTime() -
+                        new Date(b.scheduled_for!).getTime(),
+                    );
+                  return (
+                    <div
+                      key={key}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (overKey !== key) setOverKey(key);
+                      }}
+                      onDragLeave={(e) => {
+                        if (
+                          !e.currentTarget.contains(e.relatedTarget as Node)
+                        ) {
+                          setOverKey((k) => (k === key ? null : k));
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        dropOnDay(d, e);
+                      }}
+                      className={cn(
+                        "group relative flex min-h-[148px] flex-col gap-1.5 border-b border-r border-ink-100 p-2 transition-colors",
+                        di === 6 && "border-r-0",
+                        wi === monthLayout.length - 1 && "border-b-0",
+                        muted ? "bg-cream-100/70" : "bg-white",
+                        isOver &&
+                          "bg-rose-50/60 ring-2 ring-rose-400 ring-inset",
+                      )}
+                    >
+                      {/* Day number — today wears the brand circle */}
+                      <div className="flex items-start">
+                        <span
+                          className={cn(
+                            "inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-[14px] font-medium tabular-nums",
+                            isToday
+                              ? "bg-rose-600 font-semibold text-white shadow-sm shadow-rose-600/30"
+                              : !inMonth
+                                ? "text-ink-300"
+                                : isPast
+                                  ? "text-ink-400"
+                                  : "text-ink-800",
                           )}
-                          <span
+                        >
+                          {d.getDate()}
+                        </span>
+                      </div>
+
+                      {/* Post chips — platform · time · media slot */}
+                      {dayItems.map((item) => {
+                        const pm = platformMeta(item.platform ?? "other");
+                        const saving = savingIds.has(item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            draggable={!saving}
+                            onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = "move";
+                              e.dataTransfer.setData("text/plain", item.id);
+                              setDraggingId(item.id);
+                            }}
+                            onDragEnd={endDrag}
+                            onClick={() => openDetail(item.id)}
+                            title={item.topic ?? "Untitled post"}
                             className={cn(
-                              "mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[12px] font-semibold tabular-nums",
-                              isToday
-                                ? "bg-rose-600 text-white shadow-sm shadow-rose-600/30 ring-2 ring-white"
-                                : !inMonth
-                                  ? "text-ink-300"
-                                  : isPast
-                                    ? "text-ink-400"
-                                    : "text-ink-900",
+                              "flex w-full cursor-grab items-center gap-1.5 rounded-[10px] border border-ink-100 bg-white p-1 shadow-[0_1px_2px_rgba(26,24,22,0.06)] transition-all active:cursor-grabbing hover:border-ink-200 hover:shadow-[0_3px_8px_-3px_rgba(26,24,22,0.3)]",
+                              draggingId === item.id && "opacity-40",
+                              saving && "pointer-events-none opacity-60",
                             )}
                           >
-                            {dateLabel}
-                          </span>
-                          {isToday && (
-                            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-rose-600">
-                              Today
+                            <span
+                              className={cn(
+                                "inline-flex size-6 shrink-0 items-center justify-center rounded-[7px]",
+                                pm.tile,
+                              )}
+                            >
+                              {pm.icon}
                             </span>
-                          )}
-                        </div>
-
-                        {planId && (
-                          <button
-                            type="button"
-                            onClick={() => setAddDate(key)}
-                            aria-label={`Add a post on ${dateLabel}`}
-                            className="absolute top-1 right-1 z-20 inline-flex size-6 items-center justify-center rounded-full bg-rose-600 text-white shadow-sm opacity-0 scale-90 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100 focus-visible:opacity-100 focus-visible:scale-100 hover:bg-rose-700 cursor-pointer"
-                          >
-                            <Plus className="size-3.5" strokeWidth={2.6} />
+                            <span className="min-w-0 flex-1 truncate text-left text-[11.5px] font-semibold tabular-nums text-ink-800">
+                              {fmtChipTime(item.scheduled_for!)}
+                            </span>
+                            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
+                              <ImagePlus
+                                className="size-3 text-ink-300"
+                                strokeWidth={1.8}
+                              />
+                            </span>
                           </button>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
 
-                  {/* Phase bars + single-day pills positioned across the week.
-                      z-10 keeps bars above the today cell (which has z-[1]). */}
-                  <div className="pointer-events-none absolute inset-0 z-10">
-                    {week.segments.map((seg) => (
-                      <MonthBar
-                        key={`${seg.item.id}-${seg.startCol}`}
-                        seg={seg}
-                        laneTop={headerOffset + seg.lane * MONTH_LANE_STEP}
-                        dragging={draggingId === seg.item.id}
-                        onOpenId={openDetail}
-                        onDragStart={() => setDraggingId(seg.item.id)}
-                        onDragEnd={endDrag}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                      {planId && (
+                        <button
+                          type="button"
+                          onClick={() => setAddDate(key)}
+                          aria-label={`Add a post on ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                          className="absolute right-1.5 top-1.5 z-20 inline-flex size-6 scale-90 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white opacity-0 shadow-sm transition-all duration-150 hover:bg-rose-700 focus-visible:scale-100 focus-visible:opacity-100 group-hover:scale-100 group-hover:opacity-100"
+                        >
+                          <Plus className="size-3.5" strokeWidth={2.6} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -772,15 +800,25 @@ function DraggableCard({
    post is a one-column pill. buildMonthLayout slices each post into per-week
    segments and stacks overlapping segments into lanes. */
 
-// Header height reserved above the bars adapts to what's in each week's header:
-// the date number always, +weekday labels on the first week, +the "Today" label
-// on the week containing today — so a bar never covers the date/Today text.
-const MONTH_HEADER_BASE = 36; // date number row
-const MONTH_WEEKDAY_H = 14; // weekday labels (first week only)
-const MONTH_TODAY_H = 14; // the "Today" label
-const MONTH_LANE_STEP = 26; // px per stacked lane (bar + clear gap)
-const MONTH_BAR_H = 18; // px bar height
+// Month grid header row — full weekday names, like the reference design.
+const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 const DAY_MS = 86_400_000;
+
+/** Chip time — "9:42 AM", matching the reference's per-post chips. */
+function fmtChipTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 const PHASE_LABEL: Record<ContentStatus, string> = {
   idea: "Idea",
@@ -893,94 +931,9 @@ function buildMonthLayout(
   return weeks;
 }
 
-/**
- * One positioned bar in the month grid. The post title floats above the bar;
- * phased posts draw a diamond on each phase's day with a hover tooltip naming
- * the stage + date, and are click-to-open. Single-day posts show the title
- * inside the pill and are draggable to reschedule (same wiring as week view).
- */
-function MonthBar({
-  seg,
-  laneTop,
-  dragging,
-  onOpenId,
-  onDragStart,
-  onDragEnd,
-}: {
-  seg: MonthSeg;
-  laneTop: number;
-  dragging: boolean;
-  onOpenId: (id: string) => void;
-  onDragStart: () => void;
-  onDragEnd: () => void;
-}) {
-  const leftPct = (seg.startCol / 7) * 100;
-  const widthPct = ((seg.endCol - seg.startCol + 1) / 7) * 100;
-  const span = seg.endCol - seg.startCol + 1;
-  const label = seg.item.topic ?? "Untitled post";
-  return (
-    <div
-      className="pointer-events-auto absolute"
-      style={{
-        left: `calc(${leftPct}% + 3px)`,
-        width: `calc(${widthPct}% - 6px)`,
-        top: laneTop,
-      }}
-    >
-      {/* Bar with the post title on it */}
-      <button
-        type="button"
-        draggable={!seg.phased}
-        onDragStart={
-          seg.phased
-            ? undefined
-            : (e) => {
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", seg.item.id);
-                onDragStart();
-              }
-        }
-        onDragEnd={seg.phased ? undefined : onDragEnd}
-        onClick={() => onOpenId(seg.item.id)}
-        title={label}
-        className={cn(
-          "absolute inset-x-0 top-0 flex h-[18px] items-center justify-center px-3 text-[10.5px] font-semibold bg-rose-50 border border-rose-300 text-rose-700",
-          seg.isStart ? "rounded-l-[5px]" : "rounded-l-none",
-          seg.isEnd ? "rounded-r-[5px]" : "rounded-r-none",
-          seg.phased ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
-          dragging && "opacity-40",
-        )}
-      >
-        {!seg.isStart && (
-          <span className="absolute left-1 text-rose-400 leading-none">‹</span>
-        )}
-        {seg.isStart && <span className="truncate">{label}</span>}
-        {!seg.isEnd && (
-          <span className="absolute right-1 text-rose-400 leading-none">›</span>
-        )}
-      </button>
-
-      {/* Phase diamonds — positioned on each phase's day, hover for stage+date */}
-      {seg.phased &&
-        seg.marks.map((m, i) => {
-          const posPct = ((m.col - seg.startCol + 0.5) / span) * 100;
-          return (
-            <div
-              key={i}
-              className="group/ph pointer-events-auto absolute z-10 -translate-x-1/2 cursor-pointer"
-              style={{ left: `${posPct}%`, top: MONTH_BAR_H / 2 }}
-              onClick={() => onOpenId(seg.item.id)}
-            >
-              <span className="block size-[7px] -translate-y-1/2 rotate-45 rounded-[1px] bg-rose-600 ring-2 ring-rose-50" />
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-ink-900 px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover/ph:opacity-100">
-                {PHASE_LABEL[m.stage]} · {fmtPhaseDate(m.date)}
-              </div>
-            </div>
-          );
-        })}
-    </div>
-  );
-}
+/* (The month grid now renders per-day chips inline in each cell — the old
+   spanning MonthBar was retired with the reference redesign. Phased posts
+   appear on their publish day; the Week view still shows full phase detail.) */
 
 /* ── Week strip: detailed phased bars ──────────────────────────────────────
    Wider columns than the month grid, so each phase diamond carries an
