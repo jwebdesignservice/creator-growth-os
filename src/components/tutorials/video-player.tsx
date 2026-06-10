@@ -19,26 +19,45 @@ export function LessonVideoPlayer({ title, duration, videoUrl, coverUrl }: Props
   const [playing, setPlaying] = useState(false);
 
   // Real uploaded video → native HTML5 player + admin-chosen cover poster.
+  // The player sits on an ambient "stage": a soft brand glow behind it and a
+  // hairline gradient frame so the surface reads layered, not flat.
   if (videoUrl) {
     return (
-      <section id="lesson-video" className="scroll-mt-24 rounded-[18px] overflow-hidden border border-ink-100 bg-black relative aspect-video">
-        <video
-          key={videoUrl}
-          src={videoUrl}
-          poster={coverUrl ?? undefined}
-          controls
-          playsInline
-          preload="metadata"
-          aria-label={title}
-          className="absolute inset-0 h-full w-full bg-black object-contain"
+      <section id="lesson-video" className="scroll-mt-24 relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-x-8 -top-6 -bottom-10 blur-2xl"
+          style={{
+            backgroundImage:
+              "radial-gradient(55% 65% at 50% 35%, rgba(208,129,113,0.16), transparent 70%)",
+          }}
         />
+        <div className="relative rounded-[20px] p-px bg-gradient-to-b from-ink-900/[0.16] via-ink-900/[0.07] to-ink-900/[0.18] shadow-[0_28px_70px_-30px_rgba(26,24,22,0.5)]">
+          <div className="rounded-[19px] overflow-hidden bg-black relative aspect-video">
+            <video
+              key={videoUrl}
+              src={videoUrl}
+              poster={coverUrl ?? undefined}
+              controls
+              playsInline
+              preload="metadata"
+              aria-label={title}
+              className="absolute inset-0 h-full w-full bg-black object-contain"
+            />
+            {/* top edge light — seats the surface */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
+            />
+          </div>
+        </div>
       </section>
     );
   }
 
   // No video uploaded yet → decorative placeholder (design comp).
   return (
-    <section id="lesson-video" className="scroll-mt-24 rounded-[18px] overflow-hidden border border-ink-100 bg-cream-200 relative aspect-video">
+    <section id="lesson-video" className="scroll-mt-24 rounded-[20px] overflow-hidden bg-cream-200 relative aspect-video ring-1 ring-ink-900/10 shadow-[0_24px_60px_-28px_rgba(26,24,22,0.35)]">
       {/* Decorative cover */}
       <div
         className="absolute inset-0 bg-gradient-to-br from-rose-100/50 via-cream-200 to-rose-200/40"

@@ -40,6 +40,8 @@ type Props = {
   nextSlug?: string | null;
   /** Previous lesson's slug — drives the "Go back" action. */
   prevSlug?: string | null;
+  /** Next lesson's title — names the destination in the "Up next" line. */
+  nextTitle?: string | null;
   /**
    * Route prefix for sibling navigation when NOT inside a program — e.g.
    * "/tutorials" for the standalone Tutorial Library. Ignored when
@@ -66,6 +68,7 @@ export function LessonActionRow({
   programSlug,
   nextSlug,
   prevSlug,
+  nextTitle,
   basePath,
 }: Props) {
   const router = useRouter();
@@ -86,61 +89,98 @@ export function LessonActionRow({
     return "/programs";
   };
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <button
-        type="button"
-        onClick={() => setNoteOpen(true)}
-        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] border border-ink-200 bg-white text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors cursor-pointer"
-      >
-        <NotebookPen className="size-4" strokeWidth={1.8} />
-        Create Notes
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          // "Go back" — the previous sibling (previous curriculum lesson in a
-          // program, or the previous tutorial in library order). Falls back to
-          // the section root when this is the first one.
-          router.push(siblingHref(prevSlug));
-        }}
-        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] border border-ink-200 bg-white text-ink-900 text-[14px] font-medium hover:bg-cream-100 transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="size-4" strokeWidth={2} />
-        Go back
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          // "Complete & continue" — mark this lesson complete (if it isn't
-          // already) and advance to the next lesson. Falls back to the program
-          // overview when this is the last lesson.
-          setErr(null);
-          startTransition(async () => {
-            if (!completed) {
-              const res = await markLessonComplete(lessonSlug, true);
-              if (!res.ok) {
-                setErr(res.error);
-                return;
-              }
-              setCompleted(true);
-            }
-            // Advance to the next sibling — the next curriculum lesson inside a
-            // program, or the next tutorial in library order on /tutorials.
-            // Falls back to the section root when this is the last one.
-            router.push(siblingHref(nextSlug));
-          });
-        }}
-        disabled={pending}
-        className="inline-flex items-center justify-center gap-2 h-11 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors cursor-pointer disabled:opacity-60"
-      >
-        <CheckCircle2 className="size-4" strokeWidth={2} />
-        Complete &amp; continue
-      </button>
+  function completeAndContinue() {
+    // Mark this lesson complete (if it isn't already) and advance to the next
+    // lesson. Falls back to the section root when this is the last one.
+    setErr(null);
+    startTransition(async () => {
+      if (!completed) {
+        const res = await markLessonComplete(lessonSlug, true);
+        if (!res.ok) {
+          setErr(res.error);
+          return;
+        }
+        setCompleted(true);
+      }
+      router.push(siblingHref(nextSlug));
+    });
+  }
 
-      {err && (
-        <div className="sm:col-span-3 text-[12px] text-rose-700">{err}</div>
-      )}
+  const ghostBtn =
+    "inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-[10px] border border-ink-200 bg-white text-ink-700 text-[13px] font-medium transition-all duration-150 hover:bg-cream-100 hover:border-ink-300 hover:text-ink-900 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1 cursor-pointer";
+
+  return (
+    <div className="relative overflow-hidden rounded-[16px] bg-gradient-to-b from-white to-cream-50/70 ring-1 ring-ink-100 shadow-card p-4 sm:px-5">
+      {/* top edge light */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+      />
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Status cluster — where the learner stands + what comes next */}
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className={cn(
+              "size-10 rounded-full inline-flex items-center justify-center shrink-0 transition-colors duration-300",
+              completed
+                ? "bg-success-bg text-success ring-1 ring-success/25"
+                : "bg-cream-200 text-ink-400 ring-1 ring-ink-200/60",
+            )}
+          >
+            <CheckCircle2
+              // Re-keyed on state so completing replays the pop-in.
+              key={completed ? "done" : "todo"}
+              className={cn("size-5", completed && "anim-pop-in")}
+              strokeWidth={2}
+            />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[13.5px] font-semibold text-ink-900 leading-tight">
+              {completed ? "Lesson completed" : "Finish this lesson"}
+            </div>
+            <div className="text-[12px] text-ink-500 mt-0.5 truncate">
+              {nextSlug
+                ? nextTitle
+                  ? `Up next: ${nextTitle}`
+                  : "Up next: the following lesson"
+                : completed
+                  ? "You're all caught up."
+                  : "This is the last lesson in this track."}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions — one primary, quiet secondaries */}
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+          <button type="button" onClick={() => setNoteOpen(true)} className={ghostBtn}>
+            <NotebookPen className="size-4" strokeWidth={1.8} />
+            Add note
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(siblingHref(prevSlug))}
+            className={ghostBtn}
+          >
+            <ArrowLeft className="size-4" strokeWidth={2} />
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={completeAndContinue}
+            disabled={pending}
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-[10px] bg-rose-600 text-white text-[13.5px] font-semibold shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:shadow-[0_10px_24px_-8px_rgba(185,72,92,0.7)] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)]"
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" strokeWidth={2} />
+            ) : (
+              <CheckCircle2 className="size-4" strokeWidth={2} />
+            )}
+            {completed ? "Continue" : "Complete & continue"}
+          </button>
+        </div>
+      </div>
+
+      {err && <div className="relative mt-3 text-[12px] text-rose-700">{err}</div>}
 
       {noteOpen && (
         <CreateNoteModal
@@ -214,19 +254,24 @@ export function CreateNoteModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="anim-overlay-in fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={() => !pending && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Create note"
     >
       <div
-        className="bg-white rounded-[18px] shadow-xl border border-ink-100 w-full max-w-[560px] p-6"
+        className="anim-modal-in relative bg-white rounded-[18px] shadow-[0_32px_80px_-24px_rgba(26,24,22,0.45)] ring-1 ring-ink-900/[0.06] w-full max-w-[560px] p-6"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* top edge light — seats the panel */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-ink-900/[0.08] to-transparent"
+        />
         <header className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-start gap-3 min-w-0">
-            <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+            <span className="size-10 rounded-[12px] bg-gradient-to-br from-rose-100 to-rose-200/70 text-rose-600 ring-1 ring-rose-200/60 inline-flex items-center justify-center shrink-0">
               <NotebookPen className="size-5" strokeWidth={1.9} />
             </span>
             <div className="min-w-0">
@@ -241,7 +286,7 @@ export function CreateNoteModal({
             onClick={onClose}
             disabled={pending}
             aria-label="Close"
-            className="size-8 rounded-full hover:bg-cream-100 inline-flex items-center justify-center text-ink-500 disabled:opacity-50 shrink-0"
+            className="size-8 rounded-full inline-flex items-center justify-center text-ink-500 transition-all duration-150 hover:bg-cream-100 hover:text-ink-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:opacity-50 shrink-0"
           >
             <X className="size-4" strokeWidth={2} />
           </button>
@@ -367,7 +412,7 @@ export function CreateNoteModal({
                   type="button"
                   onClick={onClose}
                   disabled={pending}
-                  className="inline-flex items-center h-10 px-4 rounded-[10px] border border-ink-200 text-[13px] font-semibold text-ink-700 hover:bg-cream-100 disabled:opacity-50"
+                  className="inline-flex items-center h-10 px-4 rounded-[10px] border border-ink-200 text-[13px] font-semibold text-ink-700 transition-all duration-150 hover:bg-cream-100 hover:border-ink-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -375,7 +420,7 @@ export function CreateNoteModal({
                   type="button"
                   onClick={save}
                   disabled={pending || isEmpty || tooLong}
-                  className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[10px] bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-[13px] font-semibold"
+                  className="inline-flex items-center gap-1.5 h-10 px-5 rounded-[10px] bg-rose-600 text-white text-[13px] font-semibold shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 disabled:bg-rose-300 disabled:shadow-none disabled:hover:translate-y-0"
                 >
                   {pending && (
                     <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />

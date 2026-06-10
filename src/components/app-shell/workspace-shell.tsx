@@ -116,9 +116,9 @@ export function WorkspaceTabs({
             href={t.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 h-10 px-3 rounded-[10px] text-[13.5px] font-medium transition-colors",
+              "flex items-center gap-2.5 h-10 px-3 rounded-[10px] text-[13.5px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200",
               isActive
-                ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100 shadow-[0_1px_2px_rgba(26,24,22,0.04)]"
                 : "text-ink-600 hover:bg-cream-100 hover:text-ink-900",
             )}
           >
