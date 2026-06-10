@@ -103,7 +103,7 @@ const PROGRAM_TAB_KEYS: ProgramTab[] = [
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
-  return { title: `${prettySlug(slug)} · Profluencer` };
+  return { title: `${prettySlug(slug)}` };
 }
 
 function prettySlug(slug: string) {
@@ -376,9 +376,7 @@ export default async function ProgramDetailPage({
           )}
 
           {active === "curriculum" && (
-            <div className="max-w-[900px]">
-              <CurriculumAccordion modules={modules} programSlug={slug} />
-            </div>
+            <CurriculumAccordion modules={modules} programSlug={slug} />
           )}
 
           {active === "resources" && <TemplatesDownloads />}

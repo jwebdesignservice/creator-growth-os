@@ -9,8 +9,8 @@ import {
   CheckCircle2,
   Check,
   Sparkles,
-  CalendarDays,
   FileText,
+  ListTree,
   Target,
   Layers,
   Anchor,
@@ -39,6 +39,7 @@ import {
   type LearningIconKey,
 } from "@/lib/programs/learning-content";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
+import { CollapsibleSection } from "@/components/programs/collapsible-section";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { ProgramVideoTasks } from "./program-video-tasks";
 import { AssignOnMount } from "@/components/tasks/assign-on-mount";
@@ -76,9 +77,7 @@ export async function generateMetadata({ params }: { params: Params }) {
   const { lessonSlug } = await params;
   const lesson = await getTutorialDetail(lessonSlug);
   return {
-    title: lesson
-      ? `${lesson.title} · Profluencer`
-      : "Lesson · Profluencer",
+    title: lesson ? lesson.title : "Lesson",
   };
 }
 
@@ -282,30 +281,31 @@ export default async function ProgramLessonPage({
                 coverUrl={coverUrl}
               />
 
-              {/* Title + meta — sits below the player, YouTube-style */}
+              {/* Title + one quiet meta line — same compact identity
+                  treatment as the section heroes. */}
               <div>
-                <div className="text-[12px] font-semibold uppercase tracking-wider text-rose-600 mb-1.5">
-                  Module {moduleNumber} · {moduleTitle}
-                </div>
-                <h1 className="text-h3 sm:text-[28px] text-ink-900 leading-tight">
+                <h1 className="font-display text-[22px] sm:text-[26px] text-ink-900 leading-tight">
                   {title}
                 </h1>
-                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <div className="mt-1.5 flex items-center gap-x-3.5 gap-y-1 flex-wrap text-[12.5px] text-ink-500">
+                  <span className="font-medium text-rose-600">
+                    Module {moduleNumber} · {moduleTitle}
+                  </span>
                   {lessonNumber && (
-                    <span className="chip bg-rose-100 text-rose-700 inline-flex items-center gap-1">
+                    <span className="tabular-nums">
                       Lesson {lessonNumber} of {totalLessons}
                     </span>
                   )}
-                  <span className="chip bg-cream-100 text-ink-700 inline-flex items-center gap-1">
-                    <Play className="size-3" fill="currentColor" />
-                    Video Lesson
+                  <span className="inline-flex items-center gap-1.5">
+                    <Play className="size-3 text-ink-400" fill="currentColor" />
+                    Video
                   </span>
-                  <span className="chip bg-cream-100 text-ink-700 inline-flex items-center gap-1">
-                    <BarChart3 className="size-3" strokeWidth={2} />
+                  <span className="inline-flex items-center gap-1.5">
+                    <BarChart3 className="size-3.5 text-ink-400" strokeWidth={2} />
                     {difficulty}
                   </span>
-                  <span className="chip bg-cream-100 text-ink-700 inline-flex items-center gap-1">
-                    <Clock className="size-3" strokeWidth={2} />
+                  <span className="inline-flex items-center gap-1.5 tabular-nums">
+                    <Clock className="size-3.5 text-ink-400" strokeWidth={2} />
                     {duration}
                   </span>
                 </div>
@@ -401,41 +401,49 @@ function LessonOverview({
 
   const hasLearning = learningPoints.length > 0;
   const hasAnyStep = learningPoints.some((lp) => lp.actionStep);
+  const stepCount = learningPoints.filter((lp) => lp.actionStep).length;
 
   return (
-    <section className="pt-6 border-t border-ink-100">
-      {/* Header — book icon + title/subtitle + Action step pill.
-          Rendered flush (no card wrapper) — the learning points below keep
-          their own boxes. */}
-      <div className="flex items-center gap-3 mb-5">
-        <span className="size-11 rounded-[13px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-          <BookOpen className="size-[20px]" strokeWidth={1.9} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-h3 sm:text-[24px] text-ink-900 leading-tight">
-            Lesson Overview
-          </h2>
-        </div>
-        {(hasAnyStep || !hasLearning) && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold shrink-0 whitespace-nowrap">
-            <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
-            Action step
-          </span>
-        )}
-      </div>
+    /* One card, two collapsible rows — same attached-dropdown anatomy as the
+       program hero's What You'll Learn. Collapsed by default so the watch
+       column stays compact; each row expands on tap. */
+    <section className="card overflow-hidden">
+      <CollapsibleSection
+        flush
+        icon={<BookOpen className="size-5" strokeWidth={1.9} />}
+        title="About this lesson"
+        subtitle="The full written notes for this lesson"
+      >
+        {/* PREVIEW — dummy rich-text block so we can see how a normal
+            rich-text lesson body renders here. Not wired to data yet. */}
+        <RichTextBlock />
+      </CollapsibleSection>
 
-      {/* PREVIEW — dummy rich-text block so we can see how a normal rich-text
-          lesson body renders here. Placeholder text; not wired to data yet. */}
-      <RichTextBlock />
-
-      {/* Clear separation between the lesson body and the learning section */}
-      <div className="mt-8 pt-8 border-t border-ink-100">
+      <div className="border-t border-ink-100">
+        <CollapsibleSection
+          flush
+          icon={<Sparkles className="size-5" strokeWidth={2} fill="currentColor" />}
+          title="What you'll learn in this lesson"
+          subtitle={
+            hasLearning
+              ? `${learningPoints.length} learning point${learningPoints.length === 1 ? "" : "s"}${
+                  stepCount > 0
+                    ? ` · ${stepCount} action step${stepCount === 1 ? "" : "s"}`
+                    : ""
+                }`
+              : "Apply this lesson before moving on"
+          }
+          badge={
+            (hasAnyStep || !hasLearning) && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold whitespace-nowrap">
+                <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
+                Action step
+              </span>
+            )
+          }
+        >
         {hasLearning ? (
         <>
-          <h3 className="inline-flex items-center gap-1.5 text-[13px] font-bold text-ink-900 mb-2.5">
-            <Sparkles className="size-3.5 text-rose-500" strokeWidth={2} fill="currentColor" />
-            What you&apos;ll learn in this lesson
-          </h3>
           <ul className="space-y-2.5">
             {learningPoints.map((lp) => {
               const Icon = LEARNING_ICONS[lp.icon] ?? Target;
@@ -525,6 +533,7 @@ function LessonOverview({
           </div>
         </div>
         )}
+        </CollapsibleSection>
       </div>
     </section>
   );
@@ -556,18 +565,38 @@ function ProgramPathRail({
     const n = parseInt(m ?? "0", 10);
     return sum + (Number.isFinite(n) ? n : 0);
   }, 0);
+  const doneCount = lessons.filter((l) => l.status === "completed").length;
+  const pct =
+    lessons.length > 0 ? Math.round((doneCount / lessons.length) * 100) : 0;
 
   return (
     <aside className="lg:sticky lg:top-[calc(var(--topbar-height)_+_1rem)] self-start lg:max-h-[calc(100vh_-_var(--topbar-height)_-_2rem)] lg:overflow-y-auto">
-      <div className="mb-3">
-        <h2 className="text-[15px] font-semibold text-ink-900 flex items-center gap-2">
-          <CalendarDays className="size-4 text-rose-500" strokeWidth={1.8} />
-          Program Path · Module {moduleNumber}
-        </h2>
-        <p className="text-[12px] text-ink-500 mt-0.5">{moduleTitle}</p>
-      </div>
+      {/* One cohesive card — header band, lesson list, footer — so the rail
+          reads as a designed panel beside the player, not a floating list. */}
+      <div className="card overflow-hidden">
+        <header className="flex items-center gap-3 px-4 py-3.5 border-b border-ink-100">
+          <span className="size-9 rounded-[11px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+            <ListTree className="size-4" strokeWidth={2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[14px] font-semibold text-ink-900 leading-tight truncate">
+              Module {moduleNumber} · {moduleTitle}
+            </h2>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[11px] text-ink-500 tabular-nums whitespace-nowrap">
+                {doneCount}/{lessons.length} completed
+              </span>
+              <span className="w-20 h-1 rounded-full bg-cream-200 overflow-hidden">
+                <span
+                  className="block h-full rounded-full bg-rose-500 transition-[width] duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </span>
+            </div>
+          </div>
+        </header>
 
-      <ul className="space-y-1.5">
+        <ul className="p-2.5 space-y-1">
         {lessons.map((l, i) => {
           const isCurrent = l.slug === currentSlug;
           const isDone = l.status === "completed";
@@ -670,9 +699,10 @@ function ProgramPathRail({
         })}
       </ul>
 
-      <div className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] text-ink-500">
-        <FileText className="size-3.5 text-ink-400" strokeWidth={2} />
-        {lessons.length} lessons · ~{totalMin} min in this module
+        <footer className="flex items-center gap-1.5 px-4 py-3 border-t border-ink-100 text-[11.5px] text-ink-500">
+          <FileText className="size-3.5 text-ink-400" strokeWidth={2} />
+          {lessons.length} lessons · ~{totalMin} min in this module
+        </footer>
       </div>
     </aside>
   );
