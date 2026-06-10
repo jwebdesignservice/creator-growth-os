@@ -119,7 +119,7 @@ export default async function PostingPage({
                 then the posts table — floating on the cream page background. */}
             <div className="space-y-5 pt-1 pb-4">
               <ActivePlanCard plan={activePlan} />
-              <PostingPlatformCards items={items} />
+              <PostingPlatformCards items={items} planId={activePlan.id} />
               <PlannedPostsTable
                 items={items.slice(0, 8)}
                 addPostSlot={<PostingActions activePlanId={activePlan.id} />}

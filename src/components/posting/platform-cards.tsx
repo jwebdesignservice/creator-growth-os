@@ -1,8 +1,11 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowRight, Heart, Play } from "lucide-react";
 import { LinkedinIcon, YoutubeIcon } from "@/components/brand-icons";
 import { GHOST, TIKTOK_NOTE } from "@/components/posting/platform-glyphs";
+import { NewItemForm } from "@/components/posting/posting-actions";
 import { cn } from "@/lib/cn";
 import type { PostingItem, PlatformKey } from "@/lib/posting/queries";
 
@@ -40,25 +43,46 @@ const EASE = "ease-[cubic-bezier(0.45,0,0.55,1)]";
  * footer, with an animated mini-graphic on the right (rises in on mount,
  * comes alive on hover; reduced-motion safe). The meta pill shows the REAL
  * number of posts scheduled for that platform in the active plan.
+ *
+ * Clicking a card opens the Create Post composer with that channel already
+ * selected — the card IS the start of a post for that platform.
  */
-export function PostingPlatformCards({ items }: { items: PostingItem[] }) {
+export function PostingPlatformCards({
+  items,
+  planId,
+}: {
+  items: PostingItem[];
+  planId: string;
+}) {
   const count = (p: PlatformKey) =>
     items.filter((i) => i.platform === p).length;
+  // Which platform's composer is open (null = closed).
+  const [compose, setCompose] = useState<PlatformKey | null>(null);
+  const open = (p: PlatformKey) => () => setCompose(p);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <SnapchatCard count={count("snapchat")} />
-      <TiktokCard count={count("tiktok")} />
-      <LinkedinCard count={count("linkedin")} />
-      <YoutubeCard count={count("youtube")} />
-    </div>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SnapchatCard count={count("snapchat")} onOpen={open("snapchat")} />
+        <TiktokCard count={count("tiktok")} onOpen={open("tiktok")} />
+        <LinkedinCard count={count("linkedin")} onOpen={open("linkedin")} />
+        <YoutubeCard count={count("youtube")} onOpen={open("youtube")} />
+      </div>
+      {compose && (
+        <NewItemForm
+          planId={planId}
+          initialPlatform={compose}
+          onClose={() => setCompose(null)}
+        />
+      )}
+    </>
   );
 }
 
 /* ── Shared tile shell (program overview-card anatomy) ────────────────── */
 
 function PlatformTile({
-  href,
+  onOpen,
   icon,
   iconTile,
   title,
@@ -66,7 +90,8 @@ function PlatformTile({
   count,
   children,
 }: {
-  href: string;
+  /** Opens the Create Post composer pre-set to this platform. */
+  onOpen: () => void;
   icon: ReactNode;
   /** Brand-tinted tile classes behind the platform glyph. */
   iconTile: string;
@@ -76,10 +101,12 @@ function PlatformTile({
   children: ReactNode;
 }) {
   return (
-    <Link
-      href={href}
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Create a ${title} post`}
       className={cn(
-        "group relative isolate flex min-h-[188px] overflow-hidden rounded-[18px] border border-ink-100 bg-white p-5 sm:p-6 shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition duration-[380ms] hover:-translate-y-[3px] hover:border-ink-200 hover:shadow-[0_22px_44px_-26px_rgba(26,24,22,0.45)]",
+        "group relative isolate flex min-h-[188px] cursor-pointer overflow-hidden rounded-[18px] border border-ink-100 bg-white p-5 sm:p-6 text-left shadow-[0_1px_2px_rgba(26,24,22,0.04)] transition duration-[380ms] hover:-translate-y-[3px] hover:border-ink-200 hover:shadow-[0_22px_44px_-26px_rgba(26,24,22,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2",
         EASE,
       )}
     >
@@ -118,7 +145,7 @@ function PlatformTile({
       <div className="relative h-[140px] w-[150px] sm:w-[200px] shrink-0 self-center">
         {children}
       </div>
-    </Link>
+    </button>
   );
 }
 
@@ -129,10 +156,10 @@ const STORY_FRAMES = [
   { x: "ml-[24px]", rot: "rotate-[9deg]", hover: "group-hover:-translate-y-2.5 group-hover:rotate-[13deg]", delay: 0.22 },
 ];
 
-function SnapchatCard({ count }: { count: number }) {
+function SnapchatCard({ count, onOpen }: { count: number; onOpen: () => void }) {
   return (
     <PlatformTile
-      href="/posting?view=calendar"
+      onOpen={onOpen}
       icon={<SnapGhost className="size-[26px]" />}
       iconTile="bg-[#FFFC00] ring-1 ring-inset ring-ink-900/10"
       title="Snapchat"
@@ -190,10 +217,10 @@ const HEARTS = [
   { left: "8%", top: "66%", size: "size-[13px]", delay: "2.6s", fill: "#F47983" },
 ];
 
-function TiktokCard({ count }: { count: number }) {
+function TiktokCard({ count, onOpen }: { count: number; onOpen: () => void }) {
   return (
     <PlatformTile
-      href="/posting?view=calendar"
+      onOpen={onOpen}
       icon={<TiktokNote className="size-[24px]" />}
       iconTile="bg-ink-900"
       title="TikTok"
@@ -262,10 +289,10 @@ function TiktokCard({ count }: { count: number }) {
 
 const POST_LINES = ["w-full", "w-5/6", "w-3/5"];
 
-function LinkedinCard({ count }: { count: number }) {
+function LinkedinCard({ count, onOpen }: { count: number; onOpen: () => void }) {
   return (
     <PlatformTile
-      href="/posting?view=calendar"
+      onOpen={onOpen}
       icon={<LinkedinIcon size={20} className="text-white" />}
       iconTile="bg-[#0A66C2]"
       title="LinkedIn"
@@ -315,10 +342,10 @@ function LinkedinCard({ count }: { count: number }) {
 
 /* ── YouTube — mini player whose progress bar fills, play pops on hover ── */
 
-function YoutubeCard({ count }: { count: number }) {
+function YoutubeCard({ count, onOpen }: { count: number; onOpen: () => void }) {
   return (
     <PlatformTile
-      href="/posting?view=calendar"
+      onOpen={onOpen}
       icon={<YoutubeIcon size={22} className="text-white" />}
       iconTile="bg-[#FF0000]"
       title="YouTube"

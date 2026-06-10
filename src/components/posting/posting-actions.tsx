@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -50,8 +50,14 @@ import { cn } from "@/lib/cn";
 import {
   createPostingPlan,
   createPostingItem,
+  rescheduleItem,
 } from "@/app/(app)/posting/actions";
-import { savePostingItemPhases } from "@/app/(app)/posting/detail-actions";
+import {
+  savePostingItemPhases,
+  updatePostingItemDetail,
+  getPostingItemDetail,
+  getPostingItemPhases,
+} from "@/app/(app)/posting/detail-actions";
 import type { PlatformKey, ContentStatus } from "@/lib/posting/queries";
 
 // The 7 production phases (reused from the content pipeline) a post can be
@@ -251,7 +257,7 @@ export function PostingActions({
                 onClick={() => openItem("post")}
                 className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-colors hover:bg-cream-100"
               >
-                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-sky-100 text-sky-600">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-rose-100 text-rose-600">
                   <FileText className="size-5" strokeWidth={2} />
                 </span>
                 <span className="min-w-0">
@@ -269,7 +275,7 @@ export function PostingActions({
                 onClick={() => openItem("idea")}
                 className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-colors hover:bg-cream-100"
               >
-                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-emerald-100 text-emerald-600">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-gold-400/20 text-gold-500">
                   <Lightbulb className="size-5" strokeWidth={2} />
                 </span>
                 <span className="min-w-0">
@@ -385,26 +391,57 @@ export function NewItemForm({
   planId,
   onClose,
   initialDate,
+  initialPlatform,
   intent = "post",
+  editItem,
 }: {
-  planId: string;
+  planId?: string;
   onClose: () => void;
   /** Pre-select a calendar day (YYYY-MM-DD) — used by the per-column "Add post". */
   initialDate?: string;
+  /** Pre-select a channel — used by the My Plans platform cards. */
+  initialPlatform?: PlatformKey;
   /** "idea" opens the form in capture-an-idea mode (idea-first save CTA). */
   intent?: "post" | "idea";
+  /** When set, the composer edits this existing post instead of creating one. */
+  editItem?: {
+    id: string;
+    platform: PlatformKey | null;
+    content_type: string | null;
+    topic: string | null;
+    scheduled_for: string | null;
+    status: ContentStatus;
+  };
 }) {
-  const isIdea = intent === "idea";
+  const isEdit = !!editItem;
+  const isIdea = intent === "idea" && !isEdit;
   const router = useRouter();
-  const [platform, setPlatform] = useState<PlatformKey>("instagram");
-  const [contentType, setContentType] = useState("reel");
-  const [topic, setTopic] = useState("");
+  const [platform, setPlatform] = useState<PlatformKey>(
+    editItem?.platform ?? initialPlatform ?? "instagram",
+  );
+  const [contentType, setContentType] = useState(
+    editItem?.content_type ?? "reel",
+  );
+  const [topic, setTopic] = useState(editItem?.topic ?? "");
   const [goal, setGoal] = useState("");
   const [notes, setNotes] = useState("");
   // Default to the user's current local date + time (their timezone), unless a
-  // specific calendar day was passed in (per-column "Add post").
-  const [date, setDate] = useState(() => initialDate ?? toDateInput(new Date()));
-  const [time, setTime] = useState(() => nowTimeHHMM());
+  // specific calendar day was passed in (per-column "Add post") or the post
+  // being edited already has a schedule.
+  const [date, setDate] = useState(() => {
+    if (editItem?.scheduled_for)
+      return toDateInput(new Date(editItem.scheduled_for));
+    return initialDate ?? toDateInput(new Date());
+  });
+  const [time, setTime] = useState(() => {
+    if (editItem?.scheduled_for) {
+      const d = new Date(editItem.scheduled_for);
+      return `${String(d.getHours()).padStart(2, "0")}:${String(
+        d.getMinutes(),
+      ).padStart(2, "0")}`;
+    }
+    return nowTimeHHMM();
+  });
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -418,7 +455,7 @@ export function NewItemForm({
   // or an explicit date/time (the only mode that uses the date inputs).
   const [schedMode, setSchedMode] = useState<
     "next" | "prioritize" | "now" | "custom"
-  >(initialDate ? "custom" : "next");
+  >(editItem?.scheduled_for || initialDate ? "custom" : "next");
   // Automatic vs Notify-Me publishing preference (composer's quiet menu).
   const [autoMode, setAutoMode] = useState<"automatic" | "notify">("automatic");
   const [autoOpen, setAutoOpen] = useState(false);
@@ -440,6 +477,39 @@ export function NewItemForm({
       return { url: URL.createObjectURL(f), name: f.name };
     });
   }
+
+  // Edit mode: pull the fields the list rows don't carry (goal, notes,
+  // phased flag) plus any production-phase dates, and prefill the form.
+  useEffect(() => {
+    if (!editItem) return;
+    let cancelled = false;
+    void (async () => {
+      const [detail, phases] = await Promise.all([
+        getPostingItemDetail(editItem.id),
+        getPostingItemPhases(editItem.id),
+      ]);
+      if (cancelled) return;
+      if (detail) {
+        setGoal(detail.goal ?? "");
+        setNotes(detail.notes ?? "");
+        if (detail.is_phased) setPhased(true);
+      }
+      if (phases.length > 0) {
+        setPhased(true);
+        setPhaseDates(() => {
+          const next: Partial<Record<ContentStatus, string>> = {};
+          for (const p of phases) {
+            if (p.scheduled_for)
+              next[p.stage] = toDateInputLocal(new Date(p.scheduled_for));
+          }
+          return next;
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editItem]);
 
   // Production schedule: single day (uses the date above) vs phases spread
   // across days. phaseDates holds a YYYY-MM-DD per stage (absent = skipped).
@@ -516,9 +586,54 @@ export function NewItemForm({
       .filter(Boolean)
       .join("\n");
     startTransition(async () => {
+      // Editing an existing post → update in place (status/pipeline stage is
+      // left untouched), reschedule if a moment was picked, save phases.
+      if (editItem) {
+        const res = await updatePostingItemDetail(editItem.id, {
+          topic: topic.trim(),
+          goal,
+          notes: finalNotes,
+          platform,
+          content_type: contentType,
+        });
+        if (!res.ok) {
+          setErr(res.error);
+          return;
+        }
+        if (scheduledFor) {
+          const r2 = await rescheduleItem(editItem.id, scheduledFor);
+          if (!r2.ok) {
+            setErr(r2.error);
+            return;
+          }
+        }
+        if (phased) {
+          const phases = (
+            Object.entries(phaseDates) as [ContentStatus, string][]
+          )
+            .filter(([, d]) => d)
+            .map(([stage, d]) => ({ stage, scheduled_for: phaseDateToIso(d) }));
+          const pres = await savePostingItemPhases(editItem.id, {
+            isPhased: true,
+            phases,
+          });
+          if (!pres.ok) {
+            setErr(pres.error);
+            return;
+          }
+        }
+        router.refresh();
+        onClose();
+        return;
+      }
+
       // Create the post once; reuse its id on retry so we never duplicate.
       let id = createdId.current;
       if (!id) {
+        if (!planId) {
+          setErr("No active plan to add this post to.");
+          return;
+        }
         const res = await createPostingItem({
           plan_id: planId,
           platform,
@@ -740,7 +855,7 @@ export function NewItemForm({
                       type="button"
                       disabled
                       title="AI Assistant — coming soon"
-                      className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] border border-ink-200 bg-white text-[15px] font-medium text-violet-400 cursor-not-allowed"
+                      className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[10px] border border-ink-200 bg-white text-[15px] font-medium text-ink-400 cursor-not-allowed"
                     >
                       <Sparkles className="size-4" strokeWidth={2} />
                       Use the AI Assistant
@@ -792,7 +907,7 @@ export function NewItemForm({
                   e.preventDefault();
                   attachFile(e.dataTransfer.files?.[0]);
                 }}
-                className="w-[170px] rounded-[12px] border-2 border-dashed border-ink-200 px-5 py-6 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50/30"
+                className="w-[170px] rounded-[12px] border-2 border-dashed border-ink-200 px-5 py-6 text-center transition-colors hover:border-rose-300 hover:bg-rose-50/40"
               >
                 <ImagePlus
                   className="mx-auto mb-2 size-6 text-ink-500"
@@ -800,7 +915,7 @@ export function NewItemForm({
                 />
                 <p className="text-[14px] leading-snug text-ink-600">
                   Drag &amp; drop or{" "}
-                  <span className="font-medium text-emerald-600">
+                  <span className="font-medium text-rose-600">
                     select a file
                   </span>
                 </p>
@@ -905,7 +1020,7 @@ export function NewItemForm({
               className={cn(
                 "inline-flex items-center gap-1.5 h-11 px-5 rounded-[12px] text-[14.5px] font-semibold transition-colors",
                 canSaveIdea
-                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  ? "bg-rose-600 text-white hover:bg-rose-700"
                   : "bg-ink-100 text-ink-400 cursor-not-allowed",
               )}
             >
@@ -935,7 +1050,7 @@ export function NewItemForm({
         {/* ── Top bar ─────────────────────────────────────────────────── */}
         <header className="flex items-center gap-2.5 px-5 sm:px-6 py-3.5 border-b border-ink-100">
           <h3 className="text-[19px] font-bold text-ink-900 tracking-[-0.01em] shrink-0">
-            {isIdea ? "Capture Idea" : "Create Post"}
+            {isEdit ? "Edit Post" : isIdea ? "Capture Idea" : "Create Post"}
           </h3>
           {/* content type — the reference's Tags-style pill */}
           <div className="relative shrink-0">
@@ -986,7 +1101,7 @@ export function NewItemForm({
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors",
               showPreview
-                ? "bg-emerald-100 text-emerald-700"
+                ? "bg-rose-100 text-rose-700"
                 : "text-ink-600 hover:bg-cream-100",
             )}
           >
@@ -1110,7 +1225,7 @@ export function NewItemForm({
                     e.preventDefault();
                     attachFile(e.dataTransfer.files?.[0]);
                   }}
-                  className="w-[210px] rounded-[12px] border-2 border-dashed border-ink-200 px-4 py-5 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50/30"
+                  className="w-[210px] rounded-[12px] border-2 border-dashed border-ink-200 px-4 py-5 text-center transition-colors hover:border-rose-300 hover:bg-rose-50/40"
                 >
                   <ImagePlus
                     className="mx-auto mb-1.5 size-5 text-ink-400"
@@ -1118,7 +1233,7 @@ export function NewItemForm({
                   />
                   <p className="text-[12.5px] leading-snug text-ink-500">
                     Drag &amp; drop or{" "}
-                    <span className="font-medium text-emerald-600">
+                    <span className="font-medium text-rose-600">
                       select a file
                     </span>
                   </p>
@@ -1344,7 +1459,7 @@ export function NewItemForm({
                 onClick={() => setAiGen((v) => !v)}
                 className={cn(
                   "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-                  aiGen ? "bg-emerald-500" : "bg-ink-200",
+                  aiGen ? "bg-rose-600" : "bg-ink-200",
                 )}
               >
                 <span
@@ -1529,16 +1644,18 @@ export function NewItemForm({
         {/* ── Footer ──────────────────────────────────────────────────── */}
         <footer className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-ink-100">
           <div className="flex items-center gap-4">
-            <label className="inline-flex items-center gap-2 text-[13.5px] font-medium text-ink-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={createAnother}
-                onChange={(e) => setCreateAnother(e.target.checked)}
-                className="size-4 rounded border-ink-300 accent-rose-600"
-              />
-              Create Another
-            </label>
-            {!isIdea && (
+            {!isEdit && (
+              <label className="inline-flex items-center gap-2 text-[13.5px] font-medium text-ink-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={createAnother}
+                  onChange={(e) => setCreateAnother(e.target.checked)}
+                  className="size-4 rounded border-ink-300 accent-rose-600"
+                />
+                Create Another
+              </label>
+            )}
+            {!isIdea && !isEdit && (
               <>
                 <span aria-hidden className="w-px h-4 bg-ink-200" />
                 <button
@@ -1599,13 +1716,13 @@ export function NewItemForm({
                       className={cn(
                         "flex w-full items-start gap-2.5 rounded-[12px] px-3.5 py-3 text-left transition-colors",
                         schedMode === "next"
-                          ? "bg-emerald-50"
+                          ? "bg-rose-50"
                           : "hover:bg-cream-100",
                       )}
                     >
                       <span className="mt-0.5 w-4 shrink-0">
                         {schedMode === "next" && (
-                          <Check className="size-4 text-emerald-700" strokeWidth={2.5} />
+                          <Check className="size-4 text-rose-700" strokeWidth={2.5} />
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
@@ -1613,7 +1730,7 @@ export function NewItemForm({
                           className={cn(
                             "block text-[14.5px] font-semibold",
                             schedMode === "next"
-                              ? "text-emerald-800"
+                              ? "text-rose-700"
                               : "text-ink-900",
                           )}
                         >
@@ -1623,7 +1740,7 @@ export function NewItemForm({
                           className={cn(
                             "block text-[12.5px]",
                             schedMode === "next"
-                              ? "text-emerald-700/80"
+                              ? "text-rose-700/80"
                               : "text-ink-500",
                           )}
                         >
@@ -1634,7 +1751,7 @@ export function NewItemForm({
                         className={cn(
                           "mt-0.5 size-4 shrink-0",
                           schedMode === "next"
-                            ? "text-emerald-700"
+                            ? "text-rose-700"
                             : "text-ink-300",
                         )}
                         fill={schedMode === "next" ? "currentColor" : "none"}
@@ -1853,7 +1970,7 @@ export function NewItemForm({
                           <button
                             type="button"
                             onClick={() => setSchedOpen(false)}
-                            className="h-9 px-4 rounded-[10px] bg-emerald-500 hover:bg-emerald-600 text-white text-[12.5px] font-semibold transition-colors"
+                            className="h-9 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors"
                           >
                             Done
                           </button>
@@ -1869,7 +1986,7 @@ export function NewItemForm({
               type="button"
               onClick={() => save(isIdea ? "idea" : "planned")}
               disabled={pending}
-              className="-ml-px inline-flex h-11 items-center gap-1.5 rounded-r-[12px] bg-emerald-500 px-5 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:bg-emerald-300"
+              className="-ml-px inline-flex h-11 items-center gap-1.5 rounded-r-[12px] bg-rose-600 px-5 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" strokeWidth={2} />
@@ -1878,7 +1995,7 @@ export function NewItemForm({
               ) : (
                 <CalendarCheck className="size-4" strokeWidth={2} />
               )}
-              {isIdea ? "Save Idea" : "Schedule Post"}
+              {isEdit ? "Save Changes" : isIdea ? "Save Idea" : "Schedule Post"}
             </button>
           </div>
         </footer>
