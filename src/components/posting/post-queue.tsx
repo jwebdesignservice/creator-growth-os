@@ -191,6 +191,9 @@ function QueueCard({
   const TypeIcon = TYPE_ICON[item.content_type ?? ""] ?? FileText;
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  // "Schedule Post" first shows a small confirm popover (reference) with the
+  // exact moment + timezone before the post enters the publish queue.
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Three-stage publish control: draft → "Que to publish" → queued (auto-
   // publishes at its scheduled time via the connected account) → "Publish
@@ -362,26 +365,108 @@ function QueueCard({
               )}
               Publish now
             </button>
+          ) : item.scheduled_for ? (
+            /* Stage 1 — "Schedule Post" with the reference's confirm popover */
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen((v) => !v)}
+                disabled={pending}
+                aria-haspopup="dialog"
+                aria-expanded={confirmOpen}
+                title="Queue this post — it publishes automatically at its scheduled time"
+                className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
+              >
+                {pending ? (
+                  <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+                ) : (
+                  <CalendarClock className="size-3.5" strokeWidth={2.2} />
+                )}
+                Schedule Post
+              </button>
+
+              {confirmOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setConfirmOpen(false)}
+                    className="fixed inset-0 z-40 cursor-default"
+                  />
+                  <div
+                    role="dialog"
+                    aria-label="Confirm schedule"
+                    className="absolute right-0 top-[calc(100%+8px)] z-50 w-[290px] rounded-[16px] border border-ink-100 bg-white shadow-card"
+                  >
+                    <div className="px-4 pb-4 pt-4">
+                      <p className="text-[14px] font-semibold text-ink-900">
+                        Your post will be published on:
+                      </p>
+                      <div className="mt-3 flex items-start gap-2.5">
+                        <CalendarClock
+                          className="mt-0.5 size-4 shrink-0 text-ink-700"
+                          strokeWidth={2}
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-[15px] font-bold text-ink-900">
+                            {new Date(item.scheduled_for).toLocaleDateString(
+                              "en-US",
+                              { month: "long", day: "numeric" },
+                            )}{" "}
+                            at{" "}
+                            {new Date(item.scheduled_for).toLocaleTimeString(
+                              "en-US",
+                              { hour: "numeric", minute: "2-digit" },
+                            )}
+                          </span>
+                          <span className="block text-[12.5px] text-ink-500">
+                            {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 border-t border-ink-100 px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmOpen(false);
+                          onEdit();
+                        }}
+                        className="inline-flex h-9 items-center rounded-[10px] border border-ink-200 bg-white px-3.5 text-[13px] font-semibold text-ink-700 transition-colors hover:bg-cream-100"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmOpen(false);
+                          queueForPublish();
+                        }}
+                        disabled={pending}
+                        className="inline-flex h-9 items-center rounded-[10px] bg-rose-600 px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-rose-700 disabled:bg-rose-300"
+                      >
+                        Schedule Post
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           ) : (
             <button
               type="button"
-              onClick={item.scheduled_for ? queueForPublish : publishNow}
+              onClick={publishNow}
               disabled={pending}
-              title={
-                item.scheduled_for
-                  ? "Queue this post — it publishes automatically at its scheduled time"
-                  : "No schedule set — publishes right away"
-              }
+              title="No schedule set — publishes right away"
               className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
             >
               {pending ? (
                 <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
-              ) : item.scheduled_for ? (
-                <CalendarClock className="size-3.5" strokeWidth={2.2} />
               ) : (
                 <Send className="size-3.5" strokeWidth={2.2} />
               )}
-              {item.scheduled_for ? "Que to publish" : "Publish now"}
+              Publish now
             </button>
           )}
           <button
