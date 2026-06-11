@@ -8,7 +8,6 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
@@ -374,26 +373,20 @@ export function ContentCalendar({
             <ChevronRight className="size-4" strokeWidth={2} />
           </button>
         </div>
-        <Link
-          href="/posting"
-          className="text-[12.5px] font-medium text-rose-600 hover:text-rose-700 whitespace-nowrap"
-        >
-          Back to My Plans
-        </Link>
         {addPostSlot}
       </div>
     </WorkspaceHeader>
     <div className="flex flex-col min-h-[60vh] lg:min-h-0 lg:flex-1 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
       {viewMode === "week" && (
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 lg:p-6">
+        <div className="flex flex-1 min-h-0 flex-col overflow-y-auto p-3 sm:p-4 lg:p-6">
           <div className="mb-3 text-[15px] font-semibold text-ink-900">
             {weekLabel}
           </div>
           {/* Reference-style week grid — the month system at one-week zoom:
               "Sunday 7 … Saturday 13" header with today underlined, muted past
               columns, time-band rows, and the same chip → peek → drag system. */}
-          <div className="overflow-x-auto">
-            <div className="min-w-[840px] overflow-hidden rounded-[14px] border border-ink-100 bg-white">
+          <div className="flex flex-1 min-h-0 overflow-x-auto">
+            <div className="flex min-h-full w-full min-w-[840px] flex-col overflow-hidden rounded-[14px] border border-ink-100 bg-white">
               {/* Header — weekday + day number; today gets the brand underline */}
               <div className="grid grid-cols-7 border-b border-ink-100">
                 {days.map((d) => {
@@ -434,7 +427,7 @@ export function ContentCalendar({
               </div>
 
               {/* Day columns — time bands hold the chips by hour */}
-              <div className="grid grid-cols-7">
+              <div className="grid grid-cols-7 grid-rows-1 flex-1 min-h-0">
                 {days.map((d, di) => {
                   const key = isoDateOf(d);
                   const isToday = key === today;
@@ -480,7 +473,7 @@ export function ContentCalendar({
                           <div
                             key={bi}
                             className={cn(
-                              "flex min-h-[108px] flex-col gap-1.5 p-1.5",
+                              "flex min-h-[108px] flex-1 flex-col gap-1.5 p-1.5",
                               bi > 0 && "border-t border-ink-100",
                             )}
                           >
@@ -512,12 +505,21 @@ export function ContentCalendar({
                                   }
                                   title={item.topic ?? "Untitled post"}
                                   className={cn(
-                                    "flex w-full cursor-grab flex-col gap-1 rounded-[10px] border border-ink-100 bg-white p-1.5 text-left shadow-[0_1px_2px_rgba(26,24,22,0.06)] transition-all active:cursor-grabbing hover:border-ink-200 hover:shadow-[0_3px_8px_-3px_rgba(26,24,22,0.3)]",
+                                    "relative flex w-full cursor-grab flex-col gap-1 rounded-[10px] border border-ink-100 bg-white p-1.5 text-left shadow-[0_1px_2px_rgba(26,24,22,0.06)] transition-all active:cursor-grabbing hover:border-ink-200 hover:shadow-[0_3px_8px_-3px_rgba(26,24,22,0.3)]",
                                     draggingId === item.id && "opacity-40",
                                     saving &&
-                                      "pointer-events-none opacity-60",
+                                      "anim-move-ping pointer-events-none border-rose-300 opacity-80",
                                   )}
                                 >
+                                  {saving && (
+                                    <span className="absolute -right-1.5 -top-1.5 z-10 inline-flex size-5 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-rose-200">
+                                      <Loader2
+                                        className="size-3 animate-spin text-rose-600"
+                                        strokeWidth={2.5}
+                                        aria-label="Moving post"
+                                      />
+                                    </span>
+                                  )}
                                   <span className="flex items-center gap-1.5">
                                     <span
                                       className={cn(
@@ -542,12 +544,21 @@ export function ContentCalendar({
                                     >
                                       {item.topic ?? "Untitled post"}
                                     </span>
-                                    <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
-                                      <ImagePlus
-                                        className="size-3.5 text-ink-300"
-                                        strokeWidth={1.8}
+                                    {item.media_url ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={item.media_url}
+                                        alt=""
+                                        className="size-9 shrink-0 rounded-[6px] object-cover ring-1 ring-inset ring-ink-100"
                                       />
-                                    </span>
+                                    ) : (
+                                      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
+                                        <ImagePlus
+                                          className="size-3.5 text-ink-300"
+                                          strokeWidth={1.8}
+                                        />
+                                      </span>
+                                    )}
                                   </span>
                                 </button>
                               );
@@ -703,12 +714,21 @@ export function ContentCalendar({
                             <span className="min-w-0 flex-1 truncate text-left text-[11.5px] font-semibold tabular-nums text-ink-800">
                               {fmtChipTime(item.scheduled_for!)}
                             </span>
-                            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
-                              <ImagePlus
-                                className="size-3 text-ink-300"
-                                strokeWidth={1.8}
+                            {item.media_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.media_url}
+                                alt=""
+                                className="size-6 shrink-0 rounded-[6px] object-cover ring-1 ring-inset ring-ink-100"
                               />
-                            </span>
+                            ) : (
+                              <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
+                                <ImagePlus
+                                  className="size-3 text-ink-300"
+                                  strokeWidth={1.8}
+                                />
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -919,12 +939,23 @@ function PostPeek({
               </p>
             )}
           </div>
-          <span className="inline-flex h-[118px] w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[12px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
-            <ImagePlus className="size-5 text-ink-300" strokeWidth={1.8} />
-            <span className="text-[10px] font-medium text-ink-400">
-              No media
+          {item.media_url ? (
+            <span className="relative h-[118px] w-[100px] shrink-0 overflow-hidden rounded-[12px] ring-1 ring-inset ring-ink-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.media_url}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
             </span>
-          </span>
+          ) : (
+            <span className="inline-flex h-[118px] w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[12px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
+              <ImagePlus className="size-5 text-ink-300" strokeWidth={1.8} />
+              <span className="text-[10px] font-medium text-ink-400">
+                No media
+              </span>
+            </span>
+          )}
         </div>
 
         {/* footer — status · Mark Posted / edit / ⋯ */}

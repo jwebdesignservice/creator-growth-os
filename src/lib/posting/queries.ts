@@ -50,6 +50,8 @@ export type PostingItem = {
   topic: string | null;
   /** Caption / description (migration 0042) — null pre-migration. */
   notes?: string | null;
+  /** Attached media public URL (migration 0057) — null pre-migration. */
+  media_url?: string | null;
   status: ContentStatus;
 };
 
@@ -187,11 +189,17 @@ export async function getPlannedItems(
     return q;
   };
 
-  // `notes` (the caption, migration 0042) feeds the queue cards' description;
-  // retry without it pre-migration, same fail-soft as the detail popup.
+  // `notes` (caption, 0042) and `media_url` (attachment, 0057) feed the queue
+  // cards; degrade column-by-column pre-migration, same fail-soft as the
+  // detail popup (42703 = undefined_column).
   let res = await buildQuery(
-    "id, scheduled_for, platform, content_type, topic, notes, status",
+    "id, scheduled_for, platform, content_type, topic, notes, media_url, status",
   );
+  if (res.error?.code === "42703") {
+    res = await buildQuery(
+      "id, scheduled_for, platform, content_type, topic, notes, status",
+    );
+  }
   if (res.error?.code === "42703") {
     res = await buildQuery(
       "id, scheduled_for, platform, content_type, topic, status",

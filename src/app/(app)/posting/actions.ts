@@ -119,6 +119,8 @@ export async function createPostingItem(input: {
   topic?: string;
   goal?: string;
   notes?: string;
+  /** Public URL of the uploaded attachment (migration 0057). */
+  media_url?: string;
   status?: ContentStatus;
 }): Promise<Result> {
   const supabase = await createClient();
@@ -137,18 +139,25 @@ export async function createPostingItem(input: {
     status: input.status ?? "planned",
   };
 
-  // goal + notes arrive with migration 0042 — if it hasn't been applied yet
-  // (42703 = undefined_column), retry without them so the form still saves.
-  // Return the new row id so the caller can attach phases (spread schedule).
+  // goal + notes arrive with migration 0042, media_url with 0057 — if a
+  // column is missing (42703 = undefined_column), retry without it so the
+  // form still saves. Return the new row id so the caller can attach phases.
+  const extras = {
+    goal: input.goal?.trim() || null,
+    notes: input.notes?.trim() || null,
+  };
   let { data, error } = await supabase
     .from("posting_plan_items")
-    .insert({
-      ...base,
-      goal: input.goal?.trim() || null,
-      notes: input.notes?.trim() || null,
-    })
+    .insert({ ...base, ...extras, media_url: input.media_url || null })
     .select("id")
     .single();
+  if (error && error.code === "42703") {
+    ({ data, error } = await supabase
+      .from("posting_plan_items")
+      .insert({ ...base, ...extras })
+      .select("id")
+      .single());
+  }
   if (error && error.code === "42703") {
     ({ data, error } = await supabase
       .from("posting_plan_items")

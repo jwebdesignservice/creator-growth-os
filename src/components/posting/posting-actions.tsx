@@ -473,6 +473,38 @@ export function NewItemForm({
     });
   }
 
+  // Upload the attached file to the shared public `community-media` bucket
+  // (same bucket + RLS as avatars/banners) and return its public URL. Sets the
+  // form error and returns null on failure.
+  async function uploadMedia(file: File): Promise<string | null> {
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setErr("You're not signed in.");
+      return null;
+    }
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    const rand = Math.random().toString(36).slice(2, 8);
+    const path = `${user.id}/post-media-${Date.now()}-${rand}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("community-media")
+      .upload(path, file, { cacheControl: "3600", upsert: true });
+    if (upErr) {
+      setErr(
+        /bucket not found/i.test(upErr.message)
+          ? "The 'community-media' storage bucket is missing."
+          : upErr.message,
+      );
+      return null;
+    }
+    const { data } = supabase.storage
+      .from("community-media")
+      .getPublicUrl(path);
+    return data.publicUrl;
+  }
 
   // Remember the created row id so a retry re-uses it instead of inserting a
   // duplicate post.
@@ -566,8 +598,19 @@ export function NewItemForm({
       .filter(Boolean)
       .join("\n");
     startTransition(async () => {
+      // Resolve the media URL to persist: upload a freshly attached file, keep
+      // an already-persisted URL, or null when there's no media (removed).
+      let mediaUrl: string | null = null;
+      if (media?.file) {
+        const url = await uploadMedia(media.file);
+        if (!url) return; // uploadMedia set the error
+        mediaUrl = url;
+      } else if (media) {
+        mediaUrl = media.url;
+      }
+
       // Editing an existing post → update in place (status/pipeline stage is
-      // left untouched), reschedule if a moment was picked, save phases.
+      // left untouched), reschedule if a moment was picked.
       if (editItem) {
         const res = await updatePostingItemDetail(editItem.id, {
           topic: topic.trim(),
@@ -575,6 +618,7 @@ export function NewItemForm({
           notes: finalNotes,
           platform,
           content_type: contentType,
+          media_url: mediaUrl,
         });
         if (!res.ok) {
           setErr(res.error);
@@ -606,6 +650,7 @@ export function NewItemForm({
           topic: topic.trim() || undefined,
           goal: goal || undefined,
           notes: finalNotes || undefined,
+          media_url: mediaUrl ?? undefined,
           scheduled_for: scheduledFor,
           status,
         });
@@ -626,6 +671,8 @@ export function NewItemForm({
         setNotes("");
         setGoal("");
         setAiGen(false);
+        if (media?.file) URL.revokeObjectURL(media.url);
+        setMedia(null);
         return;
       }
       onClose();

@@ -14,6 +14,8 @@ export type PostingItemDetail = {
   scheduled_for: string | null;
   platform: string | null;
   content_type: string | null;
+  /** Attached media public URL (migration 0057) — null pre-migration. */
+  media_url: string | null;
   /** Spread across pipeline phases (true) vs a single day (false). */
   is_phased: boolean;
 };
@@ -42,11 +44,22 @@ export async function getPostingItemDetail(
   let res = await supabase
     .from("posting_plan_items")
     .select(
-      "topic, goal, notes, status, scheduled_for, platform, content_type, is_phased",
+      "topic, goal, notes, status, scheduled_for, platform, content_type, media_url, is_phased",
     )
     .eq("id", itemId)
     .eq("user_id", user.id)
     .maybeSingle();
+  if (res.error?.code === "42703") {
+    // media_url (0057) not applied yet — retry without it.
+    res = await supabase
+      .from("posting_plan_items")
+      .select(
+        "topic, goal, notes, status, scheduled_for, platform, content_type, is_phased",
+      )
+      .eq("id", itemId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+  }
   if (res.error?.code === "42703") {
     // goal/notes (0042) or is_phased (0055) columns not applied yet — retry
     // with the core columns so the popup still opens.
@@ -68,6 +81,7 @@ export async function getPostingItemDetail(
     scheduled_for: (d.scheduled_for as string | null) ?? null,
     platform: (d.platform as string | null) ?? null,
     content_type: (d.content_type as string | null) ?? null,
+    media_url: (d.media_url as string | null) ?? null,
     is_phased: (d.is_phased as boolean | null) ?? false,
   };
 }
@@ -203,6 +217,8 @@ export async function updatePostingItemDetail(
     status?: ContentStatus;
     platform?: PlatformKey;
     content_type?: string;
+    /** Public URL of the attachment; null clears it (migration 0057). */
+    media_url?: string | null;
   },
 ): Promise<Result> {
   const supabase = await createClient();
@@ -219,6 +235,7 @@ export async function updatePostingItemDetail(
   if (input.platform !== undefined) full.platform = input.platform;
   if (input.content_type !== undefined)
     full.content_type = input.content_type.trim() || null;
+  if (input.media_url !== undefined) full.media_url = input.media_url || null;
   if (Object.keys(full).length === 0) return { ok: true };
 
   let { error } = await supabase

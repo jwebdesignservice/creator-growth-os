@@ -260,11 +260,22 @@ function QueueCard({
               </p>
             )}
           </div>
-          {/* media placeholder — where the post's attachment will live */}
-          <span className="inline-flex h-[124px] w-[104px] shrink-0 flex-col items-center justify-center gap-1.5 self-start rounded-[12px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
-            <ImagePlus className="size-5 text-ink-300" strokeWidth={1.8} />
-            <span className="text-[10px] font-medium text-ink-400">No media</span>
-          </span>
+          {/* media — the post's attachment, or a placeholder when none */}
+          {item.media_url ? (
+            <span className="relative h-[124px] w-[104px] shrink-0 self-start overflow-hidden rounded-[12px] ring-1 ring-inset ring-ink-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.media_url}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </span>
+          ) : (
+            <span className="inline-flex h-[124px] w-[104px] shrink-0 flex-col items-center justify-center gap-1.5 self-start rounded-[12px] bg-gradient-to-br from-cream-100 to-cream-200 ring-1 ring-inset ring-ink-100">
+              <ImagePlus className="size-5 text-ink-300" strokeWidth={1.8} />
+              <span className="text-[10px] font-medium text-ink-400">No media</span>
+            </span>
+          )}
         </div>
       </div>
 
