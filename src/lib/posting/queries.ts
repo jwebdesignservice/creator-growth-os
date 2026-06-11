@@ -53,6 +53,10 @@ export type PostingItem = {
   /** Attached media public URL (migration 0057) — null pre-migration. */
   media_url?: string | null;
   status: ContentStatus;
+  /** Publish lifecycle (migration 0060) — absent pre-migration. */
+  publish_state?: "draft" | "queued" | "publishing" | "published" | "failed";
+  published_url?: string | null;
+  publish_error?: string | null;
 };
 
 export type WeeklyStats = {
@@ -189,12 +193,18 @@ export async function getPlannedItems(
     return q;
   };
 
-  // `notes` (caption, 0042) and `media_url` (attachment, 0057) feed the queue
-  // cards; degrade column-by-column pre-migration, same fail-soft as the
-  // detail popup (42703 = undefined_column).
+  // `notes` (caption, 0042), `media_url` (attachment, 0057) and the publish
+  // lifecycle columns (0060) feed the queue cards; degrade column-by-column
+  // pre-migration, same fail-soft as the detail popup (42703 =
+  // undefined_column).
   let res = await buildQuery(
-    "id, scheduled_for, platform, content_type, topic, notes, media_url, status",
+    "id, scheduled_for, platform, content_type, topic, notes, media_url, status, publish_state, published_url, publish_error",
   );
+  if (res.error?.code === "42703") {
+    res = await buildQuery(
+      "id, scheduled_for, platform, content_type, topic, notes, media_url, status",
+    );
+  }
   if (res.error?.code === "42703") {
     res = await buildQuery(
       "id, scheduled_for, platform, content_type, topic, notes, status",

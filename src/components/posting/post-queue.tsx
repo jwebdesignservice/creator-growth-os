@@ -11,13 +11,19 @@ import {
   Images,
   ImagePlus,
   FileText,
+  CalendarClock,
+  ExternalLink,
+  Check,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { PostingItem } from "@/lib/posting/queries";
 import { platformMeta } from "@/lib/posting/platform-meta";
 import { contentTypeLabel } from "@/lib/posting/content-type-accent";
-import { updateItemStatus } from "@/app/(app)/posting/actions";
+import {
+  queueItemForPublish,
+  publishItemNow,
+} from "@/app/(app)/posting/publish-actions";
 import { StatusPill } from "./status-pill";
 import { ItemActionsMenu } from "./item-actions-menu";
 import { NewItemForm } from "./posting-actions";
@@ -40,8 +46,9 @@ const TYPE_ICON: Record<string, LucideIcon> = {
  * · "Friday, Jun 12"), each with its scheduled time in the left rail. A post
  * renders as a rich card: platform avatar with a content-type corner badge,
  * the interactive status pill, the topic as the card's main text, and a
- * footer pairing the full date·time with quick actions — Mark Posted (the
- * pipeline's "publish" moment), edit, and the ⋯ menu. Every day group ends
+ * footer pairing the full date·time with the three-stage publish control
+ * (Que to publish → Publish now → View post), edit, and the ⋯ menu. Every
+ * day group ends
  * in a "+ New" slot at a suggested time that opens the composer pre-filled
  * with that day. The next 7 days always render, so the queue reads as a
  * schedule you fill rather than a bare list.
@@ -182,12 +189,35 @@ function QueueCard({
 }) {
   const pm = item.platform ? platformMeta(item.platform) : null;
   const TypeIcon = TYPE_ICON[item.content_type ?? ""] ?? FileText;
-  const done = item.status === "posted" || item.status === "reviewed";
   const [pending, startTransition] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
 
-  const markPosted = () =>
+  // Three-stage publish control: draft → "Que to publish" → queued (auto-
+  // publishes at its scheduled time via the connected account) → "Publish
+  // now" force-publishes → published → "View post". Legacy posts marked
+  // posted/reviewed before the lifecycle existed count as published.
+  const publishState = item.publish_state ?? "draft";
+  const isPublished =
+    publishState === "published" ||
+    item.status === "posted" ||
+    item.status === "reviewed";
+  const isQueued =
+    !isPublished &&
+    (publishState === "queued" || publishState === "publishing");
+  const failError = publishState === "failed" ? item.publish_error : null;
+
+  const queueForPublish = () =>
     startTransition(async () => {
-      await updateItemStatus(item.id, "posted");
+      setErr(null);
+      const res = await queueItemForPublish(item.id);
+      if (!res.ok) setErr(res.error);
+    });
+
+  const publishNow = () =>
+    startTransition(async () => {
+      setErr(null);
+      const res = await publishItemNow(item.id);
+      if (!res.ok) setErr(res.error);
     });
 
   return (
@@ -279,19 +309,50 @@ function QueueCard({
         </div>
       </div>
 
-      {/* Footer — full date·time · quick actions */}
+      {/* Footer — full date·time · the three-stage publish control */}
       <div className="flex items-center justify-between gap-3 border-t border-ink-100 px-4 py-2.5">
-        <span className="min-w-0 truncate text-[12px] font-medium text-ink-400">
-          {item.scheduled_for
-            ? fmtFull(new Date(item.scheduled_for))
-            : "Not scheduled yet"}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="min-w-0 truncate text-[12px] font-medium text-ink-400">
+            {item.scheduled_for
+              ? fmtFull(new Date(item.scheduled_for))
+              : "Not scheduled yet"}
+          </span>
+          {isQueued && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.04em] text-amber-700 ring-1 ring-amber-200"
+              title="Queued — publishes automatically at the scheduled time via your connected account"
+            >
+              <CalendarClock className="size-3" strokeWidth={2.2} />
+              Queued
+            </span>
+          )}
+          {isPublished && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.04em] text-emerald-700 ring-1 ring-emerald-200">
+              <Check className="size-3" strokeWidth={2.5} />
+              Published
+            </span>
+          )}
         </span>
         <div className="flex shrink-0 items-center gap-1.5">
-          {!done && (
+          {isPublished ? (
+            item.published_url ? (
+              <a
+                href={item.published_url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex h-8 items-center gap-1.5 rounded-[9px] border border-ink-200 bg-white px-3 text-[12.5px] font-semibold text-ink-700 transition-colors hover:bg-cream-100 hover:text-ink-900"
+              >
+                <ExternalLink className="size-3.5" strokeWidth={2.2} />
+                View post
+              </a>
+            ) : null
+          ) : isQueued ? (
             <button
               type="button"
-              onClick={markPosted}
+              onClick={publishNow}
               disabled={pending}
+              title="Skip the queue and publish right away"
               className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
             >
               {pending ? (
@@ -299,7 +360,28 @@ function QueueCard({
               ) : (
                 <Send className="size-3.5" strokeWidth={2.2} />
               )}
-              Mark Posted
+              Publish now
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={item.scheduled_for ? queueForPublish : publishNow}
+              disabled={pending}
+              title={
+                item.scheduled_for
+                  ? "Queue this post — it publishes automatically at its scheduled time"
+                  : "No schedule set — publishes right away"
+              }
+              className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
+            >
+              {pending ? (
+                <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+              ) : item.scheduled_for ? (
+                <CalendarClock className="size-3.5" strokeWidth={2.2} />
+              ) : (
+                <Send className="size-3.5" strokeWidth={2.2} />
+              )}
+              {item.scheduled_for ? "Que to publish" : "Publish now"}
             </button>
           )}
           <button
@@ -318,6 +400,13 @@ function QueueCard({
           />
         </div>
       </div>
+
+      {/* publish feedback — connection prompts, queue errors, failed runs */}
+      {(err || failError) && (
+        <div className="border-t border-rose-100 bg-rose-50/70 px-4 py-2 text-[12px] leading-snug text-rose-700">
+          {err ?? failError}
+        </div>
+      )}
     </div>
   );
 }

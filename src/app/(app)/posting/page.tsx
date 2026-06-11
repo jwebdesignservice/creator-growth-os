@@ -18,6 +18,7 @@ import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
 import { InsightsDashboard } from "@/components/posting/insights-dashboard";
 import { getActivePlan, getPlannedItems } from "@/lib/posting/queries";
+import { processPublishQueue } from "./publish-actions";
 import {
   WorkspaceShell,
   WorkspaceHeader,
@@ -79,6 +80,13 @@ export default async function PostingPage({
             : "my_plans";
 
   const activePlan = await getActivePlan();
+
+  // Publish any queued posts whose moment has passed BEFORE fetching, so the
+  // queue/calendar render the post-publish state. (Page-load processing is a
+  // lightweight stand-in for a cron; fail-soft pre-migration 0060.)
+  if (active === "posts" || active === "calendar") {
+    await processPublishQueue();
+  }
 
   // Calendar needs the full week; My Plans needs it too (the platform cards
   // count posts per platform) while its table previews fewer. Insights uses
