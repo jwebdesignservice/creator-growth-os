@@ -7,9 +7,7 @@ import {
   Clock,
   Check,
   ChevronLeft,
-  BadgeCheck,
   BookOpen,
-  UserRound,
   CheckSquare,
   NotebookPen,
   Sparkles,
@@ -31,7 +29,6 @@ import { CourseContentRail } from "@/components/programs/course-content-rail";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { ProgramVideoTasks } from "./program-video-tasks";
 import { AssignOnMount } from "@/components/tasks/assign-on-mount";
-import { Avatar } from "@/components/app-shell/avatar";
 import {
   getOnboardingGate,
   isGateActive,
@@ -342,6 +339,18 @@ export default async function ProgramLessonPage({
                     icon: <BookOpen className="size-3.5" strokeWidth={2} />,
                     content: <AboutLessonCard />,
                   },
+                  {
+                    key: "notes",
+                    label: "Notes",
+                    icon: <NotebookPen className="size-3.5" strokeWidth={2} />,
+                    content: (
+                      <LessonNotes
+                        notes={lessonNotes}
+                        lessonSlug={lessonSlug}
+                        lessonTitle={title}
+                      />
+                    ),
+                  },
                   ...(learningPoints.length > 0
                     ? [
                         {
@@ -370,24 +379,6 @@ export default async function ProgramLessonPage({
                         },
                       ]
                     : []),
-                  {
-                    key: "notes",
-                    label: "Notes",
-                    icon: <NotebookPen className="size-3.5" strokeWidth={2} />,
-                    content: (
-                      <LessonNotes
-                        notes={lessonNotes}
-                        lessonSlug={lessonSlug}
-                        lessonTitle={title}
-                      />
-                    ),
-                  },
-                  {
-                    key: "author",
-                    label: "Author",
-                    icon: <UserRound className="size-3.5" strokeWidth={2} />,
-                    content: <AuthorCard />,
-                  },
                 ]}
               />
             </div>
@@ -459,30 +450,3 @@ function LearnChecklistCard({
   );
 }
 
-/* ─── Author / coach card (right rail) ─────────────────────────────────── */
-
-function AuthorCard() {
-  return (
-    <section>
-      <h3 className="text-[15px] font-bold text-ink-900 mb-3">Your Coach</h3>
-      <div className="flex items-center gap-3">
-        <Avatar name="Sophie Carter" size={44} />
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[14px] font-semibold text-ink-900">
-              Sophie Carter
-            </span>
-            <BadgeCheck className="size-4 text-rose-500" strokeWidth={2} />
-          </div>
-          <div className="text-[12px] text-ink-500">
-            Growth &amp; Brand Strategist
-          </div>
-        </div>
-      </div>
-      <p className="mt-3 text-[12.5px] leading-relaxed text-ink-600">
-        Sophie helps creators turn niche audiences into engaged communities —
-        positioning, content systems and sustainable growth.
-      </p>
-    </section>
-  );
-}

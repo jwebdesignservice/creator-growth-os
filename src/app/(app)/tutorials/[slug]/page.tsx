@@ -6,11 +6,14 @@ import {
   BarChart3,
   CheckCircle2,
   Play,
-  PlayCircle,
   Lock,
   ChevronLeft,
+  CalendarDays,
+  Files,
+  NotebookPen,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
+import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/server";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
@@ -23,15 +26,7 @@ import { getLessonResources } from "@/app/admin/tutorials/[id]/resources-actions
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { LessonContent } from "@/components/tutorials/lesson-tabs";
-import {
-  LESSON_TABS,
-  type LessonTabKey,
-} from "@/components/tutorials/lesson-tab-defs";
-import {
-  WorkspaceShell,
-  WorkspaceHeader,
-  type WorkspaceTab,
-} from "@/components/app-shell/workspace-shell";
+import { type LessonTabKey } from "@/components/tutorials/lesson-tab-defs";
 import {
   getOnboardingGate,
   isGateActive,
@@ -152,179 +147,197 @@ export default async function TutorialDetailPage({
 
   const proLocked = lesson.planAccess === "pro" && ctx.plan !== "pro";
 
-  const active: LessonTabKey = LESSON_TABS.some((t) => t.key === tab)
-    ? (tab as LessonTabKey)
-    : "overview";
-  // Resources / Notes get live count pills so the learner can tell at a
-  // glance whether a section has anything in it before clicking.
-  const tabBadge: Partial<Record<LessonTabKey, number>> = {
-    resources: resources.length,
-    notes: notes.length,
-  };
-  const lessonTabs: WorkspaceTab[] = LESSON_TABS.map((t) => ({
-    key: t.key,
-    label: t.label,
-    icon: t.icon,
-    badge: tabBadge[t.key],
+  // Tab set mirrors the program page's pill bar: Overview + Notes always;
+  // Lesson Path / Resources only when the lesson actually has them. Order
+  // puts Notes second (matching the program page).
+  const lessonTabs = [
+    { key: "overview" as const, label: "Overview", icon: BookOpen },
+    { key: "notes" as const, label: "Notes", icon: NotebookPen },
+    ...(pathSteps.length > 0
+      ? [{ key: "path" as const, label: "Lesson Path", icon: CalendarDays }]
+      : []),
+    ...(resources.length > 0
+      ? [{ key: "resources" as const, label: "Resources", icon: Files }]
+      : []),
+  ].map((t) => ({
+    ...t,
     href:
       t.key === "overview"
         ? `/tutorials/${slug}`
         : `/tutorials/${slug}?tab=${t.key}`,
   }));
+  const active: LessonTabKey = lessonTabs.some((t) => t.key === tab)
+    ? (tab as LessonTabKey)
+    : "overview";
 
   const upNext = authoredNext ?? lesson.next ?? null;
   const durationLabel = humanDuration(lesson.durationSeconds, lesson.duration);
 
-  return (
-    <PageShell>
-      <WorkspaceShell
-        title="Tutorial"
-        icon={PlayCircle}
-        tabs={lessonTabs}
-        activeKey={active}
-      >
-        {/* Back + breadcrumb — leveled header band (lines up with rail title) */}
-        <WorkspaceHeader
-          left={
-            <div className="flex items-center gap-3 min-w-0">
-              <Link
-                href="/tutorials"
-                className="group inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-ink-200 bg-white text-[12.5px] font-medium text-ink-700 transition-all duration-150 hover:bg-cream-100 hover:border-ink-300 hover:text-ink-900 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 shrink-0"
-              >
-                <ChevronLeft
-                  className="size-3.5 transition-transform duration-150 group-hover:-translate-x-0.5"
-                  strokeWidth={2}
-                />
-                Back
-              </Link>
-              <span aria-hidden className="w-px h-4 bg-ink-200 shrink-0" />
-              <nav className="flex items-center gap-2 text-[13px] min-w-0">
-                <Link
-                  href="/tutorials"
-                  className="text-rose-600 hover:text-rose-700 font-medium shrink-0"
-                >
-                  Tutorials
-                </Link>
-                <span className="text-ink-400 shrink-0">/</span>
-                {lesson.programSlug && lesson.programTitle ? (
-                  <>
-                    <Link
-                      href={`/programs/${lesson.programSlug}`}
-                      className="text-rose-600 hover:text-rose-700 font-medium shrink-0 max-w-[160px] truncate"
-                    >
-                      {lesson.programTitle}
-                    </Link>
-                    <span className="text-ink-400 shrink-0">/</span>
-                  </>
-                ) : null}
-                <span className="text-ink-700 truncate">{lesson.title}</span>
-              </nav>
-            </div>
-          }
-        />
-
-        <div className="space-y-5 pt-5 lg:pt-6 pb-6">
-          {/* Lesson header — context eyebrow, title, quiet meta line */}
-          <header className="max-w-3xl">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-rose-600 mb-1.5">
-              {lesson.programTitle ?? "Tutorial Library"}
-              {lesson.moduleNumber ? ` · Module ${lesson.moduleNumber}` : ""}
-            </div>
-            <h2 className="text-[clamp(1.4rem,2.2vw,1.75rem)] font-bold tracking-[-0.015em] text-ink-900 leading-[1.15]">
-              {lesson.title}
-            </h2>
-            <div className="mt-2.5 flex items-center gap-x-4 gap-y-1.5 flex-wrap text-[12.5px] text-ink-500">
-              <span className="inline-flex items-center gap-1.5">
-                <Play className="size-3.5 text-rose-500" fill="currentColor" strokeWidth={0} aria-hidden />
-                Video lesson
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <BarChart3 className="size-3.5 text-ink-400" strokeWidth={2} aria-hidden />
-                {lesson.difficulty}
-              </span>
-              <span className="inline-flex items-center gap-1.5 tabular-nums">
-                <Clock className="size-3.5 text-ink-400" strokeWidth={2} aria-hidden />
-                {durationLabel}
-              </span>
-              {lesson.moduleNumber ? (
-                <span className="inline-flex items-center gap-1.5 tabular-nums">
-                  <BookOpen className="size-3.5 text-ink-400" strokeWidth={2} aria-hidden />
-                  {lesson.moduleLessons.length} lessons in module
+  /* ── Header — back · title + source chip + meta line, lesson actions
+     anchored right (same anatomy as the program lesson page). Rendered in
+     the left column so the right panel's divider can run full height. ──── */
+  const pageHeader = (
+        <header className="flex items-start justify-between gap-x-6 gap-y-4 flex-wrap">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <Link
+              href="/tutorials"
+              aria-label="Back to Tutorials"
+              className="size-9 rounded-full border border-ink-200 bg-white inline-flex items-center justify-center text-ink-600 hover:bg-cream-100 hover:text-ink-900 transition-colors shrink-0"
+            >
+              <ChevronLeft className="size-4" strokeWidth={2} />
+            </Link>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-[20px] sm:text-[22px] font-bold tracking-[-0.01em] text-ink-900 leading-tight">
+                  {lesson.title}
+                </h1>
+                <span className="inline-flex items-center rounded-[8px] border border-ink-200 bg-white px-2 py-1 text-[11px] font-semibold text-ink-600 leading-none shrink-0">
+                  {lesson.programTitle
+                    ? lesson.moduleNumber
+                      ? `${lesson.programTitle} · Module ${lesson.moduleNumber}`
+                      : lesson.programTitle
+                    : "Tutorial Library"}
                 </span>
-              ) : null}
-              {lesson.completed && (
-                <span className="chip chip-success anim-pop-in inline-flex items-center gap-1">
-                  <CheckCircle2 className="size-3" strokeWidth={2.5} aria-hidden />
-                  Completed
-                </span>
-              )}
-            </div>
-          </header>
-
-          {/* Pro lock notice */}
-          {proLocked && (
-            <div className="rounded-[16px] bg-rose-50 border border-rose-200 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-              <span className="size-12 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-                <Lock className="size-5" strokeWidth={2} />
-              </span>
-              <div className="flex-1">
-                <div className="text-[14px] font-semibold text-ink-900">
-                  This lesson is Pro only
-                </div>
-                <p className="text-[12.5px] text-ink-700">
-                  Upgrade to unlock this lesson and the rest of the bonus track.
-                </p>
+                {lesson.completed && (
+                  <span className="chip chip-success inline-flex items-center gap-1 shrink-0">
+                    <CheckCircle2 className="size-3" strokeWidth={2.5} aria-hidden />
+                    Completed
+                  </span>
+                )}
               </div>
-              <Link
-                href="/billing?upgrade=pro"
-                className="inline-flex items-center justify-center h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors shrink-0"
-              >
-                Upgrade to Pro
-              </Link>
+              <div className="mt-1.5 flex items-center gap-x-4 gap-y-1 flex-wrap text-[12.5px] text-ink-600">
+                <span className="inline-flex items-center gap-1.5">
+                  <Play className="size-3.5 text-rose-500" fill="currentColor" strokeWidth={0} aria-hidden />
+                  Video lesson
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <BarChart3 className="size-3.5 text-rose-500" strokeWidth={2} aria-hidden />
+                  {lesson.difficulty}
+                </span>
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  <Clock className="size-3.5 text-rose-500" strokeWidth={2} aria-hidden />
+                  {durationLabel}
+                </span>
+                {lesson.moduleNumber ? (
+                  <span className="inline-flex items-center gap-1.5 tabular-nums">
+                    <BookOpen className="size-3.5 text-rose-500" strokeWidth={2} aria-hidden />
+                    {lesson.moduleLessons.length} lessons in module
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {!proLocked && (
+            <div className="w-full sm:w-auto">
+              <LessonActionRow
+                lessonSlug={lesson.slug}
+                initialCompleted={lesson.completed}
+                lessonTitle={lesson.title}
+                // Complete & continue follows the admin-authored lesson path
+                // first (the first linked video step); when the path doesn't
+                // link a next video it falls back to Tutorial Library order.
+                basePath="/tutorials"
+                nextSlug={upNext?.slug ?? null}
+                nextTitle={upNext?.title ?? null}
+                prevSlug={lesson.prev?.slug ?? null}
+                showNoteButton={false}
+              />
             </div>
           )}
+        </header>
+  );
 
-          {/* Video player — persistent across tabs */}
-          {!proLocked && (
+  return (
+    <PageShell>
+      {proLocked ? (
+        <div className="max-w-[1100px] mx-auto space-y-5">
+          {pageHeader}
+          {/* Pro lock notice */}
+          <div className="rounded-[16px] bg-rose-50 border border-rose-200 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <span className="size-12 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+              <Lock className="size-5" strokeWidth={2} />
+            </span>
+            <div className="flex-1">
+              <div className="text-[14px] font-semibold text-ink-900">
+                This lesson is Pro only
+              </div>
+              <p className="text-[12.5px] text-ink-700">
+                Upgrade to unlock this lesson and the rest of the bonus track.
+              </p>
+            </div>
+            <Link
+              href="/billing?upgrade=pro"
+              className="inline-flex items-center justify-center h-11 px-5 rounded-[12px] bg-rose-600 hover:bg-rose-700 text-white text-[14px] font-medium transition-colors shrink-0"
+            >
+              Upgrade to Pro
+            </Link>
+          </div>
+        </div>
+      ) : (
+        /* Two columns, same structure as the program lesson page: the grid
+           bleeds to the page edges and is at least a viewport tall, so the
+           right panel's 2px divider + white fill run topbar→bottom. */
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_460px] lg:-mx-[var(--space-page-x)] lg:-my-[var(--space-page-y)] lg:min-h-[calc(100dvh_-_var(--topbar-height))]">
+          {/* LEFT — header + video */}
+          <div className="space-y-5 min-w-0 lg:pl-[var(--space-page-x)] lg:pr-8 lg:py-[var(--space-page-y)]">
+            {pageHeader}
             <LessonVideoPlayer
               title={lesson.title}
               duration={lesson.duration}
               videoUrl={lesson.videoUrl}
               coverUrl={lesson.coverUrl}
             />
-          )}
+          </div>
 
-          {/* Continue bar — completion state, up-next context, primary CTA */}
-          {!proLocked && (
-            <LessonActionRow
-              lessonSlug={lesson.slug}
-              initialCompleted={lesson.completed}
-              lessonTitle={lesson.title}
-              // Complete & continue follows the admin-authored lesson path
-              // first (the first linked video step); when the path doesn't
-              // link a next video it falls back to Tutorial Library order.
-              basePath="/tutorials"
-              nextSlug={upNext?.slug ?? null}
-              nextTitle={upNext?.title ?? null}
-              prevSlug={lesson.prev?.slug ?? null}
-            />
-          )}
+          {/* RIGHT — full-height white panel: pill tabs + active section.
+              Tabs stay URL-driven so the in-Overview shortcut links work. */}
+          <div className="mt-8 lg:mt-0 lg:border-l-2 lg:border-ink-100 lg:bg-white">
+            <aside className="lg:sticky lg:top-[var(--topbar-height)] lg:max-h-[calc(100dvh_-_var(--topbar-height))] lg:overflow-y-auto px-5 lg:pl-6 lg:pr-[var(--space-page-x)] pt-4 pb-6 lg:pb-[var(--space-page-y)]">
+              <div
+                role="tablist"
+                className="flex items-center gap-1.5 flex-wrap border-b-2 border-ink-100 pb-3"
+              >
+                {lessonTabs.map((t) => {
+                  const Icon = t.icon;
+                  const isActive = active === t.key;
+                  return (
+                    <Link
+                      key={t.key}
+                      href={t.href}
+                      aria-current={isActive ? "page" : undefined}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-medium transition-colors",
+                        isActive
+                          ? "bg-rose-100 text-rose-700"
+                          : "text-ink-600 hover:bg-cream-100 hover:text-ink-900",
+                      )}
+                    >
+                      <Icon className="size-3.5" strokeWidth={2} aria-hidden />
+                      {t.label}
+                    </Link>
+                  );
+                })}
+              </div>
 
-          {/* Active section (Overview / Lesson Path / Resources / Notes) */}
-          <LessonContent
-            active={active}
-            description={lesson.description}
-            chapters={pathSteps}
-            resources={resources}
-            notes={notes}
-            lessonSlug={lesson.slug}
-            lessonTitle={lesson.title}
-            durationLabel={durationLabel}
-            difficulty={lesson.difficulty}
-            upNext={upNext ? { slug: upNext.slug, title: upNext.title } : null}
-          />
+              <div className="pt-4">
+                <LessonContent
+                  active={active}
+                  description={lesson.description}
+                  chapters={pathSteps}
+                  resources={resources}
+                  notes={notes}
+                  lessonSlug={lesson.slug}
+                  lessonTitle={lesson.title}
+                  durationLabel={durationLabel}
+                  difficulty={lesson.difficulty}
+                  upNext={upNext ? { slug: upNext.slug, title: upNext.title } : null}
+                />
+              </div>
+            </aside>
+          </div>
         </div>
-      </WorkspaceShell>
+      )}
     </PageShell>
   );
 }
