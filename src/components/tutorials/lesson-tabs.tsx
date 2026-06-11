@@ -149,7 +149,9 @@ function OverviewPanel({
   ];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
+    /* Single stacked column — this panel renders inside the lesson page's
+       right rail, so there's no room for an inner side column. */
+    <div className="space-y-5">
       {/* Main column — about + what's covered */}
       <div className="space-y-5">
         <section className="card rounded-[16px] p-5 sm:p-6">
