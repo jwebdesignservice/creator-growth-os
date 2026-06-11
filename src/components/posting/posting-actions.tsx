@@ -116,7 +116,6 @@ const PLATFORMS: { value: PlatformKey; label: string }[] = [
   { value: "youtube", label: "YouTube" },
   { value: "snapchat", label: "Snapchat" },
   { value: "linkedin", label: "LinkedIn" },
-  { value: "other", label: "Other" },
 ];
 
 const CONTENT_TYPES = [
@@ -454,14 +453,23 @@ export function NewItemForm({
   // Locally attached media — previewed in the composer + platform mock.
   // Persisting uploads needs a storage bucket + column, so the file stays
   // client-side for now and is not written on save.
-  const [media, setMedia] = useState<{ url: string; name: string } | null>(null);
+  const [media, setMedia] = useState<{
+    url: string;
+    name: string;
+    /** The local file awaiting upload; null = already-persisted media. */
+    file: File | null;
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function attachFile(f: File | null | undefined) {
     if (!f) return;
+    if (f.size > 25 * 1024 * 1024) {
+      setErr("Media must be under 25MB.");
+      return;
+    }
     setMedia((prev) => {
-      if (prev) URL.revokeObjectURL(prev.url);
-      return { url: URL.createObjectURL(f), name: f.name };
+      if (prev?.file) URL.revokeObjectURL(prev.url);
+      return { url: URL.createObjectURL(f), name: f.name, file: f };
     });
   }
 
@@ -470,8 +478,8 @@ export function NewItemForm({
   // duplicate post.
   const createdId = useRef<string | null>(null);
 
-  // Edit mode: pull the fields the list rows don't carry (goal, notes) and
-  // prefill the form.
+  // Edit mode: pull the fields the list rows don't carry (goal, notes,
+  // attached media) and prefill the form.
   useEffect(() => {
     if (!editItem) return;
     let cancelled = false;
@@ -480,6 +488,9 @@ export function NewItemForm({
       if (cancelled || !detail) return;
       setGoal(detail.goal ?? "");
       setNotes(detail.notes ?? "");
+      if (detail.media_url) {
+        setMedia({ url: detail.media_url, name: "Attached media", file: null });
+      }
     })();
     return () => {
       cancelled = true;
