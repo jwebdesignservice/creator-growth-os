@@ -3,47 +3,35 @@ import Link from "next/link";
 import {
   Play,
   Lock,
-  BookOpen,
   BarChart3,
   Clock,
-  CheckCircle2,
   Check,
+  ChevronLeft,
+  BadgeCheck,
+  BookOpen,
+  UserRound,
+  CheckSquare,
+  NotebookPen,
   Sparkles,
-  FileText,
-  ListTree,
-  Target,
-  Layers,
-  Anchor,
-  Users,
-  TrendingUp,
-  Lightbulb,
-  Rocket,
-  Zap,
-  Pencil,
-  Video,
-  Megaphone,
-  Heart,
-  DollarSign,
-  type LucideIcon,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { createClient } from "@/lib/supabase/server";
-import { getCurriculumForProgram } from "@/lib/programs/queries";
+import { getCurriculumForProgram, getLessonNotes } from "@/lib/programs/queries";
 import { getTutorialDetail } from "@/lib/programs/tutorial-queries";
-import { getOutcomeForModule } from "@/lib/programs/outcomes";
+import { LessonNotes } from "@/components/notes/lesson-notes";
 import { RichTextBlock } from "./rich-text-block";
 import {
   normalizeLearningPoints,
   type LearningPoint,
-  type LearningIconKey,
 } from "@/lib/programs/learning-content";
 import { LessonVideoPlayer } from "@/components/tutorials/video-player";
-import { CollapsibleSection } from "@/components/programs/collapsible-section";
+import { LessonPageTabs } from "@/components/programs/lesson-page-tabs";
+import { CourseContentRail } from "@/components/programs/course-content-rail";
 import { LessonActionRow } from "@/components/tutorials/action-row";
 import { ProgramVideoTasks } from "./program-video-tasks";
 import { AssignOnMount } from "@/components/tasks/assign-on-mount";
-import { cn } from "@/lib/cn";
+import { Avatar } from "@/components/app-shell/avatar";
 import {
   getOnboardingGate,
   isGateActive,
@@ -170,9 +158,10 @@ export default async function ProgramLessonPage({
   // may carry one nested action step.
   const learningPoints = normalizeLearningPoints(dbLesson?.learning_points);
 
-  const [modules, detail] = await Promise.all([
+  const [modules, detail, lessonNotes] = await Promise.all([
     getCurriculumForProgram(slug, ctx.plan),
     getTutorialDetail(lessonSlug),
+    getLessonNotes(lessonSlug),
   ]);
 
   // Flatten the program's curriculum into one ordered list — used for the
@@ -215,32 +204,73 @@ export default async function ProgramLessonPage({
   const lessonNumber = idx >= 0 ? idx + 1 : null;
   const totalLessons = flat.length;
 
-  // Lessons in the current module (for the up-next rail).
-  const moduleLessons = flat.filter((l) => l.moduleNumber === moduleNumber);
+
+  /* ── Page header — back · lesson title + module chip + meta line, with
+     the lesson actions anchored right (Udemy-style). Rendered inside the
+     left column so the right panel's divider can run full height. ──────── */
+  const pageHeader = (
+        <header className="flex items-start justify-between gap-x-6 gap-y-4 flex-wrap">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <Link
+              href={`/programs/${slug}`}
+              aria-label={`Back to ${programTitle}`}
+              className="size-9 rounded-full border border-ink-200 bg-white inline-flex items-center justify-center text-ink-600 hover:bg-cream-100 hover:text-ink-900 transition-colors shrink-0"
+            >
+              <ChevronLeft className="size-4" strokeWidth={2} />
+            </Link>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-[20px] sm:text-[22px] font-bold tracking-[-0.01em] text-ink-900 leading-tight">
+                  {title}
+                </h1>
+                <span className="inline-flex items-center rounded-[8px] border border-ink-200 bg-white px-2 py-1 text-[11px] font-semibold text-ink-600 leading-none shrink-0">
+                  Module {moduleNumber} · {moduleTitle}
+                </span>
+              </div>
+              <div className="mt-1.5 flex items-center gap-x-4 gap-y-1 flex-wrap text-[12.5px] text-ink-600">
+                {lessonNumber && (
+                  <span className="inline-flex items-center gap-1.5 tabular-nums">
+                    <Play
+                      className="size-3.5 text-rose-500"
+                      fill="currentColor"
+                      strokeWidth={0}
+                    />
+                    Lesson {lessonNumber} of {totalLessons}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  <Clock className="size-3.5 text-rose-500" strokeWidth={2} />
+                  {duration}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <BarChart3 className="size-3.5 text-rose-500" strokeWidth={2} />
+                  {difficulty}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {!proLocked && (
+            <div className="w-full sm:w-auto">
+              <LessonActionRow
+                lessonSlug={lessonSlug}
+                initialCompleted={completed}
+                lessonTitle={title}
+                programSlug={slug}
+                prevSlug={prev?.slug ?? null}
+                nextSlug={next?.slug ?? null}
+                showNoteButton={false}
+              />
+            </div>
+          )}
+        </header>
+  );
 
   return (
     <PageShell>
-      <div className="max-w-[1360px] mx-auto space-y-4">
-        {/* Breadcrumb — stays inside Programs */}
-        <nav className="text-[13px]">
-          <Link
-            href="/programs"
-            className="text-rose-600 hover:text-rose-700 font-medium"
-          >
-            Programs
-          </Link>
-          <span className="text-ink-400 mx-2">/</span>
-          <Link
-            href={`/programs/${slug}`}
-            className="text-rose-600 hover:text-rose-700 font-medium"
-          >
-            {programTitle}
-          </Link>
-          <span className="text-ink-400 mx-2">/</span>
-          <span className="text-ink-700">{title}</span>
-        </nav>
-
-        {proLocked ? (
+      {proLocked ? (
+        <div className="max-w-[1360px] mx-auto space-y-4">
+          {pageHeader}
           <>
             <header>
               <div className="text-[12px] font-semibold uppercase tracking-wider text-rose-600 mb-1.5">
@@ -270,10 +300,17 @@ export default async function ProgramLessonPage({
               </Link>
             </div>
           </>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
-            {/* LEFT — video, meta, actions, description (the watch column) */}
-            <div className="space-y-6 min-w-0">
+        </div>
+      ) : (
+        /* The whole grid bleeds to the page edges (negative margins cancel
+           PageShell's padding) and is at least a full viewport tall, so the
+           vertical divider + white panel run topbar→bottom. Page insets are
+           restored per-column below. */
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_404px] lg:-mx-[var(--space-page-x)] lg:-my-[var(--space-page-y)] lg:min-h-[calc(100dvh_-_var(--topbar-height))]">
+          {/* LEFT — header, video, tabs. Page insets restored here; pr-8 is
+              the gutter that gives breathing room before the divider. */}
+          <div className="space-y-5 min-w-0 lg:pl-[var(--space-page-x)] lg:pr-8 lg:py-[var(--space-page-y)]">
+            {pageHeader}
               <LessonVideoPlayer
                 title={title}
                 duration={duration}
@@ -281,429 +318,171 @@ export default async function ProgramLessonPage({
                 coverUrl={coverUrl}
               />
 
-              {/* Title + one quiet meta line — same compact identity
-                  treatment as the section heroes. */}
-              <div>
-                <h1 className="font-display text-[22px] sm:text-[26px] text-ink-900 leading-tight">
-                  {title}
-                </h1>
-                <div className="mt-1.5 flex items-center gap-x-3.5 gap-y-1 flex-wrap text-[12.5px] text-ink-500">
-                  <span className="font-medium text-rose-600">
-                    Module {moduleNumber} · {moduleTitle}
-                  </span>
-                  {lessonNumber && (
-                    <span className="tabular-nums">
-                      Lesson {lessonNumber} of {totalLessons}
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-1.5">
-                    <Play className="size-3 text-ink-400" fill="currentColor" />
-                    Video
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <BarChart3 className="size-3.5 text-ink-400" strokeWidth={2} />
-                    {difficulty}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 tabular-nums">
-                    <Clock className="size-3.5 text-ink-400" strokeWidth={2} />
-                    {duration}
-                  </span>
-                </div>
-              </div>
-
-              {/* Platform actions — Create Notes / Go back / Complete & continue */}
-              <LessonActionRow
-                lessonSlug={lessonSlug}
-                initialCompleted={completed}
-                lessonTitle={title}
-                programSlug={slug}
-                prevSlug={prev?.slug ?? null}
-                nextSlug={next?.slug ?? null}
-              />
-
-              {/* Description + authored learning points / action steps */}
-              <LessonOverview
-                title={title}
-                moduleNumber={moduleNumber}
-                learningPoints={learningPoints}
-              />
-
-              {/* Program video task(s) for this lesson — unified task system.
-                  AssignOnMount fires the central engine for "on_start"
-                  templates when the learner actually opens the lesson. */}
+              {/* "on_start" task assignment fires on page mount regardless of
+                  which tab is open. */}
               {lessonUuid && (
-                <>
-                  <AssignOnMount
-                    sourceType="program_video"
-                    sourceId={lessonUuid}
-                    trigger="on_start"
-                  />
-                  <ProgramVideoTasks
-                    lessonId={lessonUuid}
-                    userId={ctx.user.id}
-                    lessonCompleted={completed}
-                  />
-                </>
+                <AssignOnMount
+                  sourceType="program_video"
+                  sourceId={lessonUuid}
+                  trigger="on_start"
+                />
               )}
+
+              <LessonPageTabs
+                /* Bleed the underline full-width: cancel the column's left
+                   page inset and right gutter so the line runs edge → divider,
+                   then re-pad the pills back to the content's left edge.
+                   pt-* adds breathing room between the video and the tabs. */
+                rootClassName="lg:pt-3"
+                tablistClassName="lg:-ml-[var(--space-page-x)] lg:-mr-8 lg:pl-[var(--space-page-x)]"
+                tabs={[
+                  {
+                    key: "overview",
+                    label: "Overview",
+                    icon: <BookOpen className="size-3.5" strokeWidth={2} />,
+                    content: <AboutLessonCard />,
+                  },
+                  ...(learningPoints.length > 0
+                    ? [
+                        {
+                          key: "learn",
+                          label: "What you'll learn",
+                          icon: <Sparkles className="size-3.5" strokeWidth={2} />,
+                          content: (
+                            <LearnChecklistCard learningPoints={learningPoints} />
+                          ),
+                        },
+                      ]
+                    : []),
+                  ...(lessonUuid
+                    ? [
+                        {
+                          key: "tasks",
+                          label: "Tasks",
+                          icon: <CheckSquare className="size-3.5" strokeWidth={2} />,
+                          content: (
+                            <ProgramVideoTasks
+                              lessonId={lessonUuid}
+                              userId={ctx.user.id}
+                              lessonCompleted={completed}
+                            />
+                          ),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: "notes",
+                    label: "Notes",
+                    icon: <NotebookPen className="size-3.5" strokeWidth={2} />,
+                    content: (
+                      <LessonNotes
+                        notes={lessonNotes}
+                        lessonSlug={lessonSlug}
+                        lessonTitle={title}
+                      />
+                    ),
+                  },
+                  {
+                    key: "author",
+                    label: "Author",
+                    icon: <UserRound className="size-3.5" strokeWidth={2} />,
+                    content: <AuthorCard />,
+                  },
+                ]}
+              />
             </div>
 
-            {/* RIGHT — Program path, YouTube "up next" style */}
-            <ProgramPathRail
-              programSlug={slug}
-              moduleNumber={moduleNumber}
-              moduleTitle={moduleTitle}
-              lessons={moduleLessons}
-              currentSlug={lessonSlug}
-            />
+          {/* RIGHT — full-height white "Course content" panel. Stretches to
+              the grid's full height (align stretch), so its 2px left border +
+              white fill run topbar→bottom. */}
+          <div className="mt-8 lg:mt-0 lg:border-l-2 lg:border-ink-100 lg:bg-white">
+            <aside className="pt-3.5 pb-5 lg:sticky lg:top-[var(--topbar-height)] lg:max-h-[calc(100dvh_-_var(--topbar-height))] lg:overflow-y-auto lg:pt-3.5 lg:pb-[var(--space-page-y)]">
+              <CourseContentRail
+                modules={modules}
+                programSlug={slug}
+                currentSlug={lessonSlug}
+              />
+            </aside>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </PageShell>
   );
 }
 
-/* ─── Lesson overview (description box) ───────────────────────────────── */
+/* ─── About card (Overview tab) ────────────────────────────────────────── */
 
-/* Icon key → component map for the learner-facing learning-point cards.
-   Keys are shared (learning-content.ts); falls back to the target icon. */
-const LEARNING_ICONS: Record<LearningIconKey, LucideIcon> = {
-  target:        Target,
-  layers:        Layers,
-  anchor:        Anchor,
-  users:         Users,
-  "trending-up": TrendingUp,
-  lightbulb:     Lightbulb,
-  rocket:        Rocket,
-  "book-open":   BookOpen,
-  sparkles:      Sparkles,
-  zap:           Zap,
-  pencil:        Pencil,
-  video:         Video,
-  megaphone:     Megaphone,
-  heart:         Heart,
-  "dollar-sign": DollarSign,
-};
-
-function LessonOverview({
-  title,
-  moduleNumber,
-  learningPoints,
-}: {
-  title: string;
-  moduleNumber: number;
-  learningPoints: LearningPoint[];
-}) {
-  // Pull the outcome this lesson's module teaches — same source as the
-  // program-level "What You'll Learn". Used as the graceful fallback when
-  // the lesson has no authored learning points yet.
-  const outcome = getOutcomeForModule(moduleNumber);
-  const OutcomeIcon = outcome.icon;
-
-  const hasLearning = learningPoints.length > 0;
-  const hasAnyStep = learningPoints.some((lp) => lp.actionStep);
-  const stepCount = learningPoints.filter((lp) => lp.actionStep).length;
-
+function AboutLessonCard() {
   return (
-    /* One card, two collapsible rows — same attached-dropdown anatomy as the
-       program hero's What You'll Learn. Collapsed by default so the watch
-       column stays compact; each row expands on tap. */
-    <section className="card overflow-hidden">
-      <CollapsibleSection
-        flush
-        icon={<BookOpen className="size-5" strokeWidth={1.9} />}
-        title="About this lesson"
-        subtitle="The full written notes for this lesson"
-      >
-        {/* PREVIEW — dummy rich-text block so we can see how a normal
-            rich-text lesson body renders here. Not wired to data yet. */}
+    <section>
+      <h2 className="text-[16px] font-bold text-ink-900">About this lesson</h2>
+      {/* PREVIEW — dummy rich-text block so we can see how a normal
+          rich-text lesson body renders here. Not wired to data yet. */}
+      <div className="mt-3">
         <RichTextBlock />
-      </CollapsibleSection>
-
-      <div className="border-t border-ink-100">
-        <CollapsibleSection
-          flush
-          icon={<Sparkles className="size-5" strokeWidth={2} fill="currentColor" />}
-          title="What you'll learn in this lesson"
-          subtitle={
-            hasLearning
-              ? `${learningPoints.length} learning point${learningPoints.length === 1 ? "" : "s"}${
-                  stepCount > 0
-                    ? ` · ${stepCount} action step${stepCount === 1 ? "" : "s"}`
-                    : ""
-                }`
-              : "Apply this lesson before moving on"
-          }
-          badge={
-            (hasAnyStep || !hasLearning) && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 text-[12px] font-semibold whitespace-nowrap">
-                <Sparkles className="size-3.5" strokeWidth={2} fill="currentColor" />
-                Action step
-              </span>
-            )
-          }
-        >
-        {hasLearning ? (
-        <>
-          <ul className="space-y-2.5">
-            {learningPoints.map((lp) => {
-              const Icon = LEARNING_ICONS[lp.icon] ?? Target;
-              return (
-                <li
-                  key={lp.id}
-                  className="rounded-[14px] border border-ink-100 bg-white p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="size-10 rounded-[12px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
-                      <Icon className="size-5" strokeWidth={1.9} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-bold text-ink-900 leading-snug">
-                        {lp.title}
-                      </div>
-                      {lp.description && (
-                        <p className="text-[13px] text-ink-500 leading-snug mt-0.5">
-                          {lp.description}
-                        </p>
-                      )}
-                    </div>
-                    <CheckCircle2
-                      className="size-[18px] text-rose-300 shrink-0 mt-1"
-                      strokeWidth={2}
-                    />
-                  </div>
-
-                  {/* Nested action step — sits under its learning point */}
-                  {lp.actionStep && (
-                    <div className="mt-3 sm:ml-[52px] rounded-[12px] bg-rose-50 border border-rose-100 p-3">
-                      <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] font-bold text-rose-600 mb-1">
-                        <Sparkles className="size-3" strokeWidth={2} fill="currentColor" />
-                        Action step
-                      </div>
-                      <div className="text-[13.5px] font-semibold text-ink-900 leading-snug">
-                        {lp.actionStep.title}
-                      </div>
-                      {lp.actionStep.description && (
-                        <p className="text-[12.5px] text-ink-700 leading-snug mt-0.5">
-                          {lp.actionStep.description}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </>
-      ) : (
-        /* Fallback — outcome-driven apply-it-now for lessons that haven't
-           been given their own learning points yet. */
-        <div className="rounded-[14px] bg-rose-50 border border-rose-100 p-4 sm:p-5">
-          <div className="flex items-start gap-3">
-            <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-              <OutcomeIcon className="size-[20px]" strokeWidth={1.9} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-bold text-ink-900 mb-1">
-                Apply it now
-              </div>
-              <p className="text-[13px] text-ink-700 leading-relaxed">
-                Put <span className="font-semibold text-ink-900">{title}</span>{" "}
-                into practice before moving on — this lesson builds toward{" "}
-                <span className="font-semibold text-rose-700">
-                  {outcome.title}
-                </span>
-                .
-              </p>
-            </div>
-          </div>
-
-          <div aria-hidden className="h-px bg-rose-200/60 my-3.5" />
-
-          <div className="flex items-start gap-2.5">
-            <span className="size-5 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0 mt-0.5">
-              <Check className="size-3" strokeWidth={3} />
-            </span>
-            <p className="text-[12.5px] text-ink-700 leading-snug">
-              {outcome.nextStep.lead}
-              <span className="font-semibold text-rose-700">
-                {outcome.nextStep.bold}
-              </span>
-              {outcome.nextStep.trail}
-            </p>
-          </div>
-        </div>
-        )}
-        </CollapsibleSection>
       </div>
     </section>
   );
 }
 
-/* ─── Program path rail (YouTube "up next" style) ─────────────────────── */
+/* ─── What you'll learn card (its own tab) ─────────────────────────────── */
 
-function ProgramPathRail({
-  programSlug,
-  moduleNumber,
-  moduleTitle,
-  lessons,
-  currentSlug,
+function LearnChecklistCard({
+  learningPoints,
 }: {
-  programSlug: string;
-  moduleNumber: number;
-  moduleTitle: string;
-  lessons: {
-    slug: string;
-    title: string;
-    duration: string;
-    status: string;
-    coverUrl?: string | null;
-  }[];
-  currentSlug: string;
+  learningPoints: LearningPoint[];
 }) {
-  const totalMin = lessons.reduce((sum, l) => {
-    const [m] = l.duration.split(":");
-    const n = parseInt(m ?? "0", 10);
-    return sum + (Number.isFinite(n) ? n : 0);
-  }, 0);
-  const doneCount = lessons.filter((l) => l.status === "completed").length;
-  const pct =
-    lessons.length > 0 ? Math.round((doneCount / lessons.length) * 100) : 0;
+  // Flatten authored learning points (+ their action steps) into the simple
+  // two-column checklist the card shows.
+  const items = learningPoints.flatMap((lp) => [
+    lp.title,
+    ...(lp.actionStep ? [lp.actionStep.title] : []),
+  ]);
 
   return (
-    <aside className="lg:sticky lg:top-[calc(var(--topbar-height)_+_1rem)] self-start lg:max-h-[calc(100vh_-_var(--topbar-height)_-_2rem)] lg:overflow-y-auto">
-      {/* One cohesive card — header band, lesson list, footer — so the rail
-          reads as a designed panel beside the player, not a floating list. */}
-      <div className="card overflow-hidden">
-        <header className="flex items-center gap-3 px-4 py-3.5 border-b border-ink-100">
-          <span className="size-9 rounded-[11px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
-            <ListTree className="size-4" strokeWidth={2} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[14px] font-semibold text-ink-900 leading-tight truncate">
-              Module {moduleNumber} · {moduleTitle}
-            </h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-[11px] text-ink-500 tabular-nums whitespace-nowrap">
-                {doneCount}/{lessons.length} completed
-              </span>
-              <span className="w-20 h-1 rounded-full bg-cream-200 overflow-hidden">
-                <span
-                  className="block h-full rounded-full bg-rose-500 transition-[width] duration-500"
-                  style={{ width: `${pct}%` }}
-                />
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <ul className="p-2.5 space-y-1">
-        {lessons.map((l, i) => {
-          const isCurrent = l.slug === currentSlug;
-          const isDone = l.status === "completed";
-          const isLocked = l.status === "locked";
-
-          const item = (
-            <div
-              className={cn(
-                "group flex gap-2.5 p-1.5 rounded-[12px] transition-colors",
-                isCurrent
-                  ? "bg-rose-50 ring-1 ring-rose-200"
-                  : isLocked
-                    ? "opacity-75"
-                    : "hover:bg-cream-100",
-              )}
-            >
-              {/* Thumbnail */}
-              <div className="relative w-[150px] shrink-0 aspect-video rounded-[10px] overflow-hidden bg-gradient-to-br from-cream-200 via-cream-100 to-rose-100/50">
-                {l.coverUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={l.coverUrl}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                )}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span
-                    className={cn(
-                      "inline-flex items-center justify-center size-8 rounded-full shadow-soft transition-transform group-hover:scale-105",
-                      isDone
-                        ? "bg-white/85 text-rose-600"
-                        : isCurrent
-                          ? "bg-rose-600 text-white"
-                          : isLocked
-                            ? "bg-white/80 text-ink-400"
-                            : "bg-white/85 text-rose-600",
-                    )}
-                  >
-                    {isDone ? (
-                      <CheckCircle2 className="size-4" strokeWidth={2.5} />
-                    ) : isLocked ? (
-                      <Lock className="size-3.5" strokeWidth={2.2} />
-                    ) : (
-                      <Play className="size-3.5 ml-0.5" fill="currentColor" />
-                    )}
-                  </span>
-                </div>
-                {/* Duration badge — YouTube-style */}
-                <span className="absolute bottom-1 right-1 rounded-md bg-ink-900/85 px-1 py-0.5 text-[10px] font-semibold text-white tabular-nums leading-none">
-                  {l.duration}
-                </span>
-              </div>
-
-              {/* Info */}
-              <div className="min-w-0 flex-1 py-0.5">
-                <div
-                  className={cn(
-                    "text-[12.5px] leading-snug line-clamp-2",
-                    isCurrent
-                      ? "font-semibold text-rose-700"
-                      : "font-medium text-ink-900",
-                  )}
-                >
-                  {l.title}
-                </div>
-                <div className="mt-1 text-[11px] text-ink-500 inline-flex items-center gap-1.5">
-                  <span>Lesson {i + 1}</span>
-                  <span aria-hidden>·</span>
-                  <span>
-                    {isDone
-                      ? "Completed"
-                      : isCurrent
-                        ? "Now playing"
-                        : isLocked
-                          ? "Locked"
-                          : "Not started"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-
-          return (
-            <li key={l.slug}>
-              {isLocked ? (
-                item
-              ) : (
-                <Link
-                  href={`/programs/${programSlug}/${l.slug}`}
-                  className="block"
-                >
-                  {item}
-                </Link>
-              )}
-            </li>
-          );
-        })}
+    <section>
+      <h2 className="text-[16px] font-bold text-ink-900">
+        What you&apos;ll learn
+      </h2>
+      <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+        {items.map((t) => (
+          <li key={t} className="flex items-start gap-2.5">
+            <Check
+              className="size-4 text-success shrink-0 mt-0.5"
+              strokeWidth={2.5}
+            />
+            <span className="text-[13px] text-ink-700 leading-snug">{t}</span>
+          </li>
+        ))}
       </ul>
+    </section>
+  );
+}
 
-        <footer className="flex items-center gap-1.5 px-4 py-3 border-t border-ink-100 text-[11.5px] text-ink-500">
-          <FileText className="size-3.5 text-ink-400" strokeWidth={2} />
-          {lessons.length} lessons · ~{totalMin} min in this module
-        </footer>
+/* ─── Author / coach card (right rail) ─────────────────────────────────── */
+
+function AuthorCard() {
+  return (
+    <section>
+      <h3 className="text-[15px] font-bold text-ink-900 mb-3">Your Coach</h3>
+      <div className="flex items-center gap-3">
+        <Avatar name="Sophie Carter" size={44} />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[14px] font-semibold text-ink-900">
+              Sophie Carter
+            </span>
+            <BadgeCheck className="size-4 text-rose-500" strokeWidth={2} />
+          </div>
+          <div className="text-[12px] text-ink-500">
+            Growth &amp; Brand Strategist
+          </div>
+        </div>
       </div>
-    </aside>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-ink-600">
+        Sophie helps creators turn niche audiences into engaged communities —
+        positioning, content systems and sustainable growth.
+      </p>
+    </section>
   );
 }

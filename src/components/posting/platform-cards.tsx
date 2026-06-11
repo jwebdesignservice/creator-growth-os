@@ -132,7 +132,7 @@ function PlatformTile({
             : "No posts scheduled"}
         </span>
         <span className="mt-auto inline-flex items-center gap-1.5 pt-3 text-[13px] font-semibold text-rose-700">
-          Open
+          Create Plan
           <ArrowRight
             className={cn(
               "size-[15px] transition-transform duration-[380ms] group-hover:translate-x-1",
