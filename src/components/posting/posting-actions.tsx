@@ -13,7 +13,9 @@ import {
   Eye,
   Info,
   Lightbulb,
+  ArrowLeft,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Clapperboard,
   Loader2,
@@ -446,6 +448,8 @@ export function NewItemForm({
   const [showPreview, setShowPreview] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [schedOpen, setSchedOpen] = useState(false);
+  // The schedule popover's view: the mode list, or the custom date+time picker.
+  const [schedView, setSchedView] = useState<"list" | "picker">("list");
   const [aiGen, setAiGen] = useState(false);
   const [createAnother, setCreateAnother] = useState(false);
   // Posting mode for the footer's split button: queue slot, bump, right now,
@@ -1428,29 +1432,35 @@ export function NewItemForm({
               {/* publish mode — goal (left) · Automatic/Notify Me (right) */}
               <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-ink-100">
                 {isInstagram ? (
-                  /* Instagram: Add Stickers (reference) instead of the goal control */
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[13px] font-medium text-ink-600 shrink-0">
+                  /* Instagram: Add Stickers (reference) instead of the goal
+                     control — the set depends on the chosen format */
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="mr-1 text-[13px] font-medium text-ink-600 shrink-0">
                       Add Stickers
                     </span>
-                    <button
-                      type="button"
-                      disabled
-                      title="Music stickers — coming soon"
-                      className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-400 cursor-not-allowed"
-                    >
-                      <Music className="size-4" strokeWidth={2} />
-                      Music
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      title="Tag products — coming soon"
-                      className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-400 cursor-not-allowed"
-                    >
-                      <ShoppingBag className="size-4" strokeWidth={2} />
-                      Tag Products
-                    </button>
+                    {(contentType === "story"
+                      ? [
+                          { label: "Text", node: <span className="text-[13px] font-bold leading-none">Aa</span> },
+                          { label: "Link", node: <Link2 className="size-4" strokeWidth={2} /> },
+                          { label: "Music", node: <Music className="size-4" strokeWidth={2} /> },
+                          { label: "Other", node: <Plus className="size-4" strokeWidth={2} /> },
+                        ]
+                      : [
+                          { label: "Music", node: <Music className="size-4" strokeWidth={2} /> },
+                          { label: "Tag Products", node: <ShoppingBag className="size-4" strokeWidth={2} /> },
+                        ]
+                    ).map((s) => (
+                      <button
+                        key={s.label}
+                        type="button"
+                        disabled
+                        title={`${s.label} — coming soon`}
+                        className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-400 cursor-not-allowed"
+                      >
+                        {s.node}
+                        {s.label}
+                      </button>
+                    ))}
                   </div>
                 ) : (
                   <div className="relative">
@@ -1571,8 +1581,9 @@ export function NewItemForm({
                 />
               </div>
 
-              {/* Instagram First Comment (reference) — coming soon */}
-              {isInstagram && (
+              {/* Instagram First Comment (reference) — coming soon; stories
+                  don't have comments, so it's hidden for the Story format */}
+              {isInstagram && contentType !== "story" && (
                 <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100">
                   <span className="w-[92px] shrink-0 text-[14px] text-ink-600">
                     First Comment
@@ -1641,7 +1652,66 @@ export function NewItemForm({
                 />
               </div>
 
-              {isInstagram ? (
+              {isInstagram && contentType === "story" ? (
+                /* Instagram Story mock — progress bar · overlaid header ·
+                   full-bleed media · reply bar (reference) */
+                <div className="relative aspect-[9/16] overflow-hidden rounded-[14px] bg-ink-900">
+                  {media ? (
+                    /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */
+                    <img
+                      src={media.url}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/35">
+                      <ImagePlus className="size-7" strokeWidth={1.5} />
+                      <span className="text-[12px]">
+                        See your post&apos;s preview here
+                      </span>
+                    </div>
+                  )}
+                  {/* top — progress bar + header overlay */}
+                  <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/55 to-transparent px-2.5 pt-2.5 pb-6">
+                    <div className="mb-2.5 h-[2.5px] w-full overflow-hidden rounded-full bg-white/40">
+                      <div className="h-full w-1/3 rounded-full bg-white" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="size-7 rounded-full bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#962FBF] p-[2px]">
+                        <span className="flex size-full items-center justify-center rounded-full bg-white">
+                          <PlatformGlyph platform={platform} size={11} />
+                        </span>
+                      </span>
+                      <span className="text-[12.5px] font-semibold text-white">
+                        your_handle
+                      </span>
+                      <span className="text-[11.5px] text-white/70">21h</span>
+                      <span className="flex-1" />
+                      <MoreHorizontal
+                        className="size-4 text-white"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </div>
+                  </div>
+                  {/* caption overlay */}
+                  {notes && (
+                    <div className="absolute inset-x-0 bottom-[68px] px-4">
+                      <p className="line-clamp-3 whitespace-pre-wrap break-words text-[15px] font-semibold leading-snug text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
+                        {notes}
+                      </p>
+                    </div>
+                  )}
+                  {/* bottom — reply bar */}
+                  <div className="absolute inset-x-0 bottom-0 flex items-center gap-2.5 bg-gradient-to-t from-black/45 to-transparent px-3 py-3">
+                    <span className="inline-flex h-9 flex-1 items-center rounded-full border border-white/60 px-4 text-[12.5px] text-white/80">
+                      Send message
+                    </span>
+                    <Heart className="size-6 text-white" strokeWidth={1.8} aria-hidden />
+                    <Send className="size-6 text-white" strokeWidth={1.8} aria-hidden />
+                  </div>
+                </div>
+              ) : isInstagram ? (
                 /* Instagram post mock — header · media · actions · caption */
                 <div className="rounded-[14px] overflow-hidden bg-white border border-ink-100 shadow-sm">
                   <div className="flex items-center gap-2.5 px-3 py-2.5">
@@ -1881,7 +1951,10 @@ export function NewItemForm({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setSchedOpen((v) => !v)}
+                onClick={() => {
+                  setSchedOpen((v) => !v);
+                  setSchedView("list");
+                }}
                 aria-haspopup="menu"
                 aria-expanded={schedOpen}
                 className="inline-flex h-11 items-center gap-1.5 rounded-l-[12px] border border-ink-200 bg-white px-4 text-[13.5px] font-semibold text-ink-700 hover:bg-cream-100 transition-colors"
@@ -1915,6 +1988,20 @@ export function NewItemForm({
                     aria-label="When to post"
                     className="absolute right-0 bottom-[calc(100%+8px)] z-50 w-[360px] max-h-[62vh] overflow-y-auto rounded-[16px] border border-ink-100 bg-white p-2 shadow-card text-left"
                   >
+                    {schedView === "picker" ? (
+                      <SchedulePicker
+                        date={date}
+                        time={time}
+                        onDate={setDate}
+                        onTime={setTime}
+                        onBack={() => setSchedView("list")}
+                        onDone={() => {
+                          setSchedOpen(false);
+                          setSchedView("list");
+                        }}
+                      />
+                    ) : (
+                    <>
                     <button
                       type="button"
                       role="menuitemradio"
@@ -2029,63 +2116,46 @@ export function NewItemForm({
                       type="button"
                       role="menuitemradio"
                       aria-checked={schedMode === "custom"}
-                      onClick={() => setSchedMode("custom")}
-                      className="flex w-full items-start gap-2.5 rounded-[12px] px-3.5 py-3 text-left hover:bg-cream-100 transition-colors"
+                      onClick={() => {
+                        setSchedMode("custom");
+                        setSchedView("picker");
+                      }}
+                      className={cn(
+                        "flex w-full items-start gap-2.5 rounded-[12px] px-3.5 py-3 text-left transition-colors",
+                        schedMode === "custom"
+                          ? "bg-rose-50"
+                          : "hover:bg-cream-100",
+                      )}
                     >
                       <span className="mt-0.5 w-4 shrink-0">
                         {schedMode === "custom" && (
-                          <Check className="size-4 text-ink-900" strokeWidth={2.5} />
+                          <Check className="size-4 text-rose-700" strokeWidth={2.5} />
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[14.5px] font-semibold text-ink-900">
+                        <span
+                          className={cn(
+                            "block text-[14.5px] font-semibold",
+                            schedMode === "custom"
+                              ? "text-rose-700"
+                              : "text-ink-900",
+                          )}
+                        >
                           Set Date and Time
                         </span>
-                        <span className="block text-[12.5px] text-ink-500">
+                        <span
+                          className={cn(
+                            "block text-[12.5px]",
+                            schedMode === "custom"
+                              ? "text-rose-700/80"
+                              : "text-ink-500",
+                          )}
+                        >
                           Choose a specific time to post, or use our recommendation.
                         </span>
                       </span>
                     </button>
-
-                    {schedMode === "custom" && (
-                      <div className="mt-1 border-t border-ink-100 px-1.5 pt-3 pb-1">
-                        <div className="grid grid-cols-2 gap-2.5">
-                          <div className="relative">
-                            <CalendarDays
-                              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-                              strokeWidth={2}
-                            />
-                            <input
-                              type="date"
-                              value={date}
-                              onChange={(e) => setDate(e.target.value)}
-                              className={cn(fieldCls, "h-11 pl-9")}
-                            />
-                          </div>
-                          <div className="relative">
-                            <Clock
-                              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-                              strokeWidth={2}
-                            />
-                            <input
-                              type="time"
-                              value={time}
-                              onChange={(e) => setTime(e.target.value)}
-                              className={cn(fieldCls, "h-11 pl-9")}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => setSchedOpen(false)}
-                            className="h-9 px-4 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-colors"
-                          >
-                            Done
-                          </button>
-                        </div>
-                      </div>
+                    </>
                     )}
                   </div>
                 </>
@@ -2114,6 +2184,289 @@ export function NewItemForm({
             </button>
           </div>
         </footer>
+      </div>
+    </div>
+  );
+}
+
+/* ── Custom "Set Date and Time" picker ─────────────────────────────────────
+   Replaces the native date/time inputs with the reference design: a month
+   calendar (‹ › nav, muted past/out-of-month days, brand tile on the picked
+   day) over a "Select Time" field that opens a scrollable 15-minute slot
+   list — typeable too ("2:33 PM" / "14:33"). Footer: back to the posting
+   actions, or Done. */
+
+const TIME_SLOTS: string[] = Array.from({ length: 96 }, (_, i) => {
+  const h = Math.floor(i / 4);
+  const m = (i % 4) * 15;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
+
+/** "14:33" → "2:33 PM". */
+function fmtTime12(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return hhmm;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+/** Lenient time parse — "2:33 PM", "2pm", "14:33" → "HH:MM" (or null). */
+function parseTimeText(raw: string): string | null {
+  const m = raw
+    .trim()
+    .toLowerCase()
+    .match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  const ap = m[3];
+  if (min > 59) return null;
+  if (ap) {
+    if (h < 1 || h > 12) return null;
+    if (ap === "pm" && h !== 12) h += 12;
+    if (ap === "am" && h === 12) h = 0;
+  } else if (h > 23) {
+    return null;
+  }
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+
+const WEEKDAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function SchedulePicker({
+  date,
+  time,
+  onDate,
+  onTime,
+  onBack,
+  onDone,
+}: {
+  /** Selected day, "yyyy-mm-dd". */
+  date: string;
+  /** Selected time, "HH:MM" (24h). */
+  time: string;
+  onDate: (d: string) => void;
+  onTime: (t: string) => void;
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const initial = date ? new Date(`${date}T00:00`) : new Date();
+  const [viewMonth, setViewMonth] = useState(
+    () => new Date(initial.getFullYear(), initial.getMonth(), 1),
+  );
+  const [timeOpen, setTimeOpen] = useState(false);
+  const [timeText, setTimeText] = useState(() => fmtTime12(time));
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+  const todayIso = toDateInput(new Date());
+  const monthLabel = viewMonth.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  // Full weeks covering the month (Sunday-first), incl. muted neighbours.
+  const firstWeekday = viewMonth.getDay();
+  const daysInMonth = new Date(
+    viewMonth.getFullYear(),
+    viewMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  const cellCount = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
+  const gridStart = new Date(viewMonth);
+  gridStart.setDate(1 - firstWeekday);
+  const cells = Array.from({ length: cellCount }, (_, i) => {
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    return d;
+  });
+
+  // Centre the active slot when the list opens (DOM scroll only, no state).
+  useEffect(() => {
+    if (!timeOpen) return;
+    listRef.current
+      ?.querySelector('[data-active="true"]')
+      ?.scrollIntoView({ block: "center" });
+  }, [timeOpen]);
+
+  function commitTimeText() {
+    const parsed = parseTimeText(timeText);
+    if (parsed) {
+      onTime(parsed);
+      setTimeText(fmtTime12(parsed));
+    } else {
+      setTimeText(fmtTime12(time));
+    }
+  }
+
+  const navBtn =
+    "inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 transition-colors hover:bg-cream-100 hover:text-ink-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 cursor-pointer";
+
+  return (
+    <div className="p-1.5">
+      {/* Month header + nav */}
+      <div className="flex items-center justify-between px-2 pb-2 pt-1.5">
+        <div className="text-[16px] font-bold text-ink-900">{monthLabel}</div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Previous month"
+            onClick={() =>
+              setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+            }
+            className={navBtn}
+          >
+            <ChevronLeft className="size-4" strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            aria-label="Next month"
+            onClick={() =>
+              setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
+            }
+            className={navBtn}
+          >
+            <ChevronRight className="size-4" strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
+      {/* Weekday initials */}
+      <div className="grid grid-cols-7 px-1">
+        {WEEKDAY_INITIALS.map((w, i) => (
+          <div
+            key={i}
+            className="flex h-8 items-center justify-center text-[12.5px] font-medium text-ink-400"
+          >
+            {w}
+          </div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div className="grid grid-cols-7 gap-y-0.5 px-1 pb-1">
+        {cells.map((d) => {
+          const iso = toDateInput(d);
+          const inMonth = d.getMonth() === viewMonth.getMonth();
+          const isSel = iso === date;
+          const muted = !inMonth || iso < todayIso;
+          const isToday = iso === todayIso;
+          return (
+            <button
+              key={iso}
+              type="button"
+              onClick={() => onDate(iso)}
+              aria-pressed={isSel}
+              className={cn(
+                "mx-auto flex size-9 items-center justify-center rounded-[10px] text-[14px] tabular-nums transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200",
+                isSel
+                  ? "bg-rose-100 font-semibold text-rose-700 ring-1 ring-rose-200"
+                  : cn(
+                      "hover:bg-cream-100",
+                      muted ? "text-ink-300" : "text-ink-800",
+                      isToday && "font-semibold text-rose-600",
+                    ),
+              )}
+            >
+              {d.getDate()}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Select Time */}
+      <div className="mt-2 border-t border-ink-100 px-2 pt-3">
+        <div className="mb-2 text-[13.5px] font-semibold text-ink-900">
+          Select Time
+        </div>
+        <div className="relative">
+          {timeOpen && (
+            <>
+              <button
+                type="button"
+                aria-hidden
+                tabIndex={-1}
+                onClick={() => setTimeOpen(false)}
+                className="fixed inset-0 z-10 cursor-default"
+              />
+              <div
+                ref={listRef}
+                className="anim-modal-in absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 max-h-[250px] overflow-y-auto rounded-[14px] bg-white p-1.5 shadow-[0_24px_60px_-20px_rgba(26,24,22,0.35)] ring-1 ring-ink-100"
+              >
+                {TIME_SLOTS.map((slot) => {
+                  const active = slot === time;
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      data-active={active || undefined}
+                      onClick={() => {
+                        onTime(slot);
+                        setTimeText(fmtTime12(slot));
+                        setTimeOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center rounded-[10px] px-3.5 py-2.5 text-left text-[14.5px] tabular-nums transition-colors cursor-pointer",
+                        active
+                          ? "bg-rose-50 font-semibold text-rose-700"
+                          : "text-ink-800 hover:bg-cream-100",
+                      )}
+                    >
+                      {fmtTime12(slot)}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+          <div
+            className={cn(
+              "flex h-12 items-center gap-2.5 rounded-[12px] bg-rose-50 px-3.5 ring-1 ring-rose-200 transition-shadow",
+              timeOpen && "ring-2 ring-rose-300",
+            )}
+          >
+            <Clock className="size-4 shrink-0 text-rose-600" strokeWidth={2} />
+            <input
+              value={timeText}
+              onChange={(e) => setTimeText(e.target.value)}
+              onFocus={() => setTimeOpen(true)}
+              onBlur={commitTimeText}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitTimeText();
+                  setTimeOpen(false);
+                } else if (e.key === "Escape") {
+                  setTimeOpen(false);
+                }
+              }}
+              aria-label="Time"
+              className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-rose-700 outline-none placeholder:text-rose-300"
+            />
+            <span className="shrink-0 text-[13px] text-rose-700/70">{tz}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer — back to the actions list, or confirm */}
+      <div className="mt-3 flex items-center justify-between border-t border-ink-100 px-2 pb-1 pt-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded text-[14px] font-semibold text-ink-700 transition-colors hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 cursor-pointer"
+        >
+          <ArrowLeft className="size-4" strokeWidth={2} />
+          More Posting Actions
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="inline-flex items-center gap-1.5 rounded text-[14px] font-semibold text-rose-700 transition-colors hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 cursor-pointer"
+        >
+          <Check className="size-4" strokeWidth={2.5} />
+          Done
+        </button>
       </div>
     </div>
   );
