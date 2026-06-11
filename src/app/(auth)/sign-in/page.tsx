@@ -5,7 +5,11 @@ import { AuthHeroPhoto, FeatureOverlayCard } from "@/components/auth/hero-photo"
 import { BRAND_NAME } from "@/lib/brand";
 import { SignInForm } from "./sign-in-form";
 
-export const metadata = { title: "Sign in · Profluencer" };
+export const metadata = {
+  title: "Sign in",
+  description: "Sign in to your Profluencer account.",
+  alternates: { canonical: "/sign-in" },
+};
 
 type SearchParams = Promise<{
   redirect?: string | string[];

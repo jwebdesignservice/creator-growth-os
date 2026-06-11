@@ -131,8 +131,14 @@
 /* ─── BASE STYLES ───────────────────────────────────────────────────────────
    Global resets and body defaults.
    ─────────────────────────────────────────────────────────────────────────── */
-* {
-  border-color: var(--ink-200);
+/* Default border colour. MUST live in @layer base — un-layered it would
+   outrank every Tailwind utility (utilities sit in @layer utilities), forcing
+   ALL `border-{color}` classes to ink-200. In the base layer it's just the
+   fallback, so `border-rose-600`, `border-transparent`, etc. work as written. */
+@layer base {
+  * {
+    border-color: var(--ink-200);
+  }
 }
 
 html,

@@ -9,6 +9,12 @@ import { getDevContext } from "@/lib/dev-dashboard/dev-access";
 import { getLang } from "@/lib/i18n/server";
 import { LanguageProvider } from "@/lib/i18n/client";
 
+// Everything inside the authed shell is private — never index, even if a
+// crawler somehow gets past the login redirect (also disallowed in robots.ts).
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 export default async function AppLayout({
   children,
 }: {

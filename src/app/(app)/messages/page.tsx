@@ -4,7 +4,7 @@ import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { listConversations } from "@/lib/community/dm/queries";
 import { ConversationList } from "@/components/community/dm/conversation-list";
 
-export const metadata = { title: "Messages · Creator Growth OS" };
+export const metadata = { title: "Messages" };
 
 export default async function MessagesPage() {
   const ctx = await getShellContext();

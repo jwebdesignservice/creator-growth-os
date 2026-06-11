@@ -10,7 +10,7 @@ import { BRAND_NAME } from "@/lib/brand";
  * "404 — This page could not be found" on a white background.
  */
 export const metadata = {
-  title: "Page not found · Profluencer",
+  title: "Page not found",
 };
 
 export default function NotFound() {

@@ -2,7 +2,7 @@ import { Filter } from "lucide-react";
 import { getUsersList } from "@/lib/admin/queries";
 import { UsersTable } from "./users-table";
 
-export const metadata = { title: "Users · Admin · Profluencer" };
+export const metadata = { title: "Users · Admin" };
 
 type Search = Promise<{
   q?: string;

@@ -25,7 +25,7 @@ import {
   type WorkspaceTab,
 } from "@/components/app-shell/workspace-shell";
 
-export const metadata = { title: "Posting Plans · Profluencer" };
+export const metadata = { title: "Posting Plans" };
 
 type PostingTab = "my_plans" | "posts" | "ideas" | "calendar" | "insights";
 

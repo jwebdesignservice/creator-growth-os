@@ -48,6 +48,9 @@ type Props = {
    * `programSlug` is set (programs always navigate within `/programs/...`).
    */
   basePath?: string | null;
+  /** Hide the Add-note button — e.g. when the page has a Notes tab with its
+   *  own compose action. */
+  showNoteButton?: boolean;
 };
 
 const MAX_LEN = 5000;
@@ -69,6 +72,7 @@ export function LessonActionRow({
   nextSlug,
   prevSlug,
   basePath,
+  showNoteButton = true,
 }: Props) {
   const router = useRouter();
   const [completed, setCompleted] = useState(initialCompleted);
@@ -110,21 +114,23 @@ export function LessonActionRow({
 
   return (
     <>
-      {/* Standalone action row — no card surface, buttons share the width
-          (primary first on mobile via column-reverse). */}
-      <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-stretch">
-        <button
-          type="button"
-          onClick={() => setNoteOpen(true)}
-          className={cn(ghostBtn, "sm:flex-1")}
-        >
-          <NotebookPen className="size-4" strokeWidth={1.8} />
-          Add note
-        </button>
+      {/* Standalone action row — compact secondary actions on the left,
+          the primary anchored right (primary first on mobile). */}
+      <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center">
+        {showNoteButton && (
+          <button
+            type="button"
+            onClick={() => setNoteOpen(true)}
+            className={ghostBtn}
+          >
+            <NotebookPen className="size-4" strokeWidth={1.8} />
+            Add note
+          </button>
+        )}
         <button
           type="button"
           onClick={() => router.push(siblingHref(prevSlug))}
-          className={cn(ghostBtn, "sm:flex-1")}
+          className={ghostBtn}
         >
           <ArrowLeft className="size-4" strokeWidth={2} />
           Previous
@@ -133,7 +139,7 @@ export function LessonActionRow({
           type="button"
           onClick={completeAndContinue}
           disabled={pending}
-          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] bg-rose-600 text-white text-[13.5px] font-semibold shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:shadow-[0_10px_24px_-8px_rgba(185,72,92,0.7)] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] sm:flex-1"
+          className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-[10px] bg-rose-600 text-white text-[13.5px] font-semibold shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] transition-all duration-150 hover:bg-rose-700 hover:shadow-[0_10px_24px_-8px_rgba(185,72,92,0.7)] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_20px_-8px_rgba(185,72,92,0.6)] sm:ml-auto"
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" strokeWidth={2} />

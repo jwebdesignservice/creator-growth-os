@@ -7,7 +7,10 @@ import { BRAND_NAME } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import { ResetForm } from "./reset-form";
 
-export const metadata = { title: "Set new password · Profluencer" };
+export const metadata = {
+  title: "Set new password",
+  robots: { index: false, follow: false },
+};
 
 /**
  * Reset / set-new-password page.

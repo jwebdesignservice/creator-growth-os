@@ -5,7 +5,7 @@ import { isStripeConfigured } from "@/lib/stripe/client";
 import { BillingPageClient } from "../../billing/billing-panel";
 
 export const metadata = {
-  title: "Payment methods · Settings · Profluencer",
+  title: "Payment methods · Settings",
 };
 
 // The full billing experience now lives here, inside Settings → Payment

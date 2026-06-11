@@ -17,10 +17,18 @@ import { BookADemoForm } from "@/components/marketing/book-a-demo-form";
  */
 
 export const metadata = {
-  title: "Book a Demo — Profluencer",
+  title: "Book a Demo",
   description:
     "See Profluencer in action. Share a few details and we'll tailor a " +
     "personalized walkthrough to your niche, audience and growth goals.",
+  alternates: { canonical: "/book-a-demo" },
+  openGraph: {
+    title: "Book a Demo",
+    description:
+      "See Profluencer in action — a personalized walkthrough tailored to " +
+      "your niche, audience and growth goals.",
+    url: "/book-a-demo",
+  },
 };
 
 const NAV = [

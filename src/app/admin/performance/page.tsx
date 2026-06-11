@@ -6,7 +6,7 @@ import {
 } from "@/lib/performance/admin-queries";
 
 export const metadata = {
-  title: "Performance · Admin · Profluencer",
+  title: "Performance · Admin",
 };
 
 const PLATFORM_LABEL: Record<string, string> = {

@@ -3,8 +3,11 @@ import { BrandMark } from "@/components/brand-mark";
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: "Terms of Service · Profluencer",
-  description: "Terms of Service for Profluencer.",
+  title: "Terms of Service",
+  description:
+    "The terms that govern your use of Profluencer, the creator growth " +
+    "platform.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

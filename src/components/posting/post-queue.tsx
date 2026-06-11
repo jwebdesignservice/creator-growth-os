@@ -101,8 +101,10 @@ export function PostQueue({
 
   return (
     <div className="max-w-[880px] space-y-7 pb-4">
-      {days.map((day) => (
-        <section key={day.key}>
+      {days.map((day, i) => (
+        // A hairline above each day (after the first) separates the groups
+        // so the queue scans day-by-day at a glance.
+        <section key={day.key} className={i > 0 ? "border-t border-ink-100 pt-7" : undefined}>
           <DayHeading dayKey={day.key} />
           <div className="mt-3 space-y-3">
             {day.items.map((item) => (
@@ -125,7 +127,7 @@ export function PostQueue({
       ))}
 
       {unscheduled.length > 0 && (
-        <section>
+        <section className="border-t border-ink-100 pt-7">
           <h4 className="text-[15px] font-bold text-ink-900">Unscheduled</h4>
           <div className="mt-3 space-y-3">
             {unscheduled.map((item) => (

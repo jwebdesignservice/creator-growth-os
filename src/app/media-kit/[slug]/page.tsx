@@ -1,7 +1,43 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Media Kit · Profluencer" };
+/** Public, shareable creator media kits — give each one its own title,
+ *  description and OG card so links shared with brands preview properly. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const supabase = createServiceClient();
+  const { data: kit } = await supabase
+    .from("media_kits")
+    .select("user_id, headline, niche")
+    .eq("share_slug", slug)
+    .eq("published", true)
+    .maybeSingle();
+  if (!kit) return { title: "Media Kit" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, full_name")
+    .eq("id", kit.user_id)
+    .maybeSingle();
+  const name = profile?.display_name ?? profile?.full_name ?? "Creator";
+  const description =
+    kit.headline ??
+    `${name}'s creator media kit${kit.niche ? ` — ${kit.niche}` : ""}. Audience stats, rates and collaboration links.`;
+
+  return {
+    title: `${name} — Media Kit`,
+    description,
+    openGraph: {
+      title: `${name} — Media Kit`,
+      description,
+      type: "profile",
+    },
+  };
+}
 
 type MediaKitPublic = {
   user_id: string;

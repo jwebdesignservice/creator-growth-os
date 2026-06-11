@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { TutorialsView, type TutorialCardData } from "./tutorials-view";
 
 export const metadata = {
-  title: "Tutorials · Admin · Profluencer",
+  title: "Tutorials · Admin",
 };
 
 type LessonRow = {

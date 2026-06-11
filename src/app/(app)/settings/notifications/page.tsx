@@ -5,7 +5,7 @@ import { PageShell } from "@/components/app-shell/page-shell";
 import { NotificationsForm } from "./notifications-form";
 
 export const metadata = {
-  title: "Notifications · Settings · Profluencer",
+  title: "Notifications · Settings",
 };
 
 export default async function NotificationsSettingsPage() {

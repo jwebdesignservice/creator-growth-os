@@ -13,7 +13,7 @@ import {
 import { getUserDetail } from "@/lib/admin/queries";
 import { UserEditForms } from "./edit-forms";
 
-export const metadata = { title: "User · Admin · Profluencer" };
+export const metadata = { title: "User · Admin" };
 
 type Params = Promise<{ id: string }>;
 
