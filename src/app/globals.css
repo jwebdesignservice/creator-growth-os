@@ -528,6 +528,44 @@ select.input {
   .agent-progress { animation: none !important; height: 100% !important; }
 }
 
+/* Lesson player — small state-change micro-interactions. `pop-in` lands a
+   status icon with a gentle overshoot (completion check, success chips);
+   `bar-sweep` fills a progress bar from 0 to its inline width on mount. */
+@keyframes lesson-pop-in {
+  0% { opacity: 0; transform: scale(0.5); }
+  70% { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.anim-pop-in {
+  animation: lesson-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes lesson-bar-sweep {
+  from { width: 0; }
+}
+.anim-bar-sweep {
+  animation: lesson-bar-sweep 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s backwards;
+}
+/* Modal entrance — overlay fades, the panel settles up into place. */
+@keyframes lesson-overlay-in {
+  from { opacity: 0; }
+}
+.anim-overlay-in {
+  animation: lesson-overlay-in 0.2s ease-out both;
+}
+@keyframes lesson-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.anim-modal-in {
+  animation: lesson-modal-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim-pop-in,
+  .anim-bar-sweep,
+  .anim-overlay-in,
+  .anim-modal-in { animation: none; }
+}
+
 /* Programs library — progress fills sweep from 0 to their inline width on
    mount (the thumbnail strip on program cards). `backwards` holds width:0
    through the small delay so the sweep reads as one deliberate motion. */

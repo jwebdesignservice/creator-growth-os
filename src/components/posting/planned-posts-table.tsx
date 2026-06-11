@@ -26,7 +26,7 @@ import type { PostingItem, PlatformKey } from "@/lib/posting/queries";
 import { contentTypeAccent } from "@/lib/posting/content-type-accent";
 import { ItemActionsMenu } from "./item-actions-menu";
 import { StatusPill } from "./status-pill";
-import { PostDetailModal } from "./post-detail-modal";
+import { NewItemForm } from "./posting-actions";
 
 type Props = {
   items: PostingItem[];
@@ -38,9 +38,22 @@ type Props = {
   isDemo?: boolean;
   /** Optional "Add Post" action rendered centered in the space below the rows. */
   addPostSlot?: ReactNode;
+  /** Card heading — the Posts/Ideas tabs reuse this table under their own name. */
+  title?: string;
+  description?: string;
+  emptyTitle?: string;
+  emptyDesc?: string;
 };
 
-export function PlannedPostsTable({ items, isDemo = false, addPostSlot }: Props) {
+export function PlannedPostsTable({
+  items,
+  isDemo = false,
+  addPostSlot,
+  title = "Planned Posts",
+  description = "Review and manage your upcoming content across all platforms.",
+  emptyTitle = "No posts planned yet",
+  emptyDesc = "Use “Add Post” above to schedule your first post for this plan.",
+}: Props) {
   const count = items.length;
   // Which post is open in the detail/edit popup (null = closed).
   const [editItem, setEditItem] = useState<PostingItem | null>(null);
@@ -51,10 +64,8 @@ export function PlannedPostsTable({ items, isDemo = false, addPostSlot }: Props)
       {/* Header */}
       <header className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-ink-100 shrink-0">
         <div className="min-w-0">
-          <h3 className="text-h4 text-ink-900">Planned Posts</h3>
-          <p className="text-[12.5px] text-ink-500 mt-0.5">
-            Review and manage your upcoming content across all platforms.
-          </p>
+          <h3 className="text-h4 text-ink-900">{title}</h3>
+          <p className="text-[12.5px] text-ink-500 mt-0.5">{description}</p>
         </div>
         <Link
           href="/posting?view=calendar"
@@ -78,11 +89,9 @@ export function PlannedPostsTable({ items, isDemo = false, addPostSlot }: Props)
             <Sparkles className="size-5" strokeWidth={1.8} />
           </div>
           <p className="text-[14px] text-ink-700 mb-1 font-medium">
-            No posts planned yet
+            {emptyTitle}
           </p>
-          <p className="text-[12.5px] text-ink-500">
-            Use &ldquo;Add Post&rdquo; above to schedule your first post for this plan.
-          </p>
+          <p className="text-[12.5px] text-ink-500">{emptyDesc}</p>
         </div>
       ) : (
         <div className="overflow-auto lg:flex-1 lg:min-h-0">
@@ -185,7 +194,7 @@ export function PlannedPostsTable({ items, isDemo = false, addPostSlot }: Props)
       )}
     </section>
       {editItem && (
-        <PostDetailModal item={editItem} onClose={() => setEditItem(null)} />
+        <NewItemForm editItem={editItem} onClose={() => setEditItem(null)} />
       )}
     </>
   );

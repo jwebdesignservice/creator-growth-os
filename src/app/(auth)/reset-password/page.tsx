@@ -59,8 +59,8 @@ export default async function ResetPasswordPage() {
         <div className="relative z-10 max-w-[520px]">
           <p className="text-[17px] xl:text-[18px] text-ink-900 leading-relaxed font-medium mb-5">
             <span aria-hidden className="text-ink-700">&ldquo;</span>
-            A strong password is the first line of defense — and Creator
-            Growth OS keeps your work, your audience, and your revenue safe.
+            A strong password is the first line of defense — and Profluencer
+            keeps your work, your audience, and your revenue safe.
             <span aria-hidden className="text-ink-700">&rdquo;</span>
           </p>
           <p className="text-[13px] text-ink-500 mb-6">— Security at Profluencer</p>

@@ -26,10 +26,10 @@ export function LessonNotes({
   const [composeOpen, setComposeOpen] = useState(false);
 
   return (
-    <section className="bg-cream-100 overflow-hidden flex flex-col min-h-[70vh] lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
-      {/* Header — matches the program "My Notes" card chrome */}
+    <section className="card rounded-[16px] overflow-hidden">
+      {/* Header — matches the Resources panel chrome */}
       <div className="p-5 sm:p-6 flex items-start gap-3">
-        <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+        <span className="size-10 rounded-[12px] bg-gradient-to-br from-rose-100 to-rose-200/70 text-rose-600 ring-1 ring-rose-200/60 inline-flex items-center justify-center shrink-0">
           <NotebookPen className="size-[18px]" strokeWidth={1.9} />
         </span>
         <div className="flex-1 min-w-0">
@@ -47,7 +47,7 @@ export function LessonNotes({
         )}
       </div>
 
-      <div className="border-t border-ink-100 p-4 sm:p-5 flex-1">
+      <div className="border-t border-ink-100 bg-cream-50/50 p-4 sm:p-5">
         <NotesList
           notes={notes}
           showContext={false}

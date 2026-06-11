@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   CheckCircle2,
   CalendarDays,
+  Clock,
   FileText,
   FileSpreadsheet,
   Files,
@@ -22,7 +23,6 @@ import {
   Play,
   type LucideIcon,
 } from "lucide-react";
-import { Avatar } from "@/components/app-shell/avatar";
 import { LessonNotes } from "@/components/notes/lesson-notes";
 import type { ProgramNote } from "@/lib/programs/queries";
 import type { LessonTabKey } from "./lesson-tab-defs";
@@ -68,16 +68,12 @@ type Props = {
   notes: ProgramNote[];
   lessonSlug: string;
   lessonTitle: string;
+  /** Humanized lesson length, e.g. "4 min". */
+  durationLabel: string;
+  difficulty: string;
+  /** The lesson the learner should continue to (authored path first). */
+  upNext: { slug: string; title: string } | null;
 };
-
-
-const TAKEAWAYS = [
-  "Why hooks are critical for reach and retention",
-  "4 high-performing hook angles that work every time",
-  "The hook formula and how to use it",
-  "Real hook examples that drive views",
-  "How to test and refine your hooks",
-];
 
 /**
  * Renders the active lesson section. The tab navigation itself lives in the
@@ -91,8 +87,22 @@ export function LessonContent({
   notes,
   lessonSlug,
   lessonTitle,
+  durationLabel,
+  difficulty,
+  upNext,
 }: Props & { active: LessonTabKey }) {
-  if (active === "overview") return <OverviewPanel description={description} />;
+  if (active === "overview")
+    return (
+      <OverviewPanel
+        description={description}
+        chapters={chapters}
+        resources={resources}
+        durationLabel={durationLabel}
+        difficulty={difficulty}
+        upNext={upNext}
+        lessonSlug={lessonSlug}
+      />
+    );
   if (active === "path") return <PathPanel chapters={chapters} />;
   if (active === "resources") return <ResourcesPanel resources={resources} />;
   return (
@@ -104,54 +114,188 @@ export function LessonContent({
   );
 }
 
-/* ─── Overview (lesson summary + takeaways + coach insight) ─────────────── */
+/* ─── Overview (summary + what's covered + up next + resources preview) ── */
 
-function OverviewPanel({ description }: { description: string | null }) {
+function OverviewPanel({
+  description,
+  chapters,
+  resources,
+  durationLabel,
+  difficulty,
+  upNext,
+  lessonSlug,
+}: {
+  description: string | null;
+  chapters: Chapter[];
+  resources: LessonResourceItem[];
+  durationLabel: string;
+  difficulty: string;
+  upNext: { slug: string; title: string } | null;
+  lessonSlug: string;
+}) {
+  const facts: { icon: LucideIcon; label: string; value: string }[] = [
+    { icon: Play, label: "Format", value: "Video lesson" },
+    { icon: Target, label: "Level", value: difficulty },
+    { icon: Clock, label: "Length", value: durationLabel },
+    ...(chapters.length > 0
+      ? [
+          {
+            icon: CalendarDays,
+            label: "Path",
+            value: `${chapters.length} step${chapters.length === 1 ? "" : "s"}`,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-[13.5px] text-ink-600 leading-relaxed mb-4 max-w-2xl">
-          {description ??
-            "A focused lesson packed with what actually moves the needle for creators at your stage — clear, practical, and built to apply this week."}
-        </p>
-        <div className="text-[13px] font-semibold text-ink-900 mb-2.5">
-          Key takeaways
-        </div>
-        <ul className="space-y-2">
-          {TAKEAWAYS.map((t) => (
-            <li
-              key={t}
-              className="flex items-start gap-2 text-[13px] text-ink-700"
-            >
-              <span className="size-4 rounded-full bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="size-3" strokeWidth={3} />
-              </span>
-              {t}
-            </li>
-          ))}
-        </ul>
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
+      {/* Main column — about + what's covered */}
+      <div className="space-y-5">
+        <section className="card rounded-[16px] p-5 sm:p-6">
+          <h3 className="text-[14px] font-semibold text-ink-900 mb-2">
+            About this lesson
+          </h3>
+          <p className="text-[13.5px] text-ink-600 leading-relaxed max-w-2xl">
+            {description ??
+              "A short, focused lesson. Watch the video, then use the actions below the player to take a note or continue to the next step."}
+          </p>
+
+          {/* At-a-glance facts — quiet divider row, no chip noise */}
+          <dl className="mt-5 pt-4 border-t border-ink-100 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+            {facts.map((f) => (
+              <div key={f.label} className="flex items-center gap-2.5 min-w-0">
+                <span className="size-8 rounded-[9px] bg-gradient-to-br from-cream-100 to-cream-200 text-ink-500 ring-1 ring-ink-100/80 inline-flex items-center justify-center shrink-0">
+                  <f.icon className="size-4" strokeWidth={1.9} aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <dt className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-400">
+                    {f.label}
+                  </dt>
+                  <dd className="text-[12.5px] font-semibold text-ink-900 truncate">
+                    {f.value}
+                  </dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* What's covered — the REAL authored path, previewed (no fabricated
+            takeaways; lessons without a path simply skip this section). */}
+        {chapters.length > 0 && (
+          <section className="card rounded-[16px] p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-[14px] font-semibold text-ink-900">
+                What&apos;s covered
+              </h3>
+              <Link
+                href={`/tutorials/${lessonSlug}?tab=path`}
+                className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-rose-600 hover:text-rose-700 transition-colors shrink-0"
+              >
+                View lesson path
+                <ChevronRight className="size-3.5" strokeWidth={2.5} aria-hidden />
+              </Link>
+            </div>
+            <ul className="space-y-2">
+              {chapters.slice(0, 5).map((c, i) => (
+                <li
+                  key={c.id}
+                  className="flex items-center gap-2.5 text-[13px] text-ink-700"
+                >
+                  <span className="size-5 rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 ring-1 ring-rose-200/50 inline-flex items-center justify-center text-[10.5px] font-bold tabular-nums shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 truncate">{c.title}</span>
+                  {c.linkedCompleted && (
+                    <CheckCircle2
+                      className="size-3.5 text-success shrink-0"
+                      strokeWidth={2.5}
+                      aria-hidden
+                    />
+                  )}
+                </li>
+              ))}
+              {chapters.length > 5 && (
+                <li className="text-[12px] text-ink-400 pl-[30px]">
+                  +{chapters.length - 5} more step
+                  {chapters.length - 5 === 1 ? "" : "s"}
+                </li>
+              )}
+            </ul>
+          </section>
+        )}
       </div>
 
-      <div className="rounded-[14px] bg-cream-100 border border-cream-300 p-5 max-w-2xl">
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-rose-600 mb-2">
-          <Lightbulb className="size-3.5" strokeWidth={2} aria-hidden />
-          Key insight
-        </div>
-        <blockquote className="border-l-2 border-rose-300 pl-4 italic text-[14px] text-ink-700 leading-relaxed mb-4">
-          &ldquo;The best hooks create curiosity, promise value, or challenge
-          the viewer&apos;s current belief. Make them want to stay.&rdquo;
-        </blockquote>
-        <div className="flex items-center gap-2.5">
-          <Avatar name="Sophie Carter" size={36} />
-          <div>
-            <div className="text-[12.5px] font-semibold text-ink-900 leading-tight">
-              Your Coach, Sophie
+      {/* Side column — continue + resources shortcuts */}
+      <div className="space-y-4 min-w-0">
+        {upNext && (
+          <Link
+            href={`/tutorials/${upNext.slug}`}
+            className="group block card rounded-[16px] p-4 transition-all duration-200 hover:border-rose-200 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_-20px_rgba(26,24,22,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2"
+          >
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-rose-600 mb-1.5">
+              Up next
             </div>
-            <div className="text-[11px] text-ink-500">
-              Growth &amp; Content Strategist
+            <div className="flex items-center gap-3">
+              <span className="size-9 rounded-[10px] bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_6px_14px_-6px_rgba(185,72,92,0.6)] inline-flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105">
+                <Play className="size-3.5 ml-0.5" fill="currentColor" strokeWidth={0} aria-hidden />
+              </span>
+              <span className="flex-1 min-w-0 text-[13px] font-semibold text-ink-900 leading-snug line-clamp-2 group-hover:text-rose-700 transition-colors">
+                {upNext.title}
+              </span>
+              <ChevronRight
+                className="size-4 text-ink-300 shrink-0 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={2}
+                aria-hidden
+              />
             </div>
+          </Link>
+        )}
+
+        {resources.length > 0 && (
+          <div className="card rounded-[16px] p-4">
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <div className="text-[12.5px] font-semibold text-ink-900">
+                Resources
+              </div>
+              <span className="text-[11px] text-ink-400 tabular-nums">
+                {resources.length}
+              </span>
+            </div>
+            <ul className="space-y-1">
+              {resources.slice(0, 3).map((r) => (
+                <li key={r.id}>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-2.5 rounded-[9px] px-2 py-1.5 -mx-2 hover:bg-cream-100 transition-colors"
+                  >
+                    <span className="size-7 rounded-[8px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+                      <FileText className="size-3.5" strokeWidth={1.9} aria-hidden />
+                    </span>
+                    <span className="flex-1 min-w-0 text-[12.5px] font-medium text-ink-700 truncate group-hover:text-ink-900 transition-colors">
+                      {r.title}
+                    </span>
+                    {r.kind === "link" && (
+                      <ExternalLink className="size-3 text-ink-300 shrink-0" strokeWidth={2} aria-hidden />
+                    )}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {resources.length > 3 && (
+              <Link
+                href={`/tutorials/${lessonSlug}?tab=resources`}
+                className="mt-1.5 inline-flex items-center gap-0.5 text-[12px] font-semibold text-rose-600 hover:text-rose-700 transition-colors"
+              >
+                All resources
+                <ChevronRight className="size-3.5" strokeWidth={2.5} aria-hidden />
+              </Link>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -182,17 +326,16 @@ const CHAPTER_TYPE_LABEL: Record<string, string> = {
 function PathPanel({ chapters }: { chapters: Chapter[] }) {
   if (chapters.length === 0) {
     return (
-      <div className="bg-cream-100 min-h-[70vh] flex flex-col items-center justify-center text-center px-4 lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
-        <CalendarDays
-          className="size-6 text-ink-400 mx-auto mb-2"
-          strokeWidth={1.8}
-          aria-hidden
-        />
-        <div className="text-[13px] font-semibold text-ink-900">
+      <div className="card rounded-[16px] px-5 py-12 flex flex-col items-center justify-center text-center">
+        <span className="size-11 rounded-full bg-gradient-to-br from-cream-100 to-cream-200 text-ink-400 ring-1 ring-ink-100 inline-flex items-center justify-center mb-3">
+          <CalendarDays className="size-5" strokeWidth={1.8} aria-hidden />
+        </span>
+        <div className="text-[13.5px] font-semibold text-ink-900">
           No lesson path yet
         </div>
-        <p className="text-[12px] text-ink-500 mt-0.5">
-          This tutorial hasn&apos;t been broken into chapters yet.
+        <p className="text-[12.5px] text-ink-500 mt-0.5 max-w-sm">
+          This tutorial hasn&apos;t been broken into steps yet — just watch the
+          video above and continue when you&apos;re ready.
         </p>
       </div>
     );
@@ -202,18 +345,49 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
     (sum, c) => sum + (c.durationMinutes || 0),
     0,
   );
+  // Real progress over the navigable (linked video) steps.
+  const linkedSteps = chapters.filter((c) => c.type === "video" && c.linked);
+  const watched = linkedSteps.filter((c) => c.linkedCompleted).length;
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-end justify-between gap-3 mb-3">
+      <div className="flex items-end justify-between gap-3 mb-2">
         <div className="text-[14px] font-semibold text-ink-900">
           Lesson path
         </div>
         <span className="text-[11.5px] text-ink-500 tabular-nums shrink-0">
-          {chapters.length} chapter{chapters.length === 1 ? "" : "s"} · ~
+          {chapters.length} step{chapters.length === 1 ? "" : "s"} · ~
           {totalDuration} min
         </span>
       </div>
+
+      {/* Progress — only meaningful when the path links real videos */}
+      {linkedSteps.length > 0 && (
+        <div className="mb-4">
+          <div
+            className="h-1.5 rounded-full bg-cream-200 ring-1 ring-inset ring-ink-900/[0.04] overflow-hidden"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={linkedSteps.length}
+            aria-valuenow={watched}
+            aria-label="Lesson path progress"
+          >
+            <div
+              className="anim-bar-sweep h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-600"
+              style={{ width: `${Math.round((watched / linkedSteps.length) * 100)}%` }}
+            />
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-ink-500 tabular-nums">
+            <span>
+              {watched} of {linkedSteps.length} video
+              {linkedSteps.length === 1 ? "" : "s"} watched
+            </span>
+            <span className="font-semibold text-ink-700">
+              {Math.round((watched / linkedSteps.length) * 100)}%
+            </span>
+          </div>
+        </div>
+      )}
       <ul className="space-y-1.5">
         {chapters.map((c, i) => {
           const Icon = CHAPTER_ICONS[c.iconKey] ?? Square;
@@ -234,9 +408,9 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
               <li key={c.id}>
                 <Link
                   href={`/tutorials/${linked.slug}?tab=path`}
-                  className="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] border border-rose-200 bg-rose-50/40 hover:bg-rose-50 hover:border-rose-300 transition-colors"
+                  className="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] border border-rose-200 bg-rose-50/40 transition-all duration-150 hover:bg-rose-50 hover:border-rose-300 hover:-translate-y-px hover:shadow-[0_8px_18px_-12px_rgba(185,72,92,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-1"
                 >
-                  <span className="size-6 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
+                  <span className="size-6 rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 ring-1 ring-rose-200/50 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
                     {i + 1}
                   </span>
                   <span
@@ -295,10 +469,10 @@ function PathPanel({ chapters }: { chapters: Chapter[] }) {
               key={c.id}
               className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] border border-ink-100 bg-white"
             >
-              <span className="size-6 rounded-full bg-rose-100 text-rose-700 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
+              <span className="size-6 rounded-full bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 ring-1 ring-rose-200/50 inline-flex items-center justify-center text-[11px] font-bold tabular-nums shrink-0">
                 {i + 1}
               </span>
-              <span className="size-8 rounded-[9px] bg-rose-50 text-rose-600 inline-flex items-center justify-center shrink-0">
+              <span className="size-8 rounded-[9px] bg-gradient-to-br from-rose-50 to-rose-100/80 text-rose-600 ring-1 ring-rose-200/40 inline-flex items-center justify-center shrink-0">
                 <Icon className="size-4" strokeWidth={1.9} aria-hidden />
               </span>
               <div className="flex-1 min-w-0">
@@ -347,7 +521,7 @@ function formatBytes(bytes: number | null): string | null {
 
 function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
   return (
-    <section className="bg-cream-100 overflow-hidden flex flex-col min-h-[70vh] lg:-ml-6 lg:-mr-[var(--space-page-x)] lg:-mb-[var(--space-page-y)]">
+    <section className="card rounded-[16px] overflow-hidden max-w-2xl">
       {/* Header — matches the program "Templates & Downloads" card chrome */}
       <div className="p-5 sm:p-6 flex items-start gap-3">
         <span className="size-10 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
@@ -369,15 +543,16 @@ function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
       </div>
 
       {resources.length === 0 ? (
-        <div className="border-t border-ink-100 flex-1 flex flex-col items-center justify-center px-5 sm:px-6 py-10 text-center">
-          <span className="size-11 rounded-full bg-cream-100 text-ink-400 inline-flex items-center justify-center mb-3">
+        <div className="border-t border-ink-100 flex flex-col items-center justify-center px-5 sm:px-6 py-12 text-center">
+          <span className="size-11 rounded-full bg-gradient-to-br from-cream-100 to-cream-200 text-ink-400 ring-1 ring-ink-100 inline-flex items-center justify-center mb-3">
             <Files className="size-5" strokeWidth={1.8} aria-hidden />
           </span>
           <h4 className="text-[14px] font-semibold text-ink-900 mb-1">
             No resources yet
           </h4>
           <p className="text-[12.5px] text-ink-500 max-w-sm mx-auto leading-snug">
-            This lesson doesn&apos;t have any resources attached.
+            This lesson doesn&apos;t have any files or links attached. Anything
+            the coach adds later will show up here.
           </p>
         </div>
       ) : (
@@ -394,9 +569,9 @@ function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
                   href={r.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 hover:bg-cream-50 transition-colors cursor-pointer text-left"
+                  className="group flex items-center gap-3.5 w-full px-5 sm:px-6 py-3.5 transition-colors hover:bg-cream-50 focus-visible:outline-none focus-visible:bg-cream-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-200 cursor-pointer text-left"
                 >
-                  <span className="size-11 rounded-[12px] bg-rose-100 text-rose-600 inline-flex items-center justify-center shrink-0">
+                  <span className="size-11 rounded-[12px] bg-gradient-to-br from-rose-100 to-rose-200/70 text-rose-600 ring-1 ring-rose-200/60 inline-flex items-center justify-center shrink-0 transition-transform duration-150 group-hover:scale-[1.04]">
                     <Icon className="size-[20px]" strokeWidth={1.9} aria-hidden />
                   </span>
                   <div className="flex-1 min-w-0">
@@ -410,13 +585,13 @@ function ResourcesPanel({ resources }: { resources: LessonResourceItem[] }) {
                   </div>
                   {r.kind === "link" ? (
                     <ExternalLink
-                      className="size-4 text-ink-400 shrink-0"
+                      className="size-4 text-ink-400 shrink-0 transition-colors group-hover:text-ink-600"
                       strokeWidth={2}
                       aria-hidden
                     />
                   ) : (
                     <ChevronRight
-                      className="size-4 text-ink-400 shrink-0"
+                      className="size-4 text-ink-400 shrink-0 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-ink-600"
                       strokeWidth={2}
                       aria-hidden
                     />

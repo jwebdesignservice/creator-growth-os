@@ -40,6 +40,12 @@ export default async function OnboardingPage() {
       initialDraft={{
         // Pre-fill draft from anything captured at signup, so users don't re-pick.
         primary_platform: (profile?.primary_platform as never) ?? null,
+        // Seed the multi-select from a known single platform so the channels
+        // step shows it pre-ticked ("multiple" can't be mapped back).
+        focus_channels:
+          profile?.primary_platform && profile.primary_platform !== "multiple"
+            ? [profile.primary_platform as never]
+            : [],
       }}
     />
   );

@@ -5,19 +5,19 @@ import {
   CalendarRange,
   ClipboardList,
   BarChart3,
+  FileText,
+  Lightbulb,
 } from "lucide-react";
 import { PageShell } from "@/components/app-shell/page-shell";
 import { getShellContext } from "@/lib/app-shell/get-shell-context";
 import { ActivePlanCard } from "@/components/posting/active-plan-card";
-import { PlannedPostsTable } from "@/components/posting/planned-posts-table";
+import { IdeasBoard } from "@/components/posting/ideas-board";
+import { PostingPlatformCards } from "@/components/posting/platform-cards";
+import { PostQueue } from "@/components/posting/post-queue";
 import { PostingActions } from "@/components/posting/posting-actions";
 import { ContentCalendar } from "@/components/posting/content-calendar";
 import { InsightsDashboard } from "@/components/posting/insights-dashboard";
-import {
-  getActivePlan,
-  getPlannedItems,
-  getItemPhases,
-} from "@/lib/posting/queries";
+import { getActivePlan, getPlannedItems } from "@/lib/posting/queries";
 import {
   WorkspaceShell,
   WorkspaceHeader,
@@ -26,10 +26,22 @@ import {
 
 export const metadata = { title: "Posting Plans" };
 
-type PostingTab = "my_plans" | "calendar" | "insights";
+type PostingTab = "my_plans" | "posts" | "ideas" | "calendar" | "insights";
 
 const POSTING_TABS: WorkspaceTab[] = [
   { key: "my_plans", label: "My Plans", icon: ClipboardList, href: "/posting" },
+  {
+    key: "posts",
+    label: "Posts",
+    icon: FileText,
+    href: "/posting?view=posts",
+  },
+  {
+    key: "ideas",
+    label: "Ideas",
+    icon: Lightbulb,
+    href: "/posting?view=ideas",
+  },
   {
     key: "calendar",
     label: "Calendar",
@@ -56,22 +68,25 @@ export default async function PostingPage({
 
   const { view } = await searchParams;
   const active: PostingTab =
-    view === "calendar" ? "calendar" : view === "insights" ? "insights" : "my_plans";
+    view === "calendar"
+      ? "calendar"
+      : view === "insights"
+        ? "insights"
+        : view === "posts"
+          ? "posts"
+          : view === "ideas"
+            ? "ideas"
+            : "my_plans";
 
   const activePlan = await getActivePlan();
 
-  // Calendar needs the full week; the table previews fewer. Insights uses
+  // Calendar needs the full week; My Plans needs it too (the platform cards
+  // count posts per platform) while its table previews fewer. Insights uses
   // sample visualisations, so it needs no items.
-  const itemLimit = active === "calendar" ? 100 : active === "my_plans" ? 8 : 0;
+  const itemLimit = active === "insights" ? 0 : 100;
   const items =
     activePlan && itemLimit > 0
       ? await getPlannedItems(activePlan.id, itemLimit)
-      : [];
-
-  // Per-post phases power the calendar's Timeline (roadmap) view.
-  const phases =
-    active === "calendar" && items.length > 0
-      ? await getItemPhases(items.map((i) => i.id))
       : [];
 
   return (
@@ -89,22 +104,30 @@ export default async function PostingPage({
             <WorkspaceHeader title="My Plans">
               <PostingActions activePlanId={activePlan.id} />
             </WorkspaceHeader>
-            {/* Two clearly separate cards — plan summary, then the posts
-                table — floating on the cream page background. */}
+            {/* Two sections — plan summary + the per-platform nav cards.
+                (The post list lives in the Posts tab's queue.) */}
             <div className="space-y-5 pt-1 pb-4">
               <ActivePlanCard plan={activePlan} />
-              <PlannedPostsTable
-                items={items}
-                addPostSlot={<PostingActions activePlanId={activePlan.id} />}
-              />
+              <PostingPlatformCards items={items} planId={activePlan.id} />
             </div>
           </div>
+        ) : active === "posts" ? (
+          <div className="space-y-4">
+            <WorkspaceHeader title="Posts">
+              <PostingActions activePlanId={activePlan.id} />
+            </WorkspaceHeader>
+            {/* Queue — posts on a day-by-day timeline with "+ New" slots. */}
+            <div className="pt-1">
+              <PostQueue items={items} planId={activePlan.id} />
+            </div>
+          </div>
+        ) : active === "ideas" ? (
+          <IdeasBoard />
         ) : active === "calendar" ? (
           <ContentCalendar
             items={items}
             weekStart={activePlan.week_start}
             planId={activePlan.id}
-            phases={phases}
             addPostSlot={<PostingActions activePlanId={activePlan.id} />}
           />
         ) : (

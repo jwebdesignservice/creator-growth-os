@@ -82,7 +82,7 @@ const PRIMARY_CARDS: {
     key: "guides",
     icon: BookOpen,
     title: "Guides & Tutorials",
-    desc: "Step-by-step guides to help you get the most out of CGOS.",
+    desc: "Step-by-step guides to help you get the most out of Profluencer.",
     cta: "Explore guides",
     href: "/tutorials",
     variant: "outline",

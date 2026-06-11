@@ -7,16 +7,8 @@ import {
   Camera,
   UserCircle2,
   DollarSign,
-  Lightbulb,
-  MessageSquare,
-  Video,
-  Scissors,
-  Target,
-  Handshake,
 } from "lucide-react";
 import { SelectionCard } from "@/components/onboarding/selection-card";
-import { Pill } from "@/components/onboarding/pill";
-import { InfoBanner } from "@/components/onboarding/info-banner";
 import type { OnboardingDraft } from "@/components/onboarding/types";
 
 const PILLARS = [
@@ -28,79 +20,43 @@ const PILLARS = [
   { value: "business_monetization", label: "Business / Monetization", icon: DollarSign },
 ];
 
-const HELP = [
-  { value: "content_ideas", label: "Content Ideas", icon: Lightbulb },
-  { value: "hooks_captions", label: "Hooks & Captions", icon: MessageSquare },
-  { value: "filming", label: "Filming", icon: Video },
-  { value: "editing", label: "Editing", icon: Scissors },
-  { value: "consistency", label: "Consistency", icon: Target },
-  { value: "brand_deals", label: "Brand Deals", icon: Handshake },
-];
-
 type Props = {
   draft: OnboardingDraft;
   onChange: (patch: Partial<OnboardingDraft>) => void;
 };
 
 export function ContentStep({ draft, onChange }: Props) {
-  function toggle(field: "content_pillars" | "help_needs", value: string) {
-    const current = draft[field];
+  function togglePillar(value: string) {
+    const current = draft.content_pillars;
     const next = current.includes(value)
       ? current.filter((x) => x !== value)
       : [...current, value];
-    onChange({ [field]: next } as Partial<OnboardingDraft>);
+    onChange({ content_pillars: next });
   }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-h1 text-ink-900 leading-tight flex items-start gap-2 mb-2">
-          <span className="text-rose-500 mt-2">✦</span>
-          What kind of content do you want help creating?
+    <div className="space-y-7">
+      <header className="text-center">
+        <h1 className="text-h1 text-ink-900 leading-tight mb-2">
+          What do you want to create content about?
         </h1>
         <p className="text-ink-500 text-[14px]">
-          We&apos;ll personalize your tutorials, posting plans, and creator drills around your content style.
+          Pick one or more — you can change these anytime in settings.
         </p>
       </header>
 
-      <section>
-        <div className="text-[13px] font-semibold text-ink-900 mb-3">
-          1. Choose your main content pillars
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-          {PILLARS.map((p) => (
-            <SelectionCard
-              key={p.value}
-              size="compact"
-              icon={<p.icon className="size-4" strokeWidth={1.8} />}
-              title={p.label}
-              selected={draft.content_pillars.includes(p.value)}
-              onToggle={() => toggle("content_pillars", p.value)}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="text-[13px] font-semibold text-ink-900 mb-3">
-          2. What should we help you with first?
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
-          {HELP.map((h) => (
-            <Pill
-              key={h.value}
-              icon={<h.icon className="size-4" strokeWidth={1.8} />}
-              label={h.label}
-              selected={draft.help_needs.includes(h.value)}
-              onToggle={() => toggle("help_needs", h.value)}
-            />
-          ))}
-        </div>
-      </section>
-
-      <InfoBanner>
-        You can update your preferences later in settings.
-      </InfoBanner>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {PILLARS.map((p) => (
+          <SelectionCard
+            key={p.value}
+            size="compact"
+            icon={<p.icon className="size-4" strokeWidth={1.8} />}
+            title={p.label}
+            selected={draft.content_pillars.includes(p.value)}
+            onToggle={() => togglePillar(p.value)}
+          />
+        ))}
+      </div>
     </div>
   );
 }

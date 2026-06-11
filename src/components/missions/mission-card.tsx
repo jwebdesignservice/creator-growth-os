@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Camera,
   CalendarDays,
@@ -8,17 +8,15 @@ import {
   BarChart3,
   Wallet,
   Sparkles as ConfidenceIcon,
-  Clock,
-  Check,
   CheckCircle2,
+  ArrowRight,
   Bookmark,
-  MoreHorizontal,
   Trash2,
   Send,
   ListChecks,
   Target,
   Users,
-  Star,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -143,11 +141,13 @@ const TYPE_COLORS: Record<MissionType, TypeColors> = {
   confidence:   { tile: "bg-[#DCF0EE] text-[#2E8A82]", accent: "bg-[#6FBDB4]", text: "text-[#2E8A82]" },
 };
 
-const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  easy: "Easy",
-  medium: "Medium",
-  hard: "Hard",
-};
+/** Stable ticket-style code (TSK-10…TSK-99) derived from the mission id. */
+function taskCode(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return `TSK-${(h % 90) + 10}`;
+}
+
 
 type Props = {
   mission: Mission;
@@ -161,23 +161,28 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   const meta = TYPE_META[mission.type];
   const colors = TYPE_COLORS[mission.type];
   const Icon = meta.icon;
-  const ProgressIcon = meta.progressIcon;
-  const MetaIcon = meta.metaIcon;
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const completed = mission.completed;
   const progressCurrent = mission.progressCurrent ?? 0;
   const progressTarget = mission.progressTarget ?? meta.progressTarget;
   const progressLabel = mission.progressLabel ?? meta.progressLabel;
-  const metaLabel = mission.metaLabel ?? meta.metaLabel;
-  const metaValue = mission.metaValue ?? meta.metaValue;
+  // Task data sometimes carries raw markdown ("**Objective:** …") — strip the
+  // asterisks so the card never shows formatting characters.
+  const desc = mission.description.replace(/\*\*/g, "");
   const progressPct = Math.min(
     100,
     Math.round((progressCurrent / Math.max(1, progressTarget)) * 100),
   );
 
+  // Fill the bar 0 → value on mount for a calm, one-shot reveal. rAF defers
+  // the set out of the effect body (react-hooks lint-safe).
+  const [barWidth, setBarWidth] = useState(0);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setBarWidth(progressPct));
+    return () => cancelAnimationFrame(raf);
+  }, [progressPct]);
   const complete = () => {
     startTransition(async () => {
       await onToggle(mission.id, !completed);
@@ -185,7 +190,6 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   };
 
   const handleDelete = () => {
-    setMenuOpen(false);
     if (!onDelete) return;
     if (
       typeof window !== "undefined" &&
@@ -200,206 +204,192 @@ export function MissionCard({ mission, onToggle, onDelete, canDelete }: Props) {
   return (
     <div
       className={cn(
-        "group card rounded-[20px] border border-ink-100 p-5 sm:p-6 flex flex-col transition-all duration-200 hover:border-ink-200 hover:shadow-card",
-        completed && "bg-cream-50",
+        "group relative flex flex-col rounded-[20px] border p-5 transition-[transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-6",
+        completed
+          ? "border-ink-100 bg-cream-50/70 shadow-[0_1px_2px_rgba(26,24,22,0.03)]"
+          : "border-rose-200/70 bg-white shadow-[0_1px_2px_rgba(26,24,22,0.04),0_10px_30px_-16px_rgba(26,24,22,0.13)] hover:-translate-y-1 hover:border-rose-200 hover:shadow-[0_3px_6px_rgba(26,24,22,0.05),0_22px_48px_-20px_rgba(185,72,92,0.22)]",
       )}
     >
-      {/* Header — icon tile · category/meta line · points */}
-      <div className="flex items-start gap-3.5">
-        <span
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        {/* ── Header: ticket code + quick actions ────────────────────── */}
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex size-7 shrink-0 items-center justify-center rounded-[8px] ring-1 ring-inset ring-black/[0.04]",
+                completed ? "bg-cream-200 text-ink-400" : colors.tile,
+              )}
+            >
+              <Icon className="size-4" strokeWidth={2} />
+            </span>
+            <span
+              className={cn(
+                "truncate font-mono text-[13px] font-bold tracking-wide",
+                completed ? "text-ink-400" : "text-rose-700",
+              )}
+            >
+              {taskCode(mission.id)}
+            </span>
+          </span>
+
+        </div>
+
+        {/* ── Title + rose description ───────────────────────────────── */}
+        <h3
           className={cn(
-            "size-12 rounded-[14px] inline-flex items-center justify-center shrink-0",
-            colors.tile,
+            "mt-3.5 text-[18px] font-bold leading-snug tracking-[-0.014em] sm:text-[19px]",
+            completed
+              ? "text-ink-400 line-through decoration-ink-300"
+              : "text-ink-900",
           )}
         >
-          <Icon className="size-[22px]" strokeWidth={1.9} />
-        </span>
+          {mission.title}
+        </h3>
+        <p
+          className={cn(
+            "mt-1.5 line-clamp-2 text-[13.5px] leading-relaxed",
+            completed ? "text-ink-300" : "text-rose-700/80",
+          )}
+        >
+          {desc}
+        </p>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            {/* Category · time · difficulty — one quiet line, no chip clutter */}
-            <div className="flex items-center gap-2 min-w-0 text-[11.5px] leading-none">
-              <span
-                className={cn(
-                  "font-semibold uppercase tracking-[0.07em]",
-                  completed ? "text-ink-400" : colors.text,
-                )}
-              >
-                {meta.label}
-              </span>
-              <span className="size-[3px] rounded-full bg-ink-300 shrink-0" />
-              <span className="inline-flex items-center gap-1 text-ink-500 whitespace-nowrap">
-                <Clock className="size-3 text-ink-400" strokeWidth={2} />
-                {mission.minutes} min
-              </span>
-              <span className="size-[3px] rounded-full bg-ink-300 shrink-0" />
-              <span className="text-ink-500 whitespace-nowrap">
-                {DIFFICULTY_LABEL[mission.difficulty]}
-              </span>
-            </div>
-
-            {/* Points */}
-            <span className="shrink-0 inline-flex items-baseline gap-1 text-[13px] font-bold text-ink-800 tabular-nums leading-none">
-              <Star
-                className="size-3.5 self-center text-amber-400"
-                fill="currentColor"
-                strokeWidth={0}
-              />
-              {mission.points}
-              <span className="text-[11px] font-medium text-ink-400">pts</span>
-            </span>
-          </div>
-
-          <h3
-            className={cn(
-              "mt-2 text-[17px] sm:text-[18px] font-bold tracking-[-0.01em] text-ink-900 leading-snug",
-              completed && "line-through text-ink-400",
-            )}
-          >
-            {mission.title}
-          </h3>
-        </div>
-      </div>
-
-      {/* Description */}
-      <p
-        className={cn(
-          "mt-3 text-[13px] text-ink-500 leading-relaxed line-clamp-2",
-          completed && "text-ink-300",
-        )}
-      >
-        {mission.description}
-      </p>
-
-      {/* Progress */}
-      <div className="mt-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-600">
-            <ProgressIcon className="size-3.5 text-ink-400" strokeWidth={2} />
-            {progressLabel}
-          </span>
-          <span className="text-[12.5px] font-semibold text-ink-900 tabular-nums">
-            {progressCurrent}
-            <span className="text-ink-400 font-normal"> / {progressTarget}</span>
-          </span>
-        </div>
-        <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden">
-          <div
-            className={cn("h-full rounded-full transition-all", colors.accent)}
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Goal / focus — quiet footnote */}
-      <div className="mt-3 flex items-center gap-1.5 text-[11.5px] text-ink-400 min-w-0">
-        <MetaIcon className="size-3.5 shrink-0" strokeWidth={1.9} />
-        <span className="font-medium text-ink-500 shrink-0">{metaLabel}</span>
-        <span className="text-ink-300 shrink-0">·</span>
-        <span className="truncate">{metaValue}</span>
-      </div>
-
-      {/* Actions — pinned to the bottom so cards align in a grid */}
-      <div className="mt-auto pt-5 flex items-center gap-2">
-        {completed ? (
+        {/* ── Task progress — labeled bar + sub-task dots (reference) ── */}
+        {!completed && (
           <>
-            <span className="flex-1 inline-flex items-center justify-center gap-1.5 h-11 rounded-[12px] bg-success-bg text-success text-[13px] font-semibold">
-              <Check className="size-4" strokeWidth={3} />
-              Completed
-              {mission.completed_at && (
-                <span className="font-normal text-success/75">
-                  · {mission.completed_at}
+            <div className="my-4 border-t border-dashed border-rose-200/70" aria-hidden />
+            <div className="mb-5">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-[0.1em]">
+                  <span className="text-ink-400">Task </span>
+                  <span className="text-ink-700">progress</span>
                 </span>
-              )}
-            </span>
-            <button
-              type="button"
-              onClick={complete}
-              disabled={pending}
-              className="h-11 px-4 rounded-[12px] border border-ink-200 hover:bg-cream-100 text-[12.5px] font-medium text-ink-600 hover:text-ink-900 transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              Undo
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={complete}
-              disabled={pending}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[12px] border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 text-[13.5px] font-semibold transition-colors cursor-pointer"
-            >
-              <CheckCircle2 className="size-4" strokeWidth={2} />
-              {pending ? "Saving…" : "Mark complete"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSaved((v) => !v)}
-              aria-pressed={saved}
-              aria-label={saved ? "Remove from saved" : "Save mission for later"}
-              className={cn(
-                "size-11 rounded-[12px] border inline-flex items-center justify-center transition-colors cursor-pointer",
-                saved
-                  ? "border-rose-200 bg-rose-50 text-rose-600"
-                  : "border-ink-200 hover:bg-cream-100 text-ink-400 hover:text-rose-600",
-              )}
-            >
-              <Bookmark
-                className="size-4"
-                strokeWidth={1.8}
-                fill={saved ? "currentColor" : "none"}
-              />
-            </button>
-            {canDelete && onDelete ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  aria-label="More options"
-                  aria-haspopup="menu"
-                  aria-expanded={menuOpen}
-                  onClick={() => setMenuOpen((o) => !o)}
-                  className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
-                >
-                  <MoreHorizontal className="size-4" strokeWidth={2} />
-                </button>
-                {menuOpen && (
-                  <>
-                    <button
-                      type="button"
-                      aria-hidden
-                      tabIndex={-1}
-                      onClick={() => setMenuOpen(false)}
-                      className="fixed inset-0 z-40 cursor-default"
-                    />
-                    <div
-                      role="menu"
-                      className="absolute right-0 top-[calc(100%+6px)] z-50 w-[168px] overflow-hidden rounded-[12px] border border-ink-100 bg-white py-1.5 shadow-card"
-                    >
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={handleDelete}
-                        disabled={pending}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                      >
-                        <Trash2 className="size-4" strokeWidth={2} />
-                        Delete task
-                      </button>
-                    </div>
-                  </>
-                )}
+                <span className="text-[13px] font-bold tabular-nums text-ink-900">
+                  {progressPct}%
+                </span>
               </div>
-            ) : (
+              <div className="h-2 overflow-hidden rounded-full bg-cream-200 shadow-[inset_0_1px_2px_rgba(26,24,22,0.09)] ring-1 ring-inset ring-ink-100/50">
+                <div
+                  className={cn(
+                    "relative h-full rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    colors.accent,
+                  )}
+                  style={{ width: `${barWidth}%` }}
+                >
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/35 to-transparent"
+                  />
+                </div>
+              </div>
+              {/* sub-task dots — one per step, filled as you go */}
+              <div className="mt-2.5 flex items-center gap-2.5">
+                <span className="flex items-center gap-1" aria-hidden>
+                  {Array.from(
+                    { length: Math.min(progressTarget, 6) },
+                    (_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "size-2.5 rounded-full transition-colors",
+                          i < progressCurrent
+                            ? colors.accent
+                            : "bg-cream-200 ring-1 ring-inset ring-ink-200/60",
+                        )}
+                      />
+                    ),
+                  )}
+                </span>
+                <span className="min-w-0 truncate font-mono text-[11px] font-bold uppercase tracking-[0.1em] text-ink-500">
+                  {progressLabel}:{" "}
+                  <span className="tabular-nums text-ink-700">
+                    {progressCurrent}/{progressTarget}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Footer: summary left, /programs-style CTA pill right ────── */}
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-dashed border-rose-200/70 pt-4">
+          {completed ? (
+            <>
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] font-semibold text-success">
+                <CheckCircle2 className="size-3.5 shrink-0" strokeWidth={2.2} />
+                Completed
+                {mission.completed_at && (
+                  <span className="truncate font-normal text-success/70">
+                    · {mission.completed_at}
+                  </span>
+                )}
+              </span>
               <button
                 type="button"
-                aria-label="More options"
-                className="size-11 rounded-[12px] border border-ink-200 hover:bg-cream-100 inline-flex items-center justify-center text-ink-400 hover:text-ink-900 transition-colors cursor-pointer"
+                onClick={complete}
+                disabled={pending}
+                className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full bg-cream-100 px-3.5 text-[12.5px] font-semibold text-ink-700 ring-1 ring-inset ring-ink-200/90 transition-colors duration-200 hover:bg-ink-900 hover:text-white hover:ring-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:ring-offset-2 disabled:opacity-60"
               >
-                <MoreHorizontal className="size-4" strokeWidth={2} />
+                {pending && (
+                  <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+                )}
+                Undo
               </button>
-            )}
-          </>
-        )}
+            </>
+          ) : (
+            <>
+              {/* quiet circular secondaries (reference's outline icon row) */}
+              <span className="flex shrink-0 items-center gap-1.5">
+                {canDelete && onDelete && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={pending}
+                    aria-label="Delete task"
+                    title="Delete task"
+                    className="inline-flex size-9 cursor-pointer items-center justify-center rounded-full border border-rose-200 bg-white text-rose-500 shadow-[0_1px_2px_rgba(26,24,22,0.05)] transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:opacity-50"
+                  >
+                    <Trash2 className="size-4" strokeWidth={1.9} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSaved((v) => !v)}
+                  aria-pressed={saved}
+                  aria-label={saved ? "Remove from saved" : "Save for later"}
+                  title={saved ? "Saved" : "Save for later"}
+                  className={cn(
+                    "inline-flex size-9 cursor-pointer items-center justify-center rounded-full border bg-white shadow-[0_1px_2px_rgba(26,24,22,0.05)] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300",
+                    saved
+                      ? "border-rose-200 bg-rose-50 text-rose-600"
+                      : "border-ink-200 text-ink-400 hover:border-rose-200 hover:text-rose-600",
+                  )}
+                >
+                  <Bookmark
+                    className="size-4"
+                    strokeWidth={1.9}
+                    fill={saved ? "currentColor" : "none"}
+                  />
+                </button>
+              </span>
+              <button
+                type="button"
+                onClick={complete}
+                disabled={pending}
+                className="group/cta inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full bg-rose-50 px-3.5 text-[12.5px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200/80 transition-colors duration-200 hover:bg-rose-600 hover:text-white hover:ring-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 disabled:opacity-60"
+              >
+                {pending && (
+                  <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+                )}
+                Mark complete
+                <ArrowRight
+                  className="size-3.5 transition-transform duration-200 group-hover/cta:translate-x-0.5"
+                  strokeWidth={2.5}
+                />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
