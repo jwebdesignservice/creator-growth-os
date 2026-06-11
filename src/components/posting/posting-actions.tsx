@@ -40,6 +40,8 @@ import {
   Send,
   MoreHorizontal,
   Music,
+  Repeat2,
+  ThumbsUp,
   ShoppingBag,
   Palette,
   HardDrive,
@@ -131,6 +133,37 @@ const CONTENT_TYPES = [
   { value: "story", label: "Story" },
   { value: "youtube_video", label: "YouTube Video" },
   { value: "post", label: "Post" },
+];
+
+/* YouTube-only composer bits — format toggle + publish settings (the
+   reference's Title / Category / Visibility / License / checkbox row). */
+const YT_TYPES = [
+  { value: "short_video", label: "Short" },
+  { value: "youtube_video", label: "Video" },
+];
+const YT_CATEGORIES = [
+  { value: "autos_vehicles", label: "Autos & Vehicles" },
+  { value: "comedy", label: "Comedy" },
+  { value: "education", label: "Education" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "film_animation", label: "Film & Animation" },
+  { value: "gaming", label: "Gaming" },
+  { value: "howto_style", label: "Howto & Style" },
+  { value: "music", label: "Music" },
+  { value: "people_blogs", label: "People & Blogs" },
+  { value: "pets_animals", label: "Pets & Animals" },
+  { value: "science_tech", label: "Science & Technology" },
+  { value: "sports", label: "Sports" },
+  { value: "travel_events", label: "Travel & Events" },
+];
+const YT_VISIBILITY = [
+  { value: "public", label: "Public" },
+  { value: "unlisted", label: "Unlisted" },
+  { value: "private", label: "Private" },
+];
+const YT_LICENSES = [
+  { value: "standard", label: "Standard YouTube License" },
+  { value: "creative_commons", label: "Creative Commons — Attribution" },
 ];
 
 /* Instagram-only format toggle (the reference's Post / Reel / Story row). */
@@ -459,6 +492,36 @@ export function NewItemForm({
   >(editItem?.scheduled_for || initialDate ? "custom" : "next");
   // Automatic vs Notify-Me publishing preference (composer's quiet menu).
   const [autoMode, setAutoMode] = useState<"automatic" | "notify">("automatic");
+  // YouTube publish settings (the reference's Category / Visibility / License
+  // row + checkboxes). Recorded with the post's notes on save.
+  const [ytCategory, setYtCategory] = useState("people_blogs");
+  const [ytVisibility, setYtVisibility] = useState("public");
+  const [ytLicense, setYtLicense] = useState("standard");
+  const [ytNotifySubs, setYtNotifySubs] = useState(true);
+  const [ytAllowEmbed, setYtAllowEmbed] = useState(true);
+  const [ytMadeForKids, setYtMadeForKids] = useState(false);
+  // The signed-in creator's name — fronts the YouTube preview's channel row.
+  const [channelName, setChannelName] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled || !user) return;
+      setChannelName(
+        (user.user_metadata?.full_name as string | undefined) ??
+          (user.user_metadata?.display_name as string | undefined) ??
+          user.email?.split("@")[0] ??
+          null,
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [autoOpen, setAutoOpen] = useState(false);
   // "+" media-source menu.
   const [plusOpen, setPlusOpen] = useState(false);
@@ -545,6 +608,10 @@ export function NewItemForm({
   }, [editItem]);
 
   const isInstagram = platform === "instagram";
+  const isYoutube = platform === "youtube";
+  const isLinkedin = platform === "linkedin";
+  // Caption budget mirrors the real platform limits (LinkedIn: 3,000 chars).
+  const charLimit = isLinkedin ? 3000 : 4000;
   const platformLabel = PLATFORMS.find((p) => p.value === platform)?.label ?? platform;
   const contentLabel = CONTENT_TYPES.find((t) => t.value === contentType)?.label ?? contentType;
   const goalLabel = GOALS.find((g) => g.value === goal && g.value)?.label ?? null;
@@ -606,10 +673,24 @@ export function NewItemForm({
     setErr(null);
     const when = resolveWhen();
     const scheduledFor = when ? when.toISOString() : undefined;
-    // The AI-Generated toggle records the disclosure with the post's notes.
+    // The AI-Generated toggle + YouTube publish settings are recorded with the
+    // post's notes (no dedicated columns; same pattern as the AI disclosure).
+    const ytLine = isYoutube
+      ? [
+          YT_CATEGORIES.find((c) => c.value === ytCategory)?.label,
+          YT_VISIBILITY.find((v) => v.value === ytVisibility)?.label,
+          YT_LICENSES.find((l) => l.value === ytLicense)?.label,
+          ytNotifySubs ? "Notify subscribers" : null,
+          ytAllowEmbed ? "Allow embedding" : null,
+          ytMadeForKids ? "Made for kids" : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "";
     const finalNotes = [
       notes.trim(),
       aiGen ? "Disclose: content generated or edited with AI." : "",
+      ytLine ? `YouTube: ${ytLine}` : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -1256,11 +1337,45 @@ export function NewItemForm({
                           <span
                             className={cn(
                               "inline-flex size-[18px] items-center justify-center rounded-full border-2 transition-colors",
-                              on ? "border-emerald-500" : "border-ink-300",
+                              on ? "border-rose-500" : "border-ink-300",
                             )}
                           >
                             {on && (
-                              <span className="size-2 rounded-full bg-emerald-500" />
+                              <span className="size-2 rounded-full bg-rose-500" />
+                            )}
+                          </span>
+                          <span className={on ? "text-ink-900" : "text-ink-500"}>
+                            {t.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {isYoutube && (
+                <div className="flex items-center gap-4 px-4 pt-3.5">
+                  <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
+                    <PlatformGlyph platform={platform} size={16} />
+                  </span>
+                  <div className="flex items-center gap-5">
+                    {YT_TYPES.map((t) => {
+                      const on = contentType === t.value;
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => setContentType(t.value)}
+                          className="inline-flex items-center gap-1.5 text-[14px] font-medium"
+                        >
+                          <span
+                            className={cn(
+                              "inline-flex size-[18px] items-center justify-center rounded-full border-2 transition-colors",
+                              on ? "border-rose-500" : "border-ink-300",
+                            )}
+                          >
+                            {on && (
+                              <span className="size-2 rounded-full bg-rose-500" />
                             )}
                           </span>
                           <span className={on ? "text-ink-900" : "text-ink-500"}>
@@ -1273,15 +1388,15 @@ export function NewItemForm({
                 </div>
               )}
               <div className="flex items-start gap-3 p-4 pb-0">
-                {!isInstagram && (
+                {!isInstagram && !isYoutube && (
                   <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
                     <PlatformGlyph platform={platform} size={16} />
                   </span>
                 )}
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value.slice(0, 4000))}
-                  maxLength={4000}
+                  onChange={(e) => setNotes(e.target.value.slice(0, charLimit))}
+                  maxLength={charLimit}
                   rows={5}
                   spellCheck
                   placeholder="Start writing or get inspired with Templates"
@@ -1398,7 +1513,7 @@ export function NewItemForm({
                 <span aria-hidden className="w-px h-4 bg-ink-200 mx-1" />
                 <button
                   type="button"
-                  onClick={() => setNotes((t) => (t + "🙂").slice(0, 4000))}
+                  onClick={() => setNotes((t) => (t + "🙂").slice(0, charLimit))}
                   title="Add emoji"
                   aria-label="Add emoji"
                   className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
@@ -1407,7 +1522,7 @@ export function NewItemForm({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setNotes((t) => (t + "#").slice(0, 4000))}
+                  onClick={() => setNotes((t) => (t + "#").slice(0, charLimit))}
                   title="Add hashtag"
                   aria-label="Add hashtag"
                   className="inline-flex size-8 items-center justify-center rounded-[8px] text-ink-500 hover:bg-cream-100 hover:text-ink-900 transition-colors"
@@ -1425,7 +1540,7 @@ export function NewItemForm({
                   className="rounded-[8px] border border-ink-200 px-2 py-0.5 text-[11.5px] tabular-nums text-ink-500"
                   title="Characters left"
                 >
-                  {4000 - notes.length}
+                  {charLimit - notes.length}
                 </span>
               </div>
 
@@ -1568,7 +1683,12 @@ export function NewItemForm({
 
               {/* title — the post's hook/topic */}
               <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100">
-                <span className="w-[44px] shrink-0 text-[14px] text-ink-600">
+                <span
+                  className={cn(
+                    "shrink-0 text-[14px] text-ink-600",
+                    isYoutube ? "w-[80px]" : "w-[44px]",
+                  )}
+                >
                   Title
                 </span>
                 <input
@@ -1576,14 +1696,91 @@ export function NewItemForm({
                   value={topic}
                   onChange={(e) => setTopic(e.target.value.slice(0, 160))}
                   maxLength={160}
-                  placeholder="Add a title…"
+                  placeholder={
+                    isYoutube ? "Enter a title for your video" : "Add a title…"
+                  }
                   className={cn(fieldCls, "h-11")}
                 />
               </div>
 
-              {/* Instagram First Comment (reference) — coming soon; stories
-                  don't have comments, so it's hidden for the Story format */}
-              {isInstagram && contentType !== "story" && (
+              {/* YouTube publish settings — Category/Visibility · License ·
+                  Notify/Embed/Kids checkboxes (the reference's metadata rows) */}
+              {isYoutube && (
+                <>
+                  <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100 flex-wrap sm:flex-nowrap">
+                    <span className="w-[80px] shrink-0 text-[14px] text-ink-600">
+                      Category
+                    </span>
+                    <select
+                      value={ytCategory}
+                      onChange={(e) => setYtCategory(e.target.value)}
+                      aria-label="YouTube category"
+                      className={cn(fieldCls, "h-11 min-w-0 flex-1")}
+                    >
+                      {YT_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="shrink-0 pl-1 text-[14px] text-ink-600">
+                      Visibility
+                    </span>
+                    <select
+                      value={ytVisibility}
+                      onChange={(e) => setYtVisibility(e.target.value)}
+                      aria-label="YouTube visibility"
+                      className={cn(fieldCls, "h-11 w-[120px] shrink-0")}
+                    >
+                      {YT_VISIBILITY.map((v) => (
+                        <option key={v.value} value={v.value}>
+                          {v.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100">
+                    <span className="w-[80px] shrink-0 text-[14px] text-ink-600">
+                      License
+                    </span>
+                    <select
+                      value={ytLicense}
+                      onChange={(e) => setYtLicense(e.target.value)}
+                      aria-label="YouTube license"
+                      className={cn(fieldCls, "h-11 min-w-0 flex-1")}
+                    >
+                      {YT_LICENSES.map((l) => (
+                        <option key={l.value} value={l.value}>
+                          {l.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-3.5 border-t border-ink-100">
+                    <YtCheckbox
+                      checked={ytNotifySubs}
+                      onChange={setYtNotifySubs}
+                      label="Notify Subscribers"
+                    />
+                    <YtCheckbox
+                      checked={ytAllowEmbed}
+                      onChange={setYtAllowEmbed}
+                      label="Allow Embedding"
+                    />
+                    <YtCheckbox
+                      checked={ytMadeForKids}
+                      onChange={setYtMadeForKids}
+                      label="Made for Kids"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Instagram/LinkedIn First Comment (reference) — coming soon;
+                  stories don't have comments, so it's hidden for that format */}
+              {((isInstagram && contentType !== "story") || isLinkedin) && (
                 <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100">
                   <span className="w-[92px] shrink-0 text-[14px] text-ink-600">
                     First Comment
@@ -1830,6 +2027,137 @@ export function NewItemForm({
                     <p className="line-clamp-2 text-[12.5px] text-white/90 whitespace-pre-wrap break-words">
                       {notes || "Your caption will appear here"}
                     </p>
+                  </div>
+                </div>
+              ) : isLinkedin ? (
+                /* LinkedIn post mock — header · caption · media · Like/
+                   Comment/Repost/Send bar (1:1 with the reference) */
+                <div className="rounded-[14px] overflow-hidden bg-white border border-ink-100 shadow-sm">
+                  <div className="flex items-center gap-2.5 px-3.5 py-3">
+                    <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[#0A66C2]/15 text-[16px] font-bold text-[#0A66C2]">
+                      {(channelName ?? "You").charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-[14px] font-bold text-ink-900">
+                        {channelName ?? "Your name"}
+                      </div>
+                      <div className="flex items-center gap-1 text-[12px] text-ink-500">
+                        1h ·
+                        <Globe className="size-3" strokeWidth={2} aria-hidden />
+                      </div>
+                    </div>
+                  </div>
+                  {notes && (
+                    <p className="px-3.5 pb-2.5 text-[13px] leading-snug text-ink-800 whitespace-pre-wrap break-words line-clamp-3">
+                      {notes}
+                    </p>
+                  )}
+                  <div className="relative aspect-[4/5] bg-cream-100">
+                    {media ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */
+                      <img
+                        src={media.url}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-ink-300">
+                        <ImagePlus className="size-7" strokeWidth={1.5} />
+                        <span className="text-[12px]">
+                          See your post&apos;s preview here
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mx-3.5 flex items-center justify-between border-t border-ink-100 py-2.5">
+                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0A66C2]/15 text-[12px] font-bold text-[#0A66C2]">
+                      {(channelName ?? "You").charAt(0).toUpperCase()}
+                    </span>
+                    {(
+                      [
+                        { icon: ThumbsUp, label: "Like" },
+                        { icon: MessageCircle, label: "Comment" },
+                        { icon: Repeat2, label: "Repost" },
+                        { icon: Send, label: "Send" },
+                      ] as const
+                    ).map((a) => (
+                      <span
+                        key={a.label}
+                        className="flex flex-col items-center gap-0.5 px-1.5 text-ink-700"
+                      >
+                        <a.icon className="size-[18px]" strokeWidth={1.8} aria-hidden />
+                        <span className="text-[11px] font-semibold">
+                          {a.label}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : isYoutube ? (
+                /* YouTube Shorts mock — dark player · comment/share rail ·
+                   channel row with Subscribe (1:1 with the reference) */
+                <div className="rounded-[16px] overflow-hidden bg-black text-white shadow-sm">
+                  <div className="relative aspect-[9/16] bg-black">
+                    {media ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */
+                      <img
+                        src={media.url}
+                        alt=""
+                        className="absolute inset-x-0 top-1/2 max-h-full w-full -translate-y-1/2 object-contain"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/35">
+                        <ImagePlus className="size-7" strokeWidth={1.5} />
+                        <span className="text-[12px]">
+                          See your post&apos;s preview here
+                        </span>
+                      </div>
+                    )}
+
+                    {/* action rail — comment / share, labels under icons */}
+                    <div className="absolute bottom-24 right-2.5 flex flex-col items-center gap-4">
+                      <span className="flex flex-col items-center gap-1">
+                        <MessageCircle
+                          className="size-6"
+                          fill="currentColor"
+                          strokeWidth={0}
+                          aria-hidden
+                        />
+                        <span className="text-[10.5px] font-medium">
+                          Comment
+                        </span>
+                      </span>
+                      <span className="flex flex-col items-center gap-1">
+                        <Share2
+                          className="size-6"
+                          fill="currentColor"
+                          strokeWidth={0}
+                          aria-hidden
+                        />
+                        <span className="text-[10.5px] font-medium">Share</span>
+                      </span>
+                      <span className="mt-1 inline-flex size-7 items-center justify-center rounded-[8px] bg-rose-600 text-[12px] font-bold">
+                        {(channelName ?? "You").charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* channel row + title — Shorts bottom overlay */}
+                    <div className="absolute inset-x-0 bottom-0 space-y-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pr-14">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-rose-600 text-[12px] font-bold">
+                          {(channelName ?? "You").charAt(0).toUpperCase()}
+                        </span>
+                        <span className="min-w-0 truncate text-[13px] font-semibold">
+                          @{channelName ?? "yourchannel"}
+                        </span>
+                        <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11.5px] font-semibold text-black">
+                          Subscribe
+                        </span>
+                      </div>
+                      <p className="line-clamp-2 text-[12.5px] text-white/90 whitespace-pre-wrap break-words">
+                        {topic || notes || "Your title will appear here"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -2186,6 +2514,39 @@ export function NewItemForm({
         </footer>
       </div>
     </div>
+  );
+}
+
+/* Rounded brand checkbox for the YouTube publish-settings row. */
+function YtCheckbox({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="group inline-flex items-center gap-2 cursor-pointer focus-visible:outline-none"
+    >
+      <span
+        className={cn(
+          "inline-flex size-5 items-center justify-center rounded-[6px] transition-colors group-focus-visible:ring-2 group-focus-visible:ring-rose-200",
+          checked
+            ? "bg-rose-600 text-white"
+            : "border-2 border-ink-300 bg-white group-hover:border-ink-400",
+        )}
+      >
+        {checked && <Check className="size-3.5" strokeWidth={3} />}
+      </span>
+      <span className="text-[14px] font-medium text-ink-800">{label}</span>
+    </button>
   );
 }
 

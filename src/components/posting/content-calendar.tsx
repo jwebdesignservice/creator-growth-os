@@ -472,10 +472,7 @@ export function ContentCalendar({
                         return (
                           <div
                             key={bi}
-                            className={cn(
-                              "flex min-h-[108px] flex-1 flex-col gap-1.5 p-1.5",
-                              bi > 0 && "border-t border-ink-100",
-                            )}
+                            className="flex min-h-[108px] flex-1 flex-col gap-1.5 p-1.5"
                           >
                             {bandItems.map((item) => {
                               const pm = platformMeta(
@@ -697,12 +694,22 @@ export function ContentCalendar({
                               })
                             }
                             title={item.topic ?? "Untitled post"}
+                            aria-busy={saving || undefined}
                             className={cn(
-                              "flex w-full cursor-grab items-center gap-1.5 rounded-[10px] border border-ink-100 bg-white p-1 shadow-[0_1px_2px_rgba(26,24,22,0.06)] transition-all active:cursor-grabbing hover:border-ink-200 hover:shadow-[0_3px_8px_-3px_rgba(26,24,22,0.3)]",
+                              "relative flex w-full cursor-grab items-center gap-1.5 rounded-[10px] border border-ink-100 bg-white p-1 shadow-[0_1px_2px_rgba(26,24,22,0.06)] transition-all active:cursor-grabbing hover:border-ink-200 hover:shadow-[0_3px_8px_-3px_rgba(26,24,22,0.3)]",
                               draggingId === item.id && "opacity-40",
-                              saving && "pointer-events-none opacity-60",
+                              saving && "anim-move-ping pointer-events-none border-rose-300 opacity-80",
                             )}
                           >
+                            {saving && (
+                              <span className="absolute -right-1.5 -top-1.5 z-10 inline-flex size-5 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-rose-200">
+                                <Loader2
+                                  className="size-3 animate-spin text-rose-600"
+                                  strokeWidth={2.5}
+                                  aria-label="Moving post"
+                                />
+                              </span>
+                            )}
                             <span
                               className={cn(
                                 "inline-flex size-6 shrink-0 items-center justify-center rounded-[7px]",
