@@ -35,6 +35,10 @@ import {
   MessageCircle,
   Bookmark,
   Share2,
+  Send,
+  MoreHorizontal,
+  Music,
+  ShoppingBag,
   Palette,
   HardDrive,
   Images,
@@ -125,6 +129,13 @@ const CONTENT_TYPES = [
   { value: "story", label: "Story" },
   { value: "youtube_video", label: "YouTube Video" },
   { value: "post", label: "Post" },
+];
+
+/* Instagram-only format toggle (the reference's Post / Reel / Story row). */
+const IG_TYPES = [
+  { value: "post", label: "Post" },
+  { value: "reel", label: "Reel" },
+  { value: "story", label: "Story" },
 ];
 
 /* Channel-picker avatar tiles — each platform in its brand colour. */
@@ -529,6 +540,7 @@ export function NewItemForm({
     };
   }, [editItem]);
 
+  const isInstagram = platform === "instagram";
   const platformLabel = PLATFORMS.find((p) => p.value === platform)?.label ?? platform;
   const contentLabel = CONTENT_TYPES.find((t) => t.value === contentType)?.label ?? contentType;
   const goalLabel = GOALS.find((g) => g.value === goal && g.value)?.label ?? null;
@@ -1221,10 +1233,47 @@ export function NewItemForm({
 
             {/* composer card — caption · media · toolbar · publish mode · title */}
             <div className="rounded-[16px] border border-ink-200 bg-white focus-within:border-ink-300 transition-shadow">
+              {/* Instagram format toggle — Post / Reel / Story (reference) */}
+              {isInstagram && (
+                <div className="flex items-center gap-4 px-4 pt-3.5">
+                  <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
+                    <PlatformGlyph platform={platform} size={16} />
+                  </span>
+                  <div className="flex items-center gap-5">
+                    {IG_TYPES.map((t) => {
+                      const on = contentType === t.value;
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => setContentType(t.value)}
+                          className="inline-flex items-center gap-1.5 text-[14px] font-medium"
+                        >
+                          <span
+                            className={cn(
+                              "inline-flex size-[18px] items-center justify-center rounded-full border-2 transition-colors",
+                              on ? "border-emerald-500" : "border-ink-300",
+                            )}
+                          >
+                            {on && (
+                              <span className="size-2 rounded-full bg-emerald-500" />
+                            )}
+                          </span>
+                          <span className={on ? "text-ink-900" : "text-ink-500"}>
+                            {t.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="flex items-start gap-3 p-4 pb-0">
-                <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
-                  <PlatformGlyph platform={platform} size={16} />
-                </span>
+                {!isInstagram && (
+                  <span className="size-9 rounded-[10px] bg-cream-100 inline-flex items-center justify-center shrink-0">
+                    <PlatformGlyph platform={platform} size={16} />
+                  </span>
+                )}
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value.slice(0, 4000))}
@@ -1378,26 +1427,53 @@ export function NewItemForm({
 
               {/* publish mode — goal (left) · Automatic/Notify Me (right) */}
               <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-ink-100">
-                <div className="relative">
-                  <Target
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
-                    strokeWidth={2}
-                  />
-                  <select
-                    value={goal}
-                    onChange={(e) => setGoal(e.target.value)}
-                    aria-label="Goal / objective"
-                    className="h-9 pl-8 pr-8 rounded-[10px] border border-transparent bg-transparent text-[13.5px] font-medium text-ink-700 appearance-none cursor-pointer hover:border-ink-200 hover:bg-cream-50 focus:outline-none focus:border-rose-300 transition-colors"
-                  >
-                    {GOALS.map((g) => (
-                      <option key={g.value} value={g.value}>{g.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
-                    strokeWidth={2}
-                  />
-                </div>
+                {isInstagram ? (
+                  /* Instagram: Add Stickers (reference) instead of the goal control */
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-medium text-ink-600 shrink-0">
+                      Add Stickers
+                    </span>
+                    <button
+                      type="button"
+                      disabled
+                      title="Music stickers — coming soon"
+                      className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-400 cursor-not-allowed"
+                    >
+                      <Music className="size-4" strokeWidth={2} />
+                      Music
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      title="Tag products — coming soon"
+                      className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-[10px] border border-ink-200 text-[13px] font-medium text-ink-400 cursor-not-allowed"
+                    >
+                      <ShoppingBag className="size-4" strokeWidth={2} />
+                      Tag Products
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Target
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-ink-400 pointer-events-none"
+                      strokeWidth={2}
+                    />
+                    <select
+                      value={goal}
+                      onChange={(e) => setGoal(e.target.value)}
+                      aria-label="Goal / objective"
+                      className="h-9 pl-8 pr-8 rounded-[10px] border border-transparent bg-transparent text-[13.5px] font-medium text-ink-700 appearance-none cursor-pointer hover:border-ink-200 hover:bg-cream-50 focus:outline-none focus:border-rose-300 transition-colors"
+                    >
+                      {GOALS.map((g) => (
+                        <option key={g.value} value={g.value}>{g.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-400 pointer-events-none"
+                      strokeWidth={2}
+                    />
+                  </div>
+                )}
 
                 <div className="relative">
                   <button
@@ -1494,6 +1570,25 @@ export function NewItemForm({
                   className={cn(fieldCls, "h-11")}
                 />
               </div>
+
+              {/* Instagram First Comment (reference) — coming soon */}
+              {isInstagram && (
+                <div className="flex items-center gap-3 px-4 py-3 border-t border-ink-100">
+                  <span className="w-[92px] shrink-0 text-[14px] text-ink-600">
+                    First Comment
+                  </span>
+                  <input
+                    type="text"
+                    disabled
+                    placeholder="Your comment"
+                    title="Scheduled first comment — coming soon"
+                    className={cn(
+                      fieldCls,
+                      "h-11 cursor-not-allowed bg-cream-50/60 text-ink-400 placeholder:text-ink-300",
+                    )}
+                  />
+                </div>
+              )}
             </div>
 
             {/* AI-Generated disclosure — saved alongside the post's notes */}
@@ -1546,7 +1641,63 @@ export function NewItemForm({
                 />
               </div>
 
-              {platform === "tiktok" ? (
+              {isInstagram ? (
+                /* Instagram post mock — header · media · actions · caption */
+                <div className="rounded-[14px] overflow-hidden bg-white border border-ink-100 shadow-sm">
+                  <div className="flex items-center gap-2.5 px-3 py-2.5">
+                    <span className="size-8 rounded-full bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#962FBF] p-[2px]">
+                      <span className="flex size-full items-center justify-center rounded-full bg-white">
+                        <PlatformGlyph platform={platform} size={13} />
+                      </span>
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-ink-900">
+                      your_handle
+                    </span>
+                    <MoreHorizontal
+                      className="size-4 shrink-0 text-ink-500"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  </div>
+                  <div
+                    className={cn(
+                      "relative bg-cream-100",
+                      contentType === "reel" || contentType === "story"
+                        ? "aspect-[9/16]"
+                        : "aspect-square",
+                    )}
+                  >
+                    {media ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */
+                      <img
+                        src={media.url}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-ink-300">
+                        <ImagePlus className="size-7" strokeWidth={1.5} />
+                        <span className="text-[12px]">
+                          See your post&apos;s preview here
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 px-3 pt-3">
+                    <Heart className="size-6 text-ink-900" strokeWidth={1.8} aria-hidden />
+                    <MessageCircle className="size-6 text-ink-900" strokeWidth={1.8} aria-hidden />
+                    <Send className="size-[22px] text-ink-900" strokeWidth={1.8} aria-hidden />
+                    <span className="flex-1" />
+                    <Bookmark className="size-6 text-ink-900" strokeWidth={1.8} aria-hidden />
+                  </div>
+                  <div className="px-3 pt-2 pb-3">
+                    <p className="line-clamp-3 text-[13px] leading-snug text-ink-800 whitespace-pre-wrap break-words">
+                      <span className="font-semibold text-ink-900">your_handle</span>{" "}
+                      {notes || "Your caption will appear here"}
+                    </p>
+                  </div>
+                </div>
+              ) : platform === "tiktok" ? (
                 /* TikTok mock — 1:1 with the reference preview */
                 <div className="rounded-[16px] overflow-hidden bg-black text-white shadow-sm">
                   <div className="relative flex items-center justify-center gap-5 px-3 pt-3 pb-2.5">
@@ -1648,7 +1799,7 @@ export function NewItemForm({
                 </div>
               )}
 
-              {!notes && platform !== "tiktok" && (
+              {!notes && platform !== "tiktok" && !isInstagram && (
                 <p className="mt-3 text-center text-[12.5px] text-ink-400">
                   See your post&apos;s preview here
                 </p>
